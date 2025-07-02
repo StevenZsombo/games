@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game by Steven Zs :)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      background: #444;
+    }
+
+    #canvasContainer {
+      margin: 0;
+      max-width: 800px;
+      max-height: 500px;
+      width: 100%;
+      background: #000000;
+    }
+
+    #canvasContainer.full {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      margin: 0;
+      max-width: none;
+      max-height: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      background: #000000;
+      aspect-ratio: 800/500;
+      width: 100%;
+      height: auto;
+    }
+
+    #canvasContainer.full canvas {
+      width: min(100vw, calc(100vh * 1.6));
+      height: min(100vh, calc(100vw / 1.6));
+      max-width: none;
+      max-height: none;
+    }
+  </style>
+</head>
+
+<body id="body">
+  <div id="canvasContainer">
+    <canvas id="myCanvas" width="800" height="500"></canvas>
+  </div>
+
+  <script>
+    function fullscreenToggle() {
+      document.getElementById('canvasContainer').classList.toggle('full');
+    }
+  </script>
+  <script src="MM.js"></script>
+  <script src="scripts.js"></script>
+  <script src="animations.js"></script>
+  <script src="gui.js"></script>
+  <script src="particles.js"></script>
+</body>
+
+</html>
