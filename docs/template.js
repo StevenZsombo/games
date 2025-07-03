@@ -23,8 +23,7 @@ window.onload = function () {
 }
 
 const beforeMain = function (canvas) {
-    /**@type {Cropper} */
-    cropper = new Cropper()
+    const cropper = new Cropper()
     const cont = {}
     main(canvas)
     /*
