@@ -11,7 +11,7 @@
 <script>
     {
         const data = { //tag: [path, name, txt]
-            particles: ["particles/particles.html", "Particles", "these are my particles"],
+            particles: ["particles.html", "Particles", "these are my particles"],
             cats: ["cats/cats.html", "Cats", "these are (not) my cats"],
             lights: ["lights/index.html", "Lights", "these are my lights"],
             sec1: ["security1/index.html", "Security", "Security game"],
@@ -32,10 +32,6 @@
         for ([path, name, txt] of Object.values(data)) {
             addToList(path, name, txt)
         }
-
-        document.body.insertAdjacentHTML("beforeend",
-            `<br><br><a href="template.html">The latest in-progress project </a>`
-        )
 
     }
 </script>

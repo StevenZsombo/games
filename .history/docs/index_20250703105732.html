@@ -1,0 +1,37 @@
+<html>
+
+<body>
+    <b>Games</b>
+    <br>
+    <ul id="gamelist">
+    </ul>
+
+</body>
+
+<script>
+    {
+        const files = {
+            Particles: "these are my particles",
+            Cats: "these are my cats",
+        }
+
+        //will append "particles.html" with the given text
+
+        const addToList = function (path, tit, txt) {
+            const listitem = document.createElement('li')
+            listitem.innerHTML = `<a href="${path}">${tit}</a>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${txt}<br>&nbsp;`
+            document.body.appendChild(listitem)
+
+
+        }
+        //ADDED FROM THE LIST
+        for (let [file, txt] of Object.entries(files)) {
+            addToList(`${file.toLowerCase()}.html`, file, txt)
+        }
+        //MANUALLY ADDED
+        addToList("lights/index.html", "Lights", "these are my lights")
+    }
+</script>
+
+</html>

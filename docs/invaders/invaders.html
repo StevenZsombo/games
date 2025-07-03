@@ -1,0 +1,313 @@
+<body>
+	<canvas id = "myCanvas" width = 500 height =500>
+	<script>
+	var Game = function(canvasId){
+	var canvas = document.getElementById(canvasId)
+	this.canvas = canvas
+	var screen =  canvas.getContext("2d")
+	this.screen = screen
+	var gameSize = {x: canvas.width, y: canvas.height}
+	this.gameSize = gameSize
+	this.ATCENTER = {x: gameSize.x/2, y:gameSize.y/2}
+	
+	this.bodies = createInvaders(this,gameSize)
+	this.player = new Player(this,gameSize)
+	this.bodies.push(this.player)
+	
+	this.popups = []
+	new Popup(this,"Press A-D to move, and Space to fire!",3000,{x:gameSize.x/2,y:gameSize.y/2-15})
+	new Popup(this,"Or: touch lower half to move, upper half to fire!",3000,{x:gameSize.x/2,y:gameSize.y/2+15})
+	this.invadersCanFire = false
+	setTimeout(()=>{this.invadersCanFire=true},3000)
+	
+	this.startTime = Date.now()
+	
+	
+	var self=this
+	var tick = function(){
+		self.update()
+		self.draw(screen, gameSize)
+		requestAnimationFrame(tick)
+	}
+	
+	tick()
+}
+
+Game.prototype = {
+	update : function(){
+		var bodies = this.bodies
+		var len = bodies.length
+		var goodbodies = Array(len).fill(true)
+		for (var i=0;i<len;i++){
+			var b = bodies[i]
+			if (b.center.y+b.size.y/2 < 0 || b.center.y-b.size.y/2 > this.gameSize.y){
+				goodbodies[i]=false
+				continue
+			}
+			for (var j=0; j<i ;j++){
+				if (colliding(bodies[i],bodies[j])){
+					goodbodies[i]=false
+					goodbodies[j]=false
+					if (bodies[i] instanceof Player || bodies[j] instanceof Player){
+						gameover(this)
+					}
+				}
+			}
+		}
+		this.bodies = bodies.filter((_,i) => goodbodies[i])
+		for (body of this.bodies){
+			body.update()
+		}
+	},
+	draw : function(screen,gameSize){
+		screen.fillStyle = "lightgray"
+		screen.fillRect(0,0,gameSize.x,gameSize.y)
+		//screen.clearRect(0,0,gameSize.x,gameSize.y)
+		this.popups = this.popups.filter(t => Date.now()-t.startTime < t.duration)
+		for (t of this.popups){
+			t.draw(screen)
+		}
+		for (body of this.bodies){
+			drawRect(screen, body, color = body.color)
+		}
+	},
+	addBody : function(body){
+		this.bodies.push(body)
+	},
+	invadersBelow : function(invader){
+		return this.bodies.filter(function(b){
+			return b instanceof Invader &&
+			b.center.y > invader.center.y &&
+			Math.abs(b.center.x - invader.center.x) < 2*invader.size.x 			
+			}		
+		).length>0
+	}
+		
+}
+
+var Popup = function(game, txt, duration,
+						center
+						){
+	this.startTime = Date.now()
+	this.duration = duration
+	this.txt = txt
+	this.center = center
+	game.popups.push(this)
+	
+}
+
+Popup.prototype = {
+	draw : function(screen){
+		screen.font = "24px Times"
+		screen.textAlign = "center"
+		screen.textBaseline = "middle"
+		screen.fillStyle = "green"
+		screen.fillText(this.txt,this.center.x,this.center.y)
+	}
+	
+}
+
+var Player = function(game, gameSize){
+	this.game = game
+	this.size = {x:15,y:15}
+	this.center = {x: gameSize.x / 2, y:gameSize.y - this.size.x *1.5}
+	this.keyboarder = new Keyboarder()
+	this.mouser = new Mouser(this.game,this)
+	this.lastFired = 0
+	this.fireCooldown = 700
+	this.color = "blue"
+	this.bulletsFired = 0
+	
+}
+Player.prototype = {
+	update: function(){
+		if (this.mouseLeft || this.keyboarder.isDown(this.keyboarder.KEYS.LEFT)){
+			this.center.x -=2
+		}
+		if (this.mouseRight || this.keyboarder.isDown(this.keyboarder.KEYS.RIGHT)){
+			this.center.x +=2
+		}
+		if (this.center.x < this.size.x){this.center.x = this.size.x} 
+		if (this.center.x > this.game.gameSize.x - this.size.x){this.center.x=this.game.gameSize.x - this.size.x}
+		if (this.mouseFire || this.keyboarder.isDown(this.keyboarder.KEYS.SPACE)){
+			if (Date.now() - this.lastFired > this.fireCooldown){
+				var bullet = new Bullet({x: this.center.x, y: this.center.y-this.size.y/2-5},{x: 0, y: -6})
+				this.game.addBody(bullet)
+				this.lastFired = Date.now()
+				this.bulletsFired += 1
+			}
+		}
+	}
+}
+
+var Bullet = function(center, velocity){
+	this.size = {x:5,y:5}
+	this.center = center
+	this.velocity = velocity
+	this.color = "black"
+}
+
+Bullet.prototype = {
+	update : function(){
+		this.center.x += this.velocity.x
+		this.center.y += this.velocity.y
+	}
+}
+
+var Invader = function(game, center){
+	this.game = game
+	this.size = {x : 15, y : 15}
+	this.center = center
+	this.patrolX = 0
+	this.speedX =  0.3
+	this.color = "red"
+	
+	
+}
+
+Invader.prototype = {
+	update : function(){
+		if (this.patrolX < 0 || this.patrolX > 40){
+			this.speedX *= -1
+		}
+		this.center.x += this.speedX
+		this.patrolX += this.speedX
+		if (this.game.invadersCanFire && Math.random() > 0.995 && !this.game.invadersBelow(this)){
+			var bullet = new Bullet({x: this.center.x, y:this.center.y+this.size.y/2+5}, {x: Math.random() - 0.5, y: 2})
+			this.game.addBody(bullet)
+		}
+	}
+	
+}
+
+var createInvaders = function(game,gameSize){
+	var invaders = []
+		for (var i=0 ; i< 24 ; i++){
+			var x = 30 + (i % 8)*((gameSize.x - 60) / 8)
+			var y = 30 + (i % 3)*((gameSize.y / 2 - 60)/3)
+			invaders.push(new Invader(game,{x:x,y:y}))
+		}	
+	return invaders
+}
+
+var drawRect = function(screen, body, color = "black"){
+	screen.fillStyle = color
+	screen.fillRect(body.center.x-body.size.x/2,body.center.y-body.size.y-2,body.size.x,body.size.y)	
+}
+
+var Keyboarder = function(){
+	var keyState = {}
+	window.onkeydown = function(e){
+		keyState[e.keyCode] = true
+	}
+	window.onkeyup = function(e){
+		keyState[e.keyCode]  = false
+	}
+	this.isDown = function(keyCode) {
+		return keyState[keyCode] == true
+	}
+	this.KEYS={LEFT : 65, RIGHT : 68, SPACE :32}
+}
+
+var Mouser = function(game, player){
+	//there's also pointerout pointercancel pointermove
+	game.canvas.addEventListener('pointerdown', (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		const rect = game.canvas.getBoundingClientRect()
+		mouseX = e.clientX - rect.left
+		mouseY = e.clientY - rect.top
+		clicked(mouseX,mouseY,game,player)
+		},{passive:false})
+	game.canvas.addEventListener('pointerup', (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		const rect = game.canvas.getBoundingClientRect()
+		mouseX = e.clientX - rect.left
+		mouseY = e.clientY - rect.top
+		unclicked(mouseX,mouseY,game,player)
+		},{passive:false})
+	game.canvas.addEventListener('pointerout', (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		unclicked(0,0,game,player)
+		},{passive:false})
+	game.canvas.addEventListener('pointercancel', (e) =>{
+		e.preventDefault()
+		e.stopPropagation()
+		return
+		},{passive:false})
+	game.canvas.addEventListener('pointermove', (e) => {
+		e.preventDefault()
+		e.stopPropagation
+		return
+		},{passive:false})
+	/*
+	//might be needed for very old browsers
+	canvas.addEventListener('touchstart', (e) => {e.preventDefault();e.stopPropagation()}, { passive: false });
+	canvas.addEventListener('touchmove', (e) => {e.preventDefault();e.stopPropagation()}, { passive: false });
+	canvas.addEventListener('touchend', (e) => {e.preventDefault();e.stopPropagation()}, { passive: false });
+	*/
+	
+}
+
+var clicked = function(x,y,game,player){
+	if (y > game.gameSize.x/2){
+		if (x <  game.gameSize.y/2){
+			player.mouseLeft = true
+		} else {
+			player.mouseRight = true
+		}
+	} else {
+		player.mouseFire = true
+	}
+}
+var unclicked = function(x,y,game,player){
+	player.mouseLeft=false
+	player.mouseRight=false
+	player.mouseFire=false
+}
+
+var colliding = function(a, b){
+	//a===b is for referring to the identical object
+	return !(a === b || 
+			a.center.x + a.size.x / 2 < b.center.x - b.size.x /2 ||
+			a.center.x - a.size.x / 2 > b.center.x + b.size.x / 2 ||
+			a.center.y + a.size.y / 2 < b.center.y - b.size.y /2 ||
+			a.center.y - a.size.y / 2 > b.center.y + b.size.y / 2
+			)
+}
+
+var gameover = function(game){
+	new Popup(game, "Game over! Will restart shortly",2000,game.ATCENTER)
+	setTimeout(() => main(),2000)
+}
+
+
+window.onload = function(){
+	let canvas = document.getElementById("myCanvas")
+	canvas.style.touchAction = 'none';  // Most effective for modern browsers
+	canvas.style.userSelect = 'none';   // Prevent text selection
+	canvas.style.webkitUserDrag = 'none'; // For Safari
+	//Additional prevention for document (catch stray drags)
+	document.addEventListener('dragover', (e) => {e.preventDefault();e.stopPropagation();})
+	document.addEventListener('drop', (e) => {e.preventDefault();e.stopPropagation();})
+	main()
+}
+
+let main = function(){
+	new Game("myCanvas")
+}
+	
+
+	</script>
+	<style>
+#myCanvas {
+border: 3px solid black;
+background-color: "pink";
+/* Optional additional styling 
+border-radius: 8px;
+box-shadow: 0 0 10px rgba(0,0,0,0.5);*/
+}
+</style>
+</body>
