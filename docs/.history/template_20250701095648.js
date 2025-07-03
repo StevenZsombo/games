@@ -1,5 +1,5 @@
 //should import scripts.js
-const framerateUnlocked = false
+const framerateUnlocked = true
 const denybuttons = false
 
 window.onload = function () {
@@ -19,19 +19,7 @@ window.onload = function () {
     )
     canvas.tabIndex = 0
     //canvas.focus()
-    beforeMain(canvas)
-}
-
-const beforeMain = function (canvas) {
-    cropper = new Cropper()
-    const cont = {}
-    cropper.load_images("cats.png arrows.png".split(" "), cont, () => {
-        files.push(cont["cats.png"])
-        files.push(cont["arrows.png"])
-        main(canvas)
-    })
-
-
+    main(canvas)
 }
 
 const main = function (canvas) {
@@ -51,7 +39,7 @@ class Game {
             y: this.HEIGHT
         }
         this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
-        this.BGCOLOR = stgs.BGCOLOR ?? "lightgray"
+        this.BGCOLOR = "lightgray"
         //null for transparent
         this.CENTER = {
             x: this.SIZE.x / 2,
@@ -61,20 +49,16 @@ class Game {
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(denybuttons)
         this.framerate = new Framerater(true)
-        this.framerateUnlocked = framerateUnlocked //redundant unless reused
-        this.animator = new Animator()
+        this.framerateUnlocked = framerateUnlocked
 
-        this.on_update_extras = []
-        this.on_draw_extras = []
-        this.append = []
-
-        this.layers = Array(10).fill([])
+        this.drawables = []
         this.clickables = []
 
         this.add_clickable(this.framerate.button) //may be unwise
 
+        this.animator = new Animator()
 
-        this.lastCycleTime = Date.now()
+        this.lastCycle = Date.now()
 
         this.isRunning = true
         this.isDrawing = true
@@ -94,21 +78,17 @@ class Game {
             return
         }
         const now = Date.now()
-        const dt = (now - this.lastCycleTime)
-        this.lastCycleTime = now
+        const dt = (now - this.lastCycle)
+        this.lastCycle = now
 
         const screen = this.screen
         this.drawnAlready ? null : this.draw_reset(screen)
         this.update(dt)
         this.update_more(dt)
-        this.on_update_extras.forEach(x => x.call(this))
         this.drawnAlready ? null : this.draw(screen)
         this.drawnAlready ? null : this.draw_more(screen)
-        this.on_draw_extras.forEach(x => x.call(this))
         this.next_loop()
         this.next_loop_more()
-        this.append.forEach(x => x.call(this))
-        this.append.length = 0
         if (!this.isRunning) {
             return
         }
@@ -149,7 +129,7 @@ class Game {
 
     draw(screen) {
         //draw
-        this.draw_layers(screen)
+        this.draw_drawables(screen)
         this.framerate.draw(screen)
 
     }
@@ -163,29 +143,29 @@ class Game {
         }
     }
 
-    draw_layers(screen) {
-        for (const layer of this.layers) {
-            for (const item of layer) {
-                item.draw(screen)
-            }
+    draw_drawables(screen) {
+        for (const b of this.drawables) {
+            b.draw(screen)
         }
     }
 
     next_loop() {
         this.mouser.next_loop()
-        this.keyboarder.next_loop()
     }
     close() {
         this.isRunning = false
         setTimeout(x => game.screen.fillRect(0, 0, game.WIDTH, game.HEIGHT), 100)
 
     }
-    add_clickable(item, layer = 5) {
-        this.add_drawable(item, layer)
+    add_clickable(item) {
+        this.add_drawable(item)
         this.clickables.push(item)
     }
-    add_drawable(item, layer = 5) {
-        this.layers[layer].push(item)
+    add_drawable(item) {
+        this.drawables.push(item)
+    }
+    draw_prioritize(item) {
+        this.drawables = MM.putAsLast(item, this.drawables)
     }
 
 
@@ -221,216 +201,40 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
         const butGrid = new Rect(0, 0, 500, 500).
-            deflate(10, 10).
             centerinRect(this.rect).
-            move(150, 0).
             splitGrid(4, 4)
 
         this.butGrid = butGrid.map((x, i) => x.map((b, j) => {
             b = Button.fromRect(b)
-            b.deflate(6, 6)
-            b.outline = 4
+            b.deflate(5, 5)
             this.add_clickable(b)
             b.tag = [i, j]
-            b.origTag = [i, j]
-            b.interactable = false
             return b
         }))
 
         this.buts = this.butGrid.flat()
 
-        this.empty = this.butGrid[0][3]
-        this.empty.color = "orange"
-        this.empty.outline = 0
-        this.empty.transparent = true
-        this.victory = (forced = false) => {
-            if (forced || this.buts.every(x => String(x.tag) == String(x.origTag))) {
-                this.guidetxt.txt = "Congratulations!!!"
+        this.empty = [0, 3]
 
-                const newanims = []
-                MM.forr(3, x => {
-                    newanims.push(new Anim(this.guidetxt, 200, "step", { varName: "fontsize", startVal: this.guidetxt.fontsize, endVal: 32 }))
-                    newanims.push(new Anim(this.guidetxt, 200, "step", { varName: "fontsize", startVal: 32, endVal: 20, }))
-                    newanims.push(new Anim(this.guidetxt, 500, "step", { varName: "rad", startVal: 0, endVal: TWOPI }))
-                }
-                )
-                const vic = this.victory
-                newanims.at(-1).on_end = () => { this.victory = vic }
-                this.animator.add_sequence(
-                    newanims
-                )
-                this.victory = () => { }
-            }
+        this.swap = (u, w) => {
+            if 
         }
-        this.swap = (bu, bw, animate = stgs.clickAnimationSpeed, dontCheck = false) => {
-            if (bu === bw) {
-                return
-            }
-            const [i, j] = bu.tag
-            if (!dontCheck && ![[i + 1, j], [i - 1, j], [i, j - 1], [i, j + 1]].map(String).includes(String(bw.tag))) {
-                return
-            }
-            const buc = bu.center
-            const bwc = bw.center
-            bu.centeratV(bwc)
-            bw.centeratV(buc)
-            const butag = bu.tag
-            bu.tag = bw.tag
-            bw.tag = butag
-            if (animate) {
-                this.buts.forEach(b => b.interactable = false)
-                this.animator.add_anim(bu, animate, "moveFrom", { x: bw.x, y: bw.y, noLock: true })
-                this.animator.add_anim(bw, animate, "moveFrom", {
-                    x: bu.x, y: bu.y, noLock: true,
-                    on_end: () => game.buts.forEach(b => b.interactable = true)
-                })
-            }
-            this.victory()
-        }
-
-        this.buts.forEach(b => {
-            b.on_click = () => {
-                this.swap(b, game.empty)
-            }
-        })
 
         this.cropper = new Cropper()
         const cropper = this.cropper
-        let imgs = cropper.cropGrid(files[0], 4, 4).flat()
-        for (let [img, but] of MM.zip(imgs, this.buts)) {
-            but.img = img
-        }
-
-        //this.butGrid[this.empty.i][this.empty.j].color = "blue"
-        this.shuffle = (animate = 100, times = 30) => {
-            const anims = []
-            for (let i = 0; i < times; i++) {
-                const doit = () => {
-                    const bu = MM.choice(this.buts.filter(x => x != this.empty))
-                    const bw = MM.choice(this.buts.filter(x => x !== bu && x !== this.empty))
-                    this.swap(bu, bw, animate, true)
-                }
-                if (animate) {
-                    anims.push(
-                        new Anim(game, animate, "delay", {
-                            on_end: () => { doit() }, noLock: true
-                        }))
-                } else {
-                    doit()
-                }
+        let loaded = cropper.load_img("cats.png", (i) => {
+            let imgs = cropper.cropGrid(i, 4, 4).flat()
+            for (let [img, but] of MM.zip(imgs, game.buts)) {
+                but.img = img
             }
-            if (animate) {
-                this.animator.add_sequence(anims)
-            }
-        }
-
-
-        this.guide = Button.fromRect(new Rect(0, 0, 0, 0))
-        this.guide.leftat(0)
-        this.guide.width = this.buts[0].left
-        this.guide.y = 2 / 3 * this.HEIGHT
-        this.guide.shrinkToSquare(true)
-        this.guide.deflate(65, 0)
-        this.guide.shrinkToSquare()
-        this.guide.outline = 3
-        this.guide.bottomat(this.buts.at(-1).bottom)
-        this.guide.leftat(this.HEIGHT - this.guide.bottom)
-        this.guide.img = files[0]
-        this.guidetxt = new Button()
-        this.guidetxt.width = this.guide.width
-        this.guidetxt.leftat(this.guide.left)
-        this.guidetxt.height = this.guide.top
-        this.guidetxt.deflate(0, 100)
-        this.guidetxt.bottomat(this.guide.top)
-        this.guidetxt.move(0, -5)
-        this.guidetxt.transparent = true
-        this.guidetxt.fontsize = 20
-        this.guidetxt.txt = "You may click on \n any cell adjacent \n to the empty one \n to swap them.\nRestore the original picture!"
-
-        this.add_clickable(this.guidetxt)
+            this.butGrid[this.empty[0]][this.empty[1]].img = null
+            //this.butGrid[this.empty.i][this.empty.j].color = "blue"
+        })
 
 
 
-        this.add_clickable(this.guide)
-        this.guide.opacity = 1
-        this.guidetxt.opacity = 1
-        if (stgs.animationOnStartup) {
-            this.empty.origSize = this.empty.size
-            this.empty.img = null
-            this.empty.color = "orange"
-            this.empty.transparent = false
-            this.animator.add_sequence(
-                new Anim(this.empty, 500, "delay"),
-                new Anim(this.empty, 750, "step", { varName: "rad", startVal: 0, endVal: TWOPI, on_end: () => this.empty.resize(1, 1) }),
-                new Anim(this.empty, 750, "custom", {
-                    func: t => {
-                        this.empty.resize(this.empty.origSize.width * (1 - t), this.empty.origSize.height * (1 - t))
-                        this.empty.rad = t * TWOPI
-                    }, on_end: () => {
-                        this.empty.img = files[1]
-                        this.empty.opacity = 1
-                    }
-                }),
-                /*new Anim(this.empty, 750, "stepMany", {
-                    varNames: "rad width height x y".split(" "), startVals: [0, 100, 100, this.empty.x, this.empty.y], endVals: [TWOPI, 0, 0, this.empty.centerX, this.empty.centerY],
-                    on_end: () => {
-                        this.empty.img = files[1]
-                        this.empty.opacity = 1
-                    }
-                }),*/
-                new Anim(this.empty, 10, "delay", {
-                    on_end: () => {
-                        this.empty.resize(this.empty.origSize.width, this.empty.origSize.height)
-                        const animate = 80
-                        const times = 30
-                        this.shuffle(animate, times)
-                        setTimeout(() => {
-                            game.animator.add_anim(game.guidetxt, 200 + animate * times, "step", {
-                                varName: "opacity", startVal: 1, endVal: 0
-                            })
-                            game.animator.add_anim(game.guide, 200 + animate * times, "step", {
-                                varName: "opacity", startVal: 1, endVal: 0,
-                                on_end: () => {
-                                    game.guide.opacity = 0
-                                    game.guidetxt.opacity = 0
-                                }
-                            })
-                        }, 4000)
-                    }
-                }
-                )
-            )
 
 
-        } else {
-            this.empty.img = null //files[1]
-            this.empty.opacity = 1
-            this.shuffle(false, 30)
-            this.buts.forEach(b => b.interactable = true)
-            this.guide.opacity = 0
-            this.guidetxt.opacity = 0
-        }
-
-        this.moveDic = {
-            "a": [0, -1],
-            "d": [0, 1],
-            "w": [-1, 0],
-            "s": [1, 0]
-        }
-
-        this.trymoving = (where) => {
-            const pos = [...this.moveDic[where]]
-            if (stgs.keyboardControlsInverted) {
-                pos[0] *= -1
-                pos[1] *= -1
-            }
-            pos[0] += this.empty.tag[0]
-            pos[1] += this.empty.tag[1]
-            const oth = this.buts.find(x => String(x.tag) == String(pos))
-            if (oth && this.empty.interactable && oth.interactable) {
-                this.swap(oth, this.empty)
-            }
-        }
 
 
 
@@ -442,8 +246,8 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-        const press = "w a s d".split(" ").find(x => this.keyboarder.pressed[x])
-        press && this.trymoving(press)
+
+
 
 
 
@@ -482,16 +286,7 @@ const dev = {
 }/// end of dev
 /// settings
 const stgs = {
-    clickAnimationSpeed: 50,
-    animationOnStartup: true,//depr
-    BGCOLOR: "wheat",
-    keyboardControlsInverted: false
+
 }
-/**@type {Image[]} */
-const files = []
 /// global dictionary
-/** @type {Game}*/
-var game
-
-
-
+var game 

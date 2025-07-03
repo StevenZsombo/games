@@ -1,0 +1,27 @@
+<html>
+
+<body>
+    <b>Games</b>
+    <br>
+    <ul id="gamelist">
+    </ul>
+
+</body>
+
+<script>
+    const files = {
+        Particles: "there are my particles",
+        Index: "this is my index"
+    }
+
+    for (let [file, txt] of Object.entries(files)) {
+        const listitem = document.createElement('li')
+        listitem.innerHTML = `<a href="${file.toLowerCase()}.html">${file}</a>
+        <br>
+        ${txt}`
+        document.body.appendChild(listitem)
+    }
+
+</script>
+
+</html>

@@ -1,6 +1,3 @@
-//var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
-//disabled dpr for now. i'll draw fonts from image anyways
-
 class MM {
     static sum(arr) {
         return arr.reduce((s, x) => s + x, 0)
@@ -23,8 +20,8 @@ class MM {
 
     static drawText(screen, txt, x, y, { font = "12px Times", color = "red", opacity = 0 } = {}) {
         screen.save()
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
+        const dps = window.devicePixelRatio
+        screen.scale(dpr, dpr)
         screen.textAlign = "center"
         screen.textBaseline = "middle"
         screen.font = font
@@ -84,8 +81,6 @@ class MM {
         screen.save()
         screen.textAlign = "center"
         screen.textBaseline = "middle"
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
@@ -112,7 +107,7 @@ class MM {
         MM.require(obj, "center")
         screen.save()
         const { x: cx, y: cy } = obj.center
-        const { x: nx, y: ny } = RectRotatedExperimental.rotatePointAroundOrigin(cx, cy, rad)
+        const { x: nx, y: ny } = Rotateable.rotatePointAroundOrigin(cx, cy, rad)
         const [diffx, diffy] = [cx - nx, cy - ny]
         screen.translate(diffx, diffy)
         screen.rotate(rad)
@@ -122,18 +117,6 @@ class MM {
             obj.draw(screen)
         }
         screen.restore()
-    }
-
-    static drawRotatedHijack(screen, obj, rad) {
-        //TODO: the draw parameter I'm meant to override has unknown / hard-to-trace parameters
-
-    }
-
-    static RotateContext(screen, rad, x, y) {
-        const [c, s] = [Math.cos(rad), Math.sin(rad)]
-        screen.translate(x - x * c + y * s, y - x * s - y * c)
-        screen.rotate(rad)
-
     }
 
     static between(x, min, max) {

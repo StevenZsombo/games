@@ -220,15 +220,15 @@ class Game {
 					for (let x of gd.nrl.concat([gd.topbut])) {
 						x.interactable = false
 						if (x === b) { continue }
-						x.opacity = 0
-						gd.game.animator.add_anim(x, 100, "step", { varName: "opacity", startVal: 1 })
+						x.opacity = 1
+						gd.game.animator.add_anim(x, 100, "stepFrom", { varName: "opacity", startVal: 0 })
 					}
 					gd.game.drawables = MM.putAsLast(b, gd.game.drawables)
 
 
 					b.stretch(2, 2)
-					const a1 = new Anim(b, 120, "scaleFromFactor", { scaleFactor: .5 })
-					const a2 = new Anim(b, 120, "step", { varName: "opacity", startVal: 0, endVal: 1, on_end: () => gd.pickNewNum(i + 4) })
+					const a1 = new Animation(b, 120, "scaleFromFactor", { scaleFactor: .5 })
+					const a2 = new Animation(b, 120, "stepFrom", { varName: "opacity", startVal: 0, endVal: 1, on_end: () => gd.pickNewNum(i + 4) })
 					gd.game.animator.add_sequence(a1, a2)
 					//a1.add_chain_depr(a2)
 					//gd.game.animator.add_anim(a1)
@@ -238,19 +238,19 @@ class Game {
 				}
 				b.hover_color = "pink"
 
-				let lift = new Anim(b, 60, "moveFromRel", { dx: 0, dy: 30 })
+				let lift = new Animation(b, 60, "moveFromRel", { dx: 0, dy: 30 })
 				if (b.txt == gd.number && firstrun && localStorage.getItem("victories") == null) {
 					b.color = "lightblue"
-					//lift.chain = new Anim(b,120,"scaleThroughFactor",{scaleFactor: 1.1, repeat: 3})
+					//lift.chain = new Animation(b,120,"scaleThroughFactor",{scaleFactor: 1.1, repeat: 3})
 				}
 
 
-				gd.game.animator.add_anim(new Anim(
+				gd.game.animator.add_anim(new Animation(
 					b, i * 10, "hide", {
 					chainMany:
 						[
-							new Anim(b, 30, "scaleFromFactor", { scaleFactorX: 1, scaleFactorY: .1 }),
-							new Anim(b, 30, "setTemp", { varName: "txt", val: null })
+							new Animation(b, 30, "scaleFromFactor", { scaleFactorX: 1, scaleFactorY: .1 }),
+							new Animation(b, 30, "setTemp", { varName: "txt", val: null })
 						]
 				}
 				))
@@ -286,9 +286,9 @@ class Game {
 				gd.victories.push(gd.number)
 				window.localStorage.setItem("victories", gd.victories.join(","))
 				gd.add_sequence(
-					new Anim(gd.lab, 120, "step", { varName: "fontsize", startVal: 12 }),
-					new Anim(gd.retry, 120, "delay", { on_end: x => gd.retry.color = "lightblue" }),
-					new Anim(gd.retry, 120, "scaleThroughFactor", { scaleFactor: 1.2, repeat: 6 })
+					new Animation(gd.lab, 120, "stepFrom", { varName: "fontsize", startVal: 12 }),
+					new Animation(gd.retry, 120, "delay", { on_end: x => gd.retry.color = "lightblue" }),
+					new Animation(gd.retry, 120, "scaleThroughFactor", { scaleFactor: 1.2, repeat: 6 })
 				)
 
 				gd.buts.forEach(b => {
@@ -311,7 +311,7 @@ class Game {
 					gd.buts[b].img = gd.buts[b].img === gd.on ? gd.off : gd.on
 				})
 				if (!verify()) {
-					const a1 = new Anim(p, 10, "wiggle", { dx: 5, dy: 5 })
+					const a1 = new Animation(p, 10, "wiggle", { dx: 5, dy: 5 })
 					gd.game.animator.add_anim(a1)
 				}
 			}
@@ -328,7 +328,7 @@ class Game {
 			`Pressing one of the lights will flip the adjacent ones.
 Can you turn on all the lights?`
 		this.add_drawable(lab)
-		gd.game.animator.add_anim(lab, 120, "step", { startVal: 1, endVal: 0, varName: "opacity" })
+		gd.game.animator.add_anim(lab, 120, "stepFrom", { startVal: 1, endVal: 0, varName: "opacity" })
 		const botlab = gd.retry.copy
 		gd.botlab = botlab
 		botlab.rightat(this.WIDTH - gd.retry.left)

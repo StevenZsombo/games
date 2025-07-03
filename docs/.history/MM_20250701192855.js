@@ -1,6 +1,3 @@
-//var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
-//disabled dpr for now. i'll draw fonts from image anyways
-
 class MM {
     static sum(arr) {
         return arr.reduce((s, x) => s + x, 0)
@@ -23,8 +20,6 @@ class MM {
 
     static drawText(screen, txt, x, y, { font = "12px Times", color = "red", opacity = 0 } = {}) {
         screen.save()
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
         screen.textAlign = "center"
         screen.textBaseline = "middle"
         screen.font = font
@@ -84,8 +79,6 @@ class MM {
         screen.save()
         screen.textAlign = "center"
         screen.textBaseline = "middle"
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
@@ -103,37 +96,13 @@ class MM {
     static drawImage(screen, img, rect, opacity = 0, rad = 0) {
         screen.save()
         if (opacity) { screen.globalAlpha = 1 - opacity }
+        if (rad) {
+            const { x, y } = rect.center
+            screen.translate(x, y)
+            screen.rotate(rad)
+        }
         screen.drawImage(img, rect.x, rect.y, rect.width, rect.height)
         screen.restore()
-    }
-
-    static drawRotated(screen, obj, rad, drawFunc, drawFuncArgs = []) {
-        //obj needs to have a center
-        MM.require(obj, "center")
-        screen.save()
-        const { x: cx, y: cy } = obj.center
-        const { x: nx, y: ny } = RectRotatedExperimental.rotatePointAroundOrigin(cx, cy, rad)
-        const [diffx, diffy] = [cx - nx, cy - ny]
-        screen.translate(diffx, diffy)
-        screen.rotate(rad)
-        if (drawFunc = undefined) {
-            drawFunc.apply(obj, screen, ...drawFuncArgs)
-        } else {
-            obj.draw(screen)
-        }
-        screen.restore()
-    }
-
-    static drawRotatedHijack(screen, obj, rad) {
-        //TODO: the draw parameter I'm meant to override has unknown / hard-to-trace parameters
-
-    }
-
-    static RotateContext(screen, rad, x, y) {
-        const [c, s] = [Math.cos(rad), Math.sin(rad)]
-        screen.translate(x - x * c + y * s, y - x * s - y * c)
-        screen.rotate(rad)
-
     }
 
     static between(x, min, max) {
@@ -256,41 +225,36 @@ class MM {
         if (arr.length < windowsize) {
             return
         }
-        for (let i = 0; i <= arr.length - windowsize; i++) {
-            yield arr.slice(i, i + windowsize)
+        let window = arr.slice(0, windowsize)
+        for (let i = windowsize; i < arr.length; i++) {
+            window.shift()
+            window.push(arr[i])
+            yield window
         }
         return
     }
 
-    static *permutationsGen(t, k) {
-        if (!t) { yield []; return; }
-        const a = Array(t).fill(0)
-        yield [...a]
+    static *permutations(k) {
+        const a = Array(k).fill(0)
         while (true) {
             a[0]++
-            let j = -1
-            while (a[++j] == k) {
-                if (j == t - 1) { return }
-                a[j] = 0
-                a[j + 1]++
+            let j = 0
+            for (; ; j++) {
+                if (j == k) { return }
+                if (a[j] == k) {
+                    a[j] = 0
+                    a[j + 1]++
+                } else {
+                    break
+                }
             }
-            yield [...a]
+            console.log(a)
         }
 
-    }
-
-    static *permutation(arr, k) {
-        for (const code of MM.permutationsGen(arr.length, k)) {
-            yield arr.map((x, i) => arr[code[i]])
-        }
     }
 
     static *combinations(arr, k) {
 
-    }
-
-    static pairs(arr) {
-        return arr.flatMap((u, i) => arr.slice(i + 1).map(w => [w, u]))
     }
 
 }

@@ -243,8 +243,8 @@ class Game {
         this.empty.color = "orange"
         this.empty.outline = 0
         this.empty.transparent = true
-        this.victory = (forced = false) => {
-            if (forced || this.buts.every(x => String(x.tag) == String(x.origTag))) {
+        this.victory = () => {
+            if (this.buts.every(x => String(x.tag) == String(x.origTag))) {
                 this.guidetxt.txt = "Congratulations!!!"
 
                 const newanims = []
@@ -344,7 +344,7 @@ class Game {
         this.guidetxt.bottomat(this.guide.top)
         this.guidetxt.move(0, -5)
         this.guidetxt.transparent = true
-        this.guidetxt.fontsize = 20
+        this.guidetxt.fontsize = 16
         this.guidetxt.txt = "You may click on \n any cell adjacent \n to the empty one \n to swap them.\nRestore the original picture!"
 
         this.add_clickable(this.guidetxt)
@@ -381,7 +381,7 @@ class Game {
                 new Anim(this.empty, 10, "delay", {
                     on_end: () => {
                         this.empty.resize(this.empty.origSize.width, this.empty.origSize.height)
-                        const animate = 80
+                        const animate = 120
                         const times = 30
                         this.shuffle(animate, times)
                         setTimeout(() => {

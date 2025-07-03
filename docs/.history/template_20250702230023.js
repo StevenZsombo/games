@@ -243,8 +243,8 @@ class Game {
         this.empty.color = "orange"
         this.empty.outline = 0
         this.empty.transparent = true
-        this.victory = (forced = false) => {
-            if (forced || this.buts.every(x => String(x.tag) == String(x.origTag))) {
+        this.victory = () => {
+            if (this.buts.every(x => String(x.tag) == String(x.origTag))) {
                 this.guidetxt.txt = "Congratulations!!!"
 
                 const newanims = []
@@ -344,7 +344,7 @@ class Game {
         this.guidetxt.bottomat(this.guide.top)
         this.guidetxt.move(0, -5)
         this.guidetxt.transparent = true
-        this.guidetxt.fontsize = 20
+        this.guidetxt.fontsize = 16
         this.guidetxt.txt = "You may click on \n any cell adjacent \n to the empty one \n to swap them.\nRestore the original picture!"
 
         this.add_clickable(this.guidetxt)
@@ -361,27 +361,18 @@ class Game {
             this.empty.transparent = false
             this.animator.add_sequence(
                 new Anim(this.empty, 500, "delay"),
-                new Anim(this.empty, 750, "step", { varName: "rad", startVal: 0, endVal: TWOPI, on_end: () => this.empty.resize(1, 1) }),
-                new Anim(this.empty, 750, "custom", {
-                    func: t => {
-                        this.empty.resize(this.empty.origSize.width * (1 - t), this.empty.origSize.height * (1 - t))
-                        this.empty.rad = t * TWOPI
-                    }, on_end: () => {
-                        this.empty.img = files[1]
-                        this.empty.opacity = 1
-                    }
-                }),
-                /*new Anim(this.empty, 750, "stepMany", {
+                new Anim(this.empty, 750, "step", { varName: "rad", startVal: 0, endVal: TWOPI * 2, on_end: () => this.empty.resize(1, 1) }),
+                new Anim(this.empty, 750, "stepMany", {
                     varNames: "rad width height x y".split(" "), startVals: [0, 100, 100, this.empty.x, this.empty.y], endVals: [TWOPI, 0, 0, this.empty.centerX, this.empty.centerY],
                     on_end: () => {
                         this.empty.img = files[1]
                         this.empty.opacity = 1
                     }
-                }),*/
+                }),
                 new Anim(this.empty, 10, "delay", {
                     on_end: () => {
                         this.empty.resize(this.empty.origSize.width, this.empty.origSize.height)
-                        const animate = 80
+                        const animate = 120
                         const times = 30
                         this.shuffle(animate, times)
                         setTimeout(() => {

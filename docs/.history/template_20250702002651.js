@@ -1,5 +1,5 @@
 //should import scripts.js
-const framerateUnlocked = false
+const framerateUnlocked = true
 const denybuttons = false
 
 window.onload = function () {
@@ -61,18 +61,14 @@ class Game {
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(denybuttons)
         this.framerate = new Framerater(true)
-        this.framerateUnlocked = framerateUnlocked //redundant unless reused
-        this.animator = new Animator()
-
-        this.on_update_extras = []
-        this.on_draw_extras = []
-        this.append = []
+        this.framerateUnlocked = framerateUnlocked
 
         this.layers = Array(10).fill([])
         this.clickables = []
 
         this.add_clickable(this.framerate.button) //may be unwise
 
+        this.animator = new Animator()
 
         this.lastCycleTime = Date.now()
 
@@ -101,14 +97,10 @@ class Game {
         this.drawnAlready ? null : this.draw_reset(screen)
         this.update(dt)
         this.update_more(dt)
-        this.on_update_extras.forEach(x => x.call(this))
         this.drawnAlready ? null : this.draw(screen)
         this.drawnAlready ? null : this.draw_more(screen)
-        this.on_draw_extras.forEach(x => x.call(this))
         this.next_loop()
         this.next_loop_more()
-        this.append.forEach(x => x.call(this))
-        this.append.length = 0
         if (!this.isRunning) {
             return
         }
@@ -229,7 +221,7 @@ class Game {
         this.butGrid = butGrid.map((x, i) => x.map((b, j) => {
             b = Button.fromRect(b)
             b.deflate(6, 6)
-            b.outline = 4
+            b.outline = 5
             this.add_clickable(b)
             b.tag = [i, j]
             b.origTag = [i, j]
@@ -243,23 +235,16 @@ class Game {
         this.empty.color = "orange"
         this.empty.outline = 0
         this.empty.transparent = true
-        this.victory = (forced = false) => {
-            if (forced || this.buts.every(x => String(x.tag) == String(x.origTag))) {
+        this.victory = () => {
+            if (this.buts.every(x => String(x.tag) == String(x.origTag))) {
                 this.guidetxt.txt = "Congratulations!!!"
+                this.guidetxt.fontsize = 28
 
-                const newanims = []
-                MM.forr(3, x => {
-                    newanims.push(new Anim(this.guidetxt, 200, "step", { varName: "fontsize", startVal: this.guidetxt.fontsize, endVal: 32 }))
-                    newanims.push(new Anim(this.guidetxt, 200, "step", { varName: "fontsize", startVal: 32, endVal: 20, }))
-                    newanims.push(new Anim(this.guidetxt, 500, "step", { varName: "rad", startVal: 0, endVal: TWOPI }))
-                }
-                )
-                const vic = this.victory
-                newanims.at(-1).on_end = () => { this.victory = vic }
+                const anima = new Anim(this.guidetxt, 500, "step", { varName: "fontsize", startVal: 20, endVal: 32 })
+                const animb = new Anim(this.guidetxt, 500, "step", { varName: "fontsize", startVal: 32, endVal: this.guidetxt.fontsize })
                 this.animator.add_sequence(
-                    newanims
+                    anima, animb
                 )
-                this.victory = () => { }
             }
         }
         this.swap = (bu, bw, animate = stgs.clickAnimationSpeed, dontCheck = false) => {
@@ -279,9 +264,9 @@ class Game {
             bw.tag = butag
             if (animate) {
                 this.buts.forEach(b => b.interactable = false)
-                this.animator.add_anim(bu, animate, "moveFrom", { x: bw.x, y: bw.y, noLock: true })
+                this.animator.add_anim(bu, animate, "moveFrom", { x: bw.x, y: bw.y })
                 this.animator.add_anim(bw, animate, "moveFrom", {
-                    x: bu.x, y: bu.y, noLock: true,
+                    x: bu.x, y: bu.y,
                     on_end: () => game.buts.forEach(b => b.interactable = true)
                 })
             }
@@ -303,7 +288,6 @@ class Game {
 
         //this.butGrid[this.empty.i][this.empty.j].color = "blue"
         this.shuffle = (animate = 100, times = 30) => {
-            const anims = []
             for (let i = 0; i < times; i++) {
                 const doit = () => {
                     const bu = MM.choice(this.buts.filter(x => x != this.empty))
@@ -311,19 +295,14 @@ class Game {
                     this.swap(bu, bw, animate, true)
                 }
                 if (animate) {
-                    anims.push(
-                        new Anim(game, animate, "delay", {
-                            on_end: () => { doit() }, noLock: true
-                        }))
+                    setTimeout(doit.bind(this), i * 100 * 1.1)
                 } else {
                     doit()
                 }
             }
-            if (animate) {
-                this.animator.add_sequence(anims)
-            }
         }
 
+        this.shuffle = () => { }
 
         this.guide = Button.fromRect(new Rect(0, 0, 0, 0))
         this.guide.leftat(0)
@@ -356,39 +335,28 @@ class Game {
         this.guidetxt.opacity = 1
         if (stgs.animationOnStartup) {
             this.empty.origSize = this.empty.size
-            this.empty.img = null
-            this.empty.color = "orange"
-            this.empty.transparent = false
             this.animator.add_sequence(
-                new Anim(this.empty, 500, "delay"),
-                new Anim(this.empty, 750, "step", { varName: "rad", startVal: 0, endVal: TWOPI, on_end: () => this.empty.resize(1, 1) }),
-                new Anim(this.empty, 750, "custom", {
-                    func: t => {
-                        this.empty.resize(this.empty.origSize.width * (1 - t), this.empty.origSize.height * (1 - t))
-                        this.empty.rad = t * TWOPI
-                    }, on_end: () => {
+                new Anim(this.empty, 100, "delay", { on_end: () => this.empty.resize(1, 1) }),
+                new Anim(this.empty, 500, "scaleFromSize", {
+                    w: this.empty.origSize.width, h: this.empty.origSize.height,
+                    on_end: () => {
                         this.empty.img = files[1]
                         this.empty.opacity = 1
                     }
                 }),
-                /*new Anim(this.empty, 750, "stepMany", {
-                    varNames: "rad width height x y".split(" "), startVals: [0, 100, 100, this.empty.x, this.empty.y], endVals: [TWOPI, 0, 0, this.empty.centerX, this.empty.centerY],
-                    on_end: () => {
-                        this.empty.img = files[1]
-                        this.empty.opacity = 1
-                    }
-                }),*/
                 new Anim(this.empty, 10, "delay", {
+                    on_end: () => { this.empty.resize(this.empty.origSize.width, this.empty.origSize.height) }
+                }),
+                new Anim(this.empty, 300, "scaleFromSize", {
+                    w: 1, h: 1,
                     on_end: () => {
-                        this.empty.resize(this.empty.origSize.width, this.empty.origSize.height)
-                        const animate = 80
-                        const times = 30
-                        this.shuffle(animate, times)
+                        this.shuffle()
+                        this.buts.forEach(b => b.interactable = true)
                         setTimeout(() => {
-                            game.animator.add_anim(game.guidetxt, 200 + animate * times, "step", {
+                            game.animator.add_anim(game.guidetxt, 600, "step", {
                                 varName: "opacity", startVal: 1, endVal: 0
                             })
-                            game.animator.add_anim(game.guide, 200 + animate * times, "step", {
+                            game.animator.add_anim(game.guide, 600, "step", {
                                 varName: "opacity", startVal: 1, endVal: 0,
                                 on_end: () => {
                                     game.guide.opacity = 0
@@ -442,8 +410,13 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-        const press = "w a s d".split(" ").find(x => this.keyboarder.pressed[x])
-        press && this.trymoving(press)
+        const comm = "w s a d".split(" ").find(
+            x => this.keyboarder.pressed[x]
+        )
+        if (comm !== undefined) {
+            this.trymoving(comm)
+        }
+
 
 
 
@@ -483,15 +456,11 @@ const dev = {
 /// settings
 const stgs = {
     clickAnimationSpeed: 50,
-    animationOnStartup: true,//depr
+    animationOnStartup: false,
     BGCOLOR: "wheat",
     keyboardControlsInverted: false
 }
-/**@type {Image[]} */
+
 const files = []
 /// global dictionary
-/** @type {Game}*/
-var game
-
-
-
+var game 

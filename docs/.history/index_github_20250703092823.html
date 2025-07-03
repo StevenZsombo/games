@@ -1,0 +1,29 @@
+<html>
+
+<body>
+    <b>Games</b>
+    <br>
+    <ul id="gamelist">
+    </ul>
+
+</body>
+
+<script>
+    const files = {
+        Particles : "yay",
+        Index: "wow"
+    }
+
+    for (let  of files) {
+        const listitem = document.createElement('li')
+        const link = document.createElement('a')
+        link.href = `${file.toLowerCase()}.html`
+        link.textContent = 
+        listitem.appendChild(link)
+        document.body.appendChild(listitem)
+        document.body.insertAdjacentHTML('beforeend', '<br>')
+    }
+
+</script>
+
+</html>
