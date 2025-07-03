@@ -100,7 +100,7 @@ class Anim {
 			});
 			throw "animation not found"
 		}
-		if (args.append !== undefined) { throw "shouldn't ever append" }
+		if (args.append != null) { throw "shouldn't ever append" }
 		this.animate = this[code]
 		Object.assign(this, {
 			...args,
@@ -108,20 +108,13 @@ class Anim {
 			time,
 			code // just for debugging
 		})
-		if (typeof args?.lerp === String) { this.lerp = Anim[args.lerp] }
+		time = time > 0.001 ? time : 0.001 //at least a single frame
 		this.totTime = time
 	}
 
 	lerp(t) {
 		return t
 	}
-
-	static smoothstep(t) {
-		return 3 * t ** 2 - 2 * t ** 3
-		//x * x * x * (x * (6.0f * x - 15.0f) + 10.0f); smootherstep
-	}
-
-
 
 	extendChain(anim) {
 		if (!this.chainMany) {
