@@ -398,21 +398,18 @@ class Anim {
 	static interpol(start, end, t) {
 		return start + t * (end - start)
 	}
-	/*
+
+	custom() {
+		//{func: ()=>{}} must be a function of t, {orig:string[]} will be restored at the end
 		if (!this.init) {
-				MM.requireEither(this, "varName startVal", "varName endVal")
-				MM.require(this.obj, this.varName)
-				this.init = true
-				const orig = this.obj[this.varName]
-				this.origVal = orig
-				this.startVal ??= orig
-				this.endVal ??= orig
-				this.append = () => { this.obj[this.varName] = orig }
-			}
-			let t = this.lerp(1 - this.time / this.totTime)
-			//0 -> 1
-			let currVal = this.startVal + t * (this.endVal - this.startVal)
-			//startVal -> endVal
-			this.obj[this.varName] = currVal
-	 */
+			MM.require(this, "func")
+			this.init = true
+			this.origVals = this.orig?.map(x => this.obj[x])
+			this.append = () => { this.orig?.forEach((x, i) => this.obj[x] = this.origVals[i]) }
+		}
+		const t = this.lerp(1 - this.time / this.totTime) //0 -> 1
+		//this.func.bind(this, t)
+		this.func(t)
+
+	}
 }

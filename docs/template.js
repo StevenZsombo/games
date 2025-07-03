@@ -362,13 +362,22 @@ class Game {
             this.animator.add_sequence(
                 new Anim(this.empty, 500, "delay"),
                 new Anim(this.empty, 750, "step", { varName: "rad", startVal: 0, endVal: TWOPI, on_end: () => this.empty.resize(1, 1) }),
-                new Anim(this.empty, 750, "stepMany", {
+                new Anim(this.empty, 750, "custom", {
+                    func: t => {
+                        this.empty.resize(this.empty.origSize.width * (1 - t), this.empty.origSize.height * (1 - t))
+                        this.empty.rad = t * TWOPI
+                    }, on_end: () => {
+                        this.empty.img = files[1]
+                        this.empty.opacity = 1
+                    }
+                }),
+                /*new Anim(this.empty, 750, "stepMany", {
                     varNames: "rad width height x y".split(" "), startVals: [0, 100, 100, this.empty.x, this.empty.y], endVals: [TWOPI, 0, 0, this.empty.centerX, this.empty.centerY],
                     on_end: () => {
                         this.empty.img = files[1]
                         this.empty.opacity = 1
                     }
-                }),
+                }),*/
                 new Anim(this.empty, 10, "delay", {
                     on_end: () => {
                         this.empty.resize(this.empty.origSize.width, this.empty.origSize.height)
