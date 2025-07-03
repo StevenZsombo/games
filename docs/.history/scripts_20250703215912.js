@@ -373,8 +373,11 @@ class Button extends Clickable {
 	}
 
 	static fromRect(rect, kwargs = {}) {
-		const tobuild = { ...kwargs, ...rect }
-		return new Button(tobuild)
+		kwargs.x = rect.x
+		kwargs.y = rect.y
+		kwargs.width = rect.width
+		kwargs.height = rect.height
+		return new Button(kwargs)
 	}
 
 	static fromButton(but, kwargs = {}) {
@@ -523,7 +526,6 @@ class Particle extends Clickable {
 		}
 		super()
 		Object.assign(this, { ...defaults, ...options })
-		this.height = this.width
 		//oddities: radius is width, x,y refer to center instead
 	}
 
@@ -583,7 +585,6 @@ class Particle extends Clickable {
 
 
 	static collidePhysics(p1, p2) {
-		if (p1 === p2) { return }
 		const dx = p2.x - p1.x
 		const dy = p2.y - p1.y
 		const dist = Math.hypot(dx, dy)
@@ -630,10 +631,6 @@ class Particle extends Clickable {
 		}
 		[this.x, this.y] = [bound.x, bound.y]
 		return this
-	}
-
-	get boundingRect() {
-		return new Rect(this.x - this.size, this.y - this.size, this.size * 2, this.size * 2)
 	}
 
 

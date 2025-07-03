@@ -1,6 +1,80 @@
 //var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
 //disabled dpr for now. i'll draw fonts from image anyways
 
+
+class SpatialHashGrid {
+    constructor(sizeX, sizeY, dimX, dimY) {
+        this.sizeX = sizeX
+        this.sizeY = sizeY
+        this.dimX = dimX
+        this.dimY = dimY
+        this.cells = Array(dimX + 1).fill().map(y => (Array(dimY + 1).fill().map(x => new Set())))
+        //this.records = new Map()
+    }
+
+    addClient(client) {
+        this._insert(client)
+    }
+
+    _insert(client) {
+        const { x, y, right, bottom } = client
+
+        const tl = this._getCellIndex(x, y)
+        const br = this._getCellIndex(right, bottom)
+
+        //this.records.set(client, [tl, br])
+
+        for (let u = tl[0]; u < br[0]; u++) {
+            for (let w = tl[1]; w < br[1]; w++) {
+                this.cells[u][w].add(client)
+            }
+        }
+    }
+
+    _getCellIndex(x, y) {
+        const { sizeX, sizeY, dimX, dimY } = this
+        return [x / sizeX * dimX, y / sizeY * dimY].map(Math.floor)
+    }
+
+    updateClient(client) {
+        this.removeClient(client)
+        this._insert(client)
+    }
+
+    removeClient(client) {
+        /*
+        const [tl, br] = this.records.get(client)
+        for (let u = tl[0]; u < br[0]; u++) {
+            for (let w = tl[1]; w < br[1]; w++) {
+                this.cells[u][w].delete(client)
+            }
+        }*/
+        this.cells.forEach(x => x.forEach(y => y.delete(client)))
+    }
+
+    findNear(rect) {
+        const fin = new Set()
+        const { x, y, right, bottom } = rect
+
+        const tl = this._getCellIndex(x, y)
+        const br = this._getCellIndex(right, bottom)
+
+        for (let u = tl[0]; u <= br[0]; u++) {
+            for (let w = tl[1]; w <= br[1]; w++) {
+                this.cells[u]?.[w]?.forEach(member => {
+                    if (member !== rect) fin.add(member)
+                })
+            }
+        }
+
+        return fin
+    }
+
+    next_loop() {
+        this.cells = Array(this.dimX).fill().map(y => (Array(this.dimY).fill().map(x => new Set())))
+    }
+}
+
 class MM {
     static sum(arr) {
         return arr.reduce((s, x) => s + x, 0)

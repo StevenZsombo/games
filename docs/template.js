@@ -71,7 +71,7 @@ class Game {
         this.on_draw_extras = []
         this.extras = []
 
-        this.layers = Array(10).fill([])
+        this.layers = Array(10).fill().map(x => [])
         this.clickables = []
 
         this.add_clickable(this.framerate.button) //may be unwise
@@ -183,12 +183,22 @@ class Game {
         setTimeout(x => game.screen.fillRect(0, 0, game.WIDTH, game.HEIGHT), 100)
 
     }
-    add_clickable(item, layer = 5) {
-        this.add_drawable(item, layer)
-        this.clickables.push(item)
+    add_clickable(items, layer = 5) {
+        if (!Array.isArray(items)) {
+            items = [items]
+        }
+        for (const item of items) {
+            this.add_drawable(item, layer)
+            this.clickables.push(item)
+        }
     }
-    add_drawable(item, layer = 5) {
-        this.layers[layer].push(item)
+    add_drawable(items, layer = 5) {
+        if (!Array.isArray(items)) {
+            items = [items]
+        }
+        for (const item of items) {
+            this.layers[layer].push(item)
+        }
     }
 
 
@@ -227,7 +237,21 @@ class Game {
 
 
 
+        this.shm = new SpatialHashGrid(this.WIDTH, this.HEIGHT, 20, 20)
+        this.inds = this.rect.splitGrid(20, 20).flat().map(Button.fromRect)
+        this.mr = new Button({ x: 100, y: 100, width: 50, height: 50, color: "pink" })
+        this.mouser.x = 10
+        this.mouser.y = 20
+        this.shm.addClient(this.mr)
+        this.add_drawable(this.mr, 3)
+        this.add_drawable(this.mr, 8)
+        this.add_drawable(this.inds)
+        for (const r of this.inds) {
+            r.color = "gray"
+            this.shm.addClient(r)
 
+        }
+        this.mr.fontsize = 12
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
@@ -235,9 +259,16 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-
-
-
+        this.inds.forEach(r => this.shm.updateClient(r))
+        if (this.rect.copy.deflate(60, 60).collidepoint(this.mouser.x, this.mouser.y)) {
+            this.mr.centerat(this.mouser.x, this.mouser.y)
+        }
+        this.shm.updateClient(this.mr)
+        this.mr.txt = this.mr.shmindices
+        const friends = this.shm.findNear(this.mr)
+        for (const r of this.inds) {
+            r.selected = friends.has(r)
+        }
     }
     ///end update_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                           ^^^^UPDATE^^^^                                                     ///
