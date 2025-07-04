@@ -291,12 +291,14 @@ Make the light work in 9 trials!
         this.alloptions = [...MM.combinations([...MM.range(1, 13)], 6)]
         this.victory = () => {
             const lab = new Button()
-            this.add_clickable(lab)
             lab.leftat(this.batteries[2].left)
+            //lab.leftat(this.batteries[0].left)
             lab.topat(this.table[3][0].top)
             lab.rightstretchat(this.batteries.at(-1).right)
             lab.bottomstretchat(this.table[6][0].bottom)
             lab.transparent = true
+            //lab.transparent = false
+            //lab.color = "pink"
             lab.fontsize = 24
 
             if (this.alloptions.length != 0) { //you lose
@@ -312,6 +314,7 @@ Make the light work in 9 trials!
                         if ((b.txt == "x") && badones.includes(i)) b.color = "red"
                     })
                 })
+
                 this.grid[0].stretch(1, .5)
                 this.grid[0].txt =
                     `Each of your attempts had a bad battery in them,
@@ -325,7 +328,7 @@ so you could not make the light work.`
                     startVals: [0, 32]
                 })
                 const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 32, endVal: lab.fontsize })
-
+                this.add_clickable(lab)
                 this.animator.add_sequence(
                     a(), b(), c(), a(), b(), c(), a(), b(), c()
                 )
