@@ -4,7 +4,7 @@ const denybuttons = false
 const showFramerate = false
 /*const startOnFullscreen = true*/
 
-window.onload = function () {
+const startTheGameWhenButtonIsPressed = function () {
     let canvas = document.getElementById("myCanvas")
     canvas.style.touchAction = 'none'
     canvas.style.userSelect = 'none'
