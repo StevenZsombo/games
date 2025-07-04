@@ -2,7 +2,7 @@
 const framerateUnlocked = false
 const denybuttons = false
 const showFramerate = false
-const startOnFullscreen = true
+/*const startOnFullscreen = true*/
 
 window.onload = function () {
     let canvas = document.getElementById("myCanvas")
@@ -27,7 +27,7 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    cropper.load_images("battery.png light.png".split(" "), files, () => { //files is a global
+    cropper.load_images("battery.png light.png lightworking.png".split(" "), files, () => { //files is a global
         main(canvas)
     })
 
@@ -59,7 +59,6 @@ class Game {
             x: this.SIZE.x / 2,
             y: this.SIZE.y / 2
         }
-        fullscreenToggle(startOnFullscreen)
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(denybuttons)
         this.framerate = new Framerater(showFramerate)
@@ -79,10 +78,13 @@ class Game {
 
         this.lastCycleTime = Date.now()
 
-        this.isRunning = true
-        this.isDrawing = true
+        this.status = "initializing"
         this.initialize()
         this.initialize_more()
+        this.isRunning = true
+        this.isDrawing = true
+        this.isAcceptingInputs = true
+        this.status = "playing"
     }
     initialize() {
 
@@ -143,6 +145,7 @@ class Game {
     }
 
     update_clickables(dt) {
+        if (!this.isAcceptingInputs) { return }
         for (const b of this.clickables) {
             b.check(this.mouser.x, this.mouser.y, this.mouser.clicked, this.mouser.released, this.mouser.held)
         }
@@ -312,9 +315,10 @@ Make the light work in 9 trials!
                     })
                 })
 
-                this.grid[0].stretch(1, .5)
+                this.grid[0].stretch(1, .8)
                 this.grid[0].txt =
-                    `Each of your attempts had a bad battery in them,
+                    `Each of your attempts had a
+bad battery in them (see highlighted),
 so you could not make the light work.`
                 const revbb = () => this.revealBadBatteries(badones.map(x => x + 1))
                 this.animator.add_sequence(
@@ -329,6 +333,8 @@ so you could not make the light work.`
                 lab = this.grid[0]
                 lab.txt = "Congratulations! You made the light work!"
                 lab.fontsize = 20
+                this.lights.at(-1).width = 200
+                this.lights.at(-1).img = files["lightworking.png"]
                 const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: 28 })
                 const b = () => new Anim(lab, 600, "stepMany", {
                     varNames: ["rad", "fontsize"],
@@ -341,6 +347,9 @@ so you could not make the light work.`
                     a(), b(), c(), a(), b(), c(), a(), b(), c(),
 
                 )
+                this.animator.add_anim(this.lights.at(-1), 2000, "scaleThroughFactor", { scaleFactor: 1.1, repeat: 4, noLock: true })
+                //this.animator.add_anim(this.floaters.at(-1), 2000, "scaleThroughFactor", { scaleFactor: 1.2, repeat: 4, noLock: true })
+                //this.animator.add_anim(this.floaters.at(-2), 2000, "scaleThroughFactor", { scaleFactor: 1.2, repeat: 4, noLock: true })
             }
         }
         ///////////////////////////// clicklogic
@@ -361,6 +370,7 @@ so you could not make the light work.`
                     const { x, y } = this.lights[this.attempts.count].firstbatpos
                     this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
                     this.add_drawable(floater, 6)
+                    this.floaters.push(floater)
                 } else {
                     this.attempts.count++
                     this.attempts.track.push([this.attempts.first, i])
@@ -392,6 +402,7 @@ so you could not make the light work.`
                     const { x, y } = this.lights[this.attempts.count - 1].secondbatpos
                     this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
                     this.add_drawable(floater, 6)
+                    this.floaters.push(floater)
                     this.revealLight(this.attempts.count)
                     if (this.attempts.count == 9) {
                         this.batteries.forEach(x => x.interactable = false)
@@ -411,14 +422,14 @@ so you could not make the light work.`
         retry.color = "gray"
         retry.txt = "Retry"
         this.add_clickable(retry)
-
-        const fs = new Button({
-            y: retry.bottom - 15, height: 15, x: this.batteries[0].left, width: 60,
-            txt: "Fullscreen", on_click: fullscreenToggle, fontsize: 12,
-            color: "gray"
-        })
-        this.add_clickable(fs)
-
+        /*
+                const fs = new Button({
+                    y: retry.bottom - 15, height: 15, x: this.batteries[0].left, width: 60,
+                    txt: "Fullscreen", on_click: fullscreenToggle, fontsize: 12,
+                    color: "gray"
+                })
+                this.add_clickable(fs)
+        */
         this.dots = []
         MM.forr(1, 10, i => {
             this.dots.push(this.batteries.map(x => {
@@ -464,7 +475,7 @@ so you could not make the light work.`
             b.transparent = 0//true
             b.deg = -75//*0
             b.fontsize = 14
-            b.font_font = "Arial"
+            //b.font_font = "Consolas"
             b.resize(70, 20)
             b.move(-100, -10)
             b.visible = false
@@ -478,8 +489,17 @@ so you could not make the light work.`
             this.animator.add_anim(this.rotAtt[i], 1000, "step", { varName: "opacity", startVal: 1 })
 
         }
-        setTimeout(this.revealLight.bind(this, 0), 1000)
+        {
+            const w = (obj, i) => new Anim(obj, i * 60, "delay", { chain: hl(obj) })
+            const hl = (obj) => new Anim(obj, 200, "scaleThroughFactor", { scaleFactor: 1.2, repeat: 1 })
 
+            this.revealLight(0)
+            this.batteries.forEach((b, i) => {
+                const a = w(b, i)
+                this.animator.add_anim(a)
+            })
+
+        }
         const circ = function ({ x, y } = {}) {
             this.x = x
             this.y = y
@@ -489,8 +509,8 @@ so you could not make the light work.`
                     { color: null, outline: 3, outline_color: "red" })*/
 
                 game.screen.strokeStyle
-                MM.drawEllipse(game.screen, this.x, this.y, this.radius, this.radius * .8,
-                    { outline: 3, color: null, outline_color: "red" })
+                MM.drawEllipse(game.screen, this.x - 2, this.y, this.radius, this.radius * .8,
+                    { outline: 5, color: null, outline_color: "red" })
             }
         }
         this.revealBadBatteries = (badlist) => {
