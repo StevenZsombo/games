@@ -4,7 +4,7 @@ const denybuttons = false
 const showFramerate = false
 /*const startOnFullscreen = true*/
 
-const startTheGameWhenButtonIsPressed = function () {
+window.onload = function () {
     let canvas = document.getElementById("myCanvas")
     canvas.style.touchAction = 'none'
     canvas.style.userSelect = 'none'
@@ -248,9 +248,9 @@ class Game {
         this.grid[0].fontsize = 20
         this.grid[0].transparent = true
         this.grid[0].txt =
-            `You have 6 good and 6 bad batteries.
-You have a flashlight which requires 2 good batteries to work.
-You can try and put in any pair of batteries, if one or both of them are bad the light won't work.
+            `You have 6 good and 6 faulty batteries.
+You have a flashlight which you can put any pair of them in.
+The light will only work if you put in 2 good batteries.
 
 Make the light work in 9 trials!
 `
@@ -522,13 +522,13 @@ so you could not make the light work.`
                         new Anim(c, 1500, "custom", {
                             func: function (t) { this.obj.radius = t * 33 }
                         }),
-                        new Anim(c, 1000, "delay")
+                        new Anim(c, 3000, "delay", { on_end: () => retry.color = "lightblue" }),
+                        new Anim(retry, 1500, "scaleThroughFactor", { scaleFactorX: 0.6, scaleFactorY: 1.2, repeat: 4 }),
+                        //new Anim(retry, 1500, "scaleThroughFactor", { scaleFactor: 1.1, repeat: 4 })
                     )
                 }
             }
         }
-
-
 
 
     }

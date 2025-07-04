@@ -31,29 +31,9 @@
   </style>
 </head>
 
-
 <body>
-  <canvas id="myCanvas" width="800" height="500" hidden></canvas>
-  <button id="requestFullscreenButton">
-    Start game
-  </button>
+  <canvas id="myCanvas" width="800" height="500"></canvas>
 </body>
-<script>
-  {
-    const btn = document.getElementById("requestFullscreenButton")
-
-    const rip = function () {
-      document.documentElement.requestFullscreen()
-      btn.removeEventListener("pointerdown", rip)
-      btn.remove()
-      document.getElementById("myCanvas").hidden = false
-      startTheGameWhenButtonIsPressed()
-    }
-
-    btn.addEventListener("pointerdown", rip)
-
-  }
-</script>
 
 <script src="MM.js"></script>
 <script src="scripts.js"></script>
