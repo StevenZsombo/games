@@ -2,7 +2,6 @@
 const framerateUnlocked = false
 const denybuttons = false
 const showFramerate = false
-const startOnFullscreen = true
 
 window.onload = function () {
     let canvas = document.getElementById("myCanvas")
@@ -63,7 +62,7 @@ class Game {
             x: this.SIZE.x / 2,
             y: this.SIZE.y / 2
         }
-        fullscreenToggle(startOnFullscreen)
+
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(denybuttons)
         this.framerate = new Framerater(showFramerate)
@@ -84,6 +83,7 @@ class Game {
 
         this.isRunning = true
         this.isDrawing = true
+
         this.initialize()
         this.initialize_more()
     }
