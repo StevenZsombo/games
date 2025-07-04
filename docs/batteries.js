@@ -27,14 +27,10 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    main(canvas)
-    /*
-    cropper.load_images("cats.png arrows.png".split(" "), cont, () => {
-        files.push(cont["cats.png"])
-        files.push(cont["arrows.png"])
+    cropper.load_images("battery.png light.png".split(" "), files, () => { //files is a global
         main(canvas)
     })
-    */
+
 
 
 }
@@ -69,6 +65,7 @@ class Game {
         this.framerate = new Framerater(showFramerate)
         this.framerateUnlocked = framerateUnlocked //redundant unless reused
         this.animator = new Animator()
+        this.cropper = new Cropper()
 
         this.on_update_extras = []
         this.on_draw_extras = []
@@ -257,7 +254,7 @@ Make the light work in 9 trials!
 
         this.batteries = this.grid[1].copy.splitCol(...Array(12).fill(1)).map(Button.fromRect).map((b, i) => {
             b.deflate(10, 30)
-            b.txt = i + 1
+            b.tag = i + 1
             b.fontsize = 24
             return b
         })
@@ -289,8 +286,8 @@ Make the light work in 9 trials!
             first: null
         }
         this.alloptions = [...MM.combinations([...MM.range(1, 13)], 6)]
-        this.victory = () => {
-            const lab = new Button()
+        this.victory = (forced) => {
+            let lab = new Button()
             lab.leftat(this.batteries[2].left)
             //lab.leftat(this.batteries[0].left)
             lab.topat(this.table[3][0].top)
@@ -301,17 +298,17 @@ Make the light work in 9 trials!
             //lab.color = "pink"
             lab.fontsize = 24
 
-            if (this.alloptions.length != 0) { //you lose
+            if (this.alloptions.length != 0 && !forced) { //you lose
                 const badones = MM.choice(this.alloptions).map(i => i - 1)
                 this.batteries.forEach((b, i) => {
                     b.color = badones.includes(i) ? "red" : "green"
                 })
                 this.table.slice(1).flat().forEach(b => {
-                    b.color = badones.includes(b.txt - 1) ? "red" : "green"
+                    b.color = badones.includes(b.tag - 1) ? "red" : "green"
                 })
                 this.dots.forEach(row => {
                     row.forEach((b, i) => {
-                        if ((b.txt == "x") && badones.includes(i)) b.color = "red"
+                        if ((b.tag == "x") && badones.includes(i)) b.color = "red"
                     })
                 })
 
@@ -319,33 +316,58 @@ Make the light work in 9 trials!
                 this.grid[0].txt =
                     `Each of your attempts had a bad battery in them,
 so you could not make the light work.`
+                const revbb = () => this.revealBadBatteries(badones.map(x => x + 1))
+                this.animator.add_sequence(
+                    //new Anim(this.grid[0], 500, "custom", { orig: "x y width height".split(" "), func: (t) => this.grid[0].fontsize = t * 20 })
+                    Anim.custom(this.grid[0], 800, t => this.grid[0].fontsize = t * 20, "x y width height".split(" "), {
+                        on_end: revbb
+                    })
+
+                )
+
             } else {  //you win!
+                lab = this.grid[0]
                 lab.txt = "Congratulations! You made the light work!"
-                const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: 32 })
+                lab.fontsize = 20
+                const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: 28 })
                 const b = () => new Anim(lab, 600, "stepMany", {
                     varNames: ["rad", "fontsize"],
                     endVals: [TWOPI, 32],
                     startVals: [0, 32]
                 })
-                const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 32, endVal: lab.fontsize })
+                const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 28, endVal: lab.fontsize })
                 this.add_clickable(lab)
                 this.animator.add_sequence(
-                    a(), b(), c(), a(), b(), c(), a(), b(), c()
+                    a(), b(), c(), a(), b(), c(), a(), b(), c(),
+
                 )
             }
         }
+        ///////////////////////////// clicklogic
+        this.floaters = []
         this.makeattempt = (i) => {
             if (this.attempts.first !== i) {
+                this.batteries[i - 1].interactable = false
+                this.animator.add_anim(this.batteries[i - 1], 200, "scaleThroughFactor", {
+                    scaleFactor: 1.2,
+                    on_end: () => this.batteries[i - 1].interactable = this.attempts.count < 9
+                })
                 if (!this.attempts.first) {
                     this.attempts.first = i
                     this.batteries[i - 1].color = "lightblue"
                     this.dots[this.attempts.count][i - 1].txt = "x"
+                    const floater = this.batteries[i - 1].copy
+                    floater.on_click = null
+                    const { x, y } = this.lights[this.attempts.count].firstbatpos
+                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
+                    this.add_drawable(floater, 6)
                 } else {
                     this.attempts.count++
                     this.attempts.track.push([this.attempts.first, i])
                     this.batteries[i - 1].color = "lighblue"
                     this.batteries[this.attempts.first - 1].color = "lightblue"
-                    this.batteries.forEach(x => x.interactable = false)
+                    this.attempts.first = null
+                    /*this.batteries.forEach(x => x.interactable = false)
                     this.animator.add_anim(this.batteries[i - 1], 80, "wiggle", { dx: 5, dy: 5 })
                     this.animator.add_anim(this.batteries[this.attempts.first - 1], 80, "wiggle", {
                         dx: 5, dy: 5,
@@ -357,15 +379,23 @@ so you could not make the light work.`
                             this.batteries.forEach(x => x.interactable = true)
                         }
                     })
+                    */
                     const [u, w] = this.attempts.track.at(-1)
                     //alloptions = [x for x in alloptions if a in x or b in x]
                     this.alloptions = this.alloptions.filter(x => x.includes(u) || x.includes(w))
                     this.table[this.attempts.count][0].txt = u
                     this.table[this.attempts.count][1].txt = w
                     this.dots[this.attempts.count - 1][i - 1].txt = "x"
+
+                    const floater = this.batteries[i - 1].copy
+                    floater.on_click = null
+                    const { x, y } = this.lights[this.attempts.count - 1].secondbatpos
+                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
+                    this.add_drawable(floater, 6)
+                    this.revealLight(this.attempts.count)
                     if (this.attempts.count == 9) {
-                        this.victory()
                         this.batteries.forEach(x => x.interactable = false)
+                        this.victory()
                     }
 
                 }
@@ -375,11 +405,20 @@ so you could not make the light work.`
         this.batteries.forEach((b, i) => b.on_click = this.makeattempt.bind(this, i + 1))
 
         const retry = Button.fromButton(this.batteries.at(-2), { on_click: main })
+        retry.tag = null
         retry.bottomat(this.table.at(-1)[0].bottom)
         retry.rightstretchat(this.batteries.at(-1).right)
         retry.color = "gray"
         retry.txt = "Retry"
         this.add_clickable(retry)
+
+        const fs = new Button({
+            y: retry.bottom - 15, height: 15, x: this.batteries[0].left, width: 60,
+            txt: "Fullscreen", on_click: fullscreenToggle, fontsize: 12,
+            color: "gray"
+        })
+        this.add_clickable(fs)
+
         this.dots = []
         MM.forr(1, 10, i => {
             this.dots.push(this.batteries.map(x => {
@@ -392,7 +431,83 @@ so you could not make the light work.`
             }))
         })
 
-        this.add_clickable(this.dots.flat())
+        //this.add_clickable(this.dots.flat())
+        const cropper = new Cropper()
+        this.imgs = cropper.cropGrid(files["battery.png"], 12, 1).flat()
+        this.batteries.forEach((b, i) => {
+            //b.resize(60, 32)
+            b.resize(60, 32)
+            b.img = this.imgs[i]
+            b.transparent = true
+
+        })
+        this.lights = this.grid[2].copy.
+            deflate(0, 50).
+            move(0, -25).
+            splitGrid(3, 3).
+            flat().
+            map(x => x.resize(160, 80)).
+            map(Button.fromRect)
+        this.lights.forEach((b, i) => {
+            b.txt = null
+            b.img = files["light.png"]
+            b.firstbatpos = { x: b.x + 8, y: b.y + 20 }
+            b.secondbatpos = { x: b.x + 70, y: b.y + 20 }
+            b.visible = false
+            b.transparent = true
+        })
+        this.add_drawable(this.lights)
+        this.rotAtt = this.lights.map(b => Button.fromRect(b.copyRect))
+        this.add_drawable(this.rotAtt)
+        this.rotAtt.forEach((b, i) => {
+            b.txt = `Trial #${i + 1}`
+            b.transparent = 0//true
+            b.deg = -75//*0
+            b.fontsize = 14
+            b.font_font = "Arial"
+            b.resize(70, 20)
+            b.move(-100, -10)
+            b.visible = false
+        })
+
+        this.revealLight = (i) => {
+            if (i >= this.lights.length) { return }
+            this.lights[i].visible = true
+            this.rotAtt[i].visible = true
+            this.animator.add_anim(this.lights[i], 800, "stretchFrom", { w: 0, h: 0 })
+            this.animator.add_anim(this.rotAtt[i], 1000, "step", { varName: "opacity", startVal: 1 })
+
+        }
+        setTimeout(this.revealLight.bind(this, 0), 1000)
+
+        const circ = function ({ x, y } = {}) {
+            this.x = x
+            this.y = y
+            this.radius = 33
+            this.draw = () => {
+                /*MM.drawCircle(game.screen, this.x, this.y, this.radius,
+                    { color: null, outline: 3, outline_color: "red" })*/
+
+                game.screen.strokeStyle
+                MM.drawEllipse(game.screen, this.x, this.y, this.radius, this.radius * .8,
+                    { outline: 3, color: null, outline_color: "red" })
+            }
+        }
+        this.revealBadBatteries = (badlist) => {
+            for (const b of this.layers.flat()) {
+                if (badlist.includes(b.tag)) {
+                    const c = new circ(b.center)
+                    this.extras.push(() => game.add_drawable(c, 8))
+                    this.animator.add_sequence(
+                        new Anim(c, 1500, "custom", {
+                            func: function (t) { this.obj.radius = t * 33 }
+                        }),
+                        new Anim(c, 1000, "delay")
+                    )
+                }
+            }
+        }
+
 
 
 
@@ -442,12 +557,12 @@ const dev = {
 }/// end of dev
 /// settings
 const stgs = {
-
+    BGCOLOR: "linen"
 
 }
 
 /**@type {Image[]} */
-const files = []
+const files = {}
 
 /** @type {Game}*/
 var game

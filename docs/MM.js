@@ -162,6 +162,22 @@ class MM {
         }
     }
 
+    static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color } = {}) {
+        if (color) {
+            ctx.beginPath()
+            ctx.ellipse(x, y, rX, rY, 0, 0, TWOPI) // x, y, radiusX, radiusY, rotation, startAngle, endAngle
+            ctx.fillStyle = color
+            ctx.fill()
+        }
+        if (outline) {
+            ctx.beginPath()
+            ctx.ellipse(x, y, rX, rY, 0, 0, TWOPI) // x, y, radiusX, radiusY, rotation, startAngle, endAngle
+            ctx.strokeStyle = outline_color ?? color
+            ctx.lineWidth = outline
+            ctx.stroke()
+        }
+    }
+
     static drawLine(ctx, x, y, u, w, { color = 'black', width = 5 } = {}) {
         ctx.save()
         ctx.strokeStyle = color

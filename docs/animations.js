@@ -6,7 +6,7 @@ class Animator {
 	}
 
 	add_anim(objoranim, time, code, args = {}) {
-		if (!(objoranim instanceof Anim)) {
+		if (!(objoranim instanceof Anim)) { //can just pass Anim immediately
 			objoranim = new Anim(objoranim, time, code, args)
 		}
 		if (!(objoranim.noLock) && this.locked.includes(objoranim.obj)) {
@@ -21,6 +21,7 @@ class Animator {
 	add_sequence(...anims) { // input is flattened
 		this.sequences.push(anims.flat())
 	}
+
 
 	update(dt) {
 		const newAnims = []
@@ -88,7 +89,8 @@ class Animator {
 
 class Anim {
 	constructor(obj, time, code, args = {}) {
-		//accepts chain, chainMany repeat, on_end, lerp, mutate                    NEVER #append
+		//accepts chain, chainMany repeat, on_end, lerp              NEVER #append
+		// // mutate (TODO)
 		//all changes are non-mutating: object properties are to be reset when we are done!
 		//this can be overriden by {mutate:true}//TODO actually implement this.
 		if (!this[code]) {
@@ -109,7 +111,13 @@ class Anim {
 			code // just for debugging
 		})
 		if (typeof args?.lerp === String) { this.lerp = Anim[args.lerp] }
+
 		this.totTime = time
+	}
+
+	static custom(obj, time, func, origStrArr, args = {}) {
+		const settings = { func: func, orig: origStrArr, ...args }
+		return new Anim(obj, time, "custom", settings)
 	}
 
 	lerp(t) {
@@ -120,6 +128,7 @@ class Anim {
 		return 3 * t ** 2 - 2 * t ** 3
 		//x * x * x * (x * (6.0f * x - 15.0f) + 10.0f); smootherstep
 	}
+
 
 
 
@@ -238,7 +247,7 @@ class Anim {
 
 	}
 
-	scaleFromSize() {
+	stretchFrom() {
 		//w,h
 		//if (!this.obj instanceof Rect){console.log(obj);throw "object is not a rectangle"}
 		if (!this.init) {
@@ -248,7 +257,7 @@ class Anim {
 			this.origH = this.obj.height
 			this.diffW = this.w - this.origW
 			this.diffH = this.h - this.origH
-			this.append = this.obj.resize(this.origW, this.origH)
+			this.append = function () { this.obj.resize(this.origW, this.origH) }
 		}
 		const { obj, time, totTime } = this
 		let t = this.lerp(time / totTime)
@@ -272,7 +281,7 @@ class Anim {
 			this.origVal = orig
 			this.startVal ??= orig
 			this.endVal ??= orig
-			this.append = () => { this.obj[this.varName] = orig }
+			this.append = function () { this.obj[this.varName] = orig }
 		}
 		let t = this.lerp(1 - this.time / this.totTime)
 		//0 -> 1

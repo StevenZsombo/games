@@ -262,7 +262,7 @@ class Cropper {
 
 	cropGrid(img, rows, cols) {
 		const rect = new Rect(0, 0, img.width, img.height)
-		const rects = rect.splitGrid(cols, rows)
+		const rects = rect.splitGrid(rows, cols)
 		const ret = []
 		for (let row of rects) {
 			ret.push([])

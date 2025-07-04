@@ -96,12 +96,17 @@ class Rect {
 		this.height = value - this.y
 		return this
 	}
-	/*
 	topleftat(x, y) {
 		this.x = x
 		this.y = y
 		return this
 	}
+	topleftatV({ x, y } = {}) {
+		this.x = x
+		this.y = y
+		return this
+	}
+	/*
 	toprightat(x, y) {
 		this.x = x - this.width
 		this.y = y
@@ -182,6 +187,7 @@ class Rect {
 		this.width = w
 		this.height = h
 		this.centerat(x, y)
+		return this
 	}
 
 	spread(x, y, sx, sy) {
@@ -369,8 +375,7 @@ class Button extends Clickable {
 			tag: "",
 			img: null,
 			opacity: 0,
-			rad: 0,
-			deg: 0
+			rad: 0
 		}
 		const settings = {
 			...defaults,
@@ -379,6 +384,14 @@ class Button extends Clickable {
 		super(settings)
 		Object.assign(this, settings)
 
+	}
+
+	get copy() {
+		return new Button(this)
+	}
+
+	get copyRect() {
+		return super.copy
 	}
 
 	static fromRect(rect, kwargs = {}) {
