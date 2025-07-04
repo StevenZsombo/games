@@ -235,23 +235,11 @@ class Game {
     initialize_more() {
 
 
+        
 
 
-        this.shm = new SpatialHashGrid(this.WIDTH, this.HEIGHT, 20, 20)
-        this.inds = this.rect.splitGrid(20, 20).flat().map(Button.fromRect)
-        this.mr = new Button({ x: 100, y: 100, width: 50, height: 50, color: "pink" })
-        this.mouser.x = 10
-        this.mouser.y = 20
-        this.shm.addClient(this.mr)
-        this.add_drawable(this.mr, 3)
-        this.add_drawable(this.mr, 8)
-        this.add_drawable(this.inds)
-        for (const r of this.inds) {
-            r.color = "gray"
-            this.shm.addClient(r)
 
-        }
-        this.mr.fontsize = 12
+        
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
@@ -259,16 +247,11 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-        this.inds.forEach(r => this.shm.updateClient(r))
-        if (this.rect.copy.deflate(60, 60).collidepoint(this.mouser.x, this.mouser.y)) {
-            this.mr.centerat(this.mouser.x, this.mouser.y)
-        }
-        this.shm.updateClient(this.mr)
-        this.mr.txt = this.mr.shmindices
-        const friends = this.shm.findNear(this.mr)
-        for (const r of this.inds) {
-            r.selected = friends.has(r)
-        }
+       
+        
+
+
+
     }
     ///end update_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                           ^^^^UPDATE^^^^                                                     ///
