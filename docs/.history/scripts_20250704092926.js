@@ -88,15 +88,6 @@ class Rect {
 		this.y = value - this.height
 		return this
 	}
-	rightstretchat(value) {
-		this.width = value - this.x
-		return this
-	}
-	bottomstretchat(value) {
-		this.height = value - this.y
-		return this
-	}
-	/*
 	topleftat(x, y) {
 		this.x = x
 		this.y = y
@@ -116,7 +107,7 @@ class Rect {
 		this.x = x - this.width
 		this.y = y - this.height
 		return this
-	}*/ //DEPR
+	}
 
 	centerat(x, y) {
 		this.x = x - this.width / 2

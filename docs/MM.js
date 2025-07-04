@@ -75,6 +75,25 @@ class SpatialHashGrid {
     }
 }
 
+const UniqueArray = function () {
+    const set = new Set();
+    const array = [];
+    this.set = set
+    this.array = array
+    this.add = item => {
+        if (!set.has(item)) {
+            set.add(item);
+            array.push(item);
+        }
+    }
+    this.remove = item => {
+        if (set.delete(item)) {
+            const index = array.indexOf(item);
+            array.splice(index, 1);
+        }
+    }
+}
+
 class MM {
     static sum(arr) {
         return arr.reduce((s, x) => s + x, 0)
@@ -224,13 +243,13 @@ class MM {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
 
-    static forr(arg1, arg2, arg3) {
+    static forr(startIndex, funcOrEndIndex, funcIfEndIndex) {
         //forr(2,f) or forr(2,4,f)
         let start, end, func
-        if (arg3) {
-            [start, end, func] = [arg1, arg2, arg3]
+        if (funcIfEndIndex) {
+            [start, end, func] = [startIndex, funcOrEndIndex, funcIfEndIndex]
         } else {
-            [start, end, func] = [0, arg1, arg2]
+            [start, end, func] = [0, startIndex, funcOrEndIndex]
         }
         const step = start < end ? 1 : -1
         const ret = []
@@ -336,31 +355,24 @@ class MM {
         return
     }
 
-    static *permutationsGen(t, k) {
-        if (!t) { yield []; return; }
-        const a = Array(t).fill(0)
-        yield [...a]
-        while (true) {
-            a[0]++
-            let j = -1
-            while (a[++j] == k) {
-                if (j == t - 1) { return }
-                a[j] = 0
-                a[j + 1]++
-            }
-            yield [...a]
-        }
-
+    static *permutations(a, k, c = [], u = new Set()) {
+        if (k === 0) yield c;
+        else for (const [i, v] of a.entries())
+            if (!u.has(i) && k > 0)
+                yield* MM.permutations(a, k - 1, [...c, v], new Set([...u, i]));
     }
 
-    static *permutation(arr, k) {
-        for (const code of MM.permutationsGen(arr.length, k)) {
-            yield arr.map((x, i) => arr[code[i]])
+    static * combinations(arr, k, start = 0, current = []) {
+        if (k === 0) {
+            yield [...current];
+            return;
         }
-    }
 
-    static *combinations(arr, k) {
-
+        for (let i = start; i <= arr.length - k; i++) {
+            current.push(arr[i]);
+            yield* MM.combinations(arr, k - 1, i + 1, current);
+            current.pop();
+        }
     }
 
     static pairs(arr) {

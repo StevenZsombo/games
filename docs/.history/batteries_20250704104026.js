@@ -40,7 +40,6 @@ const beforeMain = function (canvas) {
 
 const main = function (canvas) {
     canvas ??= document.getElementById("myCanvas")
-    if (game !== undefined) { game.isRunning = false }
     game = new Game(canvas)
     game.tick()
 }
@@ -307,21 +306,10 @@ Make the light work in 9 trials!
                     b.color = badones.includes(b.txt - 1) ? "red" : "green"
                 })
                 lab.txt =
-                    `Each of your attempts had a bad battery in them,
+                    `Each of your attempts has a bad battery in them,
 so you could not make the light work.`
             } else {  //you win!
-                lab.txt = "Congratulations! You made the light work!"
-                const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: 32 })
-                const b = () => new Anim(lab, 600, "stepMany", {
-                    varNames: ["rad", "fontsize"],
-                    endVals: [TWOPI, 32],
-                    startVals: [0, 32]
-                })
-                const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 32, endVal: lab.fontsize })
 
-                this.animator.add_sequence(
-                    a(), b(), c(), a(), b(), c(), a(), b(), c()
-                )
             }
         }
         this.makeattempt = (i) => {
@@ -361,14 +349,6 @@ so you could not make the light work.`
         }
 
         this.batteries.forEach((b, i) => b.on_click = this.makeattempt.bind(this, i + 1))
-
-        const retry = Button.fromButton(this.batteries.at(-2), { on_click: main })
-        retry.bottomat(this.table.at(-1)[0].bottom)
-        retry.rightstretchat(this.batteries.at(-1).right)
-        retry.color = "gray"
-        retry.txt = "Retry"
-        this.add_clickable(retry)
-
 
 
     }

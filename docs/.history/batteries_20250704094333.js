@@ -40,7 +40,6 @@ const beforeMain = function (canvas) {
 
 const main = function (canvas) {
     canvas ??= document.getElementById("myCanvas")
-    if (game !== undefined) { game.isRunning = false }
     game = new Game(canvas)
     game.tick()
 }
@@ -261,23 +260,20 @@ Make the light work in 9 trials!
             return b
         })
         this.add_clickable(this.batteries)
-        this.grid[0].topat(0)
-        this.grid[0].bottomstretchat(this.batteries[0].top)
-        this.grid[0].move(0, 8)
 
-        this.tablebg = this.grid[2].splitCol(1, 3)[0]
+        this.grid[0].resize(this.grid[0].width, this.batteries[0].top)
+        this.grid[0].move(0, 18)
+
+        this.tablebg = this.grid[2].splitCol(1, 2)[0]
         this.tablebg.leftat(this.batteries[0].left)
-        this.tablebg.rightstretchat(this.batteries[1].right)
 
-        this.table = this.tablebg.splitRow(...Array(10).fill(1))
-        this.table = this.table.map((b, i) => i == 0 ? Button.fromRect(b) : b.splitCol(1, 1).map(Button.fromRect))
+        this.table = this.tablebg.splitRow(...Array(10).fill(1)).map(Button.fromRect)
         this.tablebg = Button.fromRect(this.tablebg)
-        this.add_clickable(this.table.slice(1).flat())
-        this.add_clickable(this.table[0])
-        //this.add_clickable(this.tablebg, 3)
-        this.table.flat().forEach(b => {
+        this.add_clickable(this.table)
+        this.add_clickable(this.tablebg, 3)
+        this.table.forEach(b => {
             b.fontsize = 16
-            b.color = null
+            b.transparent = true
         })
         this.table[0].txt = "Attempts:"
 
@@ -287,42 +283,9 @@ Make the light work in 9 trials!
             track: [],
             first: null
         }
-        this.alloptions = [...MM.combinations([...MM.range(1, 13)], 6)]
+        this.alloptions = MM.combinations([...MM.range(1, 13)], 6)
         this.victory = () => {
-            const lab = new Button()
-            this.add_clickable(lab)
-            lab.leftat(this.batteries[2].left)
-            lab.topat(this.table[3][0].top)
-            lab.rightstretchat(this.batteries.at(-1).right)
-            lab.bottomstretchat(this.table[6][0].bottom)
-            lab.transparent = true
-            lab.fontsize = 24
 
-            if (this.alloptions.length != 0) { //you lose
-                const badones = MM.choice(this.alloptions).map(i => i - 1)
-                this.batteries.forEach((b, i) => {
-                    b.color = badones.includes(i) ? "red" : "green"
-                })
-                this.table.slice(1).flat().forEach(b => {
-                    b.color = badones.includes(b.txt - 1) ? "red" : "green"
-                })
-                lab.txt =
-                    `Each of your attempts had a bad battery in them,
-so you could not make the light work.`
-            } else {  //you win!
-                lab.txt = "Congratulations! You made the light work!"
-                const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: 32 })
-                const b = () => new Anim(lab, 600, "stepMany", {
-                    varNames: ["rad", "fontsize"],
-                    endVals: [TWOPI, 32],
-                    startVals: [0, 32]
-                })
-                const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 32, endVal: lab.fontsize })
-
-                this.animator.add_sequence(
-                    a(), b(), c(), a(), b(), c(), a(), b(), c()
-                )
-            }
         }
         this.makeattempt = (i) => {
             if (this.attempts.first !== i) {
@@ -332,25 +295,19 @@ so you could not make the light work.`
                 } else {
                     this.attempts.count++
                     this.attempts.track.push([this.attempts.first, i])
-                    this.batteries[i - 1].color = "lighblue"
-                    this.batteries[this.attempts.first - 1].color = "lightblue"
-                    this.batteries.forEach(x => x.interactable = false)
-                    this.animator.add_anim(this.batteries[i - 1], 80, "wiggle", { dx: 5, dy: 5 })
-                    this.animator.add_anim(this.batteries[this.attempts.first - 1], 80, "wiggle", {
+                    this.batteries[i - 1].color = "red"
+                    this.batteries[this.attempts.first - 1].color = "red"
+                    this.animator.add_anim(this.batteries[i - 1], 50, "wiggle", { dx: 5, dy: 5 })
+                    this.animator.add_anim(this.batteries[this.attempts.first - 1], 50, "wiggle", {
                         dx: 5, dy: 5,
                         on_end: () => {
-                            if (this.attempts.count == 9) { return }
                             this.batteries[this.attempts.first - 1].color = "gray"
                             this.batteries[i - 1].color = "gray"
                             this.attempts.first = null
-                            this.batteries.forEach(x => x.interactable = true)
                         }
                     })
                     const [u, w] = this.attempts.track.at(-1)
-                    //alloptions = [x for x in alloptions if a in x or b in x]
-                    this.alloptions = this.alloptions.filter(x => x.includes(u) || x.includes(w))
-                    this.table[this.attempts.count][0].txt = u
-                    this.table[this.attempts.count][1].txt = w
+                    this.table[this.attempts.count].txt = `${u}, ${w}`
                     if (this.attempts.count == 9) {
                         this.victory()
                         this.batteries.forEach(x => x.interactable = false)
@@ -361,14 +318,6 @@ so you could not make the light work.`
         }
 
         this.batteries.forEach((b, i) => b.on_click = this.makeattempt.bind(this, i + 1))
-
-        const retry = Button.fromButton(this.batteries.at(-2), { on_click: main })
-        retry.bottomat(this.table.at(-1)[0].bottom)
-        retry.rightstretchat(this.batteries.at(-1).right)
-        retry.color = "gray"
-        retry.txt = "Retry"
-        this.add_clickable(retry)
-
 
 
     }
