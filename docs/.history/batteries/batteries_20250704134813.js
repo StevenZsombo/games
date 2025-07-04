@@ -307,13 +307,7 @@ Make the light work in 9 trials!
                 this.table.slice(1).flat().forEach(b => {
                     b.color = badones.includes(b.txt - 1) ? "red" : "green"
                 })
-                this.dots.forEach(row => {
-                    row.forEach((b, i) => {
-                        if ((b.txt == "x") && badones.includes(i)) b.color = "red"
-                    })
-                })
-                this.grid[0].stretch(1, .5)
-                this.grid[0].txt =
+                lab.txt =
                     `Each of your attempts had a bad battery in them,
 so you could not make the light work.`
             } else {  //you win!
@@ -336,7 +330,6 @@ so you could not make the light work.`
                 if (!this.attempts.first) {
                     this.attempts.first = i
                     this.batteries[i - 1].color = "lightblue"
-                    this.dots[this.attempts.count][i - 1].txt = "x"
                 } else {
                     this.attempts.count++
                     this.attempts.track.push([this.attempts.first, i])
@@ -359,7 +352,6 @@ so you could not make the light work.`
                     this.alloptions = this.alloptions.filter(x => x.includes(u) || x.includes(w))
                     this.table[this.attempts.count][0].txt = u
                     this.table[this.attempts.count][1].txt = w
-                    this.dots[this.attempts.count - 1][i - 1].txt = "x"
                     if (this.attempts.count == 9) {
                         this.victory()
                         this.batteries.forEach(x => x.interactable = false)
@@ -377,19 +369,9 @@ so you could not make the light work.`
         retry.color = "gray"
         retry.txt = "Retry"
         this.add_clickable(retry)
-        this.dots = []
-        MM.forr(1, 10, i => {
-            this.dots.push(this.batteries.map(x => {
-                const a = Button.fromRect(x)
-                a.move(0, i * 30 + 20)
-                a.deflate(0, 10)
-                a.shrinkToSquare()
-                a.txt = null
-                return a
-            }))
-        })
 
-        this.add_clickable(this.dots.flat())
+        this.dots = this.batteries.map(x => Button.fromRect(x))
+        this.dots.forEach(x => x.move(20, 20))
 
 
 
