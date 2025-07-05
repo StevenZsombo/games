@@ -1,9 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Game by Steven Zs</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      /* Disable scrolling */
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+
+    canvas {
+      /* 16:9 aspect ratio (800/450 = ~1.778) */
+      width: min(177.8vh, 100vw);
+      /* 16/9 of viewport height */
+      height: min(56.25vw, 100vh);
+      /* 9/16 of viewport width */
+      image-rendering: crisp-edges;
+      /* will override in code anyways*/
+      /* AA->noAA being: smooth, auto, crisp-edges, pixelated */
+    }
+  </style>
+</head>
+
 <body>
-  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <canvas id="myCanvas" width="800" height="500" style="border: 3px solid black;"></canvas>
-  </div>
+  <!-- Canvas with 800x450 internal resolution -->
+  <canvas id="myCanvas" width="800" height="450"></canvas>
+
+  <!-- Your game scripts -->
+  <script src="MM.js"></script>
   <script src="scripts.js"></script>
   <script src="animations.js"></script>
   <script src="gui.js"></script>
   <script src="lights.js"></script>
 </body>
+
+</html>

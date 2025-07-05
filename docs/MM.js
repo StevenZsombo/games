@@ -279,10 +279,7 @@ class MM {
         screen.restore()
     }
 
-    static drawRotatedHijack(screen, obj, rad) {
-        //TODO: the draw parameter I'm meant to override has unknown / hard-to-trace parameters
-
-    }
+    
 
     static RotateContext(screen, rad, x, y) {
         const [c, s] = [Math.cos(rad), Math.sin(rad)]
@@ -424,7 +421,7 @@ class MM {
                 yield* MM.permutations(a, k - 1, [...c, v], new Set([...u, i]));
     }
 
-    static * combinations(arr, k, start = 0, current = []) {
+    static *combinations(arr, k, start = 0, current = []) {
         if (k === 0) {
             yield [...current];
             return;

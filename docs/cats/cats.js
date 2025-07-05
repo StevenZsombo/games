@@ -71,7 +71,7 @@ class Game {
         this.layers = Array(10).fill([])
         this.clickables = []
 
-        this.add_clickable(this.framerate.button) //may be unwise
+        //this.add_clickable(this.framerate.button) //may be unwise
 
 
         this.lastCycleTime = Date.now()
@@ -150,7 +150,7 @@ class Game {
     draw(screen) {
         //draw
         this.draw_layers(screen)
-        this.framerate.draw(screen)
+        //this.framerate.draw(screen)
 
     }
 

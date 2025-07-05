@@ -53,7 +53,7 @@ class Keyboarder {
 			throw "did not specify whether keypress propagation should be denied or not"
 		}
 		/*-----------------------------------------------worst idea ever---------------------------------------------------------*/
-		fullscreenToggle = MM.extFunc(fullscreenToggle, () => game.mouser.whereIsCanvas())
+		//fullscreenToggle = MM.extFunc(fullscreenToggle, () => game.mouser.whereIsCanvas())
 		this.bufferExpiration = null //null for no expiration, or milliseconds
 		this.held = {}
 		const held = this.held
@@ -77,9 +77,9 @@ class Keyboarder {
 		document.addEventListener('keyup', (e) => {
 			held[e.key] = false
 			pressed[e.key] = false
-			if (e.key == "F") {
-				fullscreenToggle()
-			}
+			//if (e.key == "F") {
+			//fullscreenToggle()
+			//}
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
