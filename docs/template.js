@@ -249,7 +249,7 @@ class Game {
         this.add_clickable(this.bg)
         this.bg.color = "white"
         this.bg.stretch(.8, .8)
-        const pl = new Plot(t => t ** 3, this.bg)
+        const pl = new Plot(Math.cos, this.bg)
         this.add_drawable(pl)
         this.pl = pl
         pl.addControls(this.mouser)

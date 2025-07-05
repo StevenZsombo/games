@@ -183,6 +183,8 @@ class Mouser {
 			this.released = true
 		})
 		canvas.addEventListener('wheel', (e) => {
+			e.preventDefault()
+			e.stopPropagation()
 			this.wheel = e.deltaY
 		})
 		window.addEventListener("resize", this.whereIsCanvas.bind(this))

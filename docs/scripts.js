@@ -106,6 +106,14 @@ class Rect {
 		this.y = y
 		return this
 	}
+	bottomrightstretchat(x, y) {
+		this.rightstretchat(x)
+		this.bottomstretchat(y)
+		return this
+	}
+	bottomrightstretchatV({ x, y } = {}) {
+		return this.bottomrightstretchat(x, y)
+	}
 	/*
 	toprightat(x, y) {
 		this.x = x - this.width
@@ -811,6 +819,39 @@ class Plot {
 		return this
 	}
 
+	pointerPosToCoord(pos) {
+		let { x, y } = pos
+		x -= this.rect.x
+		y -= this.rect.y
+		x /= this.rect.width
+		y /= this.rect.height
+		y = 1 - y
+		const { minX, maxX, minY, maxY } = this
+		x = x * (maxX - minX) + minX
+		y = y * (maxY - minY) + minY
+		return { x: x, y: y }
+	}
+
+	coordToScreenPos(x, y) {
+		const rect = this.rect
+		const { minX, maxX, minY, maxY } = this
+		const drawX = (x - minX) / (maxX - minX) * rect.width + rect.x
+		const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height + rect.y
+
+		return { x: drawX, y: drawY }
+	}
+
+	zoomAtPos(factor, pos) {
+		let { x, y } = this.pointerPosToCoord(pos)
+		this.translateX(-x)
+		this.translateY(-y)
+		this.zoomX(factor)
+		this.zoomY(factor)
+		this.translateX(x)
+		this.translateY(y)
+		return this
+	}
+
 	translateX(u) {
 		this.minX += u
 		this.maxX += u
@@ -837,9 +878,9 @@ class Plot {
 			plot.translateX((this.last_held.x - pos.x) * (plot.maxX - plot.minX) / this.width)
 			plot.translateY(-(this.last_held.y - pos.y) * (plot.maxY - plot.minY) / this.height)
 		}
-		button.on_wheel = function (wheel) {
-			plot.zoomX(wheel < 0 ? 1.1 : 1 / (1.1))
-			plot.zoomY(wheel < 0 ? 1.1 : 1 / (1.1))
+		button.on_wheel = function (wheel, pos) {
+			const factor = wheel < 0 ? 1.1 : 1 / (1.1)
+			plot.zoomAtPos(factor, pos)
 		}
 	}
 }
