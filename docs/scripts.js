@@ -289,10 +289,13 @@ class Clickable extends Rect {
 			on_hover: null,
 			on_enter: null,
 			on_leave: null,
+			on_drag: null,
+			on_hold: null,
+			on_wheel: null,
+			_drag_force_within: false, //won't let the button separate from mouse while dragging
 			just_entered: false,
 			last_clicked: null,
-			follow_mouse: false,
-			follow_mouse_last: null,
+			last_held: null,
 			interactable: true
 		}
 		super(options.x ??= defaults.x, options.y ??= defaults.y, options.width ??= defaults.width, options.height ??= defaults.height)
@@ -301,55 +304,47 @@ class Clickable extends Rect {
 			...options
 		})
 	}
-	check(x, y, clicked, released, held) {
-		if (!this.interactable || x === null || y === null) {
+
+	check(x, y, clicked, released, held, wheel) {
+		if (released) { //log releases anyways
+			this.last_clicked = null
+			this.last_held = null
+		}
+		if (!this.interactable || x === null || y === null) { //if not interactable then return
 			return false
 		}
 		const pos = {
 			x: x,
 			y: y
 		}
-		let within = this.collidepoint(x, y)
+		let within = this.collidepoint(x, y) || (this._drag_force_within && this.last_clicked)
 		//will be declared as true while dragging
-		if (this.follow_mouse) {
-			//thus drag logic must go first
-			if (released) {
-				this.follow_mouse_last = null
-				this.follow_mouse_offset = null
-			}
-			if (within && clicked) {
-				this.follow_mouse_last = pos
-				this.follow_mouse_offset = {
-					x: this.x - x,
-					y: this.y - y
-				}
-			}
-			if (held && this.follow_mouse_last) {
-				//this.move(x - this.follow_mouse_last.x, y - this.follow_mouse_last.y)
-				within = true
-				this.x = x + this.follow_mouse_offset.x
-				this.y = y + this.follow_mouse_offset.y
-				this.follow_mouse_last = pos
-
-			}
-		}
 		if (within) {
-			this.on_hover?.()
+			this.on_hover?.(pos)
 		}
 		if (within && !this.just_entered) {
 			this.just_entered = true
-			this.on_enter?.()
+			this.on_enter?.(pos)
 		}
 		if (!within && this.just_entered) {
 			this.just_entered = false
-			this.on_leave?.()
+			this.on_leave?.(pos)
+		}
+		if (released && within) {
+			this.on_release?.(pos)
 		}
 		if (clicked && within) {
 			this.last_clicked = pos
-			this.on_click?.()
+			this.last_held = pos
+			this.on_click?.(pos)
 		}
-		if (released && within) {
-			this.on_release?.()
+		if (held && within) {
+			this.on_hold?.(pos)
+			this.last_clicked && this.on_drag?.(pos) //drag means you clicked and now you hold
+			this.last_held = pos
+		}
+		if (wheel && within) {
+			this.on_wheel?.(wheel, pos)
 		}
 		return within
 	}
@@ -479,9 +474,9 @@ class Button extends Clickable {
 		})
 	}
 
-	check(x, y, clicked, released, held) {
+	check(x, y, clicked, released, held, wheel) {
 		if (this.visible) {
-			return super.check(x, y, clicked, released, held)
+			return super.check(x, y, clicked, released, held, wheel)
 		}
 	}
 
@@ -528,6 +523,29 @@ class Button extends Clickable {
 
 		}
 		return radio_group
+	}
+
+	static make_draggable(button) {
+		button.on_drag = function (pos) {
+			this.x += pos.x - this.last_held.x
+			this.y += pos.y - this.last_held.y
+		}
+		button._drag_force_within = true
+		return button
+	}
+
+	/**@param {Button} button @param {Button[]} others */
+	static make_drag_others(button, others) {
+		button.on_drag = function (pos) {
+			others.forEach(b => {
+				b.x += pos.x - button.last_held.x
+				b.y += pos.y - button.last_held.y
+			})
+			this.x += pos.x - this.last_held.x
+			this.y += pos.y - this.last_held.y
+		}
+		button._drag_force_within = true
+		return button
 	}
 
 }
@@ -738,3 +756,90 @@ class RectRotatedExperimental extends Rect {
 	}
 }
 
+
+class Plot {
+	constructor(func, rect, args = {}) {
+		this.func = func
+		this.rect = rect
+		const defaults = {
+			minX: 0,
+			maxX: 10,
+			minY: -5,
+			maxY: 5,
+			color: "black",
+			width: 2,
+			axes: true,
+			axes_color: "pink",
+			axes_width: 1,
+			show_border_values: true,
+			show_border_values_font: "12px Times",
+			show_border_values_dp: 2
+		}
+		Object.assign(this, { ...defaults, ...args })
+
+	}
+
+	draw(screen) {
+		MM.plot(screen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.rect,
+			this)
+		if (this.show_border_values) {
+			const { maxX, maxY, minX, minY } = this
+			screen.fillStyle = "black"
+			screen.font = this.show_border_values_font
+			screen.textAlign = "center"
+			screen.textBaseline = "top"
+			screen.fillText(maxY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.top)
+			screen.textBaseline = "bottom"
+			screen.fillText(minY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.bottom)
+			screen.textBaseline = "middle"
+			screen.textAlign = "left"
+			screen.fillText(minX.toFixed(this.show_border_values_dp), this.rect.left, this.rect.centerY)
+			screen.textAlign = "right"
+			screen.fillText(maxX.toFixed(this.show_border_values_dp), this.rect.right, this.rect.centerY)
+		}
+	}
+
+
+	zoomX(factor) {
+		this.minX /= factor
+		this.maxX /= factor
+		return this
+	}
+	zoomY(factor) {
+		this.minY /= factor
+		this.maxY /= factor
+		return this
+	}
+
+	translateX(u) {
+		this.minX += u
+		this.maxX += u
+		return this
+	}
+
+	translateY(w) {
+		this.minY += w
+		this.maxY += w
+		return this
+	}
+
+	translate({ x, y }) {
+		this.translateX(x)
+		this.translateY(y)
+		return this
+	}
+
+	addControls(mouser, button) {
+		button ??= this.rect
+		if (!(button instanceof Button)) { throw "controls can only be added to a button" }
+		const plot = this
+		button.on_drag = function (pos) {
+			plot.translateX((this.last_held.x - pos.x) * (plot.maxX - plot.minX) / this.width)
+			plot.translateY(-(this.last_held.y - pos.y) * (plot.maxY - plot.minY) / this.height)
+		}
+		button.on_wheel = function (wheel) {
+			plot.zoomX(wheel < 0 ? 1.1 : 1 / (1.1))
+			plot.zoomY(wheel < 0 ? 1.1 : 1 / (1.1))
+		}
+	}
+}

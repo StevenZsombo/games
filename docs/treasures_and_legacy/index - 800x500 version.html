@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Game by Steven Zs</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* Disable scrolling */
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        canvas {
+            width: min(160vh, 100vw);
+            /* 16:10 aspect ratio (800/500) */
+            height: min(62.5vw, 100vh);
+            /* from max AA -> no AA: smooth, auto, crisp-edges, pixelated */
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="myCanvas" width="800" height="500"></canvas>
+</body>
+
+<script src="MM.js"></script>
+<script src="scripts.js"></script>
+<script src="animations.js"></script>
+<script src="gui.js"></script>
+<script src="template.js"></script>
+</body>
+
+</html>

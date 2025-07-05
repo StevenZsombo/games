@@ -12,8 +12,8 @@ class Framerater {
 			fontsize: 12,
 			color: "yellow",
 			outline: 0,
-			follow_mouse: true
 		})
+		Button.make_draggable(this.button)
 		this.isRunning = isRunning
 		this.startTime = Date.now()
 		this.totalTicks = 0
@@ -71,8 +71,7 @@ class Keyboarder {
 				pressed[e.key] = true
 				strokeBuffer.push([Date.now(), e.key])
 			}
-		}
-		)
+		})
 		document.addEventListener('keyup', (e) => {
 			held[e.key] = false
 			pressed[e.key] = false
@@ -83,8 +82,8 @@ class Keyboarder {
 				e.preventDefault()
 				e.stopPropagation()
 			}
-		}
-		)
+		})
+		//there's also a 'blur' event for alt+tab
 	}
 	get strokes() {
 		return this.strokeBuffer.map(x => x[1]).join("")
@@ -118,6 +117,8 @@ class Mouser {
 		this.canvas = canvas
 		this.addListeners(canvas)
 		this.whereIsCanvas()
+
+		this.wheel = 0
 	}
 
 	whereIsCanvas() {
@@ -142,8 +143,7 @@ class Mouser {
 			this.whereAmI(e)
 			//e.pointerType //can be 'mouse', 'pen', 'touch'
 
-		}
-		)
+		})
 		canvas.addEventListener('pointerdown', (e) => {
 			e.preventDefault()
 			e.stopPropagation()
@@ -155,30 +155,36 @@ class Mouser {
 			//e.shiftKey, e.ctrlKey //true or false
 			//button = 0 or 2
 			//for some reason clicking both simultaneously does sweet FA
-		}
-		)
+		})
 		canvas.addEventListener('pointerup', (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
 			this.released = true
 			this.down = false
-		}
-		)
-		canvas.addEventListener('pointerout', (e) => {
+		})
+		canvas.addEventListener('pointerleave', (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.released = true
 			this.x = null
 			this.y = null
-		}
-		)
+		})
+		/*canvas.addEventListener('pointerout', (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+			this.released = true
+			this.x = null
+			this.y = null
+		})*/
 		canvas.addEventListener('pointercancel', (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.released = true
-		}
-		)
+		})
+		canvas.addEventListener('wheel', (e) => {
+			this.wheel = e.deltaY
+		})
 		window.addEventListener("resize", this.whereIsCanvas.bind(this))
 		window.addEventListener("scroll", this.whereIsCanvas.bind(this))
 		window.addEventListener('contextmenu', (e) => {
@@ -200,6 +206,7 @@ class Mouser {
 	next_loop() {
 		this.clicked = false
 		this.released = false
+		this.wheel = 0
 	}
 
 	changeCursor(type) {
@@ -210,7 +217,9 @@ class Mouser {
 
 class Cropper {
 	constructor() {
+		/**@type {HTMLCanvasElement} */
 		this.canvas = document.createElement("canvas")
+		/**@type {CanvasRenderingContext2D} */
 		this.ctx = this.canvas.getContext("2d")
 	}
 
@@ -242,6 +251,7 @@ class Cropper {
 
 	}
 
+	/**@returns {HTMLImageElement} */
 	resize(img, width, height) {
 		this.canvas.width = width
 		this.canvas.height = height
@@ -251,6 +261,7 @@ class Cropper {
 		return ret
 	}
 
+	/**@returns {HTMLImageElement} */
 	crop(img, rect) {
 		this.canvas.width = rect.width
 		this.canvas.height = rect.height
@@ -260,6 +271,7 @@ class Cropper {
 		return ret
 	}
 
+	/**@returns {HTMLImageElement[][]} */
 	cropGrid(img, rows, cols) {
 		const rect = new Rect(0, 0, img.width, img.height)
 		const rects = rect.splitGrid(rows, cols)

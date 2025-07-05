@@ -179,14 +179,60 @@ class MM {
     }
 
     static drawLine(ctx, x, y, u, w, { color = 'black', width = 5 } = {}) {
-        ctx.save()
+        //ctx.save()
         ctx.strokeStyle = color
         ctx.lineWidth = width
         ctx.beginPath()
         ctx.moveTo(x, y)
         ctx.lineTo(u, w)
         ctx.stroke()
-        ctx.restore()
+        //ctx.restore()
+    }
+
+    static drawPolyLine(screen, xArr, yArr, { color = "blank", width = 4, offsetX = 0, offsetY = 0 } = {}) {
+        if (xArr.length != yArr.length) { throw "drawPolyLine length mismatch" }
+        screen.save()
+        screen.translate(offsetX, offsetY)
+        screen.beginPath()
+        screen.strokeStyle = color
+        screen.lineWidth = width
+        for (let i = 0; i < xArr.length - 1; i++) {
+            screen.moveTo(xArr[i], yArr[i])
+            screen.lineTo(xArr[i + 1], yArr[i + 1])
+        }
+        screen.stroke()
+        screen.restore()
+    }
+    /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
+    static plot(screen, func, minX, maxX, minY, maxY, rect, {
+        density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1 } = {}) {
+        density ??= rect.width
+        const xArr = []
+        const yArr = []
+        for (let i = 0; i <= density; i++) {
+            const t = i / density
+            const valX = minX + t * (maxX - minX)
+            const valY = func(valX)
+            const drawX = t * rect.width
+            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
+            if (0 <= drawY && drawY <= rect.height) {
+                xArr.push(drawX)
+                yArr.push(drawY)
+            }
+        }
+        if (axes) {
+            if (minY <= 0 && maxY >= 0) {
+                const axPos = rect.y + (maxY / (maxY - minY)) * rect.height
+                MM.drawLine(screen, rect.left, axPos, rect.right, axPos, { color: axes_color, width: axes_width })
+            }
+            if (minX <= 0 && maxX >= 0) {
+                const axPos = rect.x - (minX / (maxX - minX)) * rect.width
+                MM.drawLine(screen, axPos, rect.top, axPos, rect.bottom, { color: axes_color, width: axes_width })
+            }
+        }
+        MM.drawPolyLine(screen, xArr, yArr, {
+            color: color, width: width, offsetX: rect.x, offsetY: rect.y
+        })
     }
 
     static drawMultiText(screen, txtorarr, rect, { font = "12px Times", color = "black", opacity = 0 } = {}) {
