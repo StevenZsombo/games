@@ -120,6 +120,11 @@ class Anim {
 		return new Anim(obj, time, "custom", settings)
 	}
 
+	static stepper(obj, time, varNames, startVals, endVals, args = {}) {
+		const settings = {}
+		return new Anim(obj, time, "step", settings)
+	}
+
 	lerp(t) {
 		return t
 	}
@@ -128,6 +133,18 @@ class Anim {
 		return 3 * t ** 2 - 2 * t ** 3
 		//x * x * x * (x * (6.0f * x - 15.0f) + 10.0f); smootherstep
 	}
+	static smootherstep(t) {
+		return t * t * t * (t * (6 * t - 15) + 10)
+	}
+	static vee(t) {
+		return t < 0.5 ? 2 * t : 2 - 2 * t
+	}
+
+	static veeAway(t) {
+		return t > 0.5 ? 1 - 2 * t : 2 * t - 1
+	}
+
+
 
 
 

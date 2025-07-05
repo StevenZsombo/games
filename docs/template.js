@@ -253,13 +253,36 @@ class Game {
         this.add_clickable(this.bg)
         this.bg.color = "white"
         this.bg.stretch(.8, .8)
-        const pl = new Plot(Math.cos, this.bg)
+        this.bg.topat(this.framerate.button.top)
+
+        const pl = new Plot(Math.cos, this.bg, { minX: -10, maxX: 10, minY: -10, maxY: 10 })
         this.add_drawable(pl)
         this.pl = pl
         pl.addControls(this.mouser)
         this.dragger = Button.fromRect(new Rect(this.bg.right, this.bg.top, 10, 10))
         Button.make_drag_others(this.dragger, [this.bg])
         this.add_clickable(this.dragger)
+
+        const cont = this.bg.copyRect
+        cont.topat(this.bg.bottom + 10)
+        cont.bottomstretchat(this.HEIGHT - 10)
+        cont.resize(null, 50)
+        const funcs = [x => x ** 2,
+        x => x ** 3,
+        x => Math.sqrt(x),
+        x => Math.sin(x),
+        x => 1 / Math.cos(x),
+
+        ]
+
+        funcs.forEach((b, i) => {
+            const but = Button.fromRect(cont.splitCell(1, i + 1, 1, 5))
+            but.fontsize = 16
+            this.dragger.drag_others_list.push(but)
+            this.add_clickable(but)
+            but.txt = String(b).substring(5)
+            but.on_click = () => { game.pl.func = b }
+        })
 
 
     }

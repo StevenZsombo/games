@@ -205,7 +205,8 @@ class MM {
     }
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
-        density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1 } = {}) {
+        density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
+        overrideBoundaryCheck = false } = {}) {
         density ??= rect.width
         const xArr = []
         const yArr = []
@@ -215,7 +216,7 @@ class MM {
             const valY = func(valX)
             const drawX = t * rect.width
             const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
-            if (0 <= drawY && drawY <= rect.height) {
+            if (overrideBoundaryCheck || (0 <= drawY && drawY <= rect.height)) {
                 xArr.push(drawX)
                 yArr.push(drawY)
             }
@@ -279,7 +280,7 @@ class MM {
         screen.restore()
     }
 
-    
+
 
     static RotateContext(screen, rad, x, y) {
         const [c, s] = [Math.cos(rad), Math.sin(rad)]

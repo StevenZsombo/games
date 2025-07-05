@@ -192,16 +192,16 @@ class Rect {
 
 	resize(w, h) {
 		const { x, y } = this.center
-		this.width = w
-		this.height = h
+		if (w !== null) this.width = w
+		if (h !== null) this.height = h
 		this.centerat(x, y)
 		return this
 	}
 
-	spread(x, y, sx, sy) {
+	spread(x, y, spreadFactorX, spreadFactorY) {
 		//spread out, similar to enlargement, from center point x,y
-		const dx = (this.center.x - x) * (sx - 1)
-		const dy = (this.center.y - y) * (sy - 1)
+		const dx = (this.center.x - x) * (spreadFactorX - 1)
+		const dy = (this.center.y - y) * (spreadFactorY - 1)
 		this.move(dx, dy)
 		return this
 	}
@@ -394,7 +394,7 @@ class Button extends Clickable {
 	}
 
 	get copyRect() {
-		return super.copy
+		return new Rect(this.x, this.y, this.width, this.height)
 	}
 
 	static fromRect(rect, kwargs = {}) {
@@ -544,8 +544,11 @@ class Button extends Clickable {
 
 	/**@param {Button} button @param {Button[]} others */
 	static make_drag_others(button, others) {
+		others ??= []
+		button.drag_others_list ??= []
+		button.drag_others_list.push(...others)
 		button.on_drag = function (pos) {
-			others.forEach(b => {
+			this.drag_others_list.forEach(b => {
 				b.x += pos.x - button.last_held.x
 				b.y += pos.y - button.last_held.y
 			})
@@ -764,11 +767,29 @@ class RectRotatedExperimental extends Rect {
 	}
 }
 
-
+/**
+ * @typedef {Object} PlotOptions
+ * @property {number} [minX=0] - Minimum x-value
+ * @property {number} [maxX=10] - Maximum x-value
+ * @property {number} [minY=-5] - Minimum y-value
+ * @property {number} [maxY=5] - Maximum y-value
+ * @property {string} [color="black"] - Plot line color
+ * @property {number} [width=2] - Plot line width
+ * @property {boolean} [axes=true] - Whether to show axes
+ * @property {string} [axes_color="pink"] - Axes color
+ * @property {number} [axes_width=1] - Axes line width
+ * @property {boolean} [show_border_values=true] - Show border values
+ * @property {string} [show_border_values_font="12px Times"] - Border values font
+ * @property {number} [show_border_values_dp=2] - Decimal places for border values
+ */
+/**
+ * Creates a new Plot instance
+ * @param {Function} func - The function to plot
+ * @param {Object} rect - The canvas rectangle dimensions
+ * @param {PlotOptions} [args={}] - Configuration options
+ */
 class Plot {
 	constructor(func, rect, args = {}) {
-		this.func = func
-		this.rect = rect
 		const defaults = {
 			minX: 0,
 			maxX: 10,
@@ -781,15 +802,25 @@ class Plot {
 			axes_width: 1,
 			show_border_values: true,
 			show_border_values_font: "12px Times",
-			show_border_values_dp: 2
+			show_border_values_dp: 2,
 		}
+		this.func = func
+		this.rect = rect
+		this.density = this.rect.width * 2
+		this.plotCanvas = document.createElement("canvas")
+		this.plotCanvas.width = rect.width
+		this.plotCanvas.height = rect.height
+		this.plotScreen = this.plotCanvas.getContext("2d")
+		this.plotRect = new Rect(0, 0, rect.width, rect.height)
 		Object.assign(this, { ...defaults, ...args })
 
 	}
 
 	draw(screen) {
-		MM.plot(screen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.rect,
-			this)
+		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
+			{ ...this, overrideBoundaryCheck: true })
+		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
+		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)
 		if (this.show_border_values) {
 			const { maxX, maxY, minX, minY } = this
 			screen.fillStyle = "black"
