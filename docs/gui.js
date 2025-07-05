@@ -223,6 +223,7 @@ class Cropper {
 		this.canvas = document.createElement("canvas")
 		/**@type {CanvasRenderingContext2D} */
 		this.ctx = this.canvas.getContext("2d")
+		this.ctx.imageSmoothingEnabled = false
 	}
 
 	load_images(names, containerDict, whatToCallAfter) {
@@ -236,6 +237,15 @@ class Cropper {
 			img.onload = onload
 		}
 
+	}
+
+	convertFont(image, containerDict, pattern) {
+		containerDict ??= {}
+		pattern ??= `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~"`
+		pattern.split("").forEach((b, i) => {
+			containerDict[b] = this.crop(image, new Rect(1 + i * 9, 0, 8, 9))
+		})
+		return containerDict
 	}
 
 	load_img(source, on_end) {

@@ -46,6 +46,7 @@ class Game {
     constructor(canvas) {
         this.canvas = canvas
         this.screen = canvas.getContext("2d")
+        this.screen.imageSmoothingEnabled = false
         this.WIDTH = canvas.width
         this.HEIGHT = canvas.height
         this.SIZE = {

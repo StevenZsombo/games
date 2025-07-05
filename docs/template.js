@@ -2,6 +2,8 @@
 const framerateUnlocked = true
 const denybuttons = false
 const showFramerate = true
+const imageSmoothingEnabled = false
+const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 
 
 window.onload = function () {
@@ -52,6 +54,8 @@ class Game {
     constructor(canvas) {
         this.canvas = canvas
         this.screen = canvas.getContext("2d")
+        //this.screen.imageSmoothingQuality = imageSmoothingQuality
+        this.screen.imageSmoothingEnabled = imageSmoothingEnabled
         this.WIDTH = canvas.width
         this.HEIGHT = canvas.height
         this.SIZE = {

@@ -144,8 +144,6 @@ class Game {
 					if (gd.buts.flat().every(x => x.selected)) {
 						setTimeout(x => alert("victory!"), 100)
 					}
-					console.log(gd.buts)
-					console.log(gd.buts.flat())
 				}
 				b = Button.fromRect(b)
 				b.deflate(15, 15)
