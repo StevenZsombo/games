@@ -76,7 +76,6 @@ class Animator {
 		}
 		//chain even when repeat
 		const chains = [...(anim.chainMany ?? []), ...(anim.chain != null ? [anim.chain] : [])]
-		//Sif (chains.lenght>0){console.log(chains)}
 		for (anim of chains) {
 			anim.animate()
 		}

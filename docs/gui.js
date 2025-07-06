@@ -239,13 +239,13 @@ class Cropper {
 
 	}
 
-	convertFont(image, containerDict, pattern) {
-		containerDict ??= {}
-		pattern ??= `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~"`
+	convertFont(image, fontDict, pattern) {
+		fontDict ??= {}
+		pattern ??= Cropper.pattern
 		pattern.split("").forEach((b, i) => {
-			containerDict[b] = this.crop(image, new Rect(1 + i * 9, 0, 8, 9))
+			fontDict[b] = this.crop(image, new Rect(1 + i * 9, 0, 8, 9))
 		})
-		return containerDict
+		return fontDict
 	}
 
 	load_img(source, on_end) {
@@ -297,5 +297,26 @@ class Cropper {
 		return ret
 	}
 
+	static pattern = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~" `
 
+	static drawText(screen, fontDict, txt, scale = 1) {
+		txt.split("").forEach((c, i) => {
+			screen.drawImage(fontDict[c], i * 9 * scale, 0, 8 * scale, 9 * scale)
+		})
+	}
+
+	static customFont(fileName = "./resources/victoriabold.png") {
+		const c = new Cropper()
+		const ret = {}
+		c.load_img(fileName, (img) => {
+			c.convertFont(img, ret)
+		})
+		return ret
+	}
+}
+
+class myFont {
+	constructor() {
+		//TODO
+	}
 }

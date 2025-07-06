@@ -63,6 +63,7 @@ class Game {
             x: this.WIDTH,
             y: this.HEIGHT
         }
+        /**@type {Rect}*/
         this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
         this.BGCOLOR = stgs.BGCOLOR ?? "linen"
         //null for transparent
@@ -298,7 +299,7 @@ class Game {
 
         this.v1 = Button.fromRect({ x: 100, y: 100, width: 10, height: 10 })
         this.v2 = Button.fromRect({ x: 40, y: 130, width: 10, height: 10 })
-        this.v3 = Button.fromRect({ x: 45, y: 50, width: 10, height: 10 })
+        this.v3 = Button.fromRect({ x: 60, y: 50, width: 10, height: 10 })
         const vvv = [this.v1, this.v2, this.v3]
         vvv.forEach(x => Button.make_draggable(x))
         this.add_drawable(vvv, 6)
@@ -308,7 +309,7 @@ class Game {
         pb.hover_color = "pink"
         this.add_drawable(this.pb)
         pb.on_click = () => { console.log("clicked") }
-        Button.make_polygon(pb, [20, 300, 20, 400, 70, 400])
+        Button.make_polygon(pb, [20, 300, 10, 350, 70, 370])
         Button.make_draggable(pb)
 
     }
@@ -321,7 +322,7 @@ class Game {
         const bg = this.bg
         this.ms.centeratV(this.mouser.pos)
         const { v1, v2, v3 } = this
-        this.triang = [v1.x, v1.y, v2.x, v2.y, v3.x, v3.y]
+        this.triang = [v1.centerX, v1.centerY, v2.centerX, v2.centerY, v3.centerX, v3.centerY]
         this.ms.color = MM.collidePolygon(this.mouser.x, this.mouser.y, this.triang) ?
             "red" : "blue"
 
@@ -351,6 +352,9 @@ class Game {
     ///start next_loop_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     next_loop_more() {
 
+
+
+
     }
     ///end next_loop_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                          ^^^^NEXT_LOOP^^^^                                                   ///
@@ -367,7 +371,7 @@ const dev = {
 const stgs = {
 
 
-}
+}/// end of settings
 
 /**@type {HTMLImageElement[]} */
 const files = {}

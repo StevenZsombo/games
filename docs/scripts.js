@@ -3,12 +3,21 @@ const ONEDEG = Math.PI / 180
 const PI = Math.PI
 const NINETYDEG = Math.PI / 2
 
+/**
+* @class Rect
+* @property {number} [x=50] - x (left side)
+* @property {number} [y=50] - y (top side)
+* @property {number} [width=100]
+* @property {number} [height=100]
+*/
 class Rect {
+
 	constructor(x, y, width, height) {
 		this.x = x ?? 50
 		this.y = y ?? 50
 		this.width = width ?? 100
 		this.height = height ?? 100
+		return this
 	}
 
 	//getters
@@ -285,9 +294,53 @@ class Rect {
 		return this.splitRow(...rowWeights).map(r => r.splitCol(...colWeights))
 	}
 
+
 }
 
+/**
+ * @class Clickable
+ * @extends Rect
+ * @property {number} [x=100]
+ * @property {number} [y=100]
+ * @property {number} [width=100]
+ * @property {number} [height=100]
+ * @property {function} [on_click=null]
+ * @property {function} [on_release=null]
+ * @property {function} [on_hover=null]
+ * @property {function} [on_enter=null]
+ * @property {function} [on_leave=null]
+ * @property {function} [on_drag=null]
+ * @property {function} [on_hold=null]
+ * @property {function} [on_wheel=null]
+ * @property {boolean} [_drag_force_within=false] whether forcefully follows the mouse when dragger
+ * @property {boolean} [just_entered=false]
+ * @property {Object|null} [last_clicked=null]
+ * @property {Object|null} [last_held=null]
+ * @property {boolean} [interactable=true]
+ */
 class Clickable extends Rect {
+	/**
+	 * @class Clickable
+	 * @extends Rect
+	 * @param {Object} [options={}]
+	 * @param {number} [options.x=100]
+	 * @param {number} [options.y=100]
+	 * @param {number} [options.width=100]
+	 * @param {number} [options.height=100]
+	 * @param {function} [options.on_click=null]
+	 * @param {function} [options.on_release=null]
+	 * @param {function} [options.on_hover=null]
+	 * @param {function} [options.on_enter=null]
+	 * @param {function} [options.on_leave=null]
+	 * @param {function} [options.on_drag=null]
+	 * @param {function} [options.on_hold=null]
+	 * @param {function} [options.on_wheel=null]
+	 * @param {boolean} [options._drag_force_within=false]
+	 * @param {boolean} [options.just_entered=false]
+	 * @param {Object|null} [options.last_clicked=null]
+	 * @param {Object|null} [options.last_held=null]
+	 * @param {boolean} [options.interactable=true]
+	 */
 	constructor(options = {}) {
 		const defaults = {
 			x: 100,
@@ -360,8 +413,50 @@ class Clickable extends Rect {
 	}
 
 }
-
+/**
+ * @class Button
+ * @extends Clickable
+ * @property {string|null} [txt=null]
+ * @property {number} [fontsize=48]
+ * @property {string} [font_color="black"]
+ * @property {string} [font_font="Times"]
+ * @property {number|null} [outline=2]
+ * @property {string|null} [outline_color="black"]
+ * @property {string|null} [color="gray"]
+ * @property {boolean} [transparent=false]
+ * @property {boolean} [selected=false]
+ * @property {string|null} [selected_color="orange"]
+ * @property {string|null} [hover_color=null]
+ * @property {string|null} [hover_selected_color=null]
+ * @property {boolean} [visible=true]
+ * @property {string|Object} [tag=""]
+ * @property {HTMLImageElement} [img=null]
+ * @property {number} [opacity=0]
+ * @property {number} [rad=0]
+ */
 class Button extends Clickable {
+	/**
+	 * @class Button
+	 * @extends Clickable
+	 * @param {Object} [options={}]
+	 * @param {string|null} [options.txt=null]
+	 * @param {number} [options.fontsize=48]
+	 * @param {string} [options.font_color="black"]
+	 * @param {string} [options.font_font="Times"]
+	 * @param {number} [options.outline=2]
+	 * @param {string} [options.outline_color="black"]
+	 * @param {string} [options.color="gray"]
+	 * @param {boolean} [options.transparent=false]
+	 * @param {boolean} [options.selected=false]
+	 * @param {string} [options.selected_color="orange"]
+	 * @param {string|null} [options.hover_color=null]
+	 * @param {string|null} [options.hover_selected_color=null]
+	 * @param {boolean} [options.visible=true]
+	 * @param {string} [options.tag=""]
+	 * @param {any} [options.img=null]
+	 * @param {number} [options.opacity=0]
+	 * @param {number} [options.rad=0]
+	 */
 	constructor(options = {}) {
 		const defaults = {
 			txt: null, //txtmult by default
@@ -766,6 +861,24 @@ class Malleable {
  * @param {PlotOptions} [args={}] - Configuration options
  */
 class Plot {
+	/**
+	 * @class Plot
+	 * @param {Function} func - The function to plot.
+	 * @param {Rect} rect - The canvas rectangle dimensions.
+	 * @param {Object} [args={}]
+	 * @param {number} [args.minX=0]
+	 * @param {number} [args.maxX=10]
+	 * @param {number} [args.minY=-5]
+	 * @param {number} [args.maxY=5]
+	 * @param {string} [args.color="black"]
+	 * @param {number} [args.width=2]
+	 * @param {boolean} [args.axes=true]
+	 * @param {string} [args.axes_color="pink"]
+	 * @param {number} [args.axes_width=1]
+	 * @param {boolean} [args.show_border_values=true]
+	 * @param {string} [args.show_border_values_font="12px Times"]
+	 * @param {number} [args.show_border_values_dp=2]
+	 */
 	constructor(func, rect, args = {}) {
 		const defaults = {
 			minX: 0,
@@ -790,7 +903,6 @@ class Plot {
 		this.plotScreen = this.plotCanvas.getContext("2d")
 		this.plotRect = new Rect(0, 0, rect.width, rect.height)
 		Object.assign(this, { ...defaults, ...args })
-
 	}
 
 	draw(screen) {
