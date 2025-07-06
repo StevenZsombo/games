@@ -66,6 +66,7 @@ class Animator {
 			anim.repeat -= 1
 			anim.init = false //for true repetition
 			anim.time = anim.totTime
+			anim.on_repeat?.()
 			anim.animate() //no lost frame
 			return [anim]
 			//breaks out of the function: no chains happen on rep.
@@ -88,11 +89,22 @@ class Animator {
 }
 
 class Anim {
+	/**
+	 * @param {Object} obj - Target object to animate
+	 * @param {number} time - Duration in ms
+	 * @param {string} code - Animation type
+	 * @param {Object} [args={}] - Animation configuration
+	 * @param {Anim} [args.chain] - Animation to chain to
+	 * @param {Aray<Anim>} [args.chainMany] - Animations to chain to
+	 * @param {Function} [args.on_end] - Callback when animation completes
+	 * @param {string|Function} [args.lerp] - Lerp function name or function
+	 * @param {number} [args.repeat] - How many times to repeat
+	 * @param {Function}[args.on_repeat] - What to do on repeat
+	 * @param {boolean}[args.noLock] - Avoids animation lock check, use with care
+	 */
 	constructor(obj, time, code, args = {}) {
 		//accepts chain, chainMany repeat, on_end, lerp              NEVER #append
-		// // mutate (TODO)
 		//all changes are non-mutating: object properties are to be reset when we are done!
-		//this can be overriden by {mutate:true}//TODO actually implement this.
 		if (!this[code]) {
 			console.log({
 				obj,
@@ -110,19 +122,34 @@ class Anim {
 			time,
 			code // just for debugging
 		})
-		if (typeof args?.lerp === String) { this.lerp = Anim[args.lerp] }
+		if (typeof args?.lerp === "string") { this.lerp = Anim[args.lerp] }
 
 		this.totTime = time
 	}
-
+	/**
+	 * Creates a custom animation
+	 * @param {Object} obj - Target object
+	 * @param {number} time - Duration in ms
+	 * @param {Function} func - Animation function, receives t = 0 -> 1
+	 * @param {string|Array<string>} origStrArr - Space-separated string or array
+	 * @returns {Anim} Animation instance
+	 */
 	static custom(obj, time, func, origStrArr, args = {}) {
+		if (typeof origStrArr === "string") { origStrArr = origStrArr.split(" ") }
 		const settings = { func: func, orig: origStrArr, ...args }
 		return new Anim(obj, time, "custom", settings)
 	}
-
+	/**
+	 * Shorthand for "stepMany" 
+	 * @param {Object} obj - Target object
+	 * @param {number} time - Duration in ms
+	 * @param {string | Array<string>} varNames - Property names (space-separated or array)
+	 * @returns {Anim}
+	 */
 	static stepper(obj, time, varNames, startVals, endVals, args = {}) {
-		const settings = {}
-		return new Anim(obj, time, "step", settings)
+		varNames = Array.isArray(varNames) ? varNames : varNames.split(" ")
+		const settings = { varNames, startVals, endVals, ...args }
+		return new Anim(obj, time, "stepMany", settings)
 	}
 
 	lerp(t) {
@@ -143,12 +170,21 @@ class Anim {
 	static veeAway(t) {
 		return t > 0.5 ? 1 - 2 * t : 2 * t - 1
 	}
+	static square(t) {
+		return t ** 2
+	}
+	static sqrt(t) {
+		return t ** .5
+	}
 
 
 
 
 
-
+	/**
+	 * Extends the current chain
+	 * @param {Anim} anim 
+	 */
 	extendChain(anim) {
 		if (!this.chainMany) {
 			this.chainMany = []

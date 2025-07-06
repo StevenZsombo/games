@@ -299,6 +299,10 @@ class MM {
         return ret
     }
 
+    static random(min, max) {
+        return Math.random() * (max - min) + min
+    }
+
     static randomColor(min = 50, max = 250) {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }

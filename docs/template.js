@@ -78,7 +78,7 @@ class Game {
 
         this.on_update_extras = []
         this.on_draw_extras = []
-        this.extras = []
+        this.extras_temp = []
 
         this.layers = Array(10).fill().map(x => [])
         this.clickables = []
@@ -122,8 +122,8 @@ class Game {
         this.on_draw_extras.forEach(x => x.call(this))
         this.next_loop()
         this.next_loop_more()
-        this.extras.forEach(x => x.call(this))
-        this.extras.length = 0
+        this.extras_temp.forEach(x => x.call(this))
+        this.extras_temp.length = 0
         if (!this.isRunning) {
             return
         }
@@ -149,12 +149,19 @@ class Game {
         //update
         const now = Date.now()
         this.keyboarder.update(dt, now)
+        this.update_drawables(dt)
         this.update_clickables(dt)
         this.animator.update(dt)
         this.update_more(dt)
 
     }
-
+    update_drawables(dt) {
+        for (const layer of this.layers) {
+            for (const item of layer) {
+                item.update?.(dt)
+            }
+        }
+    }
     update_clickables(dt) {
         if (!this.isAcceptingInputs) { return }
         for (const b of this.clickables) {
@@ -253,6 +260,7 @@ class Game {
         this.add_clickable(this.bg)
         this.bg.color = "white"
         this.bg.stretch(.8, .8)
+        this.bg.move(50, 0)
         this.bg.topat(this.framerate.button.top)
 
         const pl = new Plot(Math.cos, this.bg, { minX: -10, maxX: 10, minY: -10, maxY: 10 })
@@ -283,6 +291,19 @@ class Game {
             but.txt = String(b).substring(5)
             but.on_click = () => { game.pl.func = b }
         })
+
+        this.victory = new Button({ x: 10, y: this.HEIGHT - 200, width: 100, height: 30 })
+        this.victory = Button.make_checkbox(this.victory)
+
+        this.add_clickable(this.victory)
+        this.victory.txt = "Victory"
+        Object.defineProperty(this.victory, "txt", { get() { return this.selected ? "Victory ON!" : "Victory" } })
+        this.victory.fontsize = 12
+        this.on_update_extras.push(x => {
+            if (this.victory.selected && this.mouser.clicked) { this.add_drawable(Particle.fireworks(this.mouser.pos)) }
+        }
+        )
+
 
 
     }
