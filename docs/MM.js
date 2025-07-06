@@ -145,7 +145,8 @@ class MM {
         screen.restore()
     }
 
-    static drawCircle(screen, x, y, width, { color = "black", outline = null, outline_color } = {}) {
+    static drawCircle(screen, x, y, width, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
+        screen.globalAlpha = 1 - opacity
         if (color) {
             screen.beginPath()
             screen.arc(x, y, width, 0, TWOPI)
@@ -160,9 +161,11 @@ class MM {
             screen.lineWidth = outline
             screen.stroke()
         }
+        screen.globalAlpha = 1
     }
 
-    static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color } = {}) {
+    static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
+        screen.globalAlpha = 1 - opacity
         if (color) {
             ctx.beginPath()
             ctx.ellipse(x, y, rX, rY, 0, 0, TWOPI) // x, y, radiusX, radiusY, rotation, startAngle, endAngle
@@ -176,6 +179,7 @@ class MM {
             ctx.lineWidth = outline
             ctx.stroke()
         }
+        screen.globalAlpha = 1
     }
 
     static drawLine(ctx, x, y, u, w, { color = 'black', width = 5 } = {}) {
@@ -443,4 +447,99 @@ class MM {
         return arr.flatMap((u, i) => arr.slice(i + 1).map(w => [w, u]))
     }
 
+    static rotatePointAroundOrigin(x, y, rad) {
+        const [c, s] = [Math.cos(rad), Math.sin(rad)]
+        return {
+            x: x * c - y * s,
+            y: x * s + y * c
+        }
+    }
+
+    static rotatePointAroundPoint(x, y, a, b, rad) {
+        const [dx, dy] = [x - a, y - b]
+        const r = MM.rotatePointAroundOrigin(dx, dy, rad)
+        return ({
+            x: r.x + a,
+            y: r.y + b
+        })
+    }
+
+    static rotateCenterAroundPoint(u, w, rad, alsoAdjustFacing = false) { //TODO: finish
+        if (alsoAdjustFacing) { this.rad += rad }
+        this.centeratV(MM.rotatePointAroundPoint(this.cx, this.cy, u, w, rad))
+    }
+
+    /**Determines if the given point is "to the right of" the given line.*/
+    static collideRightOfLine(ptx, pty, la, lb, lu, lw) {
+        const vx = ptx - la
+        const vy = pty - lb
+        const nx = lb - lw
+        const ny = -la + lu
+        return vx * nx + vy * ny > 0
+    }
+
+    static collidePolygon(ptx, pty, polyXYXYXY) {
+        const initial = MM.collideRightOfLine(
+            ptx, pty, polyXYXYXY.at(-2), polyXYXYXY.at(-1), polyXYXYXY[0], polyXYXYXY[1]
+        )
+        for (let i = 0; i < polyXYXYXY.length - 2; i += 2) {
+            if (initial !==
+                MM.collideRightOfLine(ptx, pty, ...polyXYXYXY.slice(i, i + 4))
+            ) { return false }
+        }
+        return true
+    }
+    /**@param {RenderingContext} screen  */
+    static drawPolygon(screen, polyXYXYXY, { color = "black", outline = 3, outline_color = "blue" } = {}) {
+        screen.beginPath()
+        screen.moveTo(polyXYXYXY.at(-2), polyXYXYXY.at(-1))
+        for (let i = 0; i < polyXYXYXY.length; i += 2) {
+            screen.lineTo(polyXYXYXY[i], polyXYXYXY[i + 1])
+        }
+        screen.closePath()
+        if (color) {
+            screen.fillStyle = color
+            screen.fill()
+        }
+        if (outline) {
+            screen.lineWidth = outline
+            screen.strokeStyle = outline_color
+            screen.stroke()
+        }
+    }
+
+    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
+        const container = game.layers[9]
+        const { x, y } = pos
+        for (let i = 0; i < howmany; i++) {
+            const theta = MM.random(-60, 180 + 60) * ONEDEG
+            const vX = Math.cos(theta) * MM.random(.2, 3) * 80
+            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80
+            const p = {
+                x: x, y: y,
+                color: MM.choice("red green blue orange".split(" ")),
+                size: howbig,
+                opacity: 0,
+                draw: function (screen) {
+                    MM.drawCircle(screen, this.x, this.y, this.size, {
+                        color: this.color, opacity: this.opacity
+                    })
+                }
+            }
+            container.push(p)
+            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
+                p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
+                p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
+                p.opacity = t ** 2
+                p.size = howbig * (1 - t)
+            }, null, {
+                on_end: () => {
+                    game.layers[9] = game.layers[9].filter(x => x !== p)
+                },
+            }))
+        }
+    }
+
 }
+
+

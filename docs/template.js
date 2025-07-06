@@ -53,6 +53,7 @@ const main = function (canvas) {
 class Game {
     constructor(canvas) {
         this.canvas = canvas
+        /**@type {RenderingContext} */
         this.screen = canvas.getContext("2d")
         //this.screen.imageSmoothingQuality = imageSmoothingQuality
         this.screen.imageSmoothingEnabled = imageSmoothingEnabled
@@ -76,14 +77,13 @@ class Game {
         this.animator = new Animator()
         this.cropper = new Cropper()
 
-        this.on_update_extras = []
-        this.on_draw_extras = []
+        this.extras_on_update = []
+        this.extras_on_draw = []
         this.extras_temp = []
 
         this.layers = Array(10).fill().map(x => [])
-        this.clickables = []
 
-        showFramerate && this.add_clickable(this.framerate.button)
+        showFramerate && this.add_drawable(this.framerate.button)
 
 
         this.lastCycleTime = Date.now()
@@ -116,10 +116,10 @@ class Game {
         this.drawnAlready ? null : this.draw_reset(screen)
         this.update(dt)
         this.update_more(dt)
-        this.on_update_extras.forEach(x => x.call(this))
+        this.extras_on_update.forEach(x => x.call(this))
         this.drawnAlready ? null : this.draw(screen)
         this.drawnAlready ? null : this.draw_more(screen)
-        this.on_draw_extras.forEach(x => x.call(this))
+        this.extras_on_draw.forEach(x => x.call(this))
         this.next_loop()
         this.next_loop_more()
         this.extras_temp.forEach(x => x.call(this))
@@ -150,7 +150,6 @@ class Game {
         const now = Date.now()
         this.keyboarder.update(dt, now)
         this.update_drawables(dt)
-        this.update_clickables(dt)
         this.animator.update(dt)
         this.update_more(dt)
 
@@ -159,15 +158,11 @@ class Game {
         for (const layer of this.layers) {
             for (const item of layer) {
                 item.update?.(dt)
+                if (this.isAcceptingInputs) {
+                    item.check?.(this.mouser.x, this.mouser.y, this.mouser.clicked, this.mouser.released, this.mouser.held, this.mouser.wheel)
+                }
             }
         }
-    }
-    update_clickables(dt) {
-        if (!this.isAcceptingInputs) { return }
-        for (const b of this.clickables) {
-            b.check(this.mouser.x, this.mouser.y, this.mouser.clicked, this.mouser.released, this.mouser.held, this.mouser.wheel)
-        }
-
     }
 
     draw(screen) {
@@ -203,15 +198,6 @@ class Game {
         setTimeout(x => game.screen.fillRect(0, 0, game.WIDTH, game.HEIGHT), 100)
 
     }
-    add_clickable(items, layer = 5) {
-        if (!Array.isArray(items)) {
-            items = [items]
-        }
-        for (const item of items) {
-            this.add_drawable(item, layer)
-            this.clickables.push(item)
-        }
-    }
     add_drawable(items, layer = 5) {
         if (!Array.isArray(items)) {
             items = [items]
@@ -220,8 +206,7 @@ class Game {
             this.layers[layer].push(item)
         }
     }
-    remove_clickable(item) {
-        this.clickables = this.clickables.filter(x => x !== item)
+    remove_drawable(item) {
         this.layers = this.layers.map(x => x.filter(y => y !== item))
     }
 
@@ -257,7 +242,7 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
         this.bg = Button.fromRect(this.rect.copy)
-        this.add_clickable(this.bg)
+        this.add_drawable(this.bg)
         this.bg.color = "white"
         this.bg.stretch(.8, .8)
         this.bg.move(50, 0)
@@ -269,7 +254,7 @@ class Game {
         pl.addControls(this.mouser)
         this.dragger = Button.fromRect(new Rect(this.bg.right, this.bg.top, 10, 10))
         Button.make_drag_others(this.dragger, [this.bg])
-        this.add_clickable(this.dragger)
+        this.add_drawable(this.dragger)
 
         const cont = this.bg.copyRect
         cont.topat(this.bg.bottom + 10)
@@ -287,24 +272,44 @@ class Game {
             const but = Button.fromRect(cont.splitCell(1, i + 1, 1, 5))
             but.fontsize = 16
             this.dragger.drag_others_list.push(but)
-            this.add_clickable(but)
+            this.add_drawable(but)
             but.txt = String(b).substring(5)
             but.on_click = () => { game.pl.func = b }
         })
 
-        this.victory = new Button({ x: 10, y: this.HEIGHT - 200, width: 100, height: 30 })
+        this.victory = new Button({ x: 10, y: this.HEIGHT - 200, width: 100, height: 30, rad: 60 * ONEDEG })
         this.victory = Button.make_checkbox(this.victory)
 
-        this.add_clickable(this.victory)
+        this.add_drawable(this.victory)
         this.victory.txt = "Victory"
         Object.defineProperty(this.victory, "txt", { get() { return this.selected ? "Victory ON!" : "Victory" } })
         this.victory.fontsize = 12
-        this.on_update_extras.push(x => {
-            if (this.victory.selected && this.mouser.clicked) { this.add_drawable(Particle.fireworks(this.mouser.pos)) }
+        this.extras_on_update.push(x => {
+            if (this.victory.selected && this.mouser.clicked) { MM.fireworks(this.mouser.pos) }
         }
         )
 
 
+        this.ms = Button.fromRect(new Rect(0, 0, 10, 10))
+        this.add_drawable(this.ms)
+        this.ms.outline = 0
+        const ms = this.ms
+        this.ms.draw_background = screen => MM.drawCircle(screen, ms.centerX, ms.centerY, ms.width / 2, ms)
+
+        this.v1 = Button.fromRect({ x: 100, y: 100, width: 10, height: 10 })
+        this.v2 = Button.fromRect({ x: 40, y: 130, width: 10, height: 10 })
+        this.v3 = Button.fromRect({ x: 45, y: 50, width: 10, height: 10 })
+        const vvv = [this.v1, this.v2, this.v3]
+        vvv.forEach(x => Button.make_draggable(x))
+        this.add_drawable(vvv, 6)
+        /**@type {Button} */
+        const pb = new Button({ x: 20, y: 300, width: 10, height: 20 })
+        this.pb = pb
+        pb.hover_color = "pink"
+        this.add_drawable(this.pb)
+        pb.on_click = () => { console.log("clicked") }
+        Button.make_polygon(pb, [20, 300, 20, 400, 70, 400])
+        Button.make_draggable(pb)
 
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -313,7 +318,12 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-
+        const bg = this.bg
+        this.ms.centeratV(this.mouser.pos)
+        const { v1, v2, v3 } = this
+        this.triang = [v1.x, v1.y, v2.x, v2.y, v3.x, v3.y]
+        this.ms.color = MM.collidePolygon(this.mouser.x, this.mouser.y, this.triang) ?
+            "red" : "blue"
 
 
 
@@ -325,7 +335,11 @@ class Game {
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     draw_more(screen) {
-
+        //MM.drawLine(screen, ...this.line, { color: "red", width: 5 })
+        //MM.drawLine(screen, ...this.line2, { color: "green", width: 5 })
+        //MM.drawLine(screen, ...this.line3, { color: "blue", width: 5 })
+        MM.drawPolygon(screen, this.triang, { outline: 0, color: "pink" })
+        this.ms.draw(screen)
 
 
 

@@ -1,0 +1,100 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title></title></head><body><p>Yes, you can absolutely create multiple instances of a Worker from the same script file. Each instance runs in its own separate thread with isolated memory. Here¡¯s how it works:</p>
+<h3>Minimal Example</h3>
+<p><strong>worker.js</strong> (shared worker script):</p>
+<pre><code class="language-javascript">// This same file will be used by all worker instances
+self.onmessage = function(e) {
+  const { taskId, data } = e.data;
+  const result = performWork(data); // Some computation
+  self.postMessage({ taskId, result });
+};
+
+function performWork(data) {
+  // Your worker's computation logic
+  return data * 2; // Example operation
+}
+</code></pre>
+<p><strong>main.js</strong> (creating multiple workers):</p>
+<pre><code class="language-javascript">// Create 3 worker instances from the same file
+const worker1 = new Worker('worker.js');
+const worker2 = new Worker('worker.js'); 
+const worker3 = new Worker('worker.js');
+
+// Track tasks by ID
+let currentTaskId = 0;
+
+function assignTask(data) {
+  const taskId = currentTaskId++;
+  const worker = [worker1, worker2, worker3][taskId % 3];
+  
+  worker.postMessage({ 
+    taskId,
+    data
+  });
+  
+  worker.onmessage = (e) =&gt; {
+    if (e.data.taskId === taskId) {
+      console.log(`Worker ${worker} completed task ${taskId}:`, e.data.result);
+    }
+  };
+}
+
+// Distribute 6 tasks across workers
+for (let i = 1; i &lt;= 6; i++) {
+  assignTask(i); 
+}
+</code></pre>
+<h3>Key Facts About Multiple Workers:</h3>
+<ol>
+<li>
+<p><strong>Isolated Execution</strong>: Each worker instance has its own:</p>
+<ul>
+<li>Memory space</li>
+<li>Event loop</li>
+<li>Global scope</li>
+</ul>
+</li>
+<li>
+<p><strong>Performance Considerations</strong>:</p>
+<pre><code class="language-javascript">// Optimal number of workers (typically CPU core count)
+const workerCount = navigator.hardwareConcurrency || 4;
+</code></pre>
+</li>
+<li>
+<p><strong>Communication Management</strong>:</p>
+<ul>
+<li>Each worker needs its own message handler</li>
+<li>Use task IDs to correlate requests/responses</li>
+</ul>
+</li>
+<li>
+<p><strong>Resource Cleanup</strong>:</p>
+<pre><code class="language-javascript">// Terminate all workers when done
+[worker1, worker2, worker3].forEach(w =&gt; w.terminate());
+</code></pre>
+</li>
+</ol>
+<h3>When to Use Multiple Workers:</h3>
+<ol>
+<li><strong>Parallel Processing</strong> of independent tasks</li>
+<li><strong>CPU-Intensive Workloads</strong> that can be divided</li>
+<li><strong>Responsive UIs</strong> where different workers handle different operations</li>
+</ol>
+<h3>Alternative: Worker Pool Pattern</h3>
+<p>For more sophisticated use cases:</p>
+<pre><code class="language-javascript">class WorkerPool {
+  constructor(size = navigator.hardwareConcurrency || 4) {
+    this.workers = Array(size).fill()
+      .map(() =&gt; new Worker('worker.js'));
+  }
+
+  execute(data) {
+    return new Promise((resolve) =&gt; {
+      const worker = this.getAvailableWorker();
+      worker.postMessage(data);
+      worker.onmessage = (e) =&gt; resolve(e.data);
+    });
+  }
+}
+</code></pre>
+<p>All workers share the same script but operate completely independently, giving you true parallel execution in JavaScript.</p>
+</body></html>

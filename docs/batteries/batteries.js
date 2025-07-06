@@ -369,7 +369,7 @@ so you could not make the light work.`
                     const floater = this.batteries[i - 1].copy
                     floater.on_click = null
                     const { x, y } = this.lights[this.attempts.count].firstbatpos
-                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
+                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y, lerp: t => 3 * t ** 2 - 2 * t ** 3 })
                     this.add_drawable(floater, 6)
                     this.floaters.push(floater)
                 } else {
@@ -401,7 +401,7 @@ so you could not make the light work.`
                     const floater = this.batteries[i - 1].copy
                     floater.on_click = null
                     const { x, y } = this.lights[this.attempts.count - 1].secondbatpos
-                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y })
+                    this.animator.add_anim(floater, 300, "moveTo", { x: x, y: y, lerp: t => 3 * t ** 2 - 2 * t ** 3 })
                     this.add_drawable(floater, 6)
                     this.floaters.push(floater)
                     this.revealLight(this.attempts.count)

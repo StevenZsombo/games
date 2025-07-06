@@ -1,0 +1,118 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title></title></head><body><h1>Pixel-Level Image Manipulation in JavaScript Canvas</h1>
+<p>To work with images at the pixel level, you'll use the Canvas API's <code>ImageData</code> interface. Here's a complete guide:</p>
+<h2>1. Getting Pixel Data</h2>
+<h3>From an Existing Canvas:</h3>
+<pre><code class="language-javascript">const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+
+// Get pixel data for entire canvas
+const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+const pixels = imageData.data; // Uint8ClampedArray (RGBA values)
+</code></pre>
+<h3>From an Image:</h3>
+<pre><code class="language-javascript">const img = new Image();
+img.src = 'image.jpg';
+img.onload = function() {
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, img.width, img.height);
+  // Work with pixels here
+};
+</code></pre>
+<h2>2. Understanding the Pixel Array</h2>
+<p>The <code>data</code> property is a 1D array where:</p>
+<ul>
+<li>Every 4 elements represent one pixel (RGBA)</li>
+<li>Values range from 0-255</li>
+<li>Array index formula for (x,y): <code>(y * width + x) * 4</code></li>
+</ul>
+<p>Example access:</p>
+<pre><code class="language-javascript">// Get RGBA values for pixel at (x,y)
+const r = pixels[(y * imageData.width + x) * 4];
+const g = pixels[(y * imageData.width + x) * 4 + 1];
+const b = pixels[(y * imageData.width + x) * 4 + 2];
+const a = pixels[(y * imageData.width + x) * 4 + 3];
+</code></pre>
+<h2>3. Common Pixel Operations</h2>
+<h3>Invert Colors:</h3>
+<pre><code class="language-javascript">for (let i = 0; i &lt; pixels.length; i += 4) {
+  pixels[i] = 255 - pixels[i];     // R
+  pixels[i+1] = 255 - pixels[i+1]; // G
+  pixels[i+2] = 255 - pixels[i+2]; // B
+  // Alpha remains unchanged
+}
+</code></pre>
+<h3>Grayscale Conversion:</h3>
+<pre><code class="language-javascript">for (let i = 0; i &lt; pixels.length; i += 4) {
+  const avg = 0.299 * pixels[i] + 0.587 * pixels[i+1] + 0.114 * pixels[i+2];
+  pixels[i] = pixels[i+1] = pixels[i+2] = avg;
+}
+</code></pre>
+<h3>Color Tint:</h3>
+<pre><code class="language-javascript">const tint = {r: 255, g: 100, b: 50}; // Orange tint
+for (let i = 0; i &lt; pixels.length; i += 4) {
+  pixels[i] = pixels[i] * (tint.r/255);   // R
+  pixels[i+1] = pixels[i+1] * (tint.g/255); // G
+  pixels[i+2] = pixels[i+2] * (tint.b/255); // B
+}
+</code></pre>
+<h2>4. Putting Modified Pixels Back</h2>
+<pre><code class="language-javascript">ctx.putImageData(imageData, 0, 0);
+</code></pre>
+<h2>5. Optimized Pixel Manipulation</h2>
+<p>For better performance with large images:</p>
+<h3>Using Typed Arrays:</h3>
+<pre><code class="language-javascript">// Create a buffer for faster processing
+const buffer = new Uint32Array(new ArrayBuffer(imageData.data.length));
+const pixels32 = new Uint32Array(imageData.data.buffer);
+
+// Process 4 bytes (1 pixel) at a time
+for (let i = 0; i &lt; pixels32.length; i++) {
+  // Example: Make all pixels opaque
+  pixels32[i] = pixels32[i] | 0xff000000;
+}
+</code></pre>
+<h3>Web Workers for Heavy Processing:</h3>
+<pre><code class="language-javascript">// main.js
+const worker = new Worker('pixel-worker.js');
+worker.postMessage(imageData);
+worker.onmessage = (e) =&gt; {
+  ctx.putImageData(e.data, 0, 0);
+};
+
+// pixel-worker.js
+self.onmessage = (e) =&gt; {
+  const imageData = e.data;
+  // Process pixels...
+  self.postMessage(imageData, [imageData.data.buffer]);
+};
+</code></pre>
+<h2>6. Creating ImageData from Scratch</h2>
+<pre><code class="language-javascript">// Create blank image
+const blankImage = ctx.createImageData(100, 100);
+
+// Fill with red pixels
+const data = blankImage.data;
+for (let i = 0; i &lt; data.length; i += 4) {
+  data[i] = 255;   // R
+  data[i+1] = 0;   // G
+  data[i+2] = 0;   // B
+  data[i+3] = 255; // A
+}
+ctx.putImageData(blankImage, 0, 0);
+</code></pre>
+<h2>Important Considerations</h2>
+<ol>
+<li><strong>CORS Restrictions</strong>: You can't access pixels from cross-origin images without proper headers</li>
+<li><strong>Performance</strong>: Pixel operations are CPU-intensive - optimize loops</li>
+<li><strong>Alpha Premultiplication</strong>: Colors are stored premultiplied with alpha</li>
+<li><strong>Memory</strong>: Large canvases consume significant memory</li>
+</ol>
+<p>For advanced image processing, consider libraries like:</p>
+<ul>
+<li><a href="https://docs.opencv.org/3.4/d5/d10/tutorial_js_root.html">OpenCV.js</a></li>
+<li><a href="https://github.com/nodeca/pica">Pica</a> (for resizing)</li>
+<li><a href="http://fabricjs.com/">Fabric.js</a> (for higher-level manipulations)</li>
+</ul>
+</body></html>

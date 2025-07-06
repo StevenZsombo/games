@@ -1,0 +1,134 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title></title></head><body><h1>Canvas <code>globalCompositeOperation</code> Modes Explained</h1>
+<p>The <code>globalCompositeOperation</code> property in the Canvas API offers 12 blending modes that control how new drawings are composited with existing content. Here¡¯s a complete guide to each mode and its typical use cases:</p>
+<h2>Standard Compositing Modes</h2>
+<ol>
+<li>
+<p><strong><code>source-over</code> (default)</strong></p>
+<ul>
+<li>New drawings are placed over existing content</li>
+<li><em>Use case</em>: Normal drawing operations</li>
+</ul>
+</li>
+<li>
+<p><strong><code>source-in</code></strong></p>
+<ul>
+<li>Shows new content only where it overlaps existing content</li>
+<li><em>Use case</em>: Creating masks, intersection effects</li>
+</ul>
+</li>
+<li>
+<p><strong><code>source-out</code></strong></p>
+<ul>
+<li>Shows new content only where it doesn¡¯t overlap existing content</li>
+<li><em>Use case</em>: Punching holes, inverse masks</li>
+</ul>
+</li>
+<li>
+<p><strong><code>source-atop</code></strong></p>
+<ul>
+<li>New content is drawn only over existing content</li>
+<li><em>Use case</em>: Constrained drawing areas</li>
+</ul>
+</li>
+<li>
+<p><strong><code>destination-over</code></strong></p>
+<ul>
+<li>New drawings are placed behind existing content</li>
+<li><em>Use case</em>: Background elements, watermarks</li>
+</ul>
+</li>
+<li>
+<p><strong><code>destination-in</code></strong></p>
+<ul>
+<li>Keeps existing content where new content overlaps</li>
+<li><em>Use case</em>: Preserving content within a shape</li>
+</ul>
+</li>
+<li>
+<p><strong><code>destination-out</code></strong></p>
+<ul>
+<li>Erases existing content where new content is drawn</li>
+<li><em>Use case</em>: Erasers, transparency effects</li>
+</ul>
+</li>
+<li>
+<p><strong><code>destination-atop</code></strong></p>
+<ul>
+<li>Existing content is kept only where it overlaps new content</li>
+<li><em>Use case</em>: Special masking effects</li>
+</ul>
+</li>
+</ol>
+<h2>Special Blending Modes</h2>
+<ol start="9">
+<li>
+<p><strong><code>lighter</code></strong></p>
+<ul>
+<li>Adds color values (like Pygame¡¯s <code>BLEND_RGB_ADD</code>)</li>
+<li><em>Use case</em>: Light effects, glows, fire, particles</li>
+</ul>
+</li>
+<li>
+<p><strong><code>copy</code></strong></p>
+<ul>
+<li>Only the new content is shown (ignores destination)</li>
+<li><em>Use case</em>: Complete overwrites, clearing with shapes</li>
+</ul>
+</li>
+<li>
+<p><strong><code>xor</code></strong></p>
+<ul>
+<li>Content is shown where either exists but not both</li>
+<li><em>Use case</em>: Inversion effects, special transitions</li>
+</ul>
+</li>
+<li>
+<p><strong><code>multiply</code></strong></p>
+<ul>
+<li>Multiplies pixel values (darkens the result)</li>
+<li><em>Use case</em>: Shadows, tinting, color effects</li>
+</ul>
+</li>
+</ol>
+<h2>Practical Examples</h2>
+<h3>1. Light Effects (<code>lighter</code>)</h3>
+<pre><code class="language-javascript">ctx.globalCompositeOperation = 'lighter';
+ctx.fillStyle = 'rgba(255, 100, 50, 0.3)';
+ctx.fillRect(50, 50, 100, 100); // Adds color to what's beneath
+</code></pre>
+<h3>2. Masking (<code>destination-in</code>)</h3>
+<pre><code class="language-javascript">// Create mask
+ctx.fillStyle = 'black';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.globalCompositeOperation = 'destination-in';
+ctx.drawImage(circleMask, 0, 0); // Only shows content where circle exists
+</code></pre>
+<h3>3. Erasing (<code>destination-out</code>)</h3>
+<pre><code class="language-javascript">ctx.fillStyle = 'black';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.globalCompositeOperation = 'destination-out';
+ctx.beginPath();
+ctx.arc(100, 100, 50, 0, Math.PI*2);
+ctx.fill(); // Punches a hole
+</code></pre>
+<h3>4. Multiply Blending</h3>
+<pre><code class="language-javascript">ctx.fillStyle = 'blue';
+ctx.fillRect(0, 0, 200, 200);
+ctx.globalCompositeOperation = 'multiply';
+ctx.fillStyle = 'red';
+ctx.fillRect(100, 100, 200, 200); // Overlapping area becomes purple
+</code></pre>
+<h2>Performance Considerations</h2>
+<ol>
+<li><strong>Hardware Acceleration</strong>: Modes like <code>lighter</code> and <code>multiply</code> are GPU-accelerated</li>
+<li><strong>Order Matters</strong>: Set <code>globalCompositeOperation</code> before drawing commands</li>
+<li><strong>Reset When Done</strong>: Always return to <code>source-over</code> after special operations</li>
+</ol>
+<pre><code class="language-javascript">// Best practice pattern
+ctx.save();
+ctx.globalCompositeOperation = 'lighter';
+// Draw your special effects
+ctx.restore(); // Returns to default mode
+</code></pre>
+<p>These compositing operations enable sophisticated visual effects without manual pixel manipulation, though for complex blending you might still need WebGL.</p>
+</body></html>

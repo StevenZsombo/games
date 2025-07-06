@@ -2,17 +2,17 @@ class Animator {
 	constructor() {
 		this.animations = [] //non-sequences lock by default unless {noLock:true}
 		this.sequences = [] //sequences don't use lock
-		this.locked = []
+		this.locked = new Set()
 	}
 
 	add_anim(objoranim, time, code, args = {}) {
 		if (!(objoranim instanceof Anim)) { //can just pass Anim immediately
 			objoranim = new Anim(objoranim, time, code, args)
 		}
-		if (!(objoranim.noLock) && this.locked.includes(objoranim.obj)) {
-			throw "Object it locked"
+		if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
+			console.error(this); throw "Object is locked"
 		}
-		this.locked.push(objoranim.obj)
+		this.locked.add(objoranim.obj)
 		this.animations.push(objoranim)
 
 
@@ -80,7 +80,7 @@ class Animator {
 		for (anim of chains) {
 			anim.animate()
 		}
-		this.locked = this.locked.filter(x => x !== anim.obj)
+		this.locked.delete(anim.obj)
 		return chains
 	}
 	draw() {
@@ -122,7 +122,7 @@ class Anim {
 			time,
 			code // just for debugging
 		})
-		if (typeof args?.lerp === "string") { this.lerp = Anim[args.lerp] }
+		if (typeof args?.lerp === "string") { this.lerp = Anim.library[this.lerp] }
 
 		this.totTime = time
 	}
@@ -135,7 +135,7 @@ class Anim {
 	 * @returns {Anim} Animation instance
 	 */
 	static custom(obj, time, func, origStrArr, args = {}) {
-		if (typeof origStrArr === "string") { origStrArr = origStrArr.split(" ") }
+		if (origStrArr && !Array.isArray(origStrArr)) { origStrArr = origStrArr.split(" ") }
 		const settings = { func: func, orig: origStrArr, ...args }
 		return new Anim(obj, time, "custom", settings)
 	}
@@ -147,7 +147,10 @@ class Anim {
 	 * @returns {Anim}
 	 */
 	static stepper(obj, time, varNames, startVals, endVals, args = {}) {
-		varNames = Array.isArray(varNames) ? varNames : varNames.split(" ")
+		if (!Array.isArray(varNames)) { varNames = varNames.split(" ") }
+		if (!Array.isArray(startVals)) { startVals = [startVals] }
+		if (!Array.isArray(endVals)) { endVals = [endVals] }
+
 		const settings = { varNames, startVals, endVals, ...args }
 		return new Anim(obj, time, "stepMany", settings)
 	}
@@ -155,26 +158,19 @@ class Anim {
 	lerp(t) {
 		return t
 	}
+	static library = {
+		"reverse": t => 1 - t,
+		"smoothstep": t => 3 * t ** 2 - 2 * t ** 3,
+		"smootherstep": t => t * t * t * (t * (6 * t - 15) + 10),
+		"vee": t => t < 0.5 ? 2 * t : 2 - 2 * t,
+		"veeReverse": t => t > 0.5 ? 1 - 2 * t : 2 * t - 1,
+		"square": t => t ** 2,
+		"sqrt": t => t ** .5,
+		"sin": t => Math.sin(t / NINETYDEG),
+		"cos": t => Math.cos(t / NINETYDEG),
+		"sinFull": t => Math.sin(t / PI),
+		"cosFull": t => Math.cos(t / PI)
 
-	static smoothstep(t) {
-		return 3 * t ** 2 - 2 * t ** 3
-		//x * x * x * (x * (6.0f * x - 15.0f) + 10.0f); smootherstep
-	}
-	static smootherstep(t) {
-		return t * t * t * (t * (6 * t - 15) + 10)
-	}
-	static vee(t) {
-		return t < 0.5 ? 2 * t : 2 - 2 * t
-	}
-
-	static veeAway(t) {
-		return t > 0.5 ? 1 - 2 * t : 2 * t - 1
-	}
-	static square(t) {
-		return t ** 2
-	}
-	static sqrt(t) {
-		return t ** .5
 	}
 
 
@@ -473,8 +469,10 @@ class Anim {
 		if (!this.init) {
 			MM.require(this, "func")
 			this.init = true
-			this.origVals = this.orig?.map(x => this.obj[x])
-			this.append = () => { this.orig?.forEach((x, i) => this.obj[x] = this.origVals[i]) }
+			if (this.orig) {
+				this.origVals = this.orig.map(x => this.obj[x])
+				this.append = () => { this.orig?.forEach((x, i) => this.obj[x] = this.origVals[i]) }
+			}
 		}
 		const t = this.lerp(1 - this.time / this.totTime) //0 -> 1
 		//this.func.bind(this, t)
