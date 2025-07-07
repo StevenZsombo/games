@@ -29,10 +29,12 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    filelist = ""
+    filelist = "./resources/victoriabold.png"
     //include .png
     if (filelist) {
         cropper.load_images(filelist.split(" "), files, () => { //files is a global
+            //myFont is a global
+            myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
             main(canvas)
         })
     } else {
@@ -271,7 +273,7 @@ class Game {
 
         funcs.forEach((b, i) => {
             const but = Button.fromRect(cont.splitCell(1, i + 1, 1, 5))
-            but.fontsize = 16
+            but.fontsize = 10
             this.dragger.drag_others_list.push(but)
             this.add_drawable(but)
             but.txt = String(b).substring(5)
@@ -308,7 +310,6 @@ class Game {
         this.pb = pb
         pb.hover_color = "pink"
         this.add_drawable(this.pb)
-        pb.on_click = () => { console.log("clicked") }
         Button.make_polygon(pb, [20, 300, 10, 350, 70, 370])
         Button.make_draggable(pb)
 
@@ -376,6 +377,8 @@ const stgs = {
 /**@type {HTMLImageElement[]} */
 const files = {}
 
+/**@type {customFont} */
+const myFont = new customFont()
 /** @type {Game}*/
 var game
 

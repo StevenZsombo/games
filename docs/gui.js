@@ -9,7 +9,7 @@ class Framerater {
 			y: 10,
 			width: 60,
 			height: 15,
-			fontsize: 12,
+			fontsize: 8,
 			color: "yellow",
 			outline: 0,
 		})
@@ -220,9 +220,9 @@ class Mouser {
 class Cropper {
 	constructor() {
 		/**@type {HTMLCanvasElement} */
-		this.canvas = document.createElement("canvas")
+		this.secondCanvas = document.createElement("canvas")
 		/**@type {CanvasRenderingContext2D} */
-		this.ctx = this.canvas.getContext("2d")
+		this.ctx = this.secondCanvas.getContext("2d")
 		this.ctx.imageSmoothingEnabled = false
 	}
 
@@ -265,21 +265,21 @@ class Cropper {
 
 	/**@returns {HTMLImageElement} */
 	resize(img, width, height) {
-		this.canvas.width = width
-		this.canvas.height = height
+		this.secondCanvas.width = width
+		this.secondCanvas.height = height
 		this.ctx.drawImage(img, 0, 0, width, height)
 		const ret = new Image()
-		ret.src = this.canvas.toDataURL()
+		ret.src = this.secondCanvas.toDataURL()
 		return ret
 	}
 
 	/**@returns {HTMLImageElement} */
 	crop(img, rect) {
-		this.canvas.width = rect.width
-		this.canvas.height = rect.height
+		this.secondCanvas.width = rect.width
+		this.secondCanvas.height = rect.height
 		this.ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height)
 		const ret = new Image()
-		ret.src = this.canvas.toDataURL()
+		ret.src = this.secondCanvas.toDataURL()
 		return ret
 	}
 
@@ -305,7 +305,7 @@ class Cropper {
 		})
 	}
 
-	static customFont(fileName = "./resources/victoriabold.png") {
+	static loadCustomFont(fileName = "./resources/victoriabold.png") {
 		const c = new Cropper()
 		const ret = {}
 		c.load_img(fileName, (img) => {
@@ -315,8 +315,26 @@ class Cropper {
 	}
 }
 
-class myFont {
-	constructor() {
-		//TODO
+class customFont {
+	static pattern = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~" `
+
+	constructor() {//for now just monospace
+		this.width = 8
+		this.height = 9
+		this.fontDict = null //will be received from Cropper
+	}
+
+	load_fontImage(fontDict) {
+		this.fontDict = fontDict
+	}
+
+	drawText(screen, txt, rect, { fontScale = 24, color = "black", opacity = 0 } = {}) {
+		const outRect = new Rect(0, 0, txt.length * this.width * fontScale, this.height * fontScale)
+		outRect.centerinRect(rect)
+		txt.split("").forEach((c, i) => {
+			screen.drawImage(this.fontDict[c],
+				i * this.width * fontScale + outRect.x, outRect.y,
+				this.width * fontScale, this.height * fontScale)
+		})
 	}
 }

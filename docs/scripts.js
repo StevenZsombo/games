@@ -591,11 +591,17 @@ class Button extends Clickable {
 		MM.drawImage(screen, this.img, this, this.opacity)
 	}
 	draw_text(screen) {
-		MM.drawMultiText(screen, this.txt, this, {
+		/*
+		bestFont.drawText(screen, this.txt, this, {
+			fontScale: this.fontsize / 16, color: this.color, opacity: this.opacity
+		})*/
+
+		MM.drawText(screen, this.txt, this, {
 			font: `${this.fontsize}px ${this.font_font}`,
 			color: this.font_color,
 			opacity: this.opacity
 		})
+
 	}
 
 	check(x, y, clicked, released, held, wheel) {//invisible buttons are also drawn now
@@ -711,7 +717,7 @@ class Molecule extends Clickable {
 			color: this.color
 		})
 		if (this.txt) {
-			MM.drawText(screen, this.txt, this.x, this.y, { font: "24px times", color: "black" })
+			MM.drawTextSingleDepr(screen, this.txt, this.x, this.y, { font: "24px times", color: "black" })
 		}
 
 	}

@@ -1,5 +1,4 @@
-//var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
-//disabled dpr for now. i'll draw fonts from image anyways
+var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
 
 
 class SpatialHashGrid {
@@ -114,7 +113,7 @@ class MM {
         return Math.hypot(pos1.x - pos2.y, pos1.y - pos2.y)
     }
 
-    static drawText(screen, txt, x, y, { font = "12px Times", color = "red", opacity = 0 } = {}) {
+    static drawTextSingleDepr(screen, txt, x, y, { font = "12px Times", color = "red", opacity = 0 } = {}) {
         screen.save()
         //const f = font.split("px")
         //font = `${f[0] * dpr}px${f.slice(1)}`
@@ -240,12 +239,12 @@ class MM {
         })
     }
 
-    static drawMultiText(screen, txtorarr, rect, { font = "12px Times", color = "black", opacity = 0 } = {}) {
+    static drawText(screen, txtorarr, rect, { font = "12px Times", color = "black", opacity = 0 } = {}) {
         screen.save()
         screen.textAlign = "center"
         screen.textBaseline = "middle"
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
+        const f = font.split("px")
+        font = `${f[0] * dpr}px${f.slice(1)}`
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
