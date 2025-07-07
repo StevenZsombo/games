@@ -224,6 +224,7 @@ class Cropper {
 	constructor() {
 		/**@type {HTMLCanvasElement} */
 		this.secondCanvas = document.createElement("canvas")
+		this.secondCanvas.style.imageRendering = "pixelated"
 		/**@type {CanvasRenderingContext2D} */
 		this.ctx = this.secondCanvas.getContext("2d")
 		this.ctx.imageSmoothingEnabled = false
@@ -330,14 +331,74 @@ class customFont {
 	load_fontImage(fontDict) {
 		this.fontDict = fontDict
 	}
+	/**
+	 * @param {RenderingContext} screen
+	 * @param {string} text
+	 * @param {Rect} rect
+	 * @param {Object} [param3={}] 
+	 * @param {number} [param3.fontScale=2] 
+	 * @param {string} [param3.color="black"] 
+	 * @param {number} [param3.opacity=0] 
+	 * @param {string} [param3.align=""]  top/middle/bottom left/center/right, default is middlecenter*/
+	drawText(screen, txt, rect, {
+		fontScale = 1, color = "black", opacity = 0, align = "", extraSpace = 1
+	} = {}) {
+		//const outRect = new Rect(0, 0, txt.length * this.width * fontScale, this.height * fontScale)
+		//outRect.centerinRect(rect)
+		const sW = this.width * fontScale
+		const sH = this.height * fontScale
+		extraSpace *= fontScale
 
-	drawText(screen, txt, rect, { fontScale = 24, color = "black", opacity = 0 } = {}) {
-		const outRect = new Rect(0, 0, txt.length * this.width * fontScale, this.height * fontScale)
-		outRect.centerinRect(rect)
-		txt.split("").forEach((c, i) => {
+		let targetX = rect.x
+		let centered = align.includes("left") ? false : true //center by default
+		const right = align.includes("right")
+		if (right) { centered = false }
+		let charFitPerLine = Math.floor(rect.width / sW)
+		let lineWidth = 0
+		let charCounter = 0
+		const words = txt.trim().split(" ").flat().flatMap(x => x.trim())
+		const lines = [[]]
+		for (let i = 0; i < words.length; i++) {
+			const word = words[i]
+			if (word.includes('\n')) {
+				const temp = word.split("\n")
+				words.splice(i + 1, 0, temp.slice(1).join('\n'))
+				lines.at(-1).push(temp[0])
+				lines.push([])
+				charCounter = temp[0].length + 1
+				continue
+			}
+			charCounter += word.length + 1 //+1 is the space
+			if (charCounter > charFitPerLine) {
+				lines.push([])
+				charCounter = word.length + 1
+			}
+			lines.at(-1).push(word)
+		}
+		let targetY = rect.y
+		if (align.includes("top")) {
+			//nothing, we declared with top
+		} else if (align.includes("bottom")) {
+			targetY = rect.bottom - lines.length * (sH + extraSpace) + extraSpace
+		} else {//middle by default
+			targetY = rect.y + (rect.height - lines.length * (sH + extraSpace) + extraSpace) / 2
+		}
+		for (let line of lines) {
+			line = line.join(" ")
+			if (right) { targetX = rect.right - line.length * sW }
+			if (centered) { targetX = rect.x + (rect.width - line.length * sW) / 2 }
+
+			line.split("").forEach((c, i) => {
+				screen.drawImage(this.fontDict[c], targetX + i * sW, targetY, sW, sH)
+			})
+			targetY += sH + extraSpace
+		}
+
+
+		/*txt.split("").forEach((c, i) => {
 			screen.drawImage(this.fontDict[c],
 				i * this.width * fontScale + outRect.x, outRect.y,
 				this.width * fontScale, this.height * fontScale)
-		})
+		})*/
 	}
 }

@@ -9,7 +9,9 @@ class Animator {
 		if (!(objoranim instanceof Anim)) { //can just pass Anim immediately
 			objoranim = new Anim(objoranim, time, code, args)
 		}
-		if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
+		if (objoranim.ditch) { //ditch all existing animations of the object
+			this.animations.forEach(x => { if (x.obj === objoranim.obj) { x.time = -1 } })
+		} else if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
 			console.error(this); throw "Object is locked"
 		}
 		this.locked.add(objoranim.obj)
@@ -112,9 +114,10 @@ class Anim {
 	 * @param {number} [args.repeat] - How many times to repeat
 	 * @param {Function}[args.on_repeat] - What to do on repeat
 	 * @param {boolean}[args.noLock] - Avoids animation lock check, use with care
+	 * @param {boolean}[args.ditch] - forces all other Anim with this obj to end, avoids lock check
 	 */
 	constructor(obj, time, code, args = {}) {
-		//accepts chain, chainMany repeat, on_end, lerp              NEVER #append
+		//accepts chain, chainMany repeat, on_end, lerp, ditch              NEVER #append
 		//all changes are non-mutating: object properties are to be reset when we are done!
 		if (!this[code]) {
 			console.log({
@@ -427,10 +430,8 @@ class Anim {
 		MM.require(this, "x y")
 		Object.assign(this, {
 			varNames: ["x", "y"],
-			startVals: [this.obj.x, this.obj.y]
+			endVals: [this.x, this.y]
 		})
-		this.obj.x = this.x
-		this.obj.y = this.y
 		this.animate = this["stepMany"]
 		this.animate()
 	}
@@ -440,10 +441,8 @@ class Anim {
 		MM.require(this, "dx dy")
 		Object.assign(this, {
 			varNames: ["x", "y"],
-			startVals: [this.obj.x, this.obj.y]
+			endVals: [this.obj.x, this.obj.y]
 		})
-		this.obj.x += this.dx
-		this.obj.y += this.dy
 		this.animate = this["stepMany"]
 		this.animate()
 
@@ -478,6 +477,7 @@ class Anim {
 
 	typingCentered() {
 		if (!this.init) {
+			MM.require(this.obj, "txt")
 			this.init = true
 			const obj = this.obj
 			this.origTxt = obj.txt
@@ -490,15 +490,17 @@ class Anim {
 
 	typing() {
 		if (!this.init) {
+			MM.require(this.obj, "txt")
 			this.init = true
 			const obj = this.obj
 			this.origTxt = obj.txt
 			this.len = obj.txt.length
 			this.append = () => { this.obj.txt = this.origTxt }
+			this.fillChar ??= "_"
 		}
 		const t = this.lerp(1 - this.time / this.totTime)//0 -> 1
 		const progress = Math.floor(t * this.len)
-		this.obj.txt = [...this.origTxt.slice(0, progress), ...Array(this.len - progress).fill(" ")].join("")
+		this.obj.txt = [...this.origTxt.slice(0, progress), ...Array(this.len - progress).fill(this.fillChar)].join("")
 	}
 
 

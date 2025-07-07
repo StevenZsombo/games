@@ -75,6 +75,70 @@ class SpatialHashGrid {
     }
 }
 
+class GameEffects {
+    //requires a global "game" to run
+    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
+        const container = game.layers[9]
+        const { x, y } = pos
+        for (let i = 0; i < howmany; i++) {
+            const theta = MM.random(-60, 180 + 60) * ONEDEG
+            const vX = Math.cos(theta) * MM.random(.2, 3) * 80
+            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80
+            const p = {
+                x: x, y: y,
+                color: MM.choice("red green blue orange".split(" ")),
+                size: howbig,
+                opacity: 0,
+                draw: function (screen) {
+                    MM.drawCircle(screen, this.x, this.y, this.size, {
+                        color: this.color, opacity: this.opacity
+                    })
+                }
+            }
+            container.push(p)
+            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
+                p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
+                p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
+                p.opacity = t ** 2
+                p.size = howbig * (1 - t)
+            }, null, {
+                on_end: () => {
+                    game.layers[9] = game.layers[9].filter(x => x !== p)
+                },
+            }))
+        }
+    }
+
+    static fireworksShow(howmanytimes = 5) {
+        const randomFireworks = () => {
+            MM.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
+        }
+        const a = () => {
+            return new Anim({}, MM.random(400, 1200), "delay", {
+                on_end: randomFireworks
+            })
+        }
+        randomFireworks()
+        randomFireworks()
+        game.animator.add_sequence(
+            ...Array(howmanytimes).fill().map(_ => a())
+        )
+    }
+    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5, retryButton = null } = {}) {
+        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: lab.fontsize * scaleFactor })
+        const b = () => new Anim(lab, 600, "stepMany", {
+            varNames: ["rad", "fontsize"],
+            endVals: [TWOPI, lab.fontsize],
+            startVals: [0, lab.fontsize]
+        })
+        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 28, endVal: lab.fontsize })
+        const seq = []
+        MM.forr(repeat, () => seq.push(a(), b(), c()))
+        game.animator.add_sequence(seq)
+
+    }
+}
+
 const UniqueArray = function () {
     const set = new Set();
     const array = [];
@@ -110,7 +174,7 @@ class MM {
     static dist(x, y, u, w) {
         return Math.hypot(x - u, y - w)
     }
-    static distpos(pos1, pos2) {
+    static distV(pos1, pos2) {
         return Math.hypot(pos1.x - pos2.y, pos1.y - pos2.y)
     }
 
@@ -511,53 +575,7 @@ class MM {
         screen.globalAlpha = 1
     }
 
-    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
-        const container = game.layers[9]
-        const { x, y } = pos
-        for (let i = 0; i < howmany; i++) {
-            const theta = MM.random(-60, 180 + 60) * ONEDEG
-            const vX = Math.cos(theta) * MM.random(.2, 3) * 80
-            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80
-            const p = {
-                x: x, y: y,
-                color: MM.choice("red green blue orange".split(" ")),
-                size: howbig,
-                opacity: 0,
-                draw: function (screen) {
-                    MM.drawCircle(screen, this.x, this.y, this.size, {
-                        color: this.color, opacity: this.opacity
-                    })
-                }
-            }
-            container.push(p)
-            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
-                p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
-                p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
-                p.opacity = t ** 2
-                p.size = howbig * (1 - t)
-            }, null, {
-                on_end: () => {
-                    game.layers[9] = game.layers[9].filter(x => x !== p)
-                },
-            }))
-        }
-    }
 
-    static fireworksShow(howmanytimes = 5) {
-        const randomFireworks = () => {
-            MM.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
-        }
-        const a = () => {
-            return new Anim({}, MM.random(400, 1200), "delay", {
-                on_end: randomFireworks
-            })
-        }
-        randomFireworks()
-        randomFireworks()
-        game.animator.add_sequence(
-            ...Array(howmanytimes).fill().map(_ => a())
-        )
-    }
 
     static arrToStr(arr) {
         return arr.join(",")
@@ -566,19 +584,7 @@ class MM {
         return str.split(",").map(Number)
     }
 
-    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5, retryButton = null } = {}) {
-        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: lab.fontsize * scaleFactor })
-        const b = () => new Anim(lab, 600, "stepMany", {
-            varNames: ["rad", "fontsize"],
-            endVals: [TWOPI, lab.fontsize],
-            startVals: [0, lab.fontsize]
-        })
-        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 28, endVal: lab.fontsize })
-        const seq = []
-        MM.forr(repeat, () => seq.push(a(), b(), c()))
-        game.animator.add_sequence(seq)
 
-    }
 }
 
 

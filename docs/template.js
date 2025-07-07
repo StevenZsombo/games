@@ -4,10 +4,11 @@ const denybuttons = false
 const showFramerate = true
 const imageSmoothingEnabled = false
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
+const fontFile = "resources/victoriabold.png" //set to null otherwise
 
 
 window.onload = function () {
-    let canvas = document.getElementById("myCanvas")
+    const canvas = document.getElementById("myCanvas")
     canvas.style.touchAction = 'none'
     canvas.style.userSelect = 'none'
     canvas.style.webkitUserDrag = 'none'
@@ -21,21 +22,19 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
+    const screen = canvas.getContext("2d")
+    screen.imageSmoothingQuality = imageSmoothingQuality
+    screen.imageSmoothingEnabled = imageSmoothingEnabled
     canvas.tabIndex = 0
     //canvas.focus()
     beforeMain(canvas)
 }
 
 const beforeMain = function (canvas) {
-    const cropper = new Cropper()
-    const cont = {}
-    //filelist = `${stgs.headimg} ${stgs.tailimg}` //filelist = "victoriabold.png"
-    filelist = ``
-    //include .png
-    if (filelist) {
-        cropper.load_images(filelist.split(" "), files, () => { //files is a global
-            //myFont is a global
-            //myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
+    filelist = `${fontFile}`
+    if (filelist) {//croper, files, myFont are all GLOBAL
+        cropper.load_images(filelist.split(" "), files, () => {
+            myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
             main(canvas)
         })
     } else {
@@ -54,12 +53,12 @@ const main = function (canvas) {
 }
 
 class Game {
-    constructor(canvas) {
+    constructor() {
+        const canvas = document.getElementById("myCanvas")
         this.canvas = canvas
         /**@type {RenderingContext} */
         this.screen = canvas.getContext("2d")
-        //this.screen.imageSmoothingQuality = imageSmoothingQuality
-        this.screen.imageSmoothingEnabled = imageSmoothingEnabled
+
         this.WIDTH = canvas.width
         this.HEIGHT = canvas.height
         this.SIZE = {
@@ -249,6 +248,21 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
+        const buts = this.rect.deflate(100, 100).splitGrid(3, 4).flat().map(Button.fromRect)
+        const t = "i really wish that, i could, fit all this correctly, wrapping\n\nlines li\nke someone, who actually happens to know what they are doing, hooray autowrap complete and it only took me an embarassing 30 minutes or so or so or so or so or so or so".split(",")
+        buts.forEach((b, i) => {
+            b.deflate(10, 10)
+            Button.make_pixelFont(b, myFont)
+            if (t[i]) b.txt = t[i]
+            b.on_click = () => {
+                game.animator.add_anim(b, 1000, "stretchFrom", {
+                    lerp: "vee", w: b.width * 1.3, h: b.height * 1.3, ditch: true
+                })
+            }
+
+        })
+        this.add_drawable(buts)
+        globalThis.buts = buts
 
 
 
@@ -323,6 +337,8 @@ const files = {}
 
 /**@type {customFont} */
 const myFont = new customFont()
+//*@type {Cropper}*/
+const cropper = new Cropper()
 /** @type {Game}*/
 var game
 

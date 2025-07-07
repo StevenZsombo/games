@@ -254,6 +254,10 @@ class Rect {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
 
+	packInto(rects, justify = "center", align = "middle") {
+
+	}
+
 	splitCell(i, j, toti, totj, jspan = 1, ispan = 1) {
 		if (i > 0) { i-- } else { i += toti }
 		if (j > 0) { j-- } else { j += totj }
@@ -669,7 +673,7 @@ class Button extends Clickable {
 	static make_drag_others(button, others) {
 		others ??= []
 		button.drag_others_list ??= []
-		button.drag_others_list.push(...others)
+		button.drag_others_list.push(...(others.filter(x => x !== button)))
 		button.on_drag = function (pos) {
 			this.drag_others_list.forEach(b => {
 				b.move(pos.x - button.last_held.x, pos.y - button.last_held.y)
@@ -695,6 +699,10 @@ class Button extends Clickable {
 			})
 		}
 		return button
+	}
+
+	static make_pixelFont(button, customFontInstance) {
+		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
 	}
 
 }
