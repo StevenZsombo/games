@@ -29,12 +29,13 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    filelist = "victoriabold.png"
+    filelist = ""
+    //filelist = "victoriabold.png"
     //include .png
     if (filelist) {
         cropper.load_images(filelist.split(" "), files, () => { //files is a global
             //myFont is a global
-            myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
+            //myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
             main(canvas)
         })
     } else {
@@ -273,7 +274,7 @@ class Game {
 
         funcs.forEach((b, i) => {
             const but = Button.fromRect(cont.splitCell(1, i + 1, 1, 5))
-            but.fontsize = 10
+            but.fontsize = 32
             this.dragger.drag_others_list.push(but)
             this.add_drawable(but)
             but.txt = String(b).substring(5)
@@ -286,7 +287,7 @@ class Game {
         this.add_drawable(this.victory)
         this.victory.txt = "Victory"
         Object.defineProperty(this.victory, "txt", { get() { return this.selected ? "Victory ON!" : "Victory" } })
-        this.victory.fontsize = 12
+        this.victory.fontsize = 48
         this.extras_on_update.push(x => {
             if (this.victory.selected && this.mouser.clicked) { MM.fireworks(this.mouser.pos) }
         }

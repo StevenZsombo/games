@@ -9,7 +9,7 @@ class Framerater {
 			y: 10,
 			width: 60,
 			height: 15,
-			fontsize: 8,
+			fontsize: 20,
 			color: "yellow",
 			outline: 0,
 		})

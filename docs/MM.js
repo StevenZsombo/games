@@ -1,4 +1,4 @@
-var dpr = window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
+var idpr = 1 / window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
 
 
 class SpatialHashGrid {
@@ -244,7 +244,7 @@ class MM {
         screen.textAlign = "center"
         screen.textBaseline = "middle"
         const f = font.split("px")
-        font = `${f[0] * dpr}px${f.slice(1)}`
+        font = `${f[0] * idpr}px${f.slice(1)}`
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
