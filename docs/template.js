@@ -29,7 +29,7 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    filelist = "./resources/victoriabold.png"
+    filelist = "victoriabold.png"
     //include .png
     if (filelist) {
         cropper.load_images(filelist.split(" "), files, () => { //files is a global
