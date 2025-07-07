@@ -295,7 +295,7 @@ class Game {
                     on_each_start: function () { this.obj.visible = true },
                     initialDelay: 1200
                 })
-            const v = localStorage.getItem("victories")?.split(",").map(Number) || []
+            const v = localStorage.getItem("victoriesCoinFlip")?.split(",").map(Number) || []
             v.forEach(x => {
                 const a = buts[x - stgs.minNum].copy
                 a.txt = "\u2705"
@@ -355,9 +355,9 @@ class Game {
                         obj.color = Math.floor((t * 10)) % 2 ? "lightgray" : "lightblue"
                     })
                 )
-                const v = localStorage.getItem("victories")?.split(",").map(Number) || []
+                const v = localStorage.getItem("victoriesCoinFlip")?.split(",").map(Number) || []
                 if (!(v.includes(stgs.NUM))) { v.push(stgs.NUM) }
-                localStorage.setItem("victories", v.join(","))
+                localStorage.setItem("victoriesCoinFlip", v.join(","))
             } else {
                 game.clickableTriangs.forEach(x => x.clickable = true)
             }

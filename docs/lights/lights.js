@@ -239,7 +239,7 @@ class Game {
 				b.hover_color = "pink"
 
 				let lift = new Animation(b, 60, "moveFromRel", { dx: 0, dy: 30 })
-				if (b.txt == gd.number && firstrun && localStorage.getItem("victories") == null) {
+				if (b.txt == gd.number && firstrun && localStorage.getItem("victoriesLights") == null) {
 					b.color = "lightblue"
 					//lift.chain = new Animation(b,120,"scaleThroughFactor",{scaleFactor: 1.1, repeat: 3})
 				}
@@ -284,7 +284,7 @@ class Game {
 			if (gd.buts.every(x => x.img == gd.on)) {
 				gd.lab.txtmult = "Congratulations! You did it!\n Can you do it with a different number of lights?"
 				gd.victories.push(gd.number)
-				window.localStorage.setItem("victories", gd.victories.join(","))
+				window.localStorage.setItem("victoriesLights", gd.victories.join(","))
 				gd.add_sequence(
 					new Animation(gd.lab, 120, "stepFrom", { varName: "fontsize", startVal: 12 }),
 					new Animation(gd.retry, 120, "delay", { on_end: x => gd.retry.color = "lightblue" }),
@@ -344,8 +344,7 @@ Can you turn on all the lights?`
 
 		if (firstrun) {
 			gd.number = 6
-			gd.victories = localStorage.getItem("victories")?.split(",").map(Number) ?? []
-			//console.log(localStorage.getItem("victories"))
+			gd.victories = localStorage.getItem("victoriesLights")?.split(",").map(Number) ?? []
 			gd.selector()
 			return
 		}
