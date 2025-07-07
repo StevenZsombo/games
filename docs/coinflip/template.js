@@ -1,7 +1,7 @@
 //should import scripts.js, gui.js, MM.js, animations.js
 const framerateUnlocked = true
 const denybuttons = false
-const showFramerate = true
+const showFramerate = false
 const imageSmoothingEnabled = false
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 
@@ -249,6 +249,216 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
 
+        if (stgs.stage == "menu") {
+            const rowCont = this.rect.deflate(50, 0).splitRow(2, 1, 2)[1]
+            const lab = Button.fromRect(rowCont)
+            game.add_drawable(lab)
+            lab.centerat(lab.centerX, game.HEIGHT * .3)
+            lab.txt = "How many rows of coins?"
+            lab.transparent = true
+            lab.fontsize = 48
+            lab.font_font = "Consolas"
+            this.animator.add_anim(lab, 1000, "typing")
+
+            const butnum = stgs.maxNum - stgs.minNum + 1
+            const buts = rowCont.splitGrid(1, butnum).flat().map(Button.fromRect)
+
+            buts.forEach((b, i) => {
+                b.shrinkToSquare()
+                b.stretch(.7, .7)
+                b.txt = stgs.minNum + i
+                b.hover_color = "lightblue"
+                b.on_click = function () {
+                    stgs.NUM = this.txt
+                    game.animator.add_staggered(
+                        [lab, ...buts.filter(x => x !== b)], 0, Anim.stepper(null, 600, "opacity", 0, 1)
+                    );
+                    [lab, ...buts.filter(x => x !== b)].forEach(x => x.opacity = 1)
+                    b.color = b.hover_color
+                    const [ow, oh] = [b.width, b.height]
+                    b.stretch(1.4, 1.4)
+                    game.animator.add_anim(b, 600, "stretchFrom", {
+                        w: ow, h: oh,
+                        chain: Anim.stepper(b, 600, "opacity", 0, 1,
+                            { on_end: () => { stgs.stage = "game"; main(); } })
+                    })
+
+                    //stgs.stage = "game"
+                    //main()
+                }
+                b.fontsize = 30
+                b.visible = false
+            })
+            game.add_drawable(buts)
+            game.animator.add_staggered(buts, 50, new Anim(null, 500, "moveFromRel", { dx: 0, dy: 50 }),
+                {
+                    on_each_start: function () { this.obj.visible = true },
+                    initialDelay: 1200
+                })
+            const v = localStorage.getItem("victories")?.split(",").map(Number) || []
+            v.forEach(x => {
+                const a = buts[x - stgs.minNum].copy
+                a.txt = "\u2705"
+                a.move(0, buts[0].height + 20)
+                console.log(a)
+                a.visible = true
+                a.transparent = true
+                a.interactable = false
+                game.add_drawable(a)
+                buts.push(a)
+            })
+            const cc = Button.fromRect(this.rect.copy)
+            cc.height = 30
+            cc.bottomat(game.HEIGHT)
+            cc.fontsize = 20
+            cc.transparent = true
+            const t = "(Based on a problem from the Eucid 2025 contest.)"
+            cc.width = 500
+            cc.rightat(game.WIDTH)
+            cc.txt = t
+            game.add_drawable(cc)
+
+        }
+        if (stgs.stage != "game") { return }
+        let retry = this.rect.splitCell(-1.5, -1.5, 10, 10)
+        retry.fontsize = 20
+        retry = Button.fromRect(retry, {
+            txt: "Retry", hover_color: "pink", on_click: () => {
+                stgs.stage = "menu"
+                main()
+            }
+        })
+        game.add_drawable(retry)
+        const euc = {}
+        this.euc = euc
+        const uppies = {}
+        const downies = {}
+        const ovals = {}
+        euc.ovals = ovals
+        const { WIDTH, HEIGHT, NUM } = stgs
+        const SIZE = 300 / NUM
+        const GAP = Math.min(WIDTH, HEIGHT) / (NUM)
+        const pos = (i, j) => {
+            const x = WIDTH / 2 + (i - j / 2) * GAP
+            const y = GAP / 2 + j * GAP
+            return [x, y]
+        }
+        this.checkVictory = () => {
+            if (Object.values(ovals).every(x => x[1])) {
+                stgs.stage = "won"
+                MM.fireworksShow()
+                howtoplay.txt = "Congratulations!"
+                MM.victorySpin(howtoplay)
+                game.animator.add_sequence(
+                    Anim.delay(5000),
+                    Anim.custom(retry, 6000, (t, obj) => {
+                        obj.color = Math.floor((t * 10)) % 2 ? "lightgray" : "lightblue"
+                    })
+                )
+                const v = localStorage.getItem("victories")?.split(",").map(Number) || []
+                if (!(v.includes(stgs.NUM))) { v.push(stgs.NUM) }
+                localStorage.setItem("victories", v.join(","))
+            } else {
+                game.clickableTriangs.forEach(x => x.clickable = true)
+            }
+        }
+        const flip = (targets) => {
+            targets.forEach((coords, i) => {
+                const b = ovals[MM.arrToStr(coords)][0]
+                ovals[MM.arrToStr(coords)] = [b, !(ovals[MM.arrToStr(coords)][1])]
+                const animtime = 300
+                game.animator.add_anim(Anim.custom(b, animtime,
+                    /**@param {Button} obj */function (t, obj) {
+                        obj.resize(t * SIZE, SIZE)
+                    }, "x y width height", { lerp: "veeReverse" }
+                    //    , { on_end: () => { if (i == 0) { this.checkVictory } } }
+                ))
+                game.animator.add_anim(b, animtime / 2, "delay", {
+                    on_end: () => { b.selected = !(b.selected) }, noLock: true
+                })
+                if (i == 0) {
+                    game.animator.add_anim(null, animtime, "delay", {
+                        on_end: game.checkVictory, noLock: true
+                    })
+                    game.clickableTriangs.forEach(x => x.clickable = false)
+                }
+            })
+
+        }
+
+        for (let i = 0; i < NUM; i++) {
+            for (let j = 0; j < NUM; j++) {
+                if (i <= j) {
+                    if (j < NUM - 1) {
+                        const friends = [[i, j], [i, j + 1], [i + 1, j + 1]]
+                        /**@type {Button} */
+                        const u = new Button()
+                        Button.make_polygon(u, friends.map(x => pos(...x)).flat())
+                        u.hover_color = stgs.TRIANGHOVERUP
+                        u.color = stgs.TRIANGBG
+                        u.outline = stgs.TRIANGOUTLINE
+                        uppies[MM.arrToStr([i, j])] = [u, friends]
+                        u.tag = `uppie${i}${j}`
+                        u.on_click = () => flip(friends)
+                        game.add_drawable(u)
+                    }
+
+                    if (1 < j & 0 < i && i < j) {
+                        const friends = [[i, j], [i, j - 1], [i - 1, j - 1]]
+                        const d = new Button()
+                        Button.make_polygon(d, friends.map(x => pos(...x)).flat())
+                        d.hover_color = stgs.TRIANGHOVERDOWN
+                        d.color = stgs.TRIANGBG
+                        d.outline = stgs.TRIANGOUTLINE
+                        d.tag = `downie${i}${j}`
+
+                        downies[MM.arrToStr([i, j])] = [d, friends]
+                        d.on_click = () => flip(friends)
+                        game.add_drawable(d)
+                    }
+                    const q = new Button({ width: SIZE, height: SIZE })
+                    q.centerat(...pos(i, j))
+                    q.selected_color = "orange"
+                    q.tag = `oval${i}${j}`
+                    ovals[MM.arrToStr([i, j])] = [q, false]
+                    game.add_drawable(q, 6)
+                    q.transparent = true
+                    Object.defineProperty(q, "img", {
+                        get() { return this.selected ? files[stgs.headimg] : files[stgs.tailimg] }
+                    })
+                }
+            }
+        }
+
+        this.clickableTriangs = []
+        this.clickableTriangs.push(...Object.values(downies).map(x => x[0]))
+        this.clickableTriangs.push(...Object.values(uppies).map(x => x[0]))
+
+        this.layers.flat().forEach(x => x.opacity = 1)
+        this.animator.add_staggered(
+            this.layers.flat().filter(x => x !== this.framerate.button),
+            0,
+            Anim.stepper(null, 500, "opacity", 1, 0), {
+            on_final: () => { this.layers.flat().forEach(x => x.opacity = 0) },
+            noLock: true
+        }
+        )
+        const howtoplay = new Button()
+        this.howtoplay = howtoplay
+        this.add_drawable(howtoplay)
+        howtoplay.fontsize = 24
+        howtoplay.leftat(stgs.WIDTH)
+        howtoplay.rightstretchat(retry.right)
+        howtoplay.transparent = true
+
+        howtoplay.resize(null, game.HEIGHT * .5)
+        //howtoplay.transparent = true
+        howtoplay.txt = `You may flip 
+any three mutually adjacent 
+coins at once
+(click in the triangles)!
+Can you flip all of them to heads?`
+        //game.animator.add_anim(howtoplay, 2000, "typing")
 
 
 
@@ -313,7 +523,19 @@ const dev = {
 }/// end of dev
 /// settings
 const stgs = {
-    stage: "menu"
+    stage: "menu",
+    minNum: 3,
+    maxNum: 12,
+    WIDTH: 450,
+    HEIGHT: 450,
+    NUM: 3,
+    TRIANGBG: null,
+    TRIANGHOVERUP: "lightblue",
+    TRIANGHOVERDOWN: "pink",
+    TRIANGOUTLINE: 2,
+    tailimg: "tail.png",
+    headimg: "head.png"
+
 
 }/// end of settings
 

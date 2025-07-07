@@ -29,7 +29,7 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     const cropper = new Cropper()
     const cont = {}
-    filelist = `${stgs.headimg} ${stgs.tailimg}` //filelist = "victoriabold.png"
+    filelist = "" //filelist = "victoriabold.png"
     //include .png
     if (filelist) {
         cropper.load_images(filelist.split(" "), files, () => { //files is a global
@@ -49,7 +49,7 @@ const main = function (canvas) {
     canvas ??= document.getElementById("myCanvas")
     if (game !== undefined) { game.isRunning = false }
     game = new Game(canvas)
-    game.start()
+    game.tick()
 }
 
 class Game {
@@ -91,9 +91,6 @@ class Game {
 
         this.lastCycleTime = Date.now()
 
-
-    }
-    start() {
         this.status = "initializing"
         this.initialize()
         this.initialize_more()
@@ -102,7 +99,6 @@ class Game {
         this.isDrawing = true
         this.isAcceptingInputs = true
         this.status = "playing"
-        this.tick()
     }
     initialize() {
 
@@ -248,13 +244,74 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
+        this.bg = Button.fromRect(this.rect.copy)
+        this.add_drawable(this.bg)
+        this.bg.color = "white"
+        this.bg.stretch(.8, .8)
+        this.bg.move(50, 0)
+        this.bg.topat(this.framerate.button.top)
+
+        const pl = new Plot(Math.cos, this.bg, { minX: -10, maxX: 10, minY: -10, maxY: 10 })
+        this.add_drawable(pl)
+        this.pl = pl
+        pl.addControls(this.mouser)
+        this.dragger = Button.fromRect(new Rect(this.bg.right, this.bg.top, 10, 10))
+        Button.make_drag_others(this.dragger, [this.bg])
+        this.add_drawable(this.dragger)
+
+        const cont = this.bg.copyRect
+        cont.topat(this.bg.bottom + 10)
+        cont.bottomstretchat(this.HEIGHT - 10)
+        cont.resize(null, 50)
+        const funcs = [x => x ** 2,
+        x => x ** 3,
+        x => Math.sqrt(x),
+        x => Math.sin(x),
+        x => 1 / Math.cos(x),
+
+        ]
+
+        funcs.forEach((b, i) => {
+            const but = Button.fromRect(cont.splitCell(1, i + 1, 1, 5))
+            but.fontsize = 20
+            this.dragger.drag_others_list.push(but)
+            this.add_drawable(but)
+            but.txt = String(b).substring(5)
+            but.on_click = () => { game.pl.func = b }
+        })
+
+        this.victory = new Button({ x: 10, y: this.HEIGHT - 200, width: 100, height: 30, rad: 60 * ONEDEG })
+        this.victory = Button.make_checkbox(this.victory)
+
+        this.add_drawable(this.victory)
+        this.victory.txt = "Victory"
+        Object.defineProperty(this.victory, "txt", { get() { return this.selected ? "Victory ON!" : "Victory" } })
+        this.victory.fontsize = 30
+        this.extras_on_update.push(x => {
+            if (this.victory.selected && this.mouser.clicked) { MM.fireworks(this.mouser.pos) }
+        }
+        )
 
 
+        this.ms = Button.fromRect(new Rect(0, 0, 10, 10))
+        this.add_drawable(this.ms)
+        this.ms.outline = 0
+        const ms = this.ms
+        this.ms.draw_background = screen => MM.drawCircle(screen, ms.centerX, ms.centerY, ms.width / 2, ms)
 
-
-
-
-
+        this.v1 = Button.fromRect({ x: 100, y: 100, width: 10, height: 10 })
+        this.v2 = Button.fromRect({ x: 40, y: 130, width: 10, height: 10 })
+        this.v3 = Button.fromRect({ x: 60, y: 50, width: 10, height: 10 })
+        const vvv = [this.v1, this.v2, this.v3]
+        vvv.forEach(x => Button.make_draggable(x))
+        this.add_drawable(vvv, 6)
+        /**@type {Button} */
+        const pb = new Button({ x: 20, y: 300, width: 10, height: 20 })
+        this.pb = pb
+        pb.hover_color = "pink"
+        this.add_drawable(this.pb)
+        Button.make_polygon(pb, [20, 300, 10, 350, 70, 370])
+        Button.make_draggable(pb)
 
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -263,10 +320,12 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-
-
-
-
+        const bg = this.bg
+        this.ms.centeratV(this.mouser.pos)
+        const { v1, v2, v3 } = this
+        this.triang = [v1.centerX, v1.centerY, v2.centerX, v2.centerY, v3.centerX, v3.centerY]
+        this.ms.color = MM.collidePolygon(this.mouser.x, this.mouser.y, this.triang) ?
+            "red" : "blue"
 
 
 
@@ -278,13 +337,11 @@ class Game {
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     draw_more(screen) {
-
-
-
-
-
-
-
+        //MM.drawLine(screen, ...this.line, { color: "red", width: 5 })
+        //MM.drawLine(screen, ...this.line2, { color: "green", width: 5 })
+        //MM.drawLine(screen, ...this.line3, { color: "blue", width: 5 })
+        MM.drawPolygon(screen, this.triang, { outline: 0, color: "pink" })
+        this.ms.draw(screen)
 
 
 
@@ -313,7 +370,7 @@ const dev = {
 }/// end of dev
 /// settings
 const stgs = {
-    stage: "menu"
+
 
 }/// end of settings
 

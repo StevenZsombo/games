@@ -1,5 +1,6 @@
-var idpr = 1 / window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
-
+//var dpr = 1 / window.devicePixelRatio || 1 //override with 1 if text sizes are not a concern
+//dpr = 2 / 3
+//disabled for now, not worth bothering with
 
 class SpatialHashGrid {
     constructor(sizeX, sizeY, dimX, dimY) {
@@ -243,8 +244,8 @@ class MM {
         screen.save()
         screen.textAlign = "center"
         screen.textBaseline = "middle"
-        const f = font.split("px")
-        font = `${f[0] * idpr}px${f.slice(1)}`
+        //const f = font.split("px")
+        //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
@@ -489,7 +490,9 @@ class MM {
         return true
     }
     /**@param {RenderingContext} screen  */
-    static drawPolygon(screen, polyXYXYXY, { color = "black", outline = 3, outline_color = "blue" } = {}) {
+    static drawPolygon(screen, polyXYXYXY, { color = "black", outline = 3, outline_color = "blue", opacity = 0 } = {}) {
+        if ((!color && !outline) || opacity == 1) { return }
+        screen.globalAlpha = 1 - opacity
         screen.beginPath()
         screen.moveTo(polyXYXYXY.at(-2), polyXYXYXY.at(-1))
         for (let i = 0; i < polyXYXYXY.length; i += 2) {
@@ -505,6 +508,7 @@ class MM {
             screen.strokeStyle = outline_color
             screen.stroke()
         }
+        screen.globalAlpha = 1
     }
 
     static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
@@ -539,6 +543,42 @@ class MM {
         }
     }
 
+    static fireworksShow(howmanytimes = 5) {
+        const randomFireworks = () => {
+            MM.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
+        }
+        const a = () => {
+            return new Anim({}, MM.random(400, 1200), "delay", {
+                on_end: randomFireworks
+            })
+        }
+        randomFireworks()
+        randomFireworks()
+        game.animator.add_sequence(
+            ...Array(howmanytimes).fill().map(_ => a())
+        )
+    }
+
+    static arrToStr(arr) {
+        return arr.join(",")
+    }
+    static strToArr(str) {
+        return str.split(",").map(Number)
+    }
+
+    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5, retryButton = null } = {}) {
+        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: lab.fontsize * scaleFactor })
+        const b = () => new Anim(lab, 600, "stepMany", {
+            varNames: ["rad", "fontsize"],
+            endVals: [TWOPI, lab.fontsize],
+            startVals: [0, lab.fontsize]
+        })
+        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 28, endVal: lab.fontsize })
+        const seq = []
+        MM.forr(repeat, () => seq.push(a(), b(), c()))
+        game.animator.add_sequence(seq)
+
+    }
 }
 
 
