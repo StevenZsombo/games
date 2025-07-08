@@ -27,7 +27,7 @@
       /* 16/9 of viewport height */
       height: min(56.25vw, 100vh);
       /* 9/16 of viewport width */
-      image-rendering: smooth;
+      image-rendering: crisp-edges;
       /* will override in code anyways*/
       /* AA->noAA being: smooth, auto, crisp-edges, pixelated */
     }
@@ -35,8 +35,8 @@
 </head>
 
 <body>
-  <!-- Canvas with given internal resolution -->
-  <canvas id="myCanvas" width="1920" height="1080"></canvas>
+  <!-- Canvas with 800x450 internal resolution -->
+  <canvas id="myCanvas" width="800" height="450"></canvas>
 
   <!-- Your game scripts -->
   <script src="MM.js"></script>

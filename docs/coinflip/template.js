@@ -2,7 +2,7 @@
 const framerateUnlocked = true
 const denybuttons = false
 const showFramerate = false
-const imageSmoothingEnabled = false
+const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 
 
@@ -57,7 +57,7 @@ class Game {
         this.canvas = canvas
         /**@type {RenderingContext} */
         this.screen = canvas.getContext("2d")
-        //this.screen.imageSmoothingQuality = imageSmoothingQuality
+        this.screen.imageSmoothingQuality = imageSmoothingQuality
         this.screen.imageSmoothingEnabled = imageSmoothingEnabled
         this.WIDTH = canvas.width
         this.HEIGHT = canvas.height
@@ -256,7 +256,7 @@ class Game {
             lab.centerat(lab.centerX, game.HEIGHT * .3)
             lab.txt = "How many rows of coins?"
             lab.transparent = true
-            lab.fontsize = 48
+            lab.fontsize = 96
             lab.font_font = "Consolas"
             this.animator.add_anim(lab, 1000, "typing")
 
@@ -271,22 +271,22 @@ class Game {
                 b.on_click = function () {
                     stgs.NUM = this.txt
                     game.animator.add_staggered(
-                        [lab, ...buts.filter(x => x !== b)], 0, Anim.stepper(null, 600, "opacity", 0, 1)
+                        [lab, ...buts.filter(x => x !== b)], 0, Anim.stepper(null, 600, "opacity", 0, 1, { noLock: true })
                     );
                     [lab, ...buts.filter(x => x !== b)].forEach(x => x.opacity = 1)
                     b.color = b.hover_color
                     const [ow, oh] = [b.width, b.height]
                     b.stretch(1.4, 1.4)
                     game.animator.add_anim(b, 600, "stretchFrom", {
-                        w: ow, h: oh,
+                        w: ow, h: oh, noLock: true,
                         chain: Anim.stepper(b, 600, "opacity", 0, 1,
-                            { on_end: () => { stgs.stage = "game"; main(); } })
+                            { on_end: () => { stgs.stage = "game"; main(); }, noLock: true })
                     })
 
                     //stgs.stage = "game"
                     //main()
                 }
-                b.fontsize = 30
+                b.fontsize = 72
                 b.visible = false
             })
             game.add_drawable(buts)
@@ -300,7 +300,6 @@ class Game {
                 const a = buts[x - stgs.minNum].copy
                 a.txt = "\u2705"
                 a.move(0, buts[0].height + 20)
-                console.log(a)
                 a.visible = true
                 a.transparent = true
                 a.interactable = false
@@ -310,18 +309,19 @@ class Game {
             const cc = Button.fromRect(this.rect.copy)
             cc.height = 30
             cc.bottomat(game.HEIGHT)
-            cc.fontsize = 20
+            cc.fontsize = 36
             cc.transparent = true
-            const t = "(Based on a problem from the Eucid 2025 contest.)"
-            cc.width = 500
+            const t = "(Based on a problem from the 2025 Euclid contest.)"
+            cc.width = 800
             cc.rightat(game.WIDTH)
+            cc.textAlign = "right"
             cc.txt = t
             game.add_drawable(cc)
 
         }
         if (stgs.stage != "game") { return }
         let retry = this.rect.splitCell(-1.5, -1.5, 10, 10)
-        retry.fontsize = 20
+        retry.fontsize = 40
         retry = Button.fromRect(retry, {
             txt: "Retry", hover_color: "pink", on_click: () => {
                 stgs.stage = "menu"
@@ -336,7 +336,7 @@ class Game {
         const ovals = {}
         euc.ovals = ovals
         const { WIDTH, HEIGHT, NUM } = stgs
-        const SIZE = 300 / NUM
+        const SIZE = 800 / NUM
         const GAP = Math.min(WIDTH, HEIGHT) / (NUM)
         const pos = (i, j) => {
             const x = WIDTH / 2 + (i - j / 2) * GAP
@@ -446,12 +446,13 @@ class Game {
         const howtoplay = new Button()
         this.howtoplay = howtoplay
         this.add_drawable(howtoplay)
-        howtoplay.fontsize = 24
+        howtoplay.fontsize = 60
         howtoplay.leftat(stgs.WIDTH)
         howtoplay.rightstretchat(retry.right)
         howtoplay.transparent = true
 
         howtoplay.resize(null, game.HEIGHT * .5)
+        howtoplay.topat(0)
         //howtoplay.transparent = true
         howtoplay.txt = `You may flip 
 any three mutually adjacent 
@@ -526,15 +527,15 @@ const stgs = {
     stage: "menu",
     minNum: 3,
     maxNum: 12,
-    WIDTH: 450,
-    HEIGHT: 450,
+    WIDTH: 1000,
+    HEIGHT: 1000,
     NUM: 3,
     TRIANGBG: null,
     TRIANGHOVERUP: "lightblue",
     TRIANGHOVERDOWN: "pink",
     TRIANGOUTLINE: 2,
-    tailimg: "tail.png",
-    headimg: "head.png"
+    tailimg: "rabbit.png",
+    headimg: "bird.png"
 
 
 }/// end of settings

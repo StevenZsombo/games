@@ -511,13 +511,13 @@ class MM {
         screen.globalAlpha = 1
     }
 
-    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
+    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3 * 2) {
         const container = game.layers[9]
         const { x, y } = pos
         for (let i = 0; i < howmany; i++) {
             const theta = MM.random(-60, 180 + 60) * ONEDEG
-            const vX = Math.cos(theta) * MM.random(.2, 3) * 80
-            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80
+            const vX = Math.cos(theta) * MM.random(.2, 3) * 80 * 2
+            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80 * 2
             const p = {
                 x: x, y: y,
                 color: MM.choice("red green blue orange".split(" ")),

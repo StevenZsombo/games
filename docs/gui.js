@@ -7,9 +7,9 @@ class Framerater {
 		this.button = new Button({
 			x: 10,
 			y: 10,
-			width: 60,
-			height: 15,
-			fontsize: 16,
+			width: 150,
+			height: 40,
+			fontsize: 32,
 			color: "yellow",
 			outline: 0,
 		})
@@ -356,7 +356,7 @@ class customFont {
 		let charFitPerLine = Math.floor(rect.width / sW)
 		let lineWidth = 0
 		let charCounter = 0
-		const words = txt.trim().split(" ").flat().flatMap(x => x.trim())
+		const words = `${txt}`.split(" ")
 		const lines = [[]]
 		for (let i = 0; i < words.length; i++) {
 			const word = words[i]
@@ -393,12 +393,5 @@ class customFont {
 			})
 			targetY += sH + extraSpace
 		}
-
-
-		/*txt.split("").forEach((c, i) => {
-			screen.drawImage(this.fontDict[c],
-				i * this.width * fontScale + outRect.x, outRect.y,
-				this.width * fontScale, this.height * fontScale)
-		})*/
 	}
 }
