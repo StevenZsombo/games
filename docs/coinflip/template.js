@@ -322,6 +322,8 @@ class Game {
         if (stgs.stage != "game") { return }
         let retry = this.rect.splitCell(-1.5, -1.5, 10, 10)
         retry.fontsize = 40
+        retry.color = "lightgray"
+        retry.font_font = "Consolas"
         retry = Button.fromRect(retry, {
             txt: "Retry", hover_color: "pink", on_click: () => {
                 stgs.stage = "menu"
@@ -447,6 +449,7 @@ class Game {
         this.howtoplay = howtoplay
         this.add_drawable(howtoplay)
         howtoplay.fontsize = 60
+        howtoplay.font_font = "Consolas"
         howtoplay.leftat(stgs.WIDTH)
         howtoplay.rightstretchat(retry.right)
         howtoplay.transparent = true
@@ -458,7 +461,8 @@ class Game {
 any three mutually adjacent 
 coins at once
 (click in the triangles)!
-Can you flip all of them to heads?`
+Can you flip all of them
+to heads (birds)?`
         //game.animator.add_anim(howtoplay, 2000, "typing")
 
 

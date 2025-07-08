@@ -124,17 +124,21 @@ class GameEffects {
             ...Array(howmanytimes).fill().map(_ => a())
         )
     }
-    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5, retryButton = null } = {}) {
-        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: lab.fontsize, endVal: lab.fontsize * scaleFactor })
+    /**@returns {Array<Anim>} the sequence that WILL be played*/
+    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5 } = {}) {
+        const origSize = lab.fontsize
+        const newSize = origSize * scaleFactor
+        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: origSize, endVal: newSize })
         const b = () => new Anim(lab, 600, "stepMany", {
             varNames: ["rad", "fontsize"],
-            endVals: [TWOPI, lab.fontsize],
-            startVals: [0, lab.fontsize]
+            endVals: [TWOPI, newSize],
+            startVals: [0, newSize]
         })
-        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: 28, endVal: lab.fontsize })
+        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: newSize, endVal: origSize })
         const seq = []
         MM.forr(repeat, () => seq.push(a(), b(), c()))
         game.animator.add_sequence(seq)
+        return seq
 
     }
 }
