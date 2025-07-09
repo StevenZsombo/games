@@ -312,7 +312,7 @@ class Game {
             cc.fontsize = 36
             cc.transparent = true
             const t = "(Based on a problem from the 2025 Euclid contest.)"
-            cc.width = 800
+            cc.width = game.WIDTH
             cc.rightat(game.WIDTH)
             cc.textAlign = "right"
             cc.txt = t

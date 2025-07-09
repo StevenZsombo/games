@@ -77,13 +77,13 @@ class SpatialHashGrid {
 
 class GameEffects {
     //requires a global "game" to run
-    static fireworks(pos, howmany = 200, howlong = 1500, howbig = 3) {
+    static fireworks(pos, howmany = 200, howlong = 2000, howbig = 5, howfar = 200) {
         const container = game.layers[9]
         const { x, y } = pos
         for (let i = 0; i < howmany; i++) {
             const theta = MM.random(-60, 180 + 60) * ONEDEG
-            const vX = Math.cos(theta) * MM.random(.2, 3) * 80
-            const vY = -Math.sin(theta) * MM.random(.2, 3) * 80
+            const vX = Math.cos(theta) * MM.random(.2, 3) * howfar
+            const vY = -Math.sin(theta) * MM.random(.2, 3) * howfar
             const p = {
                 x: x, y: y,
                 color: MM.choice("red green blue orange".split(" ")),
@@ -111,7 +111,7 @@ class GameEffects {
 
     static fireworksShow(howmanytimes = 5) {
         const randomFireworks = () => {
-            MM.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
+            GameEffects.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
         }
         const a = () => {
             return new Anim({}, MM.random(400, 1200), "delay", {
@@ -135,6 +135,33 @@ class GameEffects {
         const seq = []
         MM.forr(repeat, () => seq.push(a(), b(), c()))
         game.animator.add_sequence(seq)
+
+    }
+
+    static dottedLine(fromX, fromY, toX, toY, {
+        dotNumber = 5, spacing = null, size = 5, includeStart = true, includeEnd = true, color = "black",
+        animate = true } = {}) {
+        const Circ = function (x, y, size, color) {
+            Object.assign(this, { x, y, size, color })
+            this.draw = function (screen) {
+                MM.drawCircle(screen, this.x, this.y, this.size, this)
+            }
+        }
+        if (spacing) {
+            dotNumber = Math.floor(MM.dist(fromX, fromY, toX, toY) / spacing)
+        }
+        const dotNumberActual = dotNumber + 2
+        const dx = (toX - fromX) / (dotNumberActual - 1)
+        const dy = (toY - fromY) / (dotNumberActual - 1)
+        const positions = Array(dotNumberActual).
+            fill([fromX, fromY].slice()).
+            map((v, i) => [v[0] + i * dx, v[1] + i * dy])
+        const objs = []
+        for (const place of positions) {
+            const c = new Circ(place[0], place[1], size, color)
+            objs.push(c)
+        }
+        return objs
 
     }
 }
@@ -499,11 +526,21 @@ class MM {
             yield [...current];
             return;
         }
-
         for (let i = start; i <= arr.length - k; i++) {
             current.push(arr[i]);
             yield* MM.combinations(arr, k - 1, i + 1, current);
             current.pop();
+        }
+    }
+    static *cartesianProduct(...arrays) {
+        if (arrays.length === 0) yield [];
+        else {
+            const [first, ...rest] = arrays;
+            for (const item of first) {
+                for (const product of MM.cartesianProduct(...rest)) {
+                    yield [item, ...product];
+                }
+            }
         }
     }
 

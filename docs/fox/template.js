@@ -5,8 +5,8 @@ const showFramerate = true
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
-const fontFile = "resources/victoriabold.png" //set to null otherwise
-const filesList = "fox.png" //space-separated
+const fontFile = "" //set to "" otherwise
+const fileList = "fox.png" //space-separated
 
 
 window.onload = function () {
@@ -35,7 +35,7 @@ window.onload = function () {
 }
 
 const beforeMain = function (canvas) {
-    filelist = `${fontFile} ${filesList}` //fontFile goes first!
+    filelist = `${fontFile}${fontFile && fileList ? " " : ""}${fileList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
         cropper.load_images(filelist.split(" "), files, () => {
             myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
@@ -363,7 +363,7 @@ class Game {
                 const dots = GameEffects.dottedLine(
                     cells[i][badOne[i]].centerX, cells[i][badOne[i]].bottom,
                     cells[i + 1][n].centerX, cells[i + 1][n].top,
-                    { size: 5, spacing: 30 }
+                    { size: 3, spacing: 20 }
                 )
 
 
@@ -398,10 +398,10 @@ class Game {
             game.add_drawable(circs, 6)
             circs.forEach(c => c.opacity = 1)
             const revealCircAnim = (circ) => {
-                return Anim.stepper(circ, 200, ["opacity"], [1], [0], { on_end: () => circ.opacity = 0 })
+                return Anim.stepper(circ, 150, ["opacity"], [1], [0], { on_end: () => circ.opacity = 0 })
             }
             //game.animator.add_sequence(circs.map(revealCircAnim))
-            game.animator.add_staggered(circs, 50, Anim.stepper(null, 200, "opacity", 1, 0, {
+            game.animator.add_staggered(circs, 30, Anim.stepper(null, 200, "opacity", 1, 0, {
                 on_end: function () { this.obj.opacity = 0 }
             }))
         }
