@@ -429,6 +429,7 @@ class Clickable extends Rect {
  * @property {string} [font_color="black"]
  * @property {string} [font_font="Times"]
  * @property {number} [fontScale = 1]
+ * @property {Object} [textSettings = {}]
  * @property {number|null} [outline=2]
  * @property {string|null} [outline_color="black"]
  * @property {string|null} [color="gray"]
@@ -451,8 +452,9 @@ class Button extends Clickable {
 	 * @param {string|null} [options.txt=null]
 	 * @param {number} [options.fontsize=24]
 	 * @param {string} [options.font_color="black"]
-	 * @param {string} [options.font_font="Times"],
+	 * @param {string} [options.font_font="Times"]
 	 * @param {number} [options.fontScale = 1]
+	 * @param {Object} [textSettings={}]
 	 * @param {number} [options.outline=2]
 	 * @param {string} [options.outline_color="black"]
 	 * @param {string} [options.color="gray"]
@@ -474,6 +476,7 @@ class Button extends Clickable {
 			font_color: "black",
 			font_font: "Times",
 			fontScale: 1,
+			textSettings: {},
 			outline: 2,
 			outline_color: "black",
 			color: "gray",
@@ -606,11 +609,11 @@ class Button extends Clickable {
 		bestFont.drawText(screen, this.txt, this, {
 			fontScale: this.fontsize / 16, color: this.color, opacity: this.opacity
 		})*/
-
 		MM.drawText(screen, this.txt, this, {
 			font: `${this.fontsize}px ${this.font_font}`,
 			color: this.font_color,
-			opacity: this.opacity
+			opacity: this.opacity,
+			...this.textSettings
 		})
 
 	}

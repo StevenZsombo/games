@@ -1,7 +1,7 @@
 //should import scripts.js, gui.js, MM.js, animations.js
 const framerateUnlocked = true
 const denybuttons = false
-const showFramerate = true
+const showFramerate = false
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
@@ -35,10 +35,10 @@ window.onload = function () {
 }
 
 const beforeMain = function (canvas) {
-    filelist = `${fontFile} ${filesList}` //fontFile goes first!
+    filelist = `${fontFile}${fontFile && filesList ? " " : ""}${filesList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
         cropper.load_images(filelist.split(" "), files, () => {
-            myFont.load_fontImage(cropper.convertFont(Object.values(files)[0]))
+            if (fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
             main(canvas)
         })
     } else {
@@ -252,6 +252,8 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
+
+        if (stgs.stage != "game") { return }
         //--------------------------------------------   GUI
 
         const rows = this.rect.copy.
@@ -279,7 +281,51 @@ class Game {
             })
         })
         this.add_drawable(cells.flat())
+        /**@type {Button} */
+        const howtoplay = new Button()
+        this.add_drawable(howtoplay)
+        howtoplay.leftat(cells[0].at(-1).right)
+        howtoplay.rightstretchat(this.WIDTH)
+        howtoplay.topat(cells[0].at(-1).top)
+        howtoplay.bottomstretchat(this.HEIGHT - howtoplay.top * 3)
+        const retry = howtoplay.copy
+        howtoplay.transparent = true
+        howtoplay.fontsize = 45
 
+        howtoplay.textSettings = { textAlign: "right" }
+        howtoplay.txt = `A fox is hiding in 
+one of the foxholes numbered 1-5.
+Each day, the fox will
+jump to an adjacent hole.
+Each day, you can check
+just one of the foxholes.
+
+You have 6 days to catch the fox!`
+
+        retry.height = howtoplay.top
+        retry.topat(this.HEIGHT - howtoplay.top * 2)
+        retry.stretch(.4, 2)
+        retry.rightat(this.WIDTH - (this.HEIGHT - retry.bottom))
+        retry.txt = "Retry"
+        retry.fontsize = 36
+        retry.hover_color = "pink"
+        retry.transparent = false
+        retry.on_click = main
+        this.add_drawable(retry)
+        howtoplay.stretch(1, 0.8)
+        howtoplay.topat(cells[0].at(-1).top)
+        howtoplay.centerat(this.WIDTH - 50, howtoplay.centerY)
+        this.retry = retry
+        const feedback = howtoplay.copy
+        feedback.txt = ""
+        feedback.fontsize *= 1.4
+        feedback.height = retry.height
+        feedback.width = retry.right - cells[0].at(-1).right
+        feedback.centerat(0, (howtoplay.bottom + retry.top) / 2)
+        feedback.textSettings = { textAlign: "center" }
+        feedback.rightat(howtoplay.centerX)
+        game.add_drawable(feedback)
+        this.feedback = feedback
 
         //--------------------------------------------   LOGIC
         this.playerPos = { x: cells[0][3].centerX, y: 0 }
@@ -304,7 +350,8 @@ class Game {
                 this.selections.push(i)
                 this.fadeRow(this.currday)
                 cells[5].forEach(b => b.interactable = false)
-                this.victory()
+                game.animator.add_anim(Anim.delay(1000, { on_end: game.victory.bind(game) }))
+
             }
         }
         this.revealRow = (i) => {
@@ -344,11 +391,19 @@ class Game {
 
         }
         this.win = () => {
-            GameEffects.fireworksShow()
+            const celebrate = () => {
+                GameEffects.fireworksShow()
+                game.feedback.txt = "You caught the fox!"
+                GameEffects.victorySpin(game.feedback)
+            }
+            const path = MM.choice(this.alloptions.filter(x => x.at(-1) == this.selections.at(-1)))
+            const anims = this.moveFoxAnim(path)
+            anims.push(Anim.delay(500, { on_end: celebrate }))
+            game.animator.add_sequence(anims)
 
         }
-        this.lose = (badOne) => {
-            const fox = Button.fromRect(cells[0][badOne[0]].copyRect)
+        this.moveFoxAnim = (path) => {
+            const fox = Button.fromRect(cells[0][path[0]].copyRect)
             //fox.txt = "\u1F98A"
             const img = files["fox.png"]
             fox.resize(img.width, img.height)
@@ -359,9 +414,9 @@ class Game {
             const anims = []
             const dotsAnims = []
             game.add_drawable(fox.copy, 7)
-            badOne.slice(1).forEach((n, i) => {
+            path.slice(1).forEach((n, i) => {
                 const dots = GameEffects.dottedLine(
-                    cells[i][badOne[i]].centerX, cells[i][badOne[i]].bottom,
+                    cells[i][path[i]].centerX, cells[i][path[i]].bottom,
                     cells[i + 1][n].centerX, cells[i + 1][n].top,
                     { size: 5, spacing: 30 }
                 )
@@ -380,6 +435,26 @@ class Game {
                     lerp: "smoothstep"
                 }))
             })
+            return anims
+        }
+        this.lose = (badOne) => {
+            const anims = this.moveFoxAnim(badOne)
+
+            const origfbtxtsize = this.feedback.fontsize
+            anims.push(Anim.delay(0, { on_end: () => { game.feedback.txt = "You did not catch the fox." } }))
+            anims.push(Anim.stepper(this.feedback, 400, "fontsize", origfbtxtsize, origfbtxtsize * 1.2,
+                { lerp: "vee", repeat: 4 }
+            ))
+            anims.push(Anim.delay(3 * 400, {
+                on_end: () => {
+                    game.animator.add_anim(Anim.custom(
+                        game.retry, 1000, (t, obj) => {
+                            obj.color = t > 0.5 ? "lightblue" : "gray"
+                        }, "", { repeat: 6 }
+                    ))
+                }
+            }))
+
             this.animator.add_sequence(anims)
 
         }
@@ -466,6 +541,9 @@ class Game {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 } //this is the last closing brace
 
 /// dev options
@@ -474,7 +552,7 @@ const dev = {
 }/// end of dev
 /// settings
 const stgs = {
-    stage: "menu"
+    stage: "game"
 
 }/// end of settings
 

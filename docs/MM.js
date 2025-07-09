@@ -168,6 +168,7 @@ class GameEffects {
         return objs
 
     }
+
 }
 
 const UniqueArray = function () {
@@ -335,10 +336,14 @@ class MM {
         })
     }
 
-    static drawText(screen, txtorarr, rect, { font = "12px Times", color = "black", opacity = 0 } = {}) {
+    static drawText(screen, txtorarr, rect, {
+        font = "12px Times", color = "black", opacity = 0,
+        textAlign = "center", textBaseline = "middle"
+
+    } = {}) {
         screen.save()
-        screen.textAlign = "center"
-        screen.textBaseline = "middle"
+        screen.textAlign = textAlign
+        screen.textBaseline = textBaseline
         //const f = font.split("px")
         //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
         screen.font = font
