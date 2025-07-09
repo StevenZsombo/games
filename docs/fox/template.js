@@ -396,7 +396,10 @@ You have 6 days to catch the fox!`
                 game.feedback.txt = "You caught the fox!"
                 GameEffects.victorySpin(game.feedback)
             }
-            const path = MM.choice(this.alloptions.filter(x => x.at(-1) == this.selections.at(-1)))
+            const path = MM.choice(this.alloptions.filter(x =>
+                x.at(-1) == this.selections.at(-1)
+                && x.slice(0, -1).every((_, i) => x[i] != this.selections[i])
+            ))
             const anims = this.moveFoxAnim(path)
             anims.push(Anim.delay(500, { on_end: celebrate }))
             game.animator.add_sequence(anims)
