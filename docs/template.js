@@ -1,5 +1,5 @@
 //should import scripts.js, gui.js, MM.js, animations.js
-const framerateUnlocked = false
+const framerateUnlocked = true
 const denybuttons = false
 const showFramerate = true
 const imageSmoothingEnabled = true
