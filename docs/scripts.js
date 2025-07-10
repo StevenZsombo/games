@@ -329,10 +329,6 @@ class Clickable extends Rect {
 	 * @class Clickable
 	 * @extends Rect
 	 * @param {Object} [options={}]
-	 * @param {number} [options.x=100]
-	 * @param {number} [options.y=100]
-	 * @param {number} [options.width=100]
-	 * @param {number} [options.height=100]
 	 * @param {function} [options.on_click=null]
 	 * @param {function} [options.on_release=null]
 	 * @param {function} [options.on_hover=null]
@@ -350,10 +346,6 @@ class Clickable extends Rect {
 	 */
 	constructor(options = {}) {
 		const defaults = {
-			x: 100,
-			y: 100,
-			width: 100,
-			height: 100,
 			on_click: null,
 			on_release: null,
 			on_hover: null,
@@ -369,7 +361,7 @@ class Clickable extends Rect {
 			interactable: true,
 			clickable: true
 		}
-		super(options.x ??= defaults.x, options.y ??= defaults.y, options.width ??= defaults.width, options.height ??= defaults.height)
+		super(options.x, options.y, options.width, options.height)
 		Object.assign(this, {
 			...defaults,
 			...options

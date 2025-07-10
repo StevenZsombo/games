@@ -252,7 +252,98 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
+        const grid = this.rect.copy.shrinkToSquare().stretch(.9, .9).leftat(.025 * this.WIDTH).splitGrid(4, 4).map(x => x.map(Button.fromRect))
+        const squares = grid.flat().map(x => x.shrinkToSquare().stretch(.9, .9))
+        const buttonSize = squares[0].width
+        this.add_drawable(squares)
+        const friends = (i, j) => {
+            const ret = []
+            Array(4).fill().forEach((_, k) => {
+                ret.push([i, k])
+                if (k != i) { ret.push([k, j]) }
+            })
+            return ret.map(x => grid[x[0]][x[1]])
+        }
+        const victory = () => {
+            if (squares.every(x => x.selected)) {
+                this.win()
+            }
+        }
+        this.win = () => {
+            GameEffects.fireworksShow()
+        }
+        this.randomize = () => {
+            squares.forEach(x => x.selected = Math.random() > .5)
+            if (squares.every(x => x.selected)) { this.randomize() }
+        }
+        const flipAnim1 = (b) => {
+            const copy = b.copy
+            copy.interactable = false
+            game.add_drawable(copy)
+            copy.flip_selected()
+            this.animator.add_anim(copy, 200, "stretchFrom", {
+                w: 0, h: 0,
 
+                on_end: () => {
+                    b.flip_selected()
+                    game.remove_drawable(copy)
+                }
+            })
+        }
+        const flipAnim2 = (b) => {
+            this.animator.add_anim(Anim.stepper(
+                b, 200, "rad", 0, NINETYDEG, { on_end: () => b.flip_selected() }
+            ))
+        }
+        const flipAnim3 = (b) => {
+            b.flip_selected()
+            this.animator.add_anim(b, 200, "stretchFrom", { w: 0, h: 0 })
+        }
+        const flipAnim4 = (b) => {
+            const copy = b.copy
+            copy.interactable = false
+            game.add_drawable(copy)
+            b.flip_selected()
+            this.animator.add_anim(copy, 500, "stretchFrom", {
+                w: 0, h: 0,
+                lerp: t => (1 - t) ** .5,
+                on_end: () => {
+                    game.remove_drawable(copy)
+                }
+            })
+        }
+
+        const flipAnim5 = (b) => {
+            const copy = b.copy
+            copy.interactable = false
+            game.add_drawable(copy)
+            b.flip_selected()
+            this.animator.add_anim(Anim.stepper(
+                copy, 200, "width x", [buttonSize, b.x], [0, b.x + buttonSize], {
+                on_end: () => {
+                    game.remove_drawable(copy)
+                }
+            }))
+        }
+
+
+        const flipAnim = flipAnim5
+
+        const flipFriends = (friends) => {
+            friends.forEach(flipAnim)
+            victory()
+        }
+        grid.forEach((row, i) => {
+            row.forEach((item, j) => {
+                item.friends = friends(i, j)
+                item.color = stgs.OFFCOLOR
+                item.selected_color = stgs.ONCOLOR
+                item.outline = 5
+                item.on_click = () => flipFriends(item.friends)
+            })
+        })
+
+        this.randomize()
 
 
 
@@ -321,11 +412,7 @@ class Game {
 const dev = {
 
 }/// end of dev
-/// settings
-const stgs = {
-    stage: "menu"
 
-}/// end of settings
 
 /**@type {HTMLImageElement[]} */
 const files = {}
