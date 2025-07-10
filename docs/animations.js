@@ -186,10 +186,10 @@ class Anim {
 		"veeReverse": t => t > 0.5 ? 1 - 2 * t : 2 * t - 1,
 		"square": t => t ** 2,
 		"sqrt": t => t ** .5,
-		"sin": t => Math.sin(t / NINETYDEG),
-		"cos": t => Math.cos(t / NINETYDEG),
-		"sinFull": t => Math.sin(t / PI),
-		"cosFull": t => Math.cos(t / PI)
+		"sin": t => Math.sin(t * NINETYDEG),
+		"cos": t => Math.cos(t * NINETYDEG),
+		"sinFull": t => Math.sin(t * PI),
+		"cosFull": t => Math.cos(t * PI)
 
 	}
 

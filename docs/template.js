@@ -1,5 +1,5 @@
 //should import scripts.js, gui.js, MM.js, animations.js
-const framerateUnlocked = true
+const framerateUnlocked = false
 const denybuttons = false
 const showFramerate = true
 const imageSmoothingEnabled = true
@@ -252,13 +252,8 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
-        const lab = Button.fromRect(this.rect.copy.splitCell(1, 9, 10, 10))
-        game.add_drawable(lab)
-        const grid = new CubeGrid(8, 5)
-        const cubes = grid.cubes
-        console.log(cubes)
-        game.add_drawable(cubes.flat(2))
-        Object.assign(globalThis, { grid, cubes, lab })
+
+
 
 
 
@@ -274,7 +269,8 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-        lab.txt = grid.findGridElement(this.mouser.x, this.mouser.y)
+
+
 
 
 
