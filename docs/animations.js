@@ -136,7 +136,7 @@ class Anim {
 			time,
 			code // just for debugging
 		})
-		if (typeof args?.lerp === "string") { this.lerp = Anim.library[this.lerp] }
+		if (typeof args?.lerp === "string") { this.lerp = Anim.l[this.lerp] }
 
 		this.totTime = time
 	}
@@ -178,19 +178,39 @@ class Anim {
 	lerp(t) {
 		return t
 	}
-	static library = {
-		"reverse": t => 1 - t,
-		"smoothstep": t => 3 * t ** 2 - 2 * t ** 3,
-		"smootherstep": t => t * t * t * (t * (6 * t - 15) + 10),
-		"vee": t => t < 0.5 ? 2 * t : 2 - 2 * t,
-		"veeReverse": t => t > 0.5 ? 1 - 2 * t : 2 * t - 1,
-		"square": t => t ** 2,
-		"sqrt": t => t ** .5,
-		"sin": t => Math.sin(t * NINETYDEG),
-		"cos": t => Math.cos(t * NINETYDEG),
-		"sinFull": t => Math.sin(t * PI),
-		"cosFull": t => Math.cos(t * PI)
 
+	static l = {
+		reverse: t => 1 - t,
+		smoothstep: t => 3 * t ** 2 - 2 * t ** 3,
+		smootherstep: t => t * t * t * (t * (6 * t - 15) + 10),
+		vee: t => t < 0.5 ? 2 * t : 2 - 2 * t,
+		veeReverse: t => t > 0.5 ? 1 - 2 * t : 2 * t - 1,
+		square: t => t ** 2,
+		sqrt: t => t ** .5,
+		sin: t => Math.sin(t * NINETYDEG),
+		cos: t => Math.cos(t * NINETYDEG),
+		sinFull: t => Math.sin(t * PI),
+		cosFull: t => Math.cos(t * PI)
+
+	}
+
+	static f = {
+		scaleFromFactor: "scaleFromFactor",
+		scaleToFactor: "scaleToFactor",
+		scaleThroughFactor: "scaleThroughFactor",
+		setTemp: "setTemp",
+		setTempMany: "setTempMany",
+		delay: "delay",
+		hide: "hide",
+		stretchFrom: "stretchFrom",
+		moveFrom: "moveFrom",
+		moveTo: "moveTo",
+		moveFromRel: "moveFromRel",
+		moveToRel: "moveToRel",
+		wiggle: "wiggle",
+		rotate: "rotate",
+		typing: "typing",
+		typingCentered: "typingCentered"
 	}
 
 
@@ -441,7 +461,7 @@ class Anim {
 		MM.require(this, "dx dy")
 		Object.assign(this, {
 			varNames: ["x", "y"],
-			endVals: [this.obj.x, this.obj.y]
+			endVals: [this.obj.x + this.dx, this.obj.y + this.dy]
 		})
 		this.animate = this["stepMany"]
 		this.animate()

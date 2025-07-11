@@ -6,9 +6,9 @@ const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
 const fontFile = "resources/victoriabold.png" //set to null otherwise
-const filesList = "meloncat.png meloncatface.png" //space-separated
+const filesList = "" //space-separated
 
-
+//#region window.onload
 window.onload = function () {
     const canvas = document.getElementById("myCanvas")
     document.body.style.overflow = 'hidden';
@@ -33,17 +33,16 @@ window.onload = function () {
     //canvas.focus()
     beforeMain(canvas)
 }
+//#endregion
+
+//#region beforeMain, main
 
 const beforeMain = function (canvas) {
-    const cropIt = () => {
-        files.img = cropper.cropGrid(files["meloncat.png"], 4, 4)
-        main(canvas)
-    }
     filelist = `${fontFile}${fontFile && filesList ? " " : ""}${filesList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
         cropper.load_images(filelist.split(" "), files, () => {
             if (fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
-            cropIt()
+            main(canvas)
         })
 
     } else {
@@ -60,7 +59,9 @@ const main = function (canvas) {
     game = new Game(canvas)
     game.start()
 }
+//#endregion
 
+//#region Game
 class Game {
     constructor() {
         const canvas = document.getElementById("myCanvas")
@@ -225,7 +226,7 @@ class Game {
     remove_drawable(item) {
         this.layers = this.layers.map(x => x.filter(y => y !== item))
     }
-
+    //#endregion
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,159 +258,18 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     initialize_more() {
-        const grid = this.rect.copy.shrinkToSquare().stretch(.9, .9).leftat(.025 * this.WIDTH).splitGrid(4, 4).map(x => x.map(Button.fromRect))
-        const squares = grid.flat().map(x => x.shrinkToSquare().stretch(.95, .95))
-        const buttonSize = squares[0].width
-        this.add_drawable(squares)
-        const friends = (i, j) => {
-            const ret = []
-            Array(4).fill().forEach((_, k) => {
-                ret.push([i, k])
-                if (k != i) { ret.push([k, j]) }
-            })
-            return ret.map(x => grid[x[0]][x[1]])
-        }
-        const victory = () => {
-            if (squares.every(x => x.selected)) {
-                this.win()
-            }
-        }
-        this.win = () => {
-            GameEffects.fireworksShow()
-        }
-        this.randomize = () => {
-            squares.forEach(x => x.selected = Math.random() > .5)
-            if (squares.every(x => x.selected)) { this.randomize() }
-        }
-        const flipAnim1 = (b) => {
-            const copy = b.copy
-            copy.interactable = false
-            game.add_drawable(copy)
-            copy.flip_selected()
-            this.animator.add_anim(copy, 200, "stretchFrom", {
-                w: 0, h: 0,
-                on_end: () => {
-                    b.flip_selected()
-                    game.remove_drawable(copy)
-                }
-            })
-        }
-        const flipAnim2 = (b) => {
-            this.animator.add_anim(Anim.stepper(
-                b, 200, "rad", 0, NINETYDEG, { on_end: () => b.flip_selected() }
-            ))
-        }
-        const flipAnim3 = (b) => {
-            b.flip_selected()
-            this.animator.add_anim(b, 200, "stretchFrom", { w: 0, h: 0 })
-        }
-        const flipAnim4 = (b) => {
-            const copy = b.copy
-            copy.interactable = false
-            game.add_drawable(copy)
-            b.flip_selected()
-            this.animator.add_anim(copy, 500, "stretchFrom", {
-                w: 0, h: 0,
-                lerp: t => (1 - t) ** .5,
-                on_end: () => {
-                    game.remove_drawable(copy)
-                }
-            })
-        }
+        const buts = this.rect.copy.
+            stretch(.8, .2).
+            splitCol(1, 1, 1, 1, 1).
+            map(Button.fromRect).
+            map(x => x.stretch(.9, .9))
+        this.add_drawable(buts)
 
-        const flipAnim5 = (b) => {
-            const copy = b.copy
-            copy.interactable = false
-            game.add_drawable(copy)
-            b.flip_selected()
-            this.animator.add_anim(Anim.stepper(
-                copy, 200, "width x", [buttonSize, b.x], [0, b.x + buttonSize], {
-                on_end: () => {
-                    game.remove_drawable(copy)
-                }
-            }))
-        }
-
-        const flipAnim6 = (b) => {
-            game.animator.add_anim(
-                new Anim(b, 150, "stretchFrom", {
-                    w: 0, h: buttonSize,
-                    on_end: b.flip_selected.bind(b),
-                    lerp: "reverse",
-                    ditch: true,
-                    chain: new Anim(b, 150, "stretchFrom", {
-                        w: 0, h: buttonSize,
-                        ditch: true
-                    })
-                }),
-
-            )
-        }
+        this.animator.add_staggered(buts, 100, new Anim(
+            null, 500, Anim.f.scaleThroughFactor, { scaleFactor: 1.1, repeat: 6 }
+        ))
 
 
-        const flipAnim = flipAnim6
-
-        const flipFriends = (friends) => {
-            friends.forEach(flipAnim)
-            setTimeout(victory.bind(game), 350)
-        }
-        grid.forEach((row, i) => {
-            row.forEach((item, j) => {
-                item.friends = friends(i, j)
-                item.imgStored = files.img[i][j]
-                item.imgBack = files["meloncatface.png"]
-                Object.defineProperty(item, "img", {
-                    get() {
-                        return this.selected ? this.imgStored : this.imgBack
-                    }
-                })
-                item.color = stgs.OFFCOLOR
-                item.selected_color = stgs.ONCOLOR
-                item.outline = 10
-                item.on_click = () => flipFriends(item.friends)
-            })
-        })
-
-        const twoReds = new Button()
-        const retry = new Button()
-        game.add_drawable([twoReds, retry])
-        twoReds.width = (squares[0].width)
-        retry.width = (squares[0].width)
-        const last = squares.at(-1)
-        twoReds.centerat((3 * last.right + 2 * this.WIDTH) / 5, last.centerY)
-        retry.centerat((1 * last.right + 4 * this.WIDTH) / 5, last.centerY)
-        twoReds.bottomat(last.bottom)
-        retry.bottomat(last.bottom)
-        retry.txt = "Retry"
-        twoReds.txt = "Two reds"
-        retry.fontsize = 36
-        twoReds.fontsize = 36
-        retry.hover_color = "lightblue"
-        twoReds.hover_color = "lightblue"
-        retry.on_click = this.randomize.bind(this)
-        this.twoRedsRandom = () => {
-            squares.forEach(x => x.selected = true)
-            const one = MM.choice(squares)
-            const two = MM.choice(squares.filter(x => x !== one))
-            one.selected = false
-            two.selected = false
-        }
-        twoReds.on_click = this.twoRedsRandom.bind(this)
-        const howtoplay = new Button()
-        howtoplay.width = retry.right - twoReds.left
-        howtoplay.height = retry.top * .9
-        howtoplay.centerat((retry.centerX + twoReds.centerX) / 2, retry.top * .5)
-        howtoplay.txt = `Clicking a cell will 
-flip the image of
-all cells in the same row and column.
-Recreate the original picture!`
-        howtoplay.fontsize = 36
-        howtoplay.stretch(1, .6)
-        howtoplay.transparent = true
-        this.add_drawable(howtoplay)
-
-
-        this.randomize()
 
 
 
@@ -474,11 +334,12 @@ Recreate the original picture!`
 
 } //this is the last closing brace
 
+//#region dev options
 /// dev options
 const dev = {
 
 }/// end of dev
-
+//#endregion
 
 /**@type {HTMLImageElement[]} */
 const files = {}
