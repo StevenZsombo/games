@@ -5,7 +5,7 @@ const showFramerate = false
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
-const fontFile = "resources/victoriabold.png" //set to null otherwise
+const fontFile = "" //set to null otherwise
 const filesList = "meloncat.png meloncatface.png" //space-separated
 
 
