@@ -1,7 +1,8 @@
 //should import scripts.js, gui.js, MM.js, animations.js
-const framerateUnlocked = true
+const framerateUnlocked = false
+const dtUpperLimit = 1000 / 30
 const denybuttons = false
-const showFramerate = false
+const showFramerate = true
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
@@ -126,7 +127,7 @@ class Game {
             return
         }
         const now = Date.now()
-        const dt = (now - this.lastCycleTime)
+        const dt = Math.min((now - this.lastCycleTime), dtUpperLimit)
         this.lastCycleTime = now
 
         const screen = this.screen
@@ -227,6 +228,7 @@ class Game {
         this.layers = this.layers.map(x => x.filter(y => y !== item))
     }
     //#endregion
+    //#region more
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -257,21 +259,26 @@ class Game {
     ///                                                                                                              ///
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    //#endregion
     initialize_more() {
-        const buts = this.rect.copy.
-            stretch(.8, .2).
-            splitCol(1, 1, 1, 1, 1).
-            map(Button.fromRect).
-            map(x => x.stretch(.9, .9))
-        this.add_drawable(buts)
 
-        this.animator.add_staggered(buts, 100, new Anim(
-            null, 500, Anim.f.scaleThroughFactor, { scaleFactor: 1.1, repeat: 6 }
-        ))
+        this.helper = new MouseHelper()
+        this.add_drawable(this.helper, 6)
+        const player = new Player(200, 100, 50, 80)
 
+        const walls = [
+            new Wall(100, 900, 1920 - 200, 100),
+            new Wall(400, 800, 100, 100),
+            new Wall(600, 700, 100, 100),
+            new Wall(800, 600, 100, 100),
+            new Wall(1000, 500, 300, 100),
+            new Wall(1500, 400, 200, 100)
 
+        ]
 
-
+        this.player = player
+        this.walls = walls
+        this.add_drawable([player, ...walls])
 
 
 
@@ -286,7 +293,8 @@ class Game {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
-
+        //this.helper.txt = JSON.stringify(game.walls.at(-1).collideRectInfo(this.helper))
+        this.helper.txt = JSON.stringify(game.keyboarder.keyBuffer)
 
 
 
@@ -302,7 +310,7 @@ class Game {
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     draw_more(screen) {
-
+        MM.drawText(this.screen, this.player.currentState.repr, this.player.copy.move(0, -60), { font: "36px Times" })
 
 
 

@@ -1,7 +1,14 @@
 /// settings
 const stgs = {
     stage: "menu",
-    ONCOLOR: "darkgreen",
-    OFFCOLOR: "darkred"
 
 }/// end of settings
+
+
+
+class MouseHelper extends Button {
+    constructor() {
+        super({ width: 50, height: 50, fontsize: 36 })
+        this.update = (dt) => this.centeratV(game.mouser.pos)
+    }
+}

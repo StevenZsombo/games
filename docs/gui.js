@@ -53,13 +53,18 @@ class Keyboarder {
 		}
 		/*-----------------------------------------------worst idea ever---------------------------------------------------------*/
 		//fullscreenToggle = MM.extFunc(fullscreenToggle, () => game.mouser.whereIsCanvas())
-		this.bufferExpiration = null //null for no expiration, or milliseconds
+		this.strokeBufferExpiration = 500 //null for no expiration, or milliseconds
+		this.keyBufferExpiration = 200 //milliseconds
 		this.held = {}
 		const held = this.held
 		this.pressed = {}
 		const pressed = this.pressed
 		this.strokeBuffer = []
 		const strokeBuffer = this.strokeBuffer
+		this.keyBuffer = []
+		const keyBuffer = this.keyBuffer
+		this.bufferedKeys = []
+
 
 		document.addEventListener('keydown', (e) => {
 			if (denybuttons) {
@@ -69,12 +74,13 @@ class Keyboarder {
 			if (!held[e.key]) {
 				held[e.key] = true
 				pressed[e.key] = true
-				strokeBuffer.push([Date.now(), e.key])
+				this.strokeBuffer.push([Date.now(), e.key])
+				this.keyBuffer.push([Date.now(), e.key])
 			}
 		})
 		document.addEventListener('keyup', (e) => {
-			held[e.key] = false
-			pressed[e.key] = false
+			this.held[e.key] = false
+			this.pressed[e.key] = false
 			/*if (e.key == "F") {
 				fullscreenToggle()
 			}*/
@@ -89,19 +95,22 @@ class Keyboarder {
 		return this.strokeBuffer.map(x => x[1]).join("")
 	}
 	update(dt, now) {
-		if (this.strokeBuffer.length && this.bufferExpiration != null) {
-			if (now - this.strokeBuffer.at(-1)[0] > this.bufferExpiration) {
+		if (this.strokeBuffer.length && this.strokeBufferExpiration != null) {
+			if (now - this.strokeBuffer.at(-1)[0] > this.strokeBufferExpiration) {
 				this.strokeBuffer.length = 0
 			}
 		}
+		this.keyBuffer = this.keyBuffer.filter(x => now - x[0] < this.keyBufferExpiration)
+		this.bufferedKeys = this.keyBuffer.map(x => x[1])
 	}
-	flushstrokes() {
-		this.strokeBuffer.length = 0
-	}
+
 	next_loop() {
-		Object.keys(this.pressed).forEach(
+		for (const [k, v] in this.pressed) {
+			this.pressed[k] = false
+		}
+		/*Object.keys(this.pressed).forEach(
 			x => this.pressed[x] = false
-		)
+		)*/
 	}
 
 }

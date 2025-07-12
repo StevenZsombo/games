@@ -250,6 +250,16 @@ class Rect {
 		}
 	}
 
+	collideRectInfo(rect) {
+		const { left, right, top, bottom } = rect
+		const leftIn = this.left < left && left < this.right
+		const rightIn = this.left < right && right < this.right
+		const topIn = this.top < top && top < this.bottom
+		const bottomIn = this.top < bottom && bottom < this.bottom
+		const anyIn = (leftIn || rightIn) && (topIn || bottomIn)
+		if (anyIn) return { anyIn, leftIn, rightIn, topIn, bottomIn }
+	}
+
 	get copy() {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
