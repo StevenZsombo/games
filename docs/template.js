@@ -278,6 +278,7 @@ class Game {
 
         this.player = player
         this.walls = walls
+        walls.push(this.helper)
         this.add_drawable([player, ...walls])
 
 
@@ -294,8 +295,12 @@ class Game {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     update_more(dt) {
         //this.helper.txt = JSON.stringify(game.walls.at(-1).collideRectInfo(this.helper))
-        this.helper.txt = JSON.stringify(game.keyboarder.keyBuffer)
-
+        //this.helper.txt = JSON.stringify(game.keyboarder.keyBuffer)
+        this.walls.forEach(x => {
+            if (x && x === this.player.groundedWall) { x.color = "green" } else {
+                x.color = "purple"
+            }
+        })
 
 
 
@@ -310,7 +315,7 @@ class Game {
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     draw_more(screen) {
-        MM.drawText(this.screen, this.player.currentState.repr, this.player.copy.move(0, -60), { font: "36px Times" })
+        MM.drawText(screen, this.player.stateManager.currentState.repr, this.player.copy.move(0, -60), { font: "36px Times" })
 
 
 

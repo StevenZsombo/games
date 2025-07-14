@@ -1,10 +1,14 @@
 class Wall extends Rect {
+    color = "purple"
 
+    draw(screen) {
+        MM.fillRect(screen, this.x, this.y, this.width, this.height, { color: this.color })
+    }
 }
 
 
-
 class inputManager {
+    /**@param {Player} player  */
     constructor(player) {
         this.player = player
         this.keyboarder = player.keyboarder
@@ -29,6 +33,46 @@ class inputManager {
         this.jumpHeld = keyboarder.held[" "]
     }
 }
+
+class StateManager {
+    constructor(obj) {
+        this.currentState = States.idling
+        this.previousState = this.currentState
+        this.obj = obj
+    }
+    setState(newState) {
+        if (newState !== this.currentState) {
+            this.previousState = this.currentState
+            this.currentState = newState
+            newState.enter()
+        }
+    }
+    update(dt) {
+        const updateState = this.currentState.update(dt)
+        this.setState(updateState)
+
+    }
+
+}
+
+class PlayerStateManager extends StateManager {
+    /**@param {Player} player  */
+    constructor(player) {
+        super()
+        this.obj = undefined
+        this.inputManager = new inputManager(player)
+        this.player = player
+    }
+    update(dt) {
+        this.inputManager.update()
+        const inputState = this.currentState.input()
+        this.setState(inputState)
+        const updateState = this.currentState.update(dt)
+        this.setState(updateState)
+
+    }
+}
+
 //#region State
 class State {
     /**@type {Player} */
@@ -46,6 +90,7 @@ class IdlingState extends State {
     enter() {
         this.player.vY = 0
         this.player.vX = 0
+        this.player.jumpsAvailable = this.player.jumpsAvailableMax
     }
     input() {
         if (this.inputManager.jumpPressed) { return States.jumping }
@@ -57,7 +102,7 @@ class IdlingState extends State {
         player.vY += player.fallGravity * dt / 2
         const hit = player.attemptMove(dt)
         player.vY += player.fallGravity * dt / 2
-        if (!player.grounded) { return States.falling }
+        if (!player.groundedWall) { return States.falling }
         return this
     }
 
@@ -76,7 +121,7 @@ class WalkingState extends State {
         player.vY += player.fallGravity * dt / 2
         player.attemptMove(dt)
         player.vY += player.fallGravity * dt / 2
-        if (!player.grounded) {
+        if (!player.groundedWall) {
             player.coyote = player.coyoteMaxTime
             return States.falling
         }
@@ -88,9 +133,11 @@ class WalkingState extends State {
 class JumpingState extends State {
     enter() {
         this.player.vY = this.player.jumpInitialSpeed
+        this.player.jumpsAvailable -= 1
     }
     input() {
         if (!this.inputManager.jumpHeld) { return States.falling }
+        if (this.inputManager.jumpPressed && this.player.jumpsAvailable > 0) { return States.jumping }
         return this
     }
     update(dt) {
@@ -111,6 +158,7 @@ class FallingState extends State {
     input() {
         const player = this.player
         if (this.inputManager.jumpPressed && player.coyote > 0) { return States.jumping }
+        if (this.inputManager.jumpPressed && player.jumpsAvailable > 0) { return States.jumping }
         return this
     }
 
@@ -120,7 +168,7 @@ class FallingState extends State {
         player.vX = this.inputManager.dir * player.airSpeed
         player.vY = Math.min(player.vY + player.fallGravity * dt, player.fallVelMax)
         player.attemptMove(dt)
-        if (player.grounded) { return States.idling }
+        if (player.groundedWall) { return States.idling }
         return this
     }
     repr = "falling"
@@ -139,13 +187,13 @@ const States = {
 class Player extends Rect {
     constructor(x, y, width, height) {
         super(x, y, width, height)
-        this.currentState = States.idling
-        this.previousState = this.currentState
+        //this.currentState = States.idling
+        //this.previousState = this.currentState
         this.keyboarder = game.keyboarder
-        this.inputManager = new inputManager(this)
+        this.stateManager = new PlayerStateManager(this)
         Object.values(States).forEach(x => {
             x.player = this
-            x.inputManager = this.inputManager
+            x.inputManager = this.stateManager.inputManager
         })
         /**@type {Keyboarder} */
         this.vX = 0
@@ -154,14 +202,16 @@ class Player extends Rect {
         this.coyote = 0
         this.coyoteMaxTime = 100
         this.jumpBufferTime = 100 //TODO
-        this.grounded = false
-        this.jumpsAvailable = 1
+        this.groundedWall = null
+        this.jumpsAvailableMax = 2
+        this.jumpsAvailable = this.jumpsAvailableMax
 
-        this.walkSpeed = .6
-        this.airSpeed = .4
-        this.jumpInitialSpeed = -2
-        this.jumpGravity = .005
-        this.fallGravity = .015
+
+        this.walkSpeed = .8
+        this.airSpeed = .6
+        this.jumpInitialSpeed = -1.5
+        this.jumpGravity = .0035
+        this.fallGravity = .01
         this.fallVelMax = 2
 
     }
@@ -171,26 +221,28 @@ class Player extends Rect {
 
     checkCollision() {
         for (const wall of game.walls) {
-            const info = wall.collideRectInfo(this)
-            if (info?.anyIn) {
-                return { wall: wall, ...info }
+            if (this.colliderect(wall)) {
+                return { wall: wall, ...this.collideRectInfo(wall) }
             }
         }
     }
+
     attemptMove(dt, checkX = true, allowUpWarping = true) {
         this.y += this.vY * dt
         {//checkY
             const hit = this.checkCollision()
-            this.grounded = false //will be reset
+            this.groundedWall = null //will be reset
             if (hit) {
                 if (hit.topIn) this.topat(hit.wall.bottom)
-                else if (allowUpWarping && hit.bottomIn) this.bottomat(hit.wall.top)
+                else if (allowUpWarping && hit.bottomIn) {
+                    this.bottomat(hit.wall.top)
+                    this.groundedWall = hit.wall
+                }
                 this.vY = 0
-                this.grounded = true
+
             }
         }
         this.x += this.vX * dt
-
         if (checkX) {
             const hit = this.checkCollision()
             if (hit) {
@@ -198,24 +250,39 @@ class Player extends Rect {
                 else if (hit.rightIn) this.rightat(hit.wall.left)
             }
         }
+
+
     }
 
-    setState(newState) {
+    /*setState(newState) {
         if (newState !== this.currentState) {
             this.previousState = this.currentState
             this.currentState = newState
             newState.enter()
         }
-    }
+    }*/
     update(dt) {
-        this.inputManager.update()
-        const inputState = this.currentState.input()
-        this.setState(inputState)
-        const updateState = this.currentState.update(dt)
-        this.setState(updateState)
+        /* this.inputManager.update()
+         const inputState = this.currentState.input()
+         this.setState(inputState)
+         const updateState = this.currentState.update(dt)
+         this.setState(updateState)*/
+        this.stateManager.update(dt)
 
     }
 
 
 }
+//#endregion
+
+//#region Box
+class Box extends Rect {
+
+    /**@param {Rect} byWhat  */
+    getPushed(byWhat) {
+
+    }
+}
+
+
 //#endregion
