@@ -39,8 +39,7 @@ window.onload = function () {
 //#region beforeMain, main
 
 const beforeMain = function (canvas) {
-    const filelist = null
-    //filelist = `${fontFile}${fontFile && filesList ? " " : ""}${filesList}` //fontFile goes first!
+    filelist = `${fontFile}${fontFile && filesList ? " " : ""}${filesList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
         cropper.load_images(filelist.split(" "), files, () => {
             if (fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
@@ -262,38 +261,9 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
     initialize_more() {
-        const bg = Button.fromRect(this.rect.copy.splitCol(7, 2)[0].stretch(.9, .9))
-        bg.color = "white"
-        bg.leftat(bg.left / 2)
-        const pts = [[1, 2], [2, 4], [3, 1], [4, 5], [5, 1]]
-        let func = MM.brokenLineFunction(...pts.flat())
-        const trans = pts.map(p => MM.functionTransformation(p[0], p[1], 2, 3, 1, -2))
-        const transFunc = MM.brokenLineFunction(...trans.flat())
-        game.func = func
-        const plt = new Plot(func, bg)
-        plt.funcMore = [transFunc]
-        plt.monkey = { color: "red" }
-        plt.width = 3
-        plt.minX = Math.min(...pts.map(x => x[0]), ...trans.map(x => x[0])) - 1
-        plt.maxX = Math.max(...pts.map(x => x[0]), ...trans.map(x => x[0])) + 1
-        plt.minY = Math.min(...pts.map(x => x[1]), ...trans.map(x => x[1])) - 1
-        plt.maxY = Math.max(...pts.map(x => x[1]), ...trans.map(x => x[1])) + 1
-        plt.show_border_values_font = "36px Times"
-        plt.show_border_values_dp = 2
-        plt.show_border_values = false
-        plt.highlightedPoints = pts
-        plt.highlightedPointsMore = trans
-
-        plt.addControls(game.mouser)
-
-        game.add_drawable(bg)
-        game.add_drawable(plt)
-
-
-
-
-
-
+        
+        let lbox = Rect.copy(screen)
+        
 
 
 

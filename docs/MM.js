@@ -336,6 +336,7 @@ class MM {
         })
     }
 
+
     static drawText(screen, txtorarr, rect, {
         font = "12px Times", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle"
@@ -630,7 +631,20 @@ class MM {
         return str.split(",").map(Number)
     }
 
+    static brokenLineFunction(...polyXYXYXY) {
+        const xs = polyXYXYXY.filter((_, i) => !(i % 2))
+        const ys = polyXYXYXY.filter((_, i) => i % 2)
+        const ret = function (u) {
+            if (u < xs[0] || u >= xs.at(-1)) { return undefined }
+            const i = xs.findIndex(x => u < x)
+            return ys[i - 1] + (u - xs[i - 1]) / (xs[i] - xs[i - 1]) * [ys[i] - ys[i - 1]]
+        }
+        return ret
+    }
 
+    static functionTransformation(x, y, a, b, s, t) {
+        return [x / b + s, y * a + t]
+    }
 }
 
 

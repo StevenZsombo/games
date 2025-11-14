@@ -2,7 +2,7 @@
 const framerateUnlocked = false
 const dtUpperLimit = 1000 / 30
 const denybuttons = false
-const showFramerate = true
+const showFramerate = false
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
@@ -262,38 +262,126 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
     initialize_more() {
-        const bg = Button.fromRect(this.rect.copy.splitCol(7, 2)[0].stretch(.9, .9))
-        bg.color = "white"
-        bg.leftat(bg.left / 2)
-        const pts = [[1, 2], [2, 4], [3, 1], [4, 5], [5, 1]]
-        let func = MM.brokenLineFunction(...pts.flat())
-        const trans = pts.map(p => MM.functionTransformation(p[0], p[1], 2, 3, 1, -2))
-        const transFunc = MM.brokenLineFunction(...trans.flat())
-        game.func = func
-        const plt = new Plot(func, bg)
-        plt.funcMore = [transFunc]
-        plt.monkey = { color: "red" }
-        plt.width = 3
-        plt.minX = Math.min(...pts.map(x => x[0]), ...trans.map(x => x[0])) - 1
-        plt.maxX = Math.max(...pts.map(x => x[0]), ...trans.map(x => x[0])) + 1
-        plt.minY = Math.min(...pts.map(x => x[1]), ...trans.map(x => x[1])) - 1
-        plt.maxY = Math.max(...pts.map(x => x[1]), ...trans.map(x => x[1])) + 1
-        plt.show_border_values_font = "36px Times"
-        plt.show_border_values_dp = 2
-        plt.show_border_values = false
-        plt.highlightedPoints = pts
-        plt.highlightedPointsMore = trans
+        let info = Button.fromRect(this.rect.copy.splitCell(1, 1, 6, 1, 1, 1))
+        this.add_drawable(info)
+        info.transparent = true
+        info.txt =
+            `Each brick of the pyramid must be the sum of the two bricks below.
+            Fill the pyramid.`
+        info.fontsize = 60
+        let [lb, rb] = this.rect.copy.splitCell(2, 1, 6, 1, 1, 5).splitCol(5, 3)
+        lb.stretch(1, 1).shrinkToSquare().stretch(1, .8).leftat(0.05 * this.rect.width)
+        let lbg = lb.splitGrid(4, 4)
+        lbg = lbg.map((x, i) => x.slice(0, i + 1))
+        lbg = lbg.map(x => x.map(b => Button.fromRect(b)))
+        lbg.flat().forEach((x, i) => {
+            x.deflate(5, 5)
+            x.contained = null
+            x.color = "lightblue"
+        })
+        lbg[0].forEach(x => x.move(x.width * (1 / 2 + 1), 0))
+        lbg[1].forEach(x => x.move(x.width * (1 / 2 + 1 / 2), 0))
+        lbg[2].forEach(x => x.move(x.width / 2, 0))
 
-        plt.addControls(game.mouser)
+        lbg.slice(0, 3).forEach((x, i) => {
+            x.forEach((c, j) => {
+                c.below = [lbg[i + 1][j], lbg[i + 1][j + 1]]
+            })
+        })
+        lbg.slice(1, 4).flat().forEach(x => {
+            x.above = lbg.slice(0, 3).flat().filter(y => y.below.find(z => z == x))
+        })
 
-        game.add_drawable(bg)
-        game.add_drawable(plt)
+        this.add_drawable(lbg.flat())
+
+        const checkBelowAndAbove = function (hit) {
+            if (hit.below) {
+                const [l, r] = hit.below
+                if (l.contained && r.contained && (l.contained.txt + r.contained.txt != hit.contained.txt)) {
+                    hit.below.forEach(x => {
+                        x.contained.sendBack()
+                        x.contained = null
+                    })
+                    return
+                }
+            }
+            if (!hit.above) { return }
+            hit.above.forEach(a => {
+                if (!a.below) { return }
+                const [l, r] = a.below
+                if (l.contained && r.contained && a.contained &&
+                    (l.contained.txt + r.contained.txt != a.contained.txt)
+                ) {
+                    a.contained.sendBack()
+                    a.contained = null
+                }
+            })
+        }
+        const checkZone = function (pos) {
+            if (!this.clickable) { return }
+            const hit = lbg.flat().find(x => {
+                return x.collidepoint(pos.x, pos.y)
+            })
+            if (!hit) {
+                this.sendBack()
+            } else {
+                hit.contained?.sendBack()
+                const [sX, sY] = [this.x, this.y]
+                this.centerat(hit.center.x, hit.center.y)
+                this.clickable = false
+                game.animator.add_anim(this, 50, Anim.f.moveFrom, {
+                    lerp: Anim.l.sqrt,
+                    x: sX, y: sY, ditch: true, on_end: () => this.clickable = true
+                })
+
+                hit.contained = this
+                checkBelowAndAbove(hit)
+                checkVictory()
+            }
+        }
+
+        const checkExitZone = function (pos) {
+            const hit = lbg.flat().find(x => x.collidepoint(pos.x, pos.y))
+            if (hit) hit.contained = null
+        }
+
+        const checkVictory = function (forced = false) {
+            if (forced || lbg.flat().every(x => x.contained)) {
+                info.txt = "Victory!!!!"
+                GameEffects.fireworksShow()
+            }
+        }
+        this.checkVictory = checkVictory
 
 
+        let rbg = rb.rightat((1 - 0.05) * this.rect.width).shrinkToSquare().stretch(1, .8).splitGrid(5, 4)
+        rbg = rbg.map(x => x.map(x => Button.fromRect(x)))
+        rbg.flat().forEach(
+            /**@param {Button} x  */
+            (x, i) => {
+                x.deflate(5, 5)
+                Button.make_draggable(x)
+                x.txt = i + 1
+                x.fontsize = 48
+                x.default_topleft = [x.left, x.top]
+                x.sendBack = function () {
+                    const [sX, sY] = [this.x, this.y]
+                    this.topleftat(...this.default_topleft)
+                    this.clickable = false
+                    game.animator.add_anim(
+                        this, 400, Anim.f.moveFrom, {
+                        x: sX, y: sY, ditch: true,
+                        on_end: () => { this.clickable = true }, lerp: Anim.l.smootherstep
 
+                    }
+                    )
+                    //this.topleftat(...this.default_topleft)
+                }
+                x.on_release = checkZone
+                x.on_click = checkExitZone
+            })
 
-
-
+        this.add_drawable(rbg.flat())
 
 
 

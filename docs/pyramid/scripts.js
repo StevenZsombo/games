@@ -761,14 +761,14 @@ class Malleable {
 /**
  * Creates a new Plot instance
  * @param {Function} func - The function to plot
- * @param {Object} rect - Rectangle to fit in
+ * @param {Object} rect - The canvas rectangle dimensions
  * @param {PlotOptions} [args={}] - Configuration options
  */
 class Plot {
 	/**
 	 * @class Plot
 	 * @param {Function} func - The function to plot.
-	 * @param {Rect} rect - Rectangle to fit in.
+	 * @param {Rect} rect - The canvas rectangle dimensions.
 	 * @param {Object} [args={}]
 	 * @param {number} [args.minX=0]
 	 * @param {number} [args.maxX=10]
@@ -797,10 +797,6 @@ class Plot {
 			show_border_values: true,
 			show_border_values_font: "12px Times",
 			show_border_values_dp: 2,
-			highlightedPoints: [],
-			funcMore: [],
-			highlightedPointsMore: [],
-			monkey: {}
 		}
 		this.func = func
 		this.rect = rect
@@ -816,11 +812,6 @@ class Plot {
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this, overrideBoundaryCheck: true })
-		this.funcMore?.forEach(f => {
-			MM.plot(this.plotScreen, f, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-				{ ...this, overrideBoundaryCheck: true, ...this.monkey }
-			)
-		})
 		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
 		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)
 		if (this.show_border_values) {
@@ -838,17 +829,8 @@ class Plot {
 			screen.textAlign = "right"
 			screen.fillText(maxX.toFixed(this.show_border_values_dp), this.rect.right, this.rect.centerY)
 		}
-		this.highlightedPoints.forEach(p => this.highlighPoint(p))
-		this.highlightedPointsMore.forEach(p => this.highlighPoint(p, { color: this.monkey.color }))
 	}
 
-	highlighPoint(p, color) {
-		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, color ?? this.color)
-		const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
-		this.plotScreen.font = this.show_border_values_font
-		this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
-	}
 
 	zoomX(factor) {
 		this.minX /= factor
@@ -879,14 +861,7 @@ class Plot {
 		const { minX, maxX, minY, maxY } = this
 		const drawX = (x - minX) / (maxX - minX) * rect.width + rect.x
 		const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height + rect.y
-		return { x: drawX, y: drawY }
-	}
 
-	coordToPlotScreenInternalPos(x, y) {
-		const rect = this.rect
-		const { minX, maxX, minY, maxY } = this
-		const drawX = (x - minX) / (maxX - minX) * rect.width
-		const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
 		return { x: drawX, y: drawY }
 	}
 
@@ -932,7 +907,5 @@ class Plot {
 			plot.zoomAtPos(factor, pos)
 		}
 	}
-
-
 }
 //#endregion
