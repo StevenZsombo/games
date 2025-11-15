@@ -3,7 +3,8 @@ const stgs = {
     tolerance: 0.01,
     stage: -1, //-1 for selector
     victories: [],
-    allowVictoryByAlternateValues: false //yet to be implemented
+    allowVictoryByAlternateValues: false, //yet to be implemented
+    randomLevelData: null
 
 }/// end of settings
 

@@ -408,6 +408,11 @@ class MM {
         return Math.random() * (max - min) + min
     }
 
+    static randomInt(min, maxInclusive) {
+        maxInclusive += 1
+        return Math.floor(Math.random() * (maxInclusive - min) + min)
+    }
+
     static randomColor(min = 50, max = 250) {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
@@ -429,8 +434,11 @@ class MM {
     }
 
     static choice(arr, num = 1) {
-        //TODO num!=1
-        return arr.at(Math.floor(Math.random() * arr.length))
+        if (num == 1) {
+            return arr.at(Math.floor(Math.random() * arr.length))
+        } else {
+            return MM.shuffle(arr).slice(0, num)
+        }
     }
 
     static shuffle(arr) {

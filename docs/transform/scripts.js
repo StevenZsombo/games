@@ -818,6 +818,7 @@ class Plot {
 			highlightedPointsMore: [],
 			funcPointsXMore: [],
 			monkey: {},
+			pltMore: [], //{func, color, highlightedPoints}
 			overrideBoundaryCheck: true
 		}
 		this.func = func
@@ -834,13 +835,17 @@ class Plot {
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this })
-		this.funcMore?.forEach(f => {
-			MM.plot(this.plotScreen, f, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-				{ ...this, ...this.monkey }
+		this.pltMore?.forEach(p => {
+			MM.plot(this.plotScreen, p.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
+				{ ...this, ...p }
 			)
+			p.highlightedPoints?.forEach(x =>
+				this.highlightPoint(x, p)
+			)
+
 		})
 		this.highlightedPoints.forEach(p => this.highlightPoint(p))
-		this.highlightedPointsMore.forEach(p => this.highlightPoint(p, { color: this.monkey.color }))
+
 
 		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
 		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)

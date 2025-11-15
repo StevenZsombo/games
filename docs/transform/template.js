@@ -278,8 +278,7 @@ class Game {
             game.func = func
             const plt = new Plot(func, bg)
             game.plt = plt
-            plt.funcMore = [transFunc]
-            plt.monkey = { color: "red" }
+            plt.pltMore.push({ func: transFunc, color: "red", highlightedPoints: transPts })
             plt.width = 3
             if (reorient) {
                 const minX = Math.min(...pts.map(x => x[0]), ...transPts.map(x => x[0]), 1) * 1.2 - 2
@@ -480,11 +479,7 @@ class Game {
             levelSelectButton.rightat(inputSpaces.at(-1).right)
             levelSelectButton.on_click = () => { stgs.stage = -1; main() }
             game.add_drawable(levelSelectButton)
-            /**
-             * 
-             * @param {Button} b 
-             * @param {Button} tgt 
-             */
+            /**@param {Button} b @param {Button} tgt*/
             const sendFancy = (b, tgt) => {
                 /** @type {Button} cp */
                 const cp = b.copy
@@ -525,9 +520,59 @@ class Game {
             })
             this.add_drawable(levelButtons)
             this.add_drawable(levelInfo)
+            const rBG = new Button({
+                color: "pink", x: levelButtons[0].left, width: levelButtons[4].right - levelButtons[0].left
+            })
+            rBG.bottomat(this.rect.height - 100)
+            const rButs = rBG.splitCol(4, 1, 4, 1, 4).filter((_, i) => [0, 2, 4].includes(i)).map(Button.fromRect)
+            rButs[0].txt = "Random easy"
+            rButs[1].txt = "Random medium"
+            rButs[2].txt = "Random hard"
+            rButs.forEach(x => {
+                x.fontsize = levelButtons[0].fontsize
+            })
+            const makeRandom = (numberOfTransformations = 1) => {
+                let [a, b, s, t] = [1, 1, 0, 0]
+                const transformOptions = [
+                    //stretch in y
+                    () => { a *= MM.randomInt(2, 5); a = Math.random() > .7 ? 1 / a : a },
+                    //stretch in x
+                    () => { b *= MM.randomInt(2, 5); b = Math.random() > .7 ? 1 / b : b },
+                    //reflect in y
+                    () => { a *= -1 },
+                    //reflect in x
+                    () => { b *= -1 },
+                    //translate
+                    () => {
+                        s = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                        t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                    }
+                ]
+                const xs = [MM.randomInt(-8, 8)]
+                const ys = [MM.randomInt(-10, 10)]
+                MM.forr(MM.choice([3, 3, 3, 4, 4,4, 5]), () => {
+                    xs.push(xs.at(-1) + MM.randomInt(1, 5))
+                    ys.push(ys.at(-1) + MM.randomInt(-5, 5))
+                })
+                if (numberOfTransformations > 1) {
+                    MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
+                } else { MM.choice(transformOptions)() }
+                stgs.randomLevelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()), xs, a, b, s, t]
+                //console.log(stgs.randomLevelData)
+                main()
+            }
+            game.makeRandom = makeRandom
+            this.add_drawable(rButs)
+            rButs[0].on_click = () => makeRandom(1)
+            rButs[1].on_click = () => makeRandom(MM.choice([2, 2, 3]))
+            rButs[2].on_click = () => makeRandom(MM.choice([4, 4, 4, 4, 5]))
         }
 
-        if (stgs.stage == -1) {
+        if (stgs.randomLevelData) {
+            makeLevel(...stgs.randomLevelData)
+            stgs.randomLevelData = null
+        }
+        else if (stgs.stage == -1) {
             levelSelector()
         } else {
             makeLevel(...levels[stgs.stage])
