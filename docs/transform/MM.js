@@ -303,10 +303,17 @@ class MM {
         screen.stroke()
         screen.restore()
     }
+
+    static coordToPlotScreenInternalPos(x, y, minX, maxX, minY, maxY, rect) {
+        const drawX = (x - minX) / (maxX - minX) * rect.width
+        const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
+        return { x: drawX, y: drawY }
+    }
+
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
-        overrideBoundaryCheck = false } = {}) {
+        overrideBoundaryCheck = false, dottingDistance = 0 } = {}) {
         density ??= rect.width
         const xArr = []
         const yArr = []
@@ -331,6 +338,17 @@ class MM {
                 MM.drawLine(screen, axPos, rect.top, axPos, rect.bottom, { color: axes_color, width: axes_width })
             }
         }
+        if (dottingDistance) {
+            for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+            }
+            for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+            }
+        }
+
         MM.drawPolyLine(screen, xArr, yArr, {
             color: color, width: width, offsetX: rect.x, offsetY: rect.y
         })

@@ -793,9 +793,7 @@ class Plot {
 	 * @param {string} [args.show_border_values_font="12px Times"]
 	 * @param {number} [args.show_border_values_dp=2]
 	 * @param {Array<Array<number>>} [args.highlightedPoints = []]
-	 * @param {Array<Function>} [args.funcMore = []]
-	 * @param {Array<Array<number>>} [args.highlightedPointsMore = []]
-	 * @param {Object} [args.monkey = {}]
+	 * @param {Object}[args.pltMore = {}] - func, color, highlightedPoints, *other*
 	 */
 	constructor(func, rect, args = {}) {
 		const defaults = {
@@ -813,17 +811,20 @@ class Plot {
 			show_border_values_font: "12px Times",
 			show_border_values_dp: 2,
 			highlightedPoints: [],
+			label_highlighted: true,
+			label_highlighted_font: "12 px Times",
 			funcPointsX: [],
 			funcMore: [],
 			highlightedPointsMore: [],
 			funcPointsXMore: [],
 			monkey: {},
 			pltMore: [], //{func, color, highlightedPoints}
-			overrideBoundaryCheck: true
+			overrideBoundaryCheck: true,
+			dottingDistance: 1
 		}
 		this.func = func
 		this.rect = rect
-		this.density = this.rect.width * 2
+		this.density = rect.width * 2
 		this.plotCanvas = document.createElement("canvas")
 		this.plotCanvas.width = rect.width
 		this.plotCanvas.height = rect.height
@@ -842,11 +843,8 @@ class Plot {
 			p.highlightedPoints?.forEach(x =>
 				this.highlightPoint(x, p)
 			)
-
 		})
 		this.highlightedPoints.forEach(p => this.highlightPoint(p))
-
-
 		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
 		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)
 		if (this.show_border_values) {
@@ -866,12 +864,15 @@ class Plot {
 		}
 	}
 
-	highlightPoint(p, color) {
+	highlightPoint(p, color, label_highlighted) {
 		let { x, y } = this.coordToPlotScreenInternalPos(...p)
 		MM.drawCircle(this.plotScreen, x, y, 10, color ?? this.color)
-		const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
-		this.plotScreen.font = this.show_border_values_font
-		this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
+		label_highlighted ??= this.label_highlighted
+		if (label_highlighted) {
+			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
+			this.plotScreen.font = this.label_highlighted_font
+			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
+		}
 	}
 
 	fixAxes() {

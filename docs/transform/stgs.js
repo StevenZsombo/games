@@ -4,7 +4,8 @@ const stgs = {
     stage: -1, //-1 for selector
     victories: [],
     allowVictoryByAlternateValues: false, //yet to be implemented
-    randomLevelData: null
+    randomLevelData: null,
+    labelPoints: true
 
 }/// end of settings
 

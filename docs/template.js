@@ -276,6 +276,7 @@ class Game {
             //transFunc ??= MM.brokenLineFunction(...transPts.flat())
             transFunc ??= MM.functionTransformation(func, a, b, s, t)
             game.func = func
+            /**@type {Plot} plt */
             const plt = new Plot(func, bg)
             game.plt = plt
             plt.pltMore.push({ func: transFunc, color: "red", highlightedPoints: transPts })
@@ -295,6 +296,10 @@ class Game {
             plt.highlightedPoints = pts
             plt.highlightedPointsMore = transPts
             plt.axes_width = 2
+            plt.label_highlighted = stgs.labelPoints
+            plt.label_highlighted_font = "24px Times"
+            plt.dottingDistance = 1
+
             plt.addControls(game.mouser)
             const zoomIn = new Button({ txt: "+", fontsize: 60 })
             const zoomOut = new Button({ txt: "-", fontsize: 60 })
@@ -320,7 +325,7 @@ class Game {
             zoomReset.on_click = () => {
                 Object.assign(plt, game.plotDefaultBounds)
             }
-            plt.density *= 2
+            //plt.density *= 2
 
 
             game.add_drawable(bg)
@@ -550,7 +555,7 @@ class Game {
                 ]
                 const xs = [MM.randomInt(-8, 8)]
                 const ys = [MM.randomInt(-10, 10)]
-                MM.forr(MM.choice([3, 3, 3, 4, 4,4, 5]), () => {
+                MM.forr(MM.choice([3, 3, 3, 4, 4, 4, 5]), () => {
                     xs.push(xs.at(-1) + MM.randomInt(1, 5))
                     ys.push(ys.at(-1) + MM.randomInt(-5, 5))
                 })
