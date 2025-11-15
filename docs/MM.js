@@ -635,16 +635,79 @@ class MM {
         const xs = polyXYXYXY.filter((_, i) => !(i % 2))
         const ys = polyXYXYXY.filter((_, i) => i % 2)
         const ret = function (u) {
-            if (u < xs[0] || u >= xs.at(-1)) { return undefined }
-            const i = xs.findIndex(x => u < x)
+            if (u < xs[0] || u > xs.at(-1)) { return undefined }
+            let i = xs.findIndex(x => u <= x)
+            i = i == 0 ? 1 : i
             return ys[i - 1] + (u - xs[i - 1]) / (xs[i] - xs[i - 1]) * [ys[i] - ys[i - 1]]
         }
         return ret
     }
 
-    static functionTransformation(x, y, a, b, s, t) {
+    static pointTransformation(x, y, a, b, s, t) {
         return [x / b + s, y * a + t]
     }
-}
 
+    static functionTransformation(func, a, b, s, t) {
+        return (x) => {
+            return a * func(b * (x - s)) + t
+        }
+    }
+
+    static parseTransform(input) {
+        let i = 0, s = input.replace(/\s+/g, '');
+
+        let t = 0;
+        if (s[i] !== 'f' && s[i] !== '-' && !s.startsWith('-f', i)) {
+            t = parseNum();
+            if (s[i] === '+') i++;
+        }
+
+        const a = s[i] === 'f' ? 1 : parseNum();
+        if (s[i] === 'f') i++;
+
+        i++; // skip '('
+        let b = 1, shift = 0;
+
+        if (s[i] === 'x') {
+            i++;
+            if (s[i] === '+' || s[i] === '-') {
+                const sign = s[i++];
+                shift = -(+ (sign + parseNum())); // f(x+s) -> s = -s
+            }
+        } else {
+            b = parseNum();
+            if (s[i] === '(') {
+                i++;
+                i++;
+                const sign = s[i++];
+                shift = + (sign + parseNum()); // f(b(x-s)) -> s = s
+                i++;
+            } else {
+                i++;
+                if (s[i] === '+' || s[i] === '-') {
+                    const sign = s[i++];
+                    const c = parseNum();
+                    shift = + (sign + c) / b; // f(bx+c) -> s = -c/b
+                }
+            }
+        }
+        i++;
+
+        if (s[i] === '+' || s[i] === '-') {
+            const sign = s[i++];
+            t += +(sign + parseNum());
+        }
+
+        return { a: a || 1, b, s: shift, t };
+
+        function parseNum() {
+            let r = '';
+            while (i < s.length && '0123456789.-'.includes(s[i])) r += s[i++];
+            return r ? +r : 0;
+        }
+
+
+    }
+
+}
 
