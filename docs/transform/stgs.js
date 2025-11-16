@@ -5,7 +5,10 @@ const stgs = {
     victories: [],
     allowVictoryByAlternateValues: false, //yet to be implemented
     randomLevelData: null,
-    labelPoints: true
+    labelPoints: true,
+    randomType: "Any",
+    firstRun: true,
+    animationsEnabled: true
 
 }/// end of settings
 

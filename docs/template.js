@@ -2,11 +2,11 @@
 const framerateUnlocked = false
 const dtUpperLimit = 1000 / 30
 const denybuttons = false
-const showFramerate = true
+const showFramerate = false
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
-const fontFile = "resources/victoriabold.png" //set to null otherwise
+const fontFile = null//"resources/victoriabold.png" //set to null otherwise
 const filesList = "" //space-separated
 
 //#region window.onload
@@ -262,6 +262,7 @@ class Game {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
     initialize_more() {
+        //#region makeLevel
         const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
             const bg = Button.fromRect(this.rect.copy.splitCol(5, 4)[0].stretch(.9, .9).shrinkToSquare())
             const ig = this.rect.copy.splitCol(5, 4)[1].stretch(.9, .9)
@@ -477,39 +478,54 @@ class Game {
             const levelSelectButton = Button.fromRect(inputButtons.at(-1).rect)
             levelSelectButton.txt = "Back to level select"
             levelSelectButton.fontsize = 24
-            levelSelectButton.width = 200
-            levelSelectButton.height = 50
+            levelSelectButton.width = 250
+            levelSelectButton.height = 80
             levelSelectButton.color = "lightgray"
             levelSelectButton.bottomat(bg.bottom)
             levelSelectButton.rightat(inputSpaces.at(-1).right)
             levelSelectButton.on_click = () => { stgs.stage = -1; main() }
             game.add_drawable(levelSelectButton)
-            /**@param {Button} b @param {Button} tgt*/
-            const sendFancy = (b, tgt) => {
-                /** @type {Button} cp */
-                const cp = b.copy
-                cp.clickable = false
-                game.add_drawable(cp)
-                this.animator.add_anim(cp, 400, "moveTo", {
-                    x: tgt.centerX,
-                    y: tgt.centerY,
-                    on_end: () => { game.remove_drawable(cp) }
+            if (stgs.animationsEnabled) {
+                /**@param {Button} b @param {Button} tgt*/
+                const sendFancy = (b, tgt, time = 500) => {
+                    /** @type {Button} cp */
+                    const cp = b.copy
+                    cp.clickable = false
+                    game.add_drawable(cp)
+                    this.animator.add_anim(cp, time, "moveTo", {
+                        x: tgt.centerX,
+                        y: tgt.centerY,
+                        on_end: () => { game.remove_drawable(cp) },
+                        noLock: true
+                    })
+                    this.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
+                }
+                game.sendFancy = sendFancy
+                inputButtons.forEach((b, i) => {
+                    if (i != 12) {
+                        b.on_click = MM.extFunc(b.on_click, () => sendFancy(b, radio_group.selected))
+                    } else {
+                        b.on_click = MM.extFunc(b.on_click, () => {
+                            radio_group.buttons.forEach(x => sendFancy(b, x))
+                        })
+                    }
                 })
             }
-            game.sendFancy = sendFancy
         }
-
+        //#region levelSelector
         const levelSelector = () => {
             if (localStorage.getItem("functionvictories")) {
                 stgs.victories = MM.strToArr(localStorage.getItem("functionvictories"))
             }
             const levelButtons = this.rect.copy.
                 stretch(.8, .8).
-                splitRow(1, 4)[1].
+                move(0, 100).
                 splitGrid(5, 5).
                 flat().map(Button.fromRect).
                 slice(0, Object.keys(levels).length)
-            const levelInfo = Button.fromRect(this.rect.copy.stretch(.8, .8).splitRow(1, 4)[0]).deflate(20, 20)
+            const levelInfo = Button.fromRect(this.rect.copy.stretch(.8, .8)).deflate(20, 20)
+            levelInfo.height = levelButtons[0].top
+            levelInfo.topat(0 + 25)
             levelInfo.txt = "Select level:"
             levelInfo.transparent = true
             levelInfo.fontsize = 48
@@ -525,18 +541,36 @@ class Game {
             })
             this.add_drawable(levelButtons)
             this.add_drawable(levelInfo)
-            const rBG = new Button({
-                color: "pink", x: levelButtons[0].left, width: levelButtons[4].right - levelButtons[0].left
-            })
-            rBG.bottomat(this.rect.height - 100)
-            const rButs = rBG.splitCol(4, 1, 4, 1, 4).filter((_, i) => [0, 2, 4].includes(i)).map(Button.fromRect)
-            rButs[0].txt = "Random easy"
-            rButs[1].txt = "Random medium"
-            rButs[2].txt = "Random hard"
-            rButs.forEach(x => {
-                x.fontsize = levelButtons[0].fontsize
-            })
+            /**@returns {void} */
             const makeRandom = (numberOfTransformations = 1) => {
+                const levelMakers = {
+                    "Squiggly": makeRandomSquiggly,
+                    "Poly": makeRandomPoly,
+                    "Trig": makeRandomTrig,
+                }
+                let maker
+                if (typeRadio.selected.txt == "Any") {
+                    maker = MM.choice([makeRandomSquiggly, makeRandomPoly, makeRandomTrig])
+                } else {
+                    maker = levelMakers[typeRadio.selected.txt]
+                }
+                const levelData = maker(numberOfTransformations)
+                stgs.randomLevelData = levelData
+                main() // Restart is called here, nowhere else
+            }
+
+            const getRandomPoints = (numberOfPoints,
+                minStartX = -8, maxStartX = 8, minStartY = -10, maxStartY = 10,
+                minDiffX = 1, maxDiffX = 5, minDiffY = -8, maxDiffY = 8) => {
+                const xs = [MM.randomInt(minStartX, maxStartX)]
+                const ys = [MM.randomInt(minStartY, maxStartY)]
+                for (let i = 0; i < numberOfPoints - 1; i++) {
+                    xs.push(xs.at(-1) + MM.randomInt(minDiffX, maxDiffX))
+                    ys.push(ys.at(-1) + MM.randomInt(minDiffY, maxDiffY))
+                }
+                return [xs, ys]
+            }
+            const getRandomTransformABST = (numberOfTransformations) => {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
                     //stretch in y
@@ -553,24 +587,103 @@ class Game {
                         t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
                     }
                 ]
-                const xs = [MM.randomInt(-8, 8)]
-                const ys = [MM.randomInt(-10, 10)]
-                MM.forr(MM.choice([3, 3, 3, 4, 4, 4, 5]), () => {
-                    xs.push(xs.at(-1) + MM.randomInt(1, 5))
-                    ys.push(ys.at(-1) + MM.randomInt(-5, 5))
-                })
-                if (numberOfTransformations > 1) {
-                    MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
-                } else { MM.choice(transformOptions)() }
-                stgs.randomLevelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()), xs, a, b, s, t]
-                //console.log(stgs.randomLevelData)
-                main()
+                MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
+                return [a, b, s, t]
+            }
+
+            const makeRandomPoly = (numberOfTransformations) => {
+                const [xs, ys] = getRandomPoints(MM.choice([3, 4, 4, 4, 5, 5]))
+                const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
+                return [MM.lagrange(xs, ys), xs, a, b, s, t]
+            }
+            const makeRandomTrig = (numberOfTransformations) => {
+                let [a, b, s, t] = [1, 1, 0, 0]
+                const transformOptions = [
+                    () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
+                    () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
+                    () => { s = MM.choice([PI / 2, PI / 3, PI / 4, -1, 1, -2, 2]) },
+                    () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
+                    () => { a *= -1 },
+                    () => { b *= -1 }
+                ]
+                MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
+                let [func, xs] = MM.choice([
+                    [Math.sin, [-PI / 2, 0, PI / 2, 3 * PI / 2]],
+                    [Math.cos, [-PI, 0, PI, TWOPI]],
+                    [Math.tan, [666]],
+                    [Math.atan, [-PI, 0, PI, TWOPI]],
+                    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
+                    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
+                ])
+                if (xs[0] == 666) {
+                    if (a != 1) { a = MM.choice([1, 2, 1 / 2]) * Math.sign(a) }
+                    if (b != 1) { b = MM.choice([1, 2, 1 / 2]) * Math.sign(b) }
+                    xs = [PI / 4, 0, PI / 4, PI]
+                }
+
+                return [func, xs, a, b, s, t, true] //reorient
+            }
+            /**@returns {void} */
+            const makeRandomSquiggly = (numberOfTransformations = 1) => {
+                const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
+                const [xs, ys] = getRandomPoints(MM.choice([3, 3, 3, 4, 4, 5]))
+                return [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
+                    xs, a, b, s, t]
             }
             game.makeRandom = makeRandom
+
+            const rBG = new Button({
+                color: "pink", x: levelButtons[0].left, width: levelButtons[4].right - levelButtons[0].left
+            })
+            rBG.bottomat(this.rect.height - 150)
+            const rButs = rBG.splitCol(4, 1, 4, 1, 4).filter((_, i) => [0, 2, 4].includes(i)).map(Button.fromRect)
+            rButs[0].txt = "Random easy"
+            rButs[1].txt = "Random medium"
+            rButs[2].txt = "Random hard"
+            rButs.forEach(x => {
+                x.fontsize = levelButtons[0].fontsize
+            })
+
             this.add_drawable(rButs)
             rButs[0].on_click = () => makeRandom(1)
             rButs[1].on_click = () => makeRandom(MM.choice([2, 2, 3]))
             rButs[2].on_click = () => makeRandom(MM.choice([4, 4, 4, 4, 5]))
+            const rInfo = new Button({ txt: "Or generate one:" })
+            rInfo.fontsize = levelInfo.fontsize
+            rInfo.width = levelInfo.width
+            rInfo.leftat(levelInfo.left)
+            rInfo.bottomat(rButs[0].top)
+            rInfo.move(0, -50)
+            rInfo.transparent = true
+            this.add_drawable(rInfo)
+            rBG.move(0, 120)
+            rBG.stretch(.395, .6)
+            rBG.rightat(rButs.at(-1).right)
+            const rTypes = rBG.splitCol(1.5, 1, 1, 1, 1).map(Button.fromRect)
+            rTypes[0].transparent = true
+            rTypes.forEach((x, i) => x.txt = ["Type:", "Squiggly", "Poly", "Trig", "Any"][i])
+            rTypes.slice(1, 5).forEach(b => b.on_click = function () { stgs.randomType = b.txt })
+            const typeRadio = Button.make_radio(rTypes.slice(1, 5), true)
+            rTypes.slice(1, 5).find(x => x.txt == stgs.randomType).on_click()
+            this.add_drawable(rTypes)
+
+            if (stgs.firstRun && stgs.animationsEnabled) {
+                stgs.firstRun = false
+                this.animator.add_anim(levelInfo, 1000, Anim.f.typingCentered)
+                const everyBody = [...levelButtons, ...rTypes, ...rButs, rInfo]
+                everyBody.forEach(x => x.opacity = 1)
+
+                this.animator.add_staggered(levelButtons, 200, Anim.stepper(
+                    null, 1000, "opacity", 1, 0, { on_end: function () { this.obj.opacity = 0 } }
+                ), { initialDelay: 1000 })
+                this.animator.add_staggered([rInfo], 0, new Anim(null, 1000, Anim.f.typingCentered)
+                    , { initialDelay: 3000, on_each_start: () => { rInfo.opacity = 0 } })
+                this.animator.add_staggered([...rTypes, ...rButs], 0, Anim.stepper(
+                    null, 1000, "opacity", 1, 0, { on_end: function () { this.obj.opacity = 0 } }
+                ), { initialDelay: 4000 })
+
+
+            }
         }
 
         if (stgs.randomLevelData) {

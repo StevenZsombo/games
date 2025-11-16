@@ -315,19 +315,6 @@ class MM {
         density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
         overrideBoundaryCheck = false, dottingDistance = 0 } = {}) {
         density ??= rect.width
-        const xArr = []
-        const yArr = []
-        for (let i = 0; i <= density; i++) {
-            const t = i / density
-            const valX = minX + t * (maxX - minX)
-            const valY = func(valX)
-            const drawX = t * rect.width
-            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
-            if (overrideBoundaryCheck || (0 <= drawY && drawY <= rect.height)) {
-                xArr.push(drawX)
-                yArr.push(drawY)
-            }
-        }
         if (axes) {
             if (minY <= 0 && maxY >= 0) {
                 const axPos = rect.y + (maxY / (maxY - minY)) * rect.height
@@ -349,9 +336,34 @@ class MM {
             }
         }
 
-        MM.drawPolyLine(screen, xArr, yArr, {
+        /*MM.drawPolyLine(screen, xArr, yArr, {
             color: color, width: width, offsetX: rect.x, offsetY: rect.y
-        })
+        })*/
+        //drawing the curve, but not its vertical asymptotes
+        screen.save()
+        screen.translate(rect.x, rect.y)
+        screen.beginPath()
+        screen.strokeStyle = color
+        screen.lineWidth = width
+        let prevDrawY = 1
+        for (let i = 0; i <= density; i++) {
+            const t = i / density
+            const valX = minX + t * (maxX - minX)
+            const valY = func(valX)
+            const drawX = t * rect.width
+            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
+            const asympControl = (prevDrawY < 0 && drawY > rect.height) || (prevDrawY > rect.height && drawY < 0)
+            if (!asympControl) {
+                screen.lineTo(drawX, drawY)
+            } else {
+                screen.stroke()
+                screen.moveTo(drawX, drawY)
+                screen.beginPath()
+            }
+            prevDrawY = drawY
+        }
+        screen.stroke()
+        screen.restore()
     }
 
 
@@ -450,12 +462,15 @@ class MM {
         }
         return ret
     }
-
-    static choice(arr, num = 1) {
-        if (num == 1) {
-            return arr.at(Math.floor(Math.random() * arr.length))
-        } else {
+    /**
+     * @param {Array} arr - Array to choose from
+     * @param {number} [num]
+     * @returns {Object|Array} - By default returns an element, but if num is given, returns array. */
+    static choice(arr, num = null) {
+        if (num) {
             return MM.shuffle(arr).slice(0, num)
+        } else {
+            return arr.at(Math.floor(Math.random() * arr.length))
         }
     }
 
@@ -678,62 +693,15 @@ class MM {
             return a * func(b * (x - s)) + t
         }
     }
-
-    static parseTransform(input) {
-        let i = 0, s = input.replace(/\s+/g, '');
-
-        let t = 0;
-        if (s[i] !== 'f' && s[i] !== '-' && !s.startsWith('-f', i)) {
-            t = parseNum();
-            if (s[i] === '+') i++;
-        }
-
-        const a = s[i] === 'f' ? 1 : parseNum();
-        if (s[i] === 'f') i++;
-
-        i++; // skip '('
-        let b = 1, shift = 0;
-
-        if (s[i] === 'x') {
-            i++;
-            if (s[i] === '+' || s[i] === '-') {
-                const sign = s[i++];
-                shift = -(+ (sign + parseNum())); // f(x+s) -> s = -s
-            }
-        } else {
-            b = parseNum();
-            if (s[i] === '(') {
-                i++;
-                i++;
-                const sign = s[i++];
-                shift = + (sign + parseNum()); // f(b(x-s)) -> s = s
-                i++;
-            } else {
-                i++;
-                if (s[i] === '+' || s[i] === '-') {
-                    const sign = s[i++];
-                    const c = parseNum();
-                    shift = + (sign + c) / b; // f(bx+c) -> s = -c/b
-                }
-            }
-        }
-        i++;
-
-        if (s[i] === '+' || s[i] === '-') {
-            const sign = s[i++];
-            t += +(sign + parseNum());
-        }
-
-        return { a: a || 1, b, s: shift, t };
-
-        function parseNum() {
-            let r = '';
-            while (i < s.length && '0123456789.-'.includes(s[i])) r += s[i++];
-            return r ? +r : 0;
-        }
-
-
+    /**
+     * @param {Array<number>} xs 
+     * @param {Array<number>} ys 
+     * @returns {Function}*/
+    static lagrange(xs, ys) {
+        return (x) => ys.reduce((s, yi, i) =>
+            s + yi * xs.reduce((p, xj, j) => i !== j ? p * (x - xj) / (xs[i] - xj) : p, 1), 0)
     }
+
 
 }
 
