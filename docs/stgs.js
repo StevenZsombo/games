@@ -6,7 +6,6 @@ const changelogGlobal =
     Compressions are more common now (was 25% of stretches, now is 40%)
     Broken line functions are now made of at least 3 pieces (was 2)
     Changed the color of the axes from pink to plum (more visible)
-    y=sin(x) received pi/2 as a guide point
     `
 const stgs = {
     tolerance: 0.02,
