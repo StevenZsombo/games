@@ -303,24 +303,18 @@ class MM {
         screen.stroke()
         screen.restore()
     }
+
+    static coordToPlotScreenInternalPos(x, y, minX, maxX, minY, maxY, rect) {
+        const drawX = (x - minX) / (maxX - minX) * rect.width
+        const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
+        return { x: drawX, y: drawY }
+    }
+
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
-        overrideBoundaryCheck = false } = {}) {
+        overrideBoundaryCheck = false, dottingDistance = 0 } = {}) {
         density ??= rect.width
-        const xArr = []
-        const yArr = []
-        for (let i = 0; i <= density; i++) {
-            const t = i / density
-            const valX = minX + t * (maxX - minX)
-            const valY = func(valX)
-            const drawX = t * rect.width
-            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
-            if (overrideBoundaryCheck || (0 <= drawY && drawY <= rect.height)) {
-                xArr.push(drawX)
-                yArr.push(drawY)
-            }
-        }
         if (axes) {
             if (minY <= 0 && maxY >= 0) {
                 const axPos = rect.y + (maxY / (maxY - minY)) * rect.height
@@ -331,10 +325,47 @@ class MM {
                 MM.drawLine(screen, axPos, rect.top, axPos, rect.bottom, { color: axes_color, width: axes_width })
             }
         }
-        MM.drawPolyLine(screen, xArr, yArr, {
+        if (dottingDistance) {
+            for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+            }
+            for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+            }
+        }
+
+        /*MM.drawPolyLine(screen, xArr, yArr, {
             color: color, width: width, offsetX: rect.x, offsetY: rect.y
-        })
+        })*/
+        //drawing the curve, but not its vertical asymptotes
+        screen.save()
+        screen.translate(rect.x, rect.y)
+        screen.beginPath()
+        screen.strokeStyle = color
+        screen.lineWidth = width
+        let prevDrawY = 1
+        for (let i = 0; i <= density; i++) {
+            const t = i / density
+            const valX = minX + t * (maxX - minX)
+            const valY = func(valX)
+            const drawX = t * rect.width
+            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
+            const asympControl = (prevDrawY < 0 && drawY > rect.height) || (prevDrawY > rect.height && drawY < 0)
+            if (!asympControl) {
+                screen.lineTo(drawX, drawY)
+            } else {
+                screen.stroke()
+                screen.moveTo(drawX, drawY)
+                screen.beginPath()
+            }
+            prevDrawY = drawY
+        }
+        screen.stroke()
+        screen.restore()
     }
+
 
     static drawText(screen, txtorarr, rect, {
         font = "12px Times", color = "black", opacity = 0,
@@ -407,6 +438,11 @@ class MM {
         return Math.random() * (max - min) + min
     }
 
+    static randomInt(min, maxInclusive) {
+        maxInclusive += 1
+        return Math.floor(Math.random() * (maxInclusive - min) + min)
+    }
+
     static randomColor(min = 50, max = 250) {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
@@ -426,10 +462,16 @@ class MM {
         }
         return ret
     }
-
-    static choice(arr, num = 1) {
-        //TODO num!=1
-        return arr.at(Math.floor(Math.random() * arr.length))
+    /**
+     * @param {Array} arr - Array to choose from
+     * @param {number} [num]
+     * @returns {Object|Array} - By default returns an element, but if num is given, returns array. */
+    static choice(arr, num = null) {
+        if (num) {
+            return MM.shuffle(arr).slice(0, num)
+        } else {
+            return arr.at(Math.floor(Math.random() * arr.length))
+        }
     }
 
     static shuffle(arr) {
@@ -630,7 +672,36 @@ class MM {
         return str.split(",").map(Number)
     }
 
+    static brokenLineFunction(...polyXYXYXY) {
+        const xs = polyXYXYXY.filter((_, i) => !(i % 2))
+        const ys = polyXYXYXY.filter((_, i) => i % 2)
+        const ret = function (u) {
+            if (u < xs[0] || u > xs.at(-1)) { return undefined }
+            let i = xs.findIndex(x => u <= x)
+            i = i == 0 ? 1 : i
+            return ys[i - 1] + (u - xs[i - 1]) / (xs[i] - xs[i - 1]) * [ys[i] - ys[i - 1]]
+        }
+        return ret
+    }
+
+    static pointTransformation(x, y, a, b, s, t) {
+        return [x / b + s, y * a + t]
+    }
+
+    static functionTransformation(func, a, b, s, t) {
+        return (x) => {
+            return a * func(b * (x - s)) + t
+        }
+    }
+    /**
+     * @param {Array<number>} xs 
+     * @param {Array<number>} ys 
+     * @returns {Function}*/
+    static lagrange(xs, ys) {
+        return (x) => ys.reduce((s, yi, i) =>
+            s + yi * xs.reduce((p, xj, j) => i !== j ? p * (x - xj) / (xs[i] - xj) : p, 1), 0)
+    }
+
 
 }
-
 

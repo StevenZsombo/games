@@ -722,15 +722,6 @@ class Button extends Clickable {
 }
 //#endregion
 
-//#region MouseHelper
-class MouseHelper extends Button {
-	constructor() {
-		super({ width: 50, height: 50, fontsize: 36 })
-		this.update = (dt) => this.centeratV(game.mouser.pos)
-	}
-}
-//#endregion
-
 //#region Malleable
 class Malleable {
 	constructor(...comps) {
@@ -770,20 +761,19 @@ class Malleable {
 /**
  * Creates a new Plot instance
  * @param {Function} func - The function to plot
- * @param {Object} rect - Rectangle to fit in
+ * @param {Object} rect - The canvas rectangle dimensions
  * @param {PlotOptions} [args={}] - Configuration options
  */
 class Plot {
 	/**
 	 * @class Plot
 	 * @param {Function} func - The function to plot.
-	 * @param {Rect} rect - Rectangle to fit in.
+	 * @param {Rect} rect - The canvas rectangle dimensions.
 	 * @param {Object} [args={}]
 	 * @param {number} [args.minX=0]
 	 * @param {number} [args.maxX=10]
 	 * @param {number} [args.minY=-5]
 	 * @param {number} [args.maxY=5]
-	 * @param {boolean} [args.fixedRatio="false"] - should the two axes be fixed in a one-one ratio?
 	 * @param {string} [args.color="black"]
 	 * @param {number} [args.width=2]
 	 * @param {boolean} [args.axes=true]
@@ -792,8 +782,6 @@ class Plot {
 	 * @param {boolean} [args.show_border_values=true]
 	 * @param {string} [args.show_border_values_font="12px Times"]
 	 * @param {number} [args.show_border_values_dp=2]
-	 * @param {Array<Array<number>>} [args.highlightedPoints = []]
-	 * @param {Object}[args.pltMore = {}] - func, color, highlightedPoints, *other*
 	 */
 	constructor(func, rect, args = {}) {
 		const defaults = {
@@ -801,7 +789,6 @@ class Plot {
 			maxX: 10,
 			minY: -5,
 			maxY: 5,
-			fixedRatio: false, // to be implemented
 			color: "black",
 			width: 2,
 			axes: true,
@@ -810,21 +797,10 @@ class Plot {
 			show_border_values: true,
 			show_border_values_font: "12px Times",
 			show_border_values_dp: 2,
-			highlightedPoints: [],
-			label_highlighted: true,
-			label_highlighted_font: "12 px Times",
-			funcPointsX: [],
-			funcMore: [],
-			highlightedPointsMore: [],
-			funcPointsXMore: [],
-			monkey: {},
-			pltMore: [], //{func, color, highlightedPoints}
-			overrideBoundaryCheck: true,
-			dottingDistance: 1
 		}
 		this.func = func
 		this.rect = rect
-		this.density = rect.width * 2
+		this.density = this.rect.width * 2
 		this.plotCanvas = document.createElement("canvas")
 		this.plotCanvas.width = rect.width
 		this.plotCanvas.height = rect.height
@@ -835,16 +811,7 @@ class Plot {
 
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-			{ ...this })
-		this.pltMore?.forEach(p => {
-			MM.plot(this.plotScreen, p.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-				{ ...this, ...p }
-			)
-			p.highlightedPoints?.forEach(x =>
-				this.highlightPoint(x, p)
-			)
-		})
-		this.highlightedPoints.forEach(p => this.highlightPoint(p))
+			{ ...this, overrideBoundaryCheck: true })
 		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
 		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)
 		if (this.show_border_values) {
@@ -864,24 +831,6 @@ class Plot {
 		}
 	}
 
-	highlightPoint(p, color, label_highlighted) {
-		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, color ?? this.color)
-		label_highlighted ??= this.label_highlighted
-		if (label_highlighted) {
-			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
-			this.plotScreen.font = this.label_highlighted_font
-			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
-		}
-	}
-
-	fixAxes() {
-		if (this.fixedRatio) {
-			const widthDensity = (this.maxX - this.minX) / this.rect.width
-			const heightDensity = (this.maxX - this.minX) / this.rect.width
-			//TODO, this is kinda finnicky and probably pointless
-		}
-	}
 
 	zoomX(factor) {
 		this.minX /= factor
@@ -912,14 +861,7 @@ class Plot {
 		const { minX, maxX, minY, maxY } = this
 		const drawX = (x - minX) / (maxX - minX) * rect.width + rect.x
 		const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height + rect.y
-		return { x: drawX, y: drawY }
-	}
 
-	coordToPlotScreenInternalPos(x, y) {
-		const rect = this.rect
-		const { minX, maxX, minY, maxY } = this
-		const drawX = (x - minX) / (maxX - minX) * rect.width
-		const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
 		return { x: drawX, y: drawY }
 	}
 
@@ -932,10 +874,6 @@ class Plot {
 		this.translateX(x)
 		this.translateY(y)
 		return this
-	}
-
-	zoomAtCenter(factor) {
-		return this.zoomAtPos(factor, { x: this.rect.centerX, y: this.rect.centerY })
 	}
 
 	translateX(u) {
@@ -969,7 +907,5 @@ class Plot {
 			plot.zoomAtPos(factor, pos)
 		}
 	}
-
-
 }
 //#endregion
