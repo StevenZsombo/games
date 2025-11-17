@@ -724,9 +724,12 @@ class Button extends Clickable {
 
 //#region MouseHelper
 class MouseHelper extends Button {
-	constructor() {
+	constructor(execute = true) {
 		super({ width: 50, height: 50, fontsize: 36 })
 		this.update = (dt) => this.centeratV(game.mouser.pos)
+		if (execute) {
+			game.add_drawable(this)
+		}
 	}
 }
 //#endregion
@@ -787,7 +790,7 @@ class Plot {
 	 * @param {string} [args.color="black"]
 	 * @param {number} [args.width=2]
 	 * @param {boolean} [args.axes=true]
-	 * @param {string} [args.axes_color="pink"]
+	 * @param {string} [args.axes_color]
 	 * @param {number} [args.axes_width=1]
 	 * @param {boolean} [args.show_border_values=true]
 	 * @param {string} [args.show_border_values_font="12px Times"]
@@ -805,7 +808,7 @@ class Plot {
 			color: "black",
 			width: 2,
 			axes: true,
-			axes_color: "pink",
+			axes_color: "plum",//"deeppink",//"fuchsia",
 			axes_width: 1,
 			show_border_values: true,
 			show_border_values_font: "12px Times",

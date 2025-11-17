@@ -1,6 +1,15 @@
 /// settings
+const changelogGlobal =
+    `
+    2025.11.17.
+    Integer values are forced even if compressions are involved
+    Compressions are more common now (was 25% of stretches, now is 40%)
+    Broken line functions are now made of at least 3 pieces (was 2)
+    Changed the color of the axes from pink to plum (more visible)
+    y=sin(x) received pi/2 as a guide point
+    `
 const stgs = {
-    tolerance: 0.01,
+    tolerance: 0.02,
     stage: -1, //-1 for selector
     victories: [],
     allowVictoryByAlternateValues: false, //yet to be implemented
@@ -8,8 +17,8 @@ const stgs = {
     labelPoints: true,
     randomType: "Any",
     firstRun: true,
-    animationsEnabled: true
-
+    animationsEnabled: true,
+    changelog: changelogGlobal
 }/// end of settings
 
 const levels = [

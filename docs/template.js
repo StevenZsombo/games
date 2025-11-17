@@ -261,6 +261,7 @@ class Game {
     ///                                             INITIALIZE                                                       ///
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
+    //#region initialize_more
     initialize_more() {
         //#region makeLevel
         const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
@@ -493,8 +494,8 @@ class Game {
                     cp.clickable = false
                     game.add_drawable(cp)
                     this.animator.add_anim(cp, time, "moveTo", {
-                        x: tgt.centerX,
-                        y: tgt.centerY,
+                        x: tgt.centerX - cp.width / 4,
+                        y: tgt.centerY - cp.height / 4,
                         on_end: () => { game.remove_drawable(cp) },
                         noLock: true
                     })
@@ -511,7 +512,11 @@ class Game {
                     }
                 })
             }
+            //adds game.solution
+            game.solution = `y=${a == 1 ? "" : a}f(${b == 1 ? "" : b}x${-b * s > 0 ? "+" : ""}${-b * s != 0 ? -b * s : ""})${t > 0 ? "+" : ""}${t != 0 ? t : ""}`
+
         }
+        //#endregion
         //#region levelSelector
         const levelSelector = () => {
             if (localStorage.getItem("functionvictories")) {
@@ -541,6 +546,16 @@ class Game {
             })
             this.add_drawable(levelButtons)
             this.add_drawable(levelInfo)
+
+            const compressionsFix = (func, xs, a, b, s, t) => {
+                if (-1 < a && a < 1) { func = MM.functionTransformation(func, Math.abs(1 / a), 1, 0, 0) }
+                if (b < -1 || b > 1) {
+                    func = MM.functionTransformation(func, 1, Math.abs(1 / b), 0, 0)
+                    xs = xs.map(x => Math.abs(b) * x)
+                    //s = Math.abs(b) * s
+                }
+                return [func, xs, a, b, s, t]
+            }
             /**@returns {void} */
             const makeRandom = (numberOfTransformations = 1) => {
                 const levelMakers = {
@@ -554,7 +569,7 @@ class Game {
                 } else {
                     maker = levelMakers[typeRadio.selected.txt]
                 }
-                const levelData = maker(numberOfTransformations)
+                let levelData = maker(numberOfTransformations)
                 stgs.randomLevelData = levelData
                 main() // Restart is called here, nowhere else
             }
@@ -574,9 +589,9 @@ class Game {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
                     //stretch in y
-                    () => { a *= MM.randomInt(2, 5); a = Math.random() > .7 ? 1 / a : a },
+                    () => { a *= MM.randomInt(2, 5); a = Math.random() > .6 ? 1 / a : a },
                     //stretch in x
-                    () => { b *= MM.randomInt(2, 5); b = Math.random() > .7 ? 1 / b : b },
+                    () => { b *= MM.randomInt(2, 5); b = Math.random() > .6 ? 1 / b : b },
                     //reflect in y
                     () => { a *= -1 },
                     //reflect in x
@@ -594,14 +609,15 @@ class Game {
             const makeRandomPoly = (numberOfTransformations) => {
                 const [xs, ys] = getRandomPoints(MM.choice([3, 4, 4, 4, 5, 5]))
                 const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
-                return [MM.lagrange(xs, ys), xs, a, b, s, t]
+                const levelData = [MM.lagrange(xs, ys), xs, a, b, s, t]
+                return compressionsFix(...levelData)
             }
             const makeRandomTrig = (numberOfTransformations) => {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
                     () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
                     () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { s = MM.choice([PI / 2, PI / 3, PI / 4, -1, 1, -2, 2]) },
+                    () => { s = MM.choice([PI / 2, PI / 4, -1, 1, -2, 2]) },
                     () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
                     () => { a *= -1 },
                     () => { b *= -1 }
@@ -623,12 +639,12 @@ class Game {
 
                 return [func, xs, a, b, s, t, true] //reorient
             }
-            /**@returns {void} */
             const makeRandomSquiggly = (numberOfTransformations = 1) => {
                 const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
-                const [xs, ys] = getRandomPoints(MM.choice([3, 3, 3, 4, 4, 5]))
-                return [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
+                const [xs, ys] = getRandomPoints(MM.choice([4, 4, 4, 5, 5, 6]))
+                const levelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
                     xs, a, b, s, t]
+                return compressionsFix(...levelData)
             }
             game.makeRandom = makeRandom
 
@@ -667,10 +683,21 @@ class Game {
             rTypes.slice(1, 5).find(x => x.txt == stgs.randomType).on_click()
             this.add_drawable(rTypes)
 
+            let changelogButton = new Button()
+            changelogButton.width = rTypes.at(-1).width
+            changelogButton.height = rTypes.at(-1).height
+            this.add_drawable(changelogButton)
+            changelogButton.bottomat(rTypes.at(-1).bottom)
+            changelogButton.leftat(rButs[0].left)
+            changelogButton.on_click = () => alert(stgs.changelog)
+            changelogButton.fontsize = 16
+            changelogButton.txt = "Changelog"
+
+
             if (stgs.firstRun && stgs.animationsEnabled) {
                 stgs.firstRun = false
                 this.animator.add_anim(levelInfo, 1000, Anim.f.typingCentered)
-                const everyBody = [...levelButtons, ...rTypes, ...rButs, rInfo]
+                const everyBody = [...levelButtons, ...rTypes, ...rButs, rInfo, changelogButton]
                 everyBody.forEach(x => x.opacity = 1)
 
                 this.animator.add_staggered(levelButtons, 200, Anim.stepper(
@@ -678,14 +705,14 @@ class Game {
                 ), { initialDelay: 1000 })
                 this.animator.add_staggered([rInfo], 0, new Anim(null, 1000, Anim.f.typingCentered)
                     , { initialDelay: 3000, on_each_start: () => { rInfo.opacity = 0 } })
-                this.animator.add_staggered([...rTypes, ...rButs], 0, Anim.stepper(
+                this.animator.add_staggered([...rTypes, ...rButs, changelogButton], 0, Anim.stepper(
                     null, 1000, "opacity", 1, 0, { on_end: function () { this.obj.opacity = 0 } }
                 ), { initialDelay: 4000 })
 
 
             }
         }
-
+        //#endregion
         if (stgs.randomLevelData) {
             makeLevel(...stgs.randomLevelData)
             stgs.randomLevelData = null
@@ -703,13 +730,14 @@ class Game {
 
 
 
-
     }
+    //#endregion
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
     ///                                                                                                              ///
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    //#region update_more
     update_more(dt) {
 
 
@@ -719,11 +747,13 @@ class Game {
 
 
     }
+    //#endregion
     ///end update_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                           ^^^^UPDATE^^^^                                                     ///
     ///                                                                                                              ///
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    //#region draw_more
     draw_more(screen) {
 
 
@@ -735,17 +765,19 @@ class Game {
 
 
     }
+    #end
     ///end draw_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                            ^^^^DRAW^^^^                                                      ///
     ///                                                                                                              ///
     ///                                              NEXT_LOOP                                                       ///
     ///start next_loop_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    //#region next_loop_more
     next_loop_more() {
 
 
 
 
-    }
+    }//#endregion
     ///end next_loop_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                          ^^^^NEXT_LOOP^^^^                                                   ///
     ///                                                                                                              ///
@@ -754,11 +786,15 @@ class Game {
 
 
 
-} //this is the last closing brace
+} //this is the last closing brace for class Game
 
 //#region dev options
 /// dev options
 const dev = {
+    get solution() { return game.solution },
+    /** @param {boolean} torf */
+    set animations(torf) { stgs.animationsEnabled = torf }
+
 
 }/// end of dev
 //#endregion
