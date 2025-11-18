@@ -2,14 +2,9 @@ const TWOPI = Math.PI * 2
 const ONEDEG = Math.PI / 180
 const PI = Math.PI
 const NINETYDEG = Math.PI / 2
+
+
 //#region Rect
-/**
-* @class Rect
-* @property {number} [x=50] - x (left side)
-* @property {number} [y=50] - y (top side)
-* @property {number} [width=100]
-* @property {number} [height=100]
-*/
 class Rect {
 
 	constructor(x, y, width, height) {
@@ -316,70 +311,24 @@ class Rect {
 }
 //#endregion
 //#region Clickable
-/**
- * @class Clickable
- * @extends Rect
- * @property {number} [x=100]
- * @property {number} [y=100]
- * @property {number} [width=100]
- * @property {number} [height=100]
- * @property {function} [on_click=null]
- * @property {function} [on_release=null]
- * @property {function} [on_hover=null]
- * @property {function} [on_enter=null]
- * @property {function} [on_leave=null]
- * @property {function} [on_drag=null]
- * @property {function} [on_hold=null]
- * @property {function} [on_wheel=null]
- * @property {boolean} [_drag_force_within=false] whether forcefully follows the mouse when dragger
- * @property {boolean} [just_entered=false]
- * @property {Object|null} [last_clicked=null]
- * @property {Object|null} [last_held=null]
- * @property {boolean} [interactable=true]
- * * @property {boolean} [clickable=true]
- */
 class Clickable extends Rect {
-	/**
-	 * @class Clickable
-	 * @extends Rect
-	 * @param {Object} [options={}]
-	 * @param {function} [options.on_click=null]
-	 * @param {function} [options.on_release=null]
-	 * @param {function} [options.on_hover=null]
-	 * @param {function} [options.on_enter=null]
-	 * @param {function} [options.on_leave=null]
-	 * @param {function} [options.on_drag=null]
-	 * @param {function} [options.on_hold=null]
-	 * @param {function} [options.on_wheel=null]
-	 * @param {boolean} [options._drag_force_within=false]
-	 * @param {boolean} [options.just_entered=false]
-	 * @param {Object|null} [options.last_clicked=null]
-	 * @param {Object|null} [options.last_held=null]
-	 * @param {boolean} [options.interactable=true]
-	 * * @param {boolean} [options.clickable=true]
-	 */
 	constructor(options = {}) {
-		const defaults = {
-			on_click: null,
-			on_release: null,
-			on_hover: null,
-			on_enter: null,
-			on_leave: null,
-			on_drag: null,
-			on_hold: null,
-			on_wheel: null,
-			_drag_force_within: false, //won't let the button separate from mouse while dragging
-			just_entered: false,
-			last_clicked: null,
-			last_held: null,
-			interactable: true,
-			clickable: true
-		}
 		super(options.x, options.y, options.width, options.height)
-		Object.assign(this, {
-			...defaults,
-			...options
-		})
+		this.on_click = null
+		this.on_release = null
+		this.on_hover = null
+		this.on_enter = null
+		this.on_leave = null
+		this.on_drag = null
+		this.on_hold = null
+		this.on_wheel = null
+		this._drag_force_within = false //won't let the button separate from mouse while dragging
+		this.just_entered = false
+		this.last_clicked = null
+		this.last_held = null
+		this.interactable = true
+		this.clickable = true
+		Object.assign(this, options)
 	}
 
 	check(x, y, clicked, released, held, wheel) {
@@ -429,82 +378,31 @@ class Clickable extends Rect {
 }
 //#endregion
 //#region Button
-/**
- * @class Button
- * @extends Clickable
- * @property {string|null} [txt=null]
- * @property {number} [fontsize=24]
- * @property {string} [font_color="black"]
- * @property {string} [font_font="Times"]
- * @property {number} [fontScale = 1]
- * @property {Object} [textSettings = {}]
- * @property {number|null} [outline=2]
- * @property {string|null} [outline_color="black"]
- * @property {string|null} [color="gray"]
- * @property {boolean} [transparent=false]
- * @property {boolean} [selected=false]
- * @property {string|null} [selected_color="orange"]
- * @property {string|null} [hover_color=null]
- * @property {string|null} [hover_selected_color=null]
- * @property {boolean} [visible=true]
- * @property {string|Object} [tag=""]
- * @property {HTMLImageElement} [img=null]
- * @property {number} [opacity=0]
- * @property {number} [rad=0]
- */
 class Button extends Clickable {
-	/**
-	 * @class Button
-	 * @extends Clickable
-	 * @param {Object} [options={}]
-	 * @param {string|null} [options.txt=null]
-	 * @param {number} [options.fontsize=24]
-	 * @param {string} [options.font_color="black"]
-	 * @param {string} [options.font_font="Times"]
-	 * @param {number} [options.fontScale = 1]
-	 * @param {Object} [textSettings={}]
-	 * @param {number} [options.outline=2]
-	 * @param {string} [options.outline_color="black"]
-	 * @param {string} [options.color="gray"]
-	 * @param {boolean} [options.transparent=false]
-	 * @param {boolean} [options.selected=false]
-	 * @param {string} [options.selected_color="orange"]
-	 * @param {string|null} [options.hover_color=null]
-	 * @param {string|null} [options.hover_selected_color=null]
-	 * @param {boolean} [options.visible=true]
-	 * @param {string} [options.tag=""]
-	 * @param {any} [options.img=null]
-	 * @param {number} [options.opacity=0]
-	 * @param {number} [options.rad=0]
-	 */
 	constructor(options = {}) {
-		const defaults = {
-			txt: null, //txtmult by default
-			fontsize: 24,
-			font_color: "black",
-			font_font: "Times",
-			fontScale: 1,
-			textSettings: {},
-			outline: 2,
-			outline_color: "black",
-			color: "gray",
-			transparent: false,
-			selected: false,
-			selected_color: "orange",
-			hover_color: null,
-			hover_selected_color: null,
-			visible: true,
-			tag: "",
-			img: null,
-			opacity: 0,
-			rad: 0
-		}
-		const settings = {
-			...defaults,
-			...options
-		}
-		super(settings)
-		Object.assign(this, settings)
+		super(options)
+		/**@type {string} */
+		this.txt = null //txtmult by default
+		this.fontsize = 24
+		this.font_color = "black"
+		this.font_font = "Times"
+		this.fontScale = 1
+		this.textSettings = {}
+		this.outline = 2
+		this.outline_color = "black"
+		this.color = "gray"
+		this.transparent = false
+		this.selected = false
+		this.selected_color = "orange"
+		this.hover_color = null
+		this.hover_selected_color = null
+		this.visible = true
+		this.tag = ""
+		this.img = null
+		this.opacity = 0
+		this.rad = 0
+
+		Object.assign(this, options)
 
 	}
 
@@ -755,76 +653,34 @@ class Malleable {
 //#endregion
 
 //#region Plot
-/**
- * @typedef {Object} PlotOptions
- * @property {number} [minX=0] - Minimum x-value
- * @property {number} [maxX=10] - Maximum x-value
- * @property {number} [minY=-5] - Minimum y-value
- * @property {number} [maxY=5] - Maximum y-value
- * @property {string} [color="black"] - Plot line color
- * @property {number} [width=2] - Plot line width
- * @property {boolean} [axes=true] - Whether to show axes
- * @property {string} [axes_color="pink"] - Axes color
- * @property {number} [axes_width=1] - Axes line width
- * @property {boolean} [show_border_values=true] - Show border values
- * @property {string} [show_border_values_font="12px Times"] - Border values font
- * @property {number} [show_border_values_dp=2] - Decimal places for border values
- */
-/**
- * Creates a new Plot instance
- * @param {Function} func - The function to plot
- * @param {Object} rect - Rectangle to fit in
- * @param {PlotOptions} [args={}] - Configuration options
- */
 class Plot {
-	/**
-	 * @class Plot
-	 * @param {Function} func - The function to plot.
-	 * @param {Rect} rect - Rectangle to fit in.
-	 * @param {Object} [args={}]
-	 * @param {number} [args.minX=0]
-	 * @param {number} [args.maxX=10]
-	 * @param {number} [args.minY=-5]
-	 * @param {number} [args.maxY=5]
-	 * @param {boolean} [args.fixedRatio="false"] - should the two axes be fixed in a one-one ratio?
-	 * @param {string} [args.color="black"]
-	 * @param {number} [args.width=2]
-	 * @param {boolean} [args.axes=true]
-	 * @param {string} [args.axes_color]
-	 * @param {number} [args.axes_width=1]
-	 * @param {boolean} [args.show_border_values=true]
-	 * @param {string} [args.show_border_values_font="12px Times"]
-	 * @param {number} [args.show_border_values_dp=2]
-	 * @param {Array<Array<number>>} [args.highlightedPoints = []]
-	 * @param {Object}[args.pltMore = {}] - func, color, highlightedPoints, *other*
-	 */
-	constructor(func, rect, args = {}) {
-		const defaults = {
-			minX: 0,
-			maxX: 10,
-			minY: -5,
-			maxY: 5,
-			fixedRatio: false, // to be implemented
-			color: "black",
-			width: 2,
-			axes: true,
-			axes_color: "plum",//"deeppink",//"fuchsia",
-			axes_width: 1,
-			show_border_values: true,
-			show_border_values_font: "12px Times",
-			show_border_values_dp: 2,
-			highlightedPoints: [],
-			label_highlighted: true,
-			label_highlighted_font: "12 px Times",
-			funcPointsX: [],
-			funcMore: [],
-			highlightedPointsMore: [],
-			funcPointsXMore: [],
-			monkey: {},
-			pltMore: [], //{func, color, highlightedPoints}
-			overrideBoundaryCheck: true,
-			dottingDistance: 1
-		}
+	constructor(func, rect) {
+		// explicit defaults (kept comments as they are)
+		this.minX = 0
+		this.maxX = 10
+		this.minY = -5
+		this.maxY = 5
+		this.fixedRatio = false // to be implemented
+		this.color = "black"
+		this.width = 2
+		this.axes = true
+		this.axes_color = "plum"//"deeppink",//"fuchsia",
+		this.axes_width = 1
+		this.show_border_values = true
+		this.show_border_values_font = "12px Times"
+		this.show_border_values_dp = 2
+		this.highlightedPoints = []
+		this.label_highlighted = true
+		this.label_highlighted_font = "12 px Times"
+		this.funcPointsX = []
+		this.funcMore = []
+		this.highlightedPointsMore = []
+		this.funcPointsXMore = []
+		this.monkey = {}
+		this.pltMore = [] //{func, color, highlightedPoints}
+		this.overrideBoundaryCheck = true
+		this.dottingDistance = 1
+
 		this.func = func
 		this.rect = rect
 		this.density = rect.width * 2
@@ -833,7 +689,7 @@ class Plot {
 		this.plotCanvas.height = rect.height
 		this.plotScreen = this.plotCanvas.getContext("2d")
 		this.plotRect = new Rect(0, 0, rect.width, rect.height)
-		Object.assign(this, { ...defaults, ...args })
+
 	}
 
 	draw(screen) {
@@ -958,6 +814,31 @@ class Plot {
 		this.translateY(y)
 		return this
 	}
+	/**@param {Array<number>} xs  @param {Array<number>} ys */
+	reorient(xs, ys, zoomFactor = 0.6) {
+		this.minX = Math.min(this.minX, ...xs)
+		this.maxX = Math.max(this.maxX, ...xs)
+		this.minY = Math.min(this.minY, ...ys)
+		this.maxY = Math.max(this.maxY, ...ys)
+		this.zoomAtCenter(zoomFactor)
+	}
+
+	matchAxesScaling() {
+		let xDensity = (this.maxX - this.minX) / this.rect.width
+		let yDensity = (this.maxY - this.minY) / this.rect.height
+		this.translateX(-(this.maxX - this.minX) / 2)
+		this.translateY(-(this.maxY - this.minY) / 2)
+		if (xDensity < yDensity) {
+			this.zoomX(xDensity / yDensity)
+		} else {
+			this.zoomY(yDensity / xDensity)
+		}
+		this.translateX((this.maxX - this.minX) / 2)
+		this.translateY((this.maxY - this.minY) / 2)
+	}
+
+
+
 
 	addControls(mouser, button) {
 		button ??= this.rect

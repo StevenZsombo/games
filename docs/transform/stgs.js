@@ -2,11 +2,20 @@
 const changelogGlobal =
     `
     2025.11.17.
-    Integer values are forced even if compressions are involved
+    Integer values are forced even if compressions are involved [REDACTED]
     Compressions are more common now (was 25% of stretches, now is 40%)
     Broken line functions are now made of at least 3 pieces (was 2)
     Changed the color of the axes from pink to plum (more visible)
-    y=sin(x) received pi/2 as a guide point
+    y=sin(x) received x=3pi/2 as a guiding point
+    2025.11.18.
+    "Submit" button has been added. It must be clicked to verify a solution.
+    The latest submission attempt will be plotted in blue.
+    Coordinate axes are now scaled 1:1.
+    Trigonometry is less common in randomimed puzzles unless selected (was 33%, now 20%).
+    Removed atan from the random trig puzzles. Sec and cosec are now less common.
+    Lagrange interpolated polynomials are generated with generally smaller gradient.
+    Lagrange interpolated parabolas will never be based on a symmetric V-shape of 3 points.
+    No longer forcing integer values after compressions.
     `
 const stgs = {
     tolerance: 0.02,
@@ -18,7 +27,9 @@ const stgs = {
     randomType: "Any",
     firstRun: true,
     animationsEnabled: true,
-    changelog: changelogGlobal
+    changelog: changelogGlobal,
+    compressionsFixDesired: false,
+    matchedAxesDesired: true
 }/// end of settings
 
 const levels = [
@@ -26,7 +37,7 @@ const levels = [
     [MM.brokenLineFunction(-3, 3, 1, 5, 3, -1, 6, 2), [-3, 1, 3, 6], 1, -1 / 2, 0, 0],
     [MM.brokenLineFunction(1, 5, 2, 6, 7, -4), [1, 2, 7], -1, -1, 0, 2],
     [MM.brokenLineFunction(1, 2, 2, 4, 3, 1, 4, 5, 5, 1), [1, 2, 3, 4, 5], 2, 3, 1, - 2],
-    [x => Math.sin(x), [0, PI, TWOPI], -1, 2, 0, 2],
+    [x => Math.sin(x), [0, 3 * PI / 2, PI, TWOPI], -1, 2, 0, 2],
     [x => { return Math.sqrt(16 - (x - 4) * (x - 4)) }, [0, 4, 8], -1 / 4, 1 / 2, -1, 3],
     [x => { if (x < -3 || x > 9) { return }; return (x * x - 4 * x + 6) }, [-3, 2, 9], 2 / 3, -1 / 2, 4, -3],
     [x => { if (x != 0) { return 4 / x / x } }, [-2, -1, 1, 2], -1, 1 / 2, 3, +2],

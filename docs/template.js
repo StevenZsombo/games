@@ -284,12 +284,15 @@ class Game {
             plt.pltMore.push({ func: transFunc, color: "red", highlightedPoints: transPts })
             plt.width = 3
             if (reorient) {
-                const minX = Math.min(...pts.map(x => x[0]), ...transPts.map(x => x[0]), 1) * 1.2 - 2
+                /*const minX = Math.min(...pts.map(x => x[0]), ...transPts.map(x => x[0]), 1) * 1.2 - 2
                 const maxX = Math.max(...pts.map(x => x[0]), ...transPts.map(x => x[0]), -1) * 1.2 + 2
                 const minY = Math.min(...pts.map(x => x[1]), ...transPts.map(x => x[1]), 1) * 1.2 - 2
-                const maxY = Math.max(...pts.map(x => x[1]), ...transPts.map(x => x[1]), -1) * 1.2 + 2
-                game.plotDefaultBounds = { minX, minY, maxX, maxY }
-                Object.assign(plt, game.plotDefaultBounds)
+                const maxY = Math.max(...pts.map(x => x[1]), ...transPts.map(x => x[1]), -1) * 1.2 + 2*/
+                plt.minX = 0; plt.maxX = 0; plt.minY = 0; plt.maxY = 0;
+                plt.reorient([...pts.map(p => p[0]), ...transPts.map(p => p[0])], [...pts.map(p => p[1]), ...transPts.map(p => p[1])])
+                if (stgs.matchedAxesDesired) { plt.matchAxesScaling() }
+                game.plotDefaultBounds = { minX: plt.minX, minY: plt.minY, maxX: plt.maxX, maxY: plt.maxY }
+                //Object.assign(plt, game.plotDefaultBounds)
 
             }
             plt.show_border_values_font = "36px Times"
@@ -326,6 +329,7 @@ class Game {
             }
             zoomReset.on_click = () => {
                 Object.assign(plt, game.plotDefaultBounds)
+                //plt.pltMore.splice(1, 1)
             }
             //plt.density *= 2
 
@@ -365,7 +369,7 @@ class Game {
                         if (x == bmBS || x == bT) { x.txt = (x.negative ? "-" : "+") + x.txt }
                     }
                     if ((x == bA || x == bB) && x.numerator == 0 && x.negative) { x.txt = "-" }
-                    game.checkVictory?.()
+                    //game.checkVictory?.() //has been replaced with submit button
                 }
                 x.reset = function () {
                     this.numerator = 0
@@ -462,16 +466,22 @@ class Game {
                 */
 
             }
+            game.hasWonAlready = false
+            game.isFirstAttempt = true
             const checkVictory = (forced = false) => {
+                if (game.hasWonAlready) { return }
                 if (forced || winCondition()) {
                     GameEffects.fireworksShow()
+                    game.hasWonAlready = true
                     levelSelectButton.color = "lightblue"
                     guidance.txt = "Victory!"
                     if (!stgs.victories.includes(stgs.stage)) {
                         stgs.victories.push(stgs.stage)
                         localStorage.setItem("functionvictories", MM.arrToStr(stgs.victories))
                     }
+                    return true
                 }
+                return false
             }
 
             game.checkVictory = checkVictory
@@ -515,6 +525,77 @@ class Game {
             //adds game.solution
             game.solution = `y=${a == 1 ? "" : a}f(${b == 1 ? "" : b}x${-b * s > 0 ? "+" : ""}${-b * s != 0 ? -b * s : ""})${t > 0 ? "+" : ""}${t != 0 ? t : ""}`
 
+
+            const submitButton = new Button()
+            this.add_drawable(submitButton)
+            submitButton.leftat(inputButtons[0].left)
+            submitButton.rightstretchat(inputButtons[1].right)
+            submitButton.topat(levelSelectButton.top)
+            submitButton.bottomstretchat(levelSelectButton.bottom)
+            submitButton.centerat(inputButtons[1].centerX, submitButton.centerY)
+            submitButton.txt = "Submit"
+            submitButton.fontsize = inputButtons[0].fontsize
+            levelSelectButton.deg = -90
+            levelSelectButton.centerat(fields.at(-1).right, submitButton.bottom)
+            levelSelectButton.move(-levelSelectButton.height / 2, -levelSelectButton.width / 2)
+            const plotTheirInput = () => {
+                const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
+                plt.pltMore[1] = {
+                    color: "blue",
+                    func: MM.functionTransformation(func, vA, vB, -vmBS / vB, vT),
+                    highlightedPoints: pts.map(p => MM.pointTransformation(p[0], p[1], vA, vB, -vmBS / vB, vT))
+                }
+            }
+
+            const fanfare = () => {
+
+            }
+
+            const plotTheirInputAnimated = (on_end) => {
+                if (stgs.animationsEnabled) {
+                    submitButton.color = "blue"
+                    fields.forEach(b => b.color = "blue")
+                    fields.forEach(b => b.selected_color = "blue")
+                    submitButton.clickable = false
+                    this.animator.add_staggered([...fields, new Button], 200,
+                        new Anim(null, 0, Anim.f.delay, {
+                            on_end: function () { game.sendFancy(this.obj, bg) }
+                        })
+                        , {
+                            on_final: () => {
+                                plotTheirInput()
+                                submitButton.color = "gray"
+                                fields.forEach(b => b.color = "lightgray")
+                                fields.forEach(b => b.selected_color = "lightblue")
+                                radio_group.selected.on_click()
+                                submitButton.clickable = true
+                                on_end?.()
+                            }
+                        })
+                }
+                else { plotTheirInput() }
+            }
+            submitButton.on_click = () => {
+                plt.pltMore.splice(1, 1)
+                const win = winCondition()
+                if (win) { //victory
+                    plotTheirInputAnimated(checkVictory)
+                } else {//loss
+                    game.isFirstAttempt = false
+                }
+                if ((!win) && (!game.isFirstAttempt)) { plotTheirInputAnimated() }
+
+            }
+
+
+
+
+
+
+
+
+
+
         }
         //#endregion
         //#region levelSelector
@@ -548,6 +629,7 @@ class Game {
             this.add_drawable(levelInfo)
 
             const compressionsFix = (func, xs, a, b, s, t) => {
+                if (!stgs.compressionsFixDesired) { return [func, xs, a, b, s, t] }
                 if (-1 < a && a < 1) { func = MM.functionTransformation(func, Math.abs(1 / a), 1, 0, 0) }
                 if (b < -1 || b > 1) {
                     func = MM.functionTransformation(func, 1, Math.abs(1 / b), 0, 0)
@@ -565,7 +647,9 @@ class Game {
                 }
                 let maker
                 if (typeRadio.selected.txt == "Any") {
-                    maker = MM.choice([makeRandomSquiggly, makeRandomPoly, makeRandomTrig])
+                    maker = MM.choice([
+                        makeRandomSquiggly, makeRandomSquiggly, makeRandomPoly, makeRandomPoly, makeRandomTrig
+                    ])
                 } else {
                     maker = levelMakers[typeRadio.selected.txt]
                 }
@@ -575,8 +659,12 @@ class Game {
             }
 
             const getRandomPoints = (numberOfPoints,
-                minStartX = -8, maxStartX = 8, minStartY = -10, maxStartY = 10,
-                minDiffX = 1, maxDiffX = 5, minDiffY = -8, maxDiffY = 8) => {
+                {
+                    minStartX = -8, maxStartX = 8,
+                    minStartY = -10, maxStartY = 10,
+                    minDiffX = 1, maxDiffX = 5,
+                    minDiffY = -8, maxDiffY = 8
+                } = {}) => {
                 const xs = [MM.randomInt(minStartX, maxStartX)]
                 const ys = [MM.randomInt(minStartY, maxStartY)]
                 for (let i = 0; i < numberOfPoints - 1; i++) {
@@ -607,8 +695,12 @@ class Game {
             }
 
             const makeRandomPoly = (numberOfTransformations) => {
-                const [xs, ys] = getRandomPoints(MM.choice([3, 4, 4, 4, 5, 5]))
+                const [xs, ys] = getRandomPoints(MM.choice([3, 4, 4, 4, 5, 5]),
+                    { minDiffX: 2, minDiffY: -4, maxDiffY: 4 })
                 const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
+                if (xs.length == 3 && xs[1] - xs[0] == xs[2] - xs[1] && ys[1] - ys[0] == ys[2] - ys[1]) {
+                    xs[2] = xs[2] + 1
+                }
                 const levelData = [MM.lagrange(xs, ys), xs, a, b, s, t]
                 return compressionsFix(...levelData)
             }
@@ -617,7 +709,7 @@ class Game {
                 const transformOptions = [
                     () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
                     () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { s = MM.choice([PI / 2, PI / 4, -1, 1, -2, 2]) },
+                    () => { s = MM.choice([PI / 4, PI / 3, - 1, 1, -2, 2]) },
                     () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
                     () => { a *= -1 },
                     () => { b *= -1 }
@@ -625,9 +717,12 @@ class Game {
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
                 let [func, xs] = MM.choice([
                     [Math.sin, [-PI / 2, 0, PI / 2, 3 * PI / 2]],
+                    [Math.sin, [-PI / 2, 0, PI / 2, 3 * PI / 2]],
+                    [Math.cos, [-PI, 0, PI, TWOPI]],
                     [Math.cos, [-PI, 0, PI, TWOPI]],
                     [Math.tan, [666]],
-                    [Math.atan, [-PI, 0, PI, TWOPI]],
+                    [Math.tan, [666]],
+                    //[Math.atan, [-PI, 0, PI, TWOPI]],
                     [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
                     [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
                 ])
@@ -640,7 +735,9 @@ class Game {
                 return [func, xs, a, b, s, t, true] //reorient
             }
             const makeRandomSquiggly = (numberOfTransformations = 1) => {
-                const [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
+                let [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
+                if (Math.abs(a) != 1 && Math.random() < .1) { a = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(a) }
+                if (Math.abs(b) != 1 && Math.random() < .1) { b = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(b) }
                 const [xs, ys] = getRandomPoints(MM.choice([4, 4, 4, 5, 5, 6]))
                 const levelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
                     xs, a, b, s, t]
@@ -664,7 +761,8 @@ class Game {
             rButs[0].on_click = () => makeRandom(1)
             rButs[1].on_click = () => makeRandom(MM.choice([2, 2, 3]))
             rButs[2].on_click = () => makeRandom(MM.choice([4, 4, 4, 4, 5]))
-            const rInfo = new Button({ txt: "Or generate one:" })
+            const rInfo = new Button()
+            rInfo.txt = "Or generate one:"
             rInfo.fontsize = levelInfo.fontsize
             rInfo.width = levelInfo.width
             rInfo.leftat(levelInfo.left)
@@ -722,12 +820,6 @@ class Game {
         } else {
             makeLevel(...levels[stgs.stage])
         }
-
-
-
-
-
-
 
 
     }
