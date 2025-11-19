@@ -669,18 +669,13 @@ class Plot {
 		this.show_border_values = true
 		this.show_border_values_font = "12px Times"
 		this.show_border_values_dp = 2
-		this.highlightedPoints = []
+		this.highlightedPoints = [] //
 		this.label_highlighted = true
 		this.label_highlighted_font = "12 px Times"
-		this.funcPointsX = []
-		this.funcMore = []
-		this.highlightedPointsMore = []
-		this.funcPointsXMore = []
-		this.monkey = {}
+		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true
 		this.dottingDistance = 1
-
 		this.func = func
 		this.rect = rect
 		this.density = rect.width * 2
@@ -695,15 +690,17 @@ class Plot {
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this })
-		this.pltMore?.forEach(p => {
-			MM.plot(this.plotScreen, p.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-				{ ...this, ...p }
-			)
-			p.highlightedPoints?.forEach(x =>
-				this.highlightPoint(x, p)
-			)
-		})
 		this.highlightedPoints.forEach(p => this.highlightPoint(p))
+		this.pltMore?.forEach(item => {
+			if (item?.func) {
+				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
+					{ ...this, ...item }
+				)
+			}
+			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)
+			)
+
+		})
 		screen.drawImage(this.plotCanvas, this.rect.x, this.rect.y)
 		this.plotScreen.clearRect(0, 0, this.plotCanvas.width, this.plotCanvas.height)
 		if (this.show_border_values) {
@@ -725,7 +722,7 @@ class Plot {
 
 	highlightPoint(p, color, label_highlighted) {
 		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, color ?? this.color)
+		MM.drawCircle(this.plotScreen, x, y, 10, { color: color ?? this.color })
 		label_highlighted ??= this.label_highlighted
 		if (label_highlighted) {
 			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`

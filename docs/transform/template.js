@@ -265,10 +265,10 @@ class Game {
     initialize_more() {
         //#region makeLevel
         const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
-            const bg = Button.fromRect(this.rect.copy.splitCol(5, 4)[0].stretch(.9, .9).shrinkToSquare())
-            const ig = this.rect.copy.splitCol(5, 4)[1].stretch(.9, .9)
-            bg.color = "white"
-            bg.leftat(bg.left / 2)
+            const backGround = Button.fromRect(this.rect.copy.splitCol(5, 4)[0].stretch(.9, .9).shrinkToSquare())
+            const inputButtonsBackground = this.rect.copy.splitCol(5, 4)[1].stretch(.9, .9)
+            backGround.color = "white"
+            backGround.leftat(backGround.left / 2)
             let pts
             if (ptsX) {
                 pts = ptsX.map(x => [x, func(x)])
@@ -279,9 +279,9 @@ class Game {
             transFunc ??= MM.functionTransformation(func, a, b, s, t)
             game.func = func
             /**@type {Plot} plt */
-            const plt = new Plot(func, bg)
+            const plt = new Plot(func, backGround)
             game.plt = plt
-            plt.pltMore.push({ func: transFunc, color: "red", highlightedPoints: transPts })
+            plt.pltMore[0] = { func: transFunc, color: "red", highlightedPoints: transPts }
             plt.width = 3
             if (reorient) {
                 /*const minX = Math.min(...pts.map(x => x[0]), ...transPts.map(x => x[0]), 1) * 1.2 - 2
@@ -315,8 +315,8 @@ class Game {
                 x.resize(80, 80)
                 x.color = "white"
             })
-            zoomOut.leftat(bg.right + 10)
-            zoomOut.bottomat(bg.bottom)
+            zoomOut.leftat(backGround.right + 10)
+            zoomOut.bottomat(backGround.bottom)
             zoomIn.bottomat(zoomOut.top - 10)
             zoomIn.leftat(zoomOut.left)
             zoomReset.leftat(zoomOut.left)
@@ -334,11 +334,11 @@ class Game {
             //plt.density *= 2
 
 
-            game.add_drawable(bg)
+            game.add_drawable(backGround)
             game.add_drawable(plt)
-            ig.move(-50, 0)
-            ig.stretch(1.15, 1).move(-10, 0)
-            const inputSpaces = ig.copy.move(0, 100).splitRow(1, 6)[0].splitCol(...Array(8).fill(1)).map(Button.fromRect)
+            inputButtonsBackground.move(-50, 0)
+            inputButtonsBackground.stretch(1.15, 1).move(-10, 0)
+            const inputSpaces = inputButtonsBackground.copy.move(0, 100).splitRow(1, 6)[0].splitCol(...Array(8).fill(1)).map(Button.fromRect)
             inputSpaces.forEach(x => {
                 x.fontsize = 48
                 x.stretch(1, .5)
@@ -349,6 +349,7 @@ class Game {
             inputSpaces[4].txt = "x"
             inputSpaces[6].txt = ")"
             game.add_drawable(inputSpaces)
+
 
 
             const fields = [1, 3, 5, 7].map(i => inputSpaces[i])
@@ -391,8 +392,16 @@ class Game {
                 //oldVal *= sgn
                 return Number(String(oldVal) + String(addVal))
             }
+            const getCurrentField = () => {
+                if (game.currentField) {
+                    return game.currentField
+                } else {
+                    return radio_group.selected
+
+                }
+            }
             const toField = function (value) {
-                const curr = radio_group.selected
+                const curr = getCurrentField()
                 if (curr.fraction) {
                     curr.denominator = addnum(curr.denominator, value)
                 } else {
@@ -400,9 +409,17 @@ class Game {
                 }
                 curr.txtRefresh()
             }
-            const inputButtons = ig.
+
+
+
+
+
+
+
+            const inputButtons = inputButtonsBackground.copy.
                 splitRow(1, 6)[1].
-                stretch(.7, .7).
+                stretch(.55, .7).
+                move(-50, 0).
                 splitGrid(5, 3).
                 flat().map(x => x.deflate(10, 10)).
                 map(Button.fromRect)
@@ -419,34 +436,43 @@ class Game {
             inputButtons[10].on_click = () => { toField(0) }
             inputButtons[9].txt = "+"
             inputButtons[9].on_click = () => {
-                radio_group.selected.negative = false
-                radio_group.selected.txtRefresh()
+                getCurrentField().negative = false
+                getCurrentField().txtRefresh()
             }
             inputButtons[11].txt = "-"
             inputButtons[11].on_click = () => {
-                radio_group.selected.negative = true
-                radio_group.selected.txtRefresh()
+                getCurrentField().negative = true
+                getCurrentField().txtRefresh()
             }
             inputButtons[13].txt = "/"
             inputButtons[13].on_click = () => {
-                if (radio_group.selected.numerator != 0) {
-                    radio_group.selected.fraction = true
-                    radio_group.selected.txtRefresh()
+                if (getCurrentField().numerator != 0) {
+                    getCurrentField().fraction = true
+                    getCurrentField().txtRefresh()
                 }
             }
             inputButtons[12].txt = "Reset"
-            inputButtons[12].on_click = () => { fields.forEach(x => x.reset()) }
+            game.fieldsToReset = fields
+            const resetButtonFunction = () => {
+                game.fieldsToReset.forEach(x => x.reset())
+                if (game.fieldsToReset.length == 4) {
+                    game.plt.pltMore[1] = undefined
+                }
+            }
+            inputButtons[12].on_click = () => { resetButtonFunction() }
             inputButtons[14].txt = "Delete"
-            inputButtons[14].on_click = () => { radio_group.selected.reset() }
+            inputButtons[14].on_click = () => { getCurrentField().reset() }
 
-            const guidance = Button.fromRect(ig.copy.move(0, -50).splitRow(1, 6)[0])
+            const guidance = Button.fromRect(inputButtonsBackground.copy.move(0, -50).splitRow(1, 6)[0])
             game.add_drawable(guidance)
             guidance.stretch(1, .7)
-            guidance.topat(bg.top)
+            guidance.topat(backGround.top)
             guidance.rightat(inputSpaces.at(-1).right)
             guidance.transparent = transFunc
-            guidance.txt = "Find the equation of the red curve \nas a function of the black curve y=f(x)."
+            guidance.txt_default = "Find the equation of the red curve \nas a function of the black curve y=f(x)."
+            guidance.txt = guidance.txt_default
             guidance.fontsize = 36
+
 
 
             const winCondition = () => {
@@ -492,7 +518,7 @@ class Game {
             levelSelectButton.width = 250
             levelSelectButton.height = 80
             levelSelectButton.color = "lightgray"
-            levelSelectButton.bottomat(bg.bottom)
+            levelSelectButton.bottomat(backGround.bottom)
             levelSelectButton.rightat(inputSpaces.at(-1).right)
             levelSelectButton.on_click = () => { stgs.stage = -1; main() }
             game.add_drawable(levelSelectButton)
@@ -514,10 +540,10 @@ class Game {
                 game.sendFancy = sendFancy
                 inputButtons.forEach((b, i) => {
                     if (i != 12) {
-                        b.on_click = MM.extFunc(b.on_click, () => sendFancy(b, radio_group.selected))
+                        b.on_click = MM.extFunc(b.on_click, () => sendFancy(b, getCurrentField()))
                     } else {
                         b.on_click = MM.extFunc(b.on_click, () => {
-                            radio_group.buttons.forEach(x => sendFancy(b, x))
+                            game.fieldsToReset.forEach(x => sendFancy(b, x))
                         })
                     }
                 })
@@ -547,9 +573,6 @@ class Game {
                 }
             }
 
-            const fanfare = () => {
-
-            }
 
             const plotTheirInputAnimated = (on_end) => {
                 if (stgs.animationsEnabled) {
@@ -559,7 +582,7 @@ class Game {
                     submitButton.clickable = false
                     this.animator.add_staggered([...fields, new Button], 200,
                         new Anim(null, 0, Anim.f.delay, {
-                            on_end: function () { game.sendFancy(this.obj, bg) }
+                            on_end: function () { game.sendFancy(this.obj, backGround) }
                         })
                         , {
                             on_final: () => {
@@ -567,7 +590,7 @@ class Game {
                                 submitButton.color = "gray"
                                 fields.forEach(b => b.color = "lightgray")
                                 fields.forEach(b => b.selected_color = "lightblue")
-                                radio_group.selected.on_click()
+                                getCurrentField()?.selected?.on_click?.()
                                 submitButton.clickable = true
                                 on_end?.()
                             }
@@ -576,7 +599,8 @@ class Game {
                 else { plotTheirInput() }
             }
             submitButton.on_click = () => {
-                plt.pltMore.splice(1, 1)
+                resetTransformButtons()
+                if (plt.pltMore[1]) { plt.pltMore[1] = undefined }
                 const win = winCondition()
                 if (win) { //victory
                     plotTheirInputAnimated(checkVictory)
@@ -586,6 +610,316 @@ class Game {
                 if ((!win) && (!game.isFirstAttempt)) { plotTheirInputAnimated() }
 
             }
+
+            const bStretch = new Button()
+            const bReflect = new Button()
+            const bTranslate = new Button()
+            const bTransforms = [bStretch, bReflect, bTranslate]
+            bTransforms.forEach((b, i) => {
+                b.leftat(inputButtons[2].right + 50)
+                b.width = 200
+                b.height = submitButton.height
+                b.txt = "Stretch Reflect Translate".split(" ")[i]
+                b.fontsize = inputButtons[0].fontsize
+                b.color = "lightgreen"
+            })
+            game.add_drawable(bTransforms)
+            bStretch.centerat(bStretch.centerX, (inputButtons[0].bottom + inputButtons[3].top) / 2)
+            bReflect.centerat(bStretch.centerX, (inputButtons[3].bottom + inputButtons[6].top) / 2)
+            bTranslate.centerat(bStretch.centerX, (inputButtons[6].bottom + inputButtons[9].top) / 2)
+            const bTransformReset = new Button()
+            bTransformReset.resize(zoomReset.width, zoomReset.height)
+            bTransformReset.leftat(bTranslate.left)
+            bTransformReset.topat(bTranslate.top)
+            bTransformReset.move(0, bTranslate.top - bReflect.top)
+            game.add_drawable(bTransformReset)
+            bTransformReset.color = "lightgreen"
+            bTransformReset.txt = "@"
+            bTransformReset.fontsize = zoomReset.fontsize
+            bTransforms.push(bTransformReset)
+
+            guidance.transparent = false
+            guidance.color = null
+            guidance.outline = 0
+            guidance.stretch(1, 1.2)
+
+            const greenCurve = {}
+            const greenCurveReset = () => {
+                plt.pltMore[2] = undefined
+                greenCurve.func = func
+                greenCurve.highlightedPoints = pts
+                greenCurve.color = "green"
+            }
+            greenCurveReset()
+            bTransformReset.on_click = () => {
+                resetTransformButtons()
+                greenCurveReset()
+
+            }
+
+            game.tempdrawies = []
+
+            const resetTransformButtons = (drawies) => {
+                drawies ??= game.tempdrawies
+                drawies.forEach(x => game.remove_drawable(x))
+                bTransforms.forEach(x => x.color = "lightgreen")
+                plt.pltMore[2] = greenCurve
+                if (game.currentField) {
+                    game.currentField = null
+                    radio_group.selected = game.previousField
+                    game.fieldsToReset = fields
+                    game.previousField.on_click()
+                    radio_group.buttons.forEach(x => x.interactable = true)
+                }
+            }
+
+
+
+            bStretch.on_click = () => {
+                resetTransformButtons()
+                bTransforms.forEach(x => x.color = "gray")
+                bStretch.color = "lightgreen"
+                const panel = guidance.splitCol(.5, 2, 2, 2, 2, 1).map(Button.fromRect)
+                panel[1].txt = "Stretch..."
+                const [up, down] = panel[2].splitRow(1, 1).map(Button.fromRect)
+                const drawies = [up, down, ...panel]
+                drawies.forEach(b => {
+                    b.color = "lightgreen"
+                    b.outline = 0
+                    b.fontsize = 30
+                })
+                up.txt = "in x-direction"
+                down.txt = "in y-direction"
+                up.outline = 3
+                down.outline = 3
+                up.hover_color = "purple"
+                down.hover_color = "purple"
+
+                game.add_drawable(drawies)
+                game.remove_drawable(up)
+                game.remove_drawable(down)
+                game.add_drawable(up, 6)
+                game.add_drawable(down, 6)
+                game.tempdrawies.push(...drawies)
+
+                const buildScaleFactorField = (direction) => {
+                    panel[2].txt = `in ${direction} direction`
+                    panel[2].visible = true
+                    this.remove_drawable(up)
+                    this.remove_drawable(down)
+                    panel[3].txt = "by scale factor"
+                    const field = new Button()
+                    field.centeratV(panel[4].center)
+                    game.tempdrawies.push(field)
+                    game.add_drawable(field)
+                    field.resize(fields[0].width, fields[0].height)
+                    field.fontsize = fields[0].fontsize
+                    field.outline = 0
+                    field.color = "lightblue"
+                    field.fraction = false
+                    field.negative = false
+                    field.numerator = 0
+                    field.denominator = 0
+                    game.currentField = field
+                    game.previousField = radio_group.selected
+                    game.fieldsToReset = [field]
+                    radio_group.selected.selected = false
+                    radio_group.selected = null
+                    radio_group.buttons.forEach(x => x.interactable = false)
+
+                    field.txtRefresh = () => {
+                        if (field.numerator == 0) {
+                            field.txt = null
+                        } else {
+                            field.txt = field.fraction ? field.numerator + "/" + (field.denominator) : field.numerator
+                        }
+
+                    }
+                    field.reset = function () {
+                        this.numerator = 0
+                        this.denominator = ""
+                        this.fraction = false
+                        this.negative = false
+                        field.txtRefresh()
+                    }
+                    field.reset()
+                    field.getValue = () => {
+                        if (x.numerator == 0 && (x == bA || x == bB)) { return x.negative ? -1 : 1 }
+                        return (x.fraction ? x.numerator / x.denominator : x.numerator) * (x.negative ? -1 : 1)
+                    }
+
+                    const ok = new Button()
+                    ok.centeratV(panel[5].center)
+                    ok.resize(panel[5].height * .5, panel[5].height * .5)
+                    ok.txt = "OK"
+                    ok.hover_color = "purple"
+                    ok.on_click = () => {
+                        const num = field.numerator
+                        const den = field.denominator != 0 ? field.denominator : 1
+                        let val = num / den
+                        if (val == 0) { val = 1 }
+                        console.log(val)
+                        let [a, b] = [1, 1]
+                        if (direction == "x") { b = 1 / val }
+                        if (direction == "y") { a = val }
+                        greenCurve.func = MM.functionTransformation(greenCurve.func, a, b, 0, 0)
+                        greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
+                            p => MM.pointTransformation(p[0], p[1], a, b, 0, 0))
+                        resetTransformButtons()
+                    }
+                    game.tempdrawies.push(ok)
+                    game.add_drawable(ok)
+
+                }
+                up.on_click = () => {
+                    buildScaleFactorField("x")
+                }
+
+                down.on_click = () => {
+                    buildScaleFactorField("y")
+
+                }
+
+            }
+
+            bReflect.on_click = () => {
+                resetTransformButtons()
+                //guidance.color = "lightgreen"
+                bTransforms.forEach(x => x.color = "gray")
+                bReflect.color = "lightgreen"
+                const panel = guidance.splitCol(1, 2, 2, 1).map(Button.fromRect)
+                panel[1].txt = "Reflect..."
+                const [up, down] = panel[2].splitRow(1, 1).map(Button.fromRect)
+                const drawies = [panel[0], panel[1], panel[3], up, down]
+                drawies.forEach(b => {
+                    b.color = "lightgreen"
+                    b.outline = 0
+                    b.fontsize = submitButton.fontsize
+                })
+                up.txt = "in x-axis"
+                down.txt = "in y-axis"
+                up.outline = 3
+                down.outline = 3
+                up.hover_color = "purple"
+                down.hover_color = "purple"
+
+                up.on_click = () => {
+                    resetTransformButtons()
+                    greenCurve.func = MM.functionTransformation(greenCurve.func, -1, 1, 0, 0)
+                    greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
+                        p => MM.pointTransformation(p[0], p[1], -1, 1, 0, 0))
+
+                }
+                down.on_click = () => {
+                    resetTransformButtons()
+                    greenCurve.func = MM.functionTransformation(greenCurve.func, 1, -1, 0, 0)
+                    greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
+                        p => MM.pointTransformation(p[0], p[1], 1, -1, 0, 0))
+                }
+                game.tempdrawies.push(...drawies)
+                this.add_drawable(drawies)
+            }
+
+            bTranslate.on_click = () => {
+                resetTransformButtons()
+                bTransforms.forEach(x => x.color = "gray")
+                bTranslate.color = "lightgreen"
+                const panel = guidance.splitCol(.25, 2, .25, 1, .25, 1, .25, .5, .25).map(Button.fromRect)
+                panel[1].txt = "Translate by vector"
+                const drawies = [...panel]
+                drawies.forEach(b => {
+                    b.color = "lightgreen"
+                    b.outline = 0
+                    b.fontsize = 30
+                })
+
+                game.add_drawable(drawies)
+                game.tempdrawies.push(...drawies)
+
+
+                const STf = [new Button(), new Button()]
+                STf.forEach(field => {
+                    game.tempdrawies.push(field)
+                    game.add_drawable(field)
+                    field.resize(fields[0].width, fields[0].height)
+                    field.outline = 0
+                    field.color = "lightgray"
+                    field.hover_color = "purple"
+                    field.selected_color = "lightblue"
+                    field.hover_selected_color = null
+                    field.fraction = false
+                    field.negative = false
+                    field.numerator = 0
+                    field.denominator = 0
+                    field.fontsize = fields[0].fontsize
+                })
+                panel[2].txt = "("
+                STf[0].centeratV(panel[3].center)
+                panel[4].txt = ","
+                STf[1].centeratV(panel[5].center)
+                panel[6].txt = ")"
+
+                game.currentField = STf[0]
+                game.previousField = radio_group.selected
+                game.fieldsToReset = STf
+                radio_group.selected.selected = false
+                radio_group.selected = null
+                radio_group.buttons.forEach(x => x.interactable = false)
+                STf[0].on_click = () => {
+                    game.currentField = STf[0]
+                }
+                STf[1].on_click = () => {
+                    game.currentField = STf[1]
+                }
+
+                const STfradio = Button.make_radio(STf, true)
+
+                STf.forEach(field => {
+                    field.txtRefresh = () => {
+                        if (field.numerator == 0) {
+                            field.txt = null
+                        } else {
+                            field.txt = field.fraction ? field.numerator + "/" + (field.denominator) : field.numerator
+                            if (field.negative) { field.txt = `-${field.txt}` }
+                        }
+
+                    }
+                    field.reset = function () {
+                        this.numerator = 0
+                        this.denominator = ""
+                        this.fraction = false
+                        this.negative = false
+                        field.txtRefresh()
+                    }
+                    field.reset()
+                    field.getValue = () => {
+                        return (field.fraction ? field.numerator / field.denominator : field.numerator) * (field.negative ? -1 : 1)
+                    }
+                })
+
+                const ok = new Button()
+                ok.centeratV(panel.at(-2).center)
+                ok.resize(panel.at(-2).height * .5, panel.at(-2).height * .5)
+                ok.txt = "OK"
+                ok.hover_color = "purple"
+                ok.on_click = () => {
+                    if (STf[0].denominator == 0) { STf[0].denominator = 1 }
+                    const s = (STf[0].numerator / STf[0].denominator) * (STf[0].negative ? -1 : 1)
+                    if (STf[1].denominator == 0) { STf[1].denominator = 1 }
+                    const t = (STf[1].numerator / STf[1].denominator) * (STf[1].negative ? -1 : 1)
+                    greenCurve.func = MM.functionTransformation(greenCurve.func, 1, 1, s, t)
+                    greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
+                        p => MM.pointTransformation(p[0], p[1], 1, 1, s, t))
+
+                    resetTransformButtons()
+                }
+                game.tempdrawies.push(ok)
+                game.add_drawable(ok)
+
+            }
+
+
+
 
 
 
