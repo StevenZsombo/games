@@ -18,6 +18,7 @@ const changelogGlobal =
     No longer forcing integer values after compressions.
     2025.11.19.
     Added worded transformation options
+    Added an animation to worded transformations - is visually insightful and also prevents spamming
     `
 const stgs = {
     tolerance: 0.02,
@@ -31,7 +32,10 @@ const stgs = {
     animationsEnabled: true,
     changelog: changelogGlobal,
     compressionsFixDesired: false,
-    matchedAxesDesired: true
+    matchedAxesDesired: true,
+    transformAnimationTime: 1000, //can set to 0 to disable animation
+    sendFancyTime: 500, //can set to 0 to disable animation
+    transformSendFancyTime: 500
 }/// end of settings
 
 const levels = [

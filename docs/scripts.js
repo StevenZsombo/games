@@ -707,7 +707,7 @@ class Plot {
 		this.pltMore?.forEach(item => {
 			if (item?.func) {
 				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-					{ ...this, ...item }
+					{ ...this, ...item, axes: false }
 				)
 			}
 			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)

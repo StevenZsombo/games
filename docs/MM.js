@@ -313,7 +313,7 @@ class MM {
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
-        overrideBoundaryCheck = false, dottingDistance = 0 } = {}) {
+        dottingDistance = 0 } = {}) {
         density ??= rect.width
         if (axes) {
             if (minY <= 0 && maxY >= 0) {
@@ -325,7 +325,7 @@ class MM {
                 MM.drawLine(screen, axPos, rect.top, axPos, rect.bottom, { color: axes_color, width: axes_width })
             }
         }
-        if (dottingDistance) {
+        if (axes && dottingDistance) {
             for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
                 MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
