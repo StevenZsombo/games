@@ -16,6 +16,8 @@ const changelogGlobal =
     Lagrange interpolated polynomials are generated with generally smaller gradient.
     Lagrange interpolated parabolas will never be based on a symmetric V-shape of 3 points.
     No longer forcing integer values after compressions.
+    2025.11.19.
+    Added worded transformation options
     `
 const stgs = {
     tolerance: 0.02,
