@@ -809,6 +809,9 @@ class Game {
 
 
             }
+
+
+            //game.layers.flat().forEach(b => b = Button.make_circle(b))
         }
         //#endregion
         if (stgs.randomLevelData) {

@@ -510,11 +510,8 @@ class Button extends Clickable {
 	draw_image(screen) {
 		MM.drawImage(screen, this.img, this, this.opacity)
 	}
+
 	draw_text(screen) {
-		/*
-		bestFont.drawText(screen, this.txt, this, {
-			fontScale: this.fontsize / 16, color: this.color, opacity: this.opacity
-		})*/
 		MM.drawText(screen, this.txt, this, {
 			font: `${this.fontsize}px ${this.font_font}`,
 			color: this.font_color,
@@ -609,6 +606,22 @@ class Button extends Clickable {
 			this.polyXYXYXY.forEach((x, i, a) => {
 				a[i] += i % 2 ? dy : dx
 			})
+		}
+		return button
+	}
+
+	/**@param {Button} button  */
+	static make_circle(button) {
+		button ??= this
+
+		button.draw_background = function (screen) {
+			MM.drawCircle(screen, this.centerX, this.centerY, this.width, {
+				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
+			})
+		}
+		button.draw_outline = function () { }
+		button.collidepoint = function (x, y) {
+			return MM.dist(x, y, this.centerX, this.centerY) < this.width
 		}
 		return button
 	}
