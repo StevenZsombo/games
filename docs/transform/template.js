@@ -309,7 +309,7 @@ class Game {
             plt.addControls(game.mouser)
             const zoomIn = new Button({ txt: "+", fontsize: 60 })
             const zoomOut = new Button({ txt: "-", fontsize: 60 })
-            const zoomReset = new Button({ txt: "@", fontsize: 60 })
+            const zoomReset = new Button({ txt: "\u21B6", fontsize: 60 })//"@"
             const zoomies = [zoomIn, zoomOut, zoomReset]
             game.add_drawable(zoomies)
             zoomies.forEach(x => {
@@ -330,6 +330,7 @@ class Game {
             }
             zoomReset.on_click = () => {
                 Object.assign(plt, game.plotDefaultBounds)
+                game.sendFancy(zoomReset, plt.rect)
                 //plt.pltMore.splice(1, 1)
             }
             //plt.density *= 2
@@ -342,6 +343,7 @@ class Game {
             const inputSpaces = inputButtonsBackground.copy.move(0, 100).splitRow(1, 6)[0].splitCol(...Array(8).fill(1)).map(Button.fromRect)
             inputSpaces.forEach(x => {
                 x.fontsize = 48
+                //x.font_color = "blue"
                 x.stretch(1, .5)
                 x.transparent = true
             })
@@ -432,6 +434,7 @@ class Game {
             })
             inputButtons.forEach(x => {
                 x.fontsize = 48
+                x.color = "lightblue"
             })
             inputButtons[10].txt = 0
             inputButtons[10].on_click = () => { toField(0) }
@@ -453,15 +456,18 @@ class Game {
                 }
             }
             inputButtons[12].txt = "Reset"
+            inputButtons[12].fontsize = 30
             game.fieldsToReset = fields
             const resetButtonFunction = () => {
                 game.fieldsToReset.forEach(x => x.reset())
                 if (game.fieldsToReset.length == 4) {
                     game.plt.pltMore[2] = undefined
+                    game.sendFancy(inputButtons[12], plt.rect)
                 }
             }
             inputButtons[12].on_click = () => { resetButtonFunction() }
             inputButtons[14].txt = "Delete"
+            inputButtons[14].fontsize = 30
             inputButtons[14].on_click = () => { getCurrentField().reset() }
 
             const guidance = Button.fromRect(inputButtonsBackground.copy.move(0, -50).splitRow(1, 6)[0])
@@ -476,11 +482,18 @@ class Game {
 
 
 
-            const winCondition = () => {
-                const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
-                //console.log(vA, vB, vmBS, vT)
-                const byParam = [[vA, a], [vB, b], [vmBS, -b * s], [vT, t]].every(x => Math.abs(x[0] - x[1]) < stgs.tolerance)
-                return byParam
+            const winCondition = function (checkfor = "blue") {
+                if (checkfor == "blue") {
+                    const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
+                    const byParam = [[vA, a], [vB, b], [vmBS, -b * s], [vT, t]].every(x => Math.abs(x[0] - x[1]) < stgs.tolerance)
+                    return byParam
+                }
+                if (checkfor == "green") {
+                    const byPoints = greenCurve.highlightedPoints.flat().map((x, i) =>
+                        [x, transPts.flat()[i]]
+                    ).every(x => Math.abs(x[0] - x[1]) < stgs.tolerance)
+                    return byPoints
+                }
                 /*
                 //if (byParam) { return true }
                 if (!stgs.allowVictoryByAlternateValues) { return false }
@@ -498,6 +511,7 @@ class Game {
             const checkVictory = (forced = false) => {
                 if (game.hasWonAlready) { return }
                 if (forced || winCondition()) {
+                    console.log(winCondition())
                     GameEffects.fireworksShow()
                     game.hasWonAlready = true
                     levelSelectButton.color = "lightblue"
@@ -537,6 +551,7 @@ class Game {
                         noLock: true
                     })
                     this.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
+                    this.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
                 }
                 game.sendFancy = sendFancy
                 inputButtons.forEach((b, i) => {
@@ -566,6 +581,7 @@ class Game {
             submitButton.centerat(inputButtons[1].centerX, submitButton.centerY)
             submitButton.txt = "Submit"
             submitButton.fontsize = inputButtons[0].fontsize
+            submitButton.color = "lightblue"
             levelSelectButton.deg = -90
             levelSelectButton.centerat(fields.at(-1).right, submitButton.bottom)
             levelSelectButton.move(-levelSelectButton.height / 2, -levelSelectButton.width / 2)
@@ -579,7 +595,7 @@ class Game {
             }
 
 
-            const plotTheirInputAnimated = (on_end) => {
+            const plotTheirInputAnimated = (callback) => {
                 if (stgs.animationsEnabled) {
                     submitButton.color = "blue"
                     fields.forEach(b => b.color = "blue")
@@ -591,20 +607,51 @@ class Game {
                         })
                         , {
                             on_final: () => {
-                                plotTheirInput()
-                                submitButton.color = "gray"
-                                fields.forEach(b => b.color = "lightgray")
-                                fields.forEach(b => b.selected_color = "lightblue")
-                                getCurrentField()?.selected?.on_click?.()
-                                submitButton.clickable = true
-                                on_end?.()
+                                const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
+                                const [toA, toB, toS, toT] = [vA, 1 / vB, -vmBS / vB, vT]
+                                plt.pltMore[2] = {
+                                    func: func,
+                                    color: "blue",
+                                    highlightedPoints: pts
+                                }
+                                const targetCurve = plt.pltMore[2]
+                                const origF = func
+                                const origP = pts
+
+                                game.animator.add_sequence(
+                                    //new Anim(null, stgs.transformSendFancyTime, "delay"),
+                                    Anim.custom(targetCurve, stgs.transformAnimationTime, (t) => {
+                                        const A = Anim.interpol(1, toA, t)
+                                        const B = 1 / Anim.interpol(1, toB, t)
+                                        const S = Anim.interpol(0, toS, t)
+                                        const T = Anim.interpol(0, toT, t)
+                                        targetCurve.func = MM.functionTransformation(origF, A, B, S, T)
+                                        targetCurve.highlightedPoints = origP.map(
+                                            p => MM.pointTransformation(p[0], p[1], A, B, S, T))
+                                    }, null, {
+                                        on_end: () => {
+                                            bTransforms.forEach(x => x.interactable = true)
+                                            targetCurve.func = MM.functionTransformation(origF, toA, 1 / toB, toS, toT)
+                                            targetCurve.highlightedPoints = origP.map(
+                                                p => MM.pointTransformation(p[0], p[1], toA, 1 / toB, toS, toT))
+
+                                            submitButton.color = "lightblue"
+                                            fields.forEach(b => b.color = "lightgray")
+                                            fields.forEach(b => b.selected_color = "lightblue")
+                                            getCurrentField()?.selected?.on_click?.()
+                                            submitButton.clickable = true
+                                            callback?.()
+                                        }
+                                    }))
                             }
                         })
                 }
                 else { plotTheirInput() }
             }
+
+
             submitButton.on_click = () => {
-                resetTransformButtons()
+                //resetTransformButtons()
                 if (plt.pltMore[2]) { plt.pltMore[2] = undefined }
                 const win = winCondition()
                 if (win) { //victory
@@ -639,7 +686,7 @@ class Game {
             bTransformReset.move(0, bTranslate.top - bReflect.top)
             game.add_drawable(bTransformReset)
             bTransformReset.color = "lightgreen"
-            bTransformReset.txt = "@"
+            bTransformReset.txt = "\u21B6" //"@"
             bTransformReset.fontsize = zoomReset.fontsize
             bTransforms.push(bTransformReset)
 
@@ -659,15 +706,16 @@ class Game {
             greenCurveReset()
             bTransformReset.on_click = () => {
                 resetTransformButtons()
+                game.sendFancy(bTransformReset, plt.rect)
                 greenCurveReset()
 
             }
 
-            const animatedTransform = (toA, toB, toS, toT, message = null) => {
+            const animatedTransform = (toA, toB, toS, toT, message = null, targetCurve = greenCurve) => {
                 bTransforms.forEach(x => x.interactable = false)
                 game.tempdrawies.forEach(x => x.interactable = false)
-                const origF = greenCurve.func
-                const origP = greenCurve.highlightedPoints
+                const origF = targetCurve.func
+                const origP = targetCurve.highlightedPoints
                 const greenCopy = guidance.copy
                 greenCopy.fontsize = 30
                 greenCopy.color = "lightgreen"
@@ -675,21 +723,20 @@ class Game {
                 game.sendFancy(greenCopy, plt.rect, stgs.transformSendFancyTime)
                 this.animator.add_sequence(
                     new Anim(null, stgs.transformSendFancyTime, "delay"),
-                    Anim.custom(greenCurve, stgs.transformAnimationTime, (t) => {
+                    Anim.custom(targetCurve, stgs.transformAnimationTime, (t) => {
                         const A = Anim.interpol(1, toA, t)
                         const B = 1 / Anim.interpol(1, toB, t)
                         const S = Anim.interpol(0, toS, t)
                         const T = Anim.interpol(0, toT, t)
-                        greenCurve.func = MM.functionTransformation(origF, A, B, S, T)
-                        greenCurve.highlightedPoints = origP.map(
+                        targetCurve.func = MM.functionTransformation(origF, A, B, S, T)
+                        targetCurve.highlightedPoints = origP.map(
                             p => MM.pointTransformation(p[0], p[1], A, B, S, T))
                     }, null, {
                         on_end: () => {
                             bTransforms.forEach(x => x.interactable = true)
-                            greenCurve.func = MM.functionTransformation(origF, toA, 1 / toB, toS, toT)
-                            greenCurve.highlightedPoints = origP.map(
+                            targetCurve.func = MM.functionTransformation(origF, toA, 1 / toB, toS, toT)
+                            targetCurve.highlightedPoints = origP.map(
                                 p => MM.pointTransformation(p[0], p[1], toA, 1 / toB, toS, toT))
-
                             resetTransformButtons()
                         }
                     }))
@@ -717,6 +764,7 @@ class Game {
                 resetTransformButtons()
                 bTransforms.forEach(x => x.color = "gray")
                 bStretch.color = "lightgreen"
+                game.sendFancy(bStretch, guidance)
                 const panel = guidance.splitCol(.5, 2, 2, 2, 2, 1).map(Button.fromRect)
                 panel[1].txt = "Stretch..."
                 const [up, down] = panel[2].splitRow(1, 1).map(Button.fromRect)
@@ -828,6 +876,7 @@ class Game {
                 //guidance.color = "lightgreen"
                 bTransforms.forEach(x => x.color = "gray")
                 bReflect.color = "lightgreen"
+                game.sendFancy(bReflect, guidance)
                 const panel = guidance.splitCol(1, 2, 2, 1).map(Button.fromRect)
                 panel[1].txt = "Reflect..."
                 const [up, down] = panel[2].splitRow(1, 1).map(Button.fromRect)
@@ -867,6 +916,7 @@ class Game {
                 resetTransformButtons()
                 bTransforms.forEach(x => x.color = "gray")
                 bTranslate.color = "lightgreen"
+                game.sendFancy(bTranslate, guidance)
                 const panel = guidance.splitCol(.25, 2, .25, 1, .25, 1, .25, .5, .25).map(Button.fromRect)
                 panel[1].txt = "Translate by vector"
                 const drawies = [...panel]

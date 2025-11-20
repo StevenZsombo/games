@@ -21,6 +21,8 @@ const changelogGlobal =
     Added an animation to worded transformations - is visually insightful and also prevents spamming
     2025.11.20.
     Fixed animation bugs
+    The blue curve is now also animated for visual feedback, though not step by step
+    Input buttons are now lightblue for visual cohesion
     `
 const stgs = {
     tolerance: 0.02,
