@@ -677,7 +677,7 @@ class Game {
                     new Anim(null, stgs.transformSendFancyTime, "delay"),
                     Anim.custom(greenCurve, stgs.transformAnimationTime, (t) => {
                         const A = Anim.interpol(1, toA, t)
-                        const B = toB > 0 ? Anim.interpol(1, toB, t) : 1 / Anim.interpol(1, toB, t)
+                        const B = 1 / Anim.interpol(1, toB, t)
                         const S = Anim.interpol(0, toS, t)
                         const T = Anim.interpol(0, toT, t)
                         greenCurve.func = MM.functionTransformation(origF, A, B, S, T)
@@ -686,9 +686,9 @@ class Game {
                     }, null, {
                         on_end: () => {
                             bTransforms.forEach(x => x.interactable = true)
-                            greenCurve.func = MM.functionTransformation(origF, toA, toB, toS, toT)
+                            greenCurve.func = MM.functionTransformation(origF, toA, 1 / toB, toS, toT)
                             greenCurve.highlightedPoints = origP.map(
-                                p => MM.pointTransformation(p[0], p[1], toA, toB, toS, toT))
+                                p => MM.pointTransformation(p[0], p[1], toA, 1 / toB, toS, toT))
 
                             resetTransformButtons()
                         }
@@ -796,11 +796,14 @@ class Game {
                         const den = field.denominator != 0 ? field.denominator : 1
                         let val = num / den
                         if (val == 0) { val = 1 }
+                        let [a, b] = [1, 1]
+                        if (direction == "y") { a = val }
+                        if (direction == "x") { b = val }
                         /*greenCurve.func = MM.functionTransformation(greenCurve.func, a, b, 0, 0)
                         greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
                             p => MM.pointTransformation(p[0], p[1], a, b, 0, 0))
                             */
-                        animatedTransform(val, 1 / val, 0, 0,
+                        animatedTransform(a, b, 0, 0,
                             `Strech in the ${direction} direction by scale factor ${field.txt}`
                         )
                         //resetTransformButtons()

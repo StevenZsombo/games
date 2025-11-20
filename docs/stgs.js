@@ -19,6 +19,8 @@ const changelogGlobal =
     2025.11.19.
     Added worded transformation options
     Added an animation to worded transformations - is visually insightful and also prevents spamming
+    2025.11.20.
+    Fixed animation bugs
     `
 const stgs = {
     tolerance: 0.02,

@@ -273,6 +273,7 @@ class Game {
             if (ptsX) {
                 pts = ptsX.map(x => [x, func(x)])
             }
+            game.pts = pts
             let transFunc, transPts
             transPts ??= pts.map(p => MM.pointTransformation(p[0], p[1], a, b, s, t))
             //transFunc ??= MM.brokenLineFunction(...transPts.flat())
@@ -456,7 +457,7 @@ class Game {
             const resetButtonFunction = () => {
                 game.fieldsToReset.forEach(x => x.reset())
                 if (game.fieldsToReset.length == 4) {
-                    game.plt.pltMore[1] = undefined
+                    game.plt.pltMore[2] = undefined
                 }
             }
             inputButtons[12].on_click = () => { resetButtonFunction() }
@@ -524,7 +525,7 @@ class Game {
             game.add_drawable(levelSelectButton)
             if (stgs.animationsEnabled) {
                 /**@param {Button} b @param {Button} tgt*/
-                const sendFancy = (b, tgt, time = 500) => {
+                const sendFancy = (b, tgt, time = stgs.sendFancyTime) => {
                     /** @type {Button} cp */
                     const cp = b.copy
                     cp.clickable = false
@@ -548,8 +549,12 @@ class Game {
                     }
                 })
             }
+            const getStringFromCoeffs = (a, b, s, t) => {
+                return `y=${a == 1 ? "" : a}f(${b == 1 ? "" : b}x${-b * s > 0 ? "+" : ""}${-b * s != 0 ? -b * s : ""})${t > 0 ? "+" : ""}${t != 0 ? t : ""}`
+            }
             //adds game.solution
-            game.solution = `y=${a == 1 ? "" : a}f(${b == 1 ? "" : b}x${-b * s > 0 ? "+" : ""}${-b * s != 0 ? -b * s : ""})${t > 0 ? "+" : ""}${t != 0 ? t : ""}`
+
+            game.solution = getStringFromCoeffs(a, b, s, t)
 
 
             const submitButton = new Button()
@@ -566,7 +571,7 @@ class Game {
             levelSelectButton.move(-levelSelectButton.height / 2, -levelSelectButton.width / 2)
             const plotTheirInput = () => {
                 const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
-                plt.pltMore[1] = {
+                plt.pltMore[2] = {
                     color: "blue",
                     func: MM.functionTransformation(func, vA, vB, -vmBS / vB, vT),
                     highlightedPoints: pts.map(p => MM.pointTransformation(p[0], p[1], vA, vB, -vmBS / vB, vT))
@@ -600,7 +605,7 @@ class Game {
             }
             submitButton.on_click = () => {
                 resetTransformButtons()
-                if (plt.pltMore[1]) { plt.pltMore[1] = undefined }
+                if (plt.pltMore[2]) { plt.pltMore[2] = undefined }
                 const win = winCondition()
                 if (win) { //victory
                     plotTheirInputAnimated(checkVictory)
@@ -645,11 +650,12 @@ class Game {
 
             const greenCurve = {}
             const greenCurveReset = () => {
-                plt.pltMore[2] = undefined
-                greenCurve.func = func
-                greenCurve.highlightedPoints = pts
+                plt.pltMore[1] = undefined
+                greenCurve.func = game.func
+                greenCurve.highlightedPoints = game.pts
                 greenCurve.color = "green"
             }
+            game.greenCurveReset = greenCurveReset
             greenCurveReset()
             bTransformReset.on_click = () => {
                 resetTransformButtons()
@@ -657,13 +663,45 @@ class Game {
 
             }
 
-            game.tempdrawies = []
+            const animatedTransform = (toA, toB, toS, toT, message = null) => {
+                bTransforms.forEach(x => x.interactable = false)
+                game.tempdrawies.forEach(x => x.interactable = false)
+                const origF = greenCurve.func
+                const origP = greenCurve.highlightedPoints
+                const greenCopy = guidance.copy
+                greenCopy.fontsize = 30
+                greenCopy.color = "lightgreen"
+                greenCopy.txt = message
+                game.sendFancy(greenCopy, plt.rect, stgs.transformSendFancyTime)
+                this.animator.add_sequence(
+                    new Anim(null, stgs.transformSendFancyTime, "delay"),
+                    Anim.custom(greenCurve, stgs.transformAnimationTime, (t) => {
+                        const A = Anim.interpol(1, toA, t)
+                        const B = 1 / Anim.interpol(1, toB, t)
+                        const S = Anim.interpol(0, toS, t)
+                        const T = Anim.interpol(0, toT, t)
+                        greenCurve.func = MM.functionTransformation(origF, A, B, S, T)
+                        greenCurve.highlightedPoints = origP.map(
+                            p => MM.pointTransformation(p[0], p[1], A, B, S, T))
+                    }, null, {
+                        on_end: () => {
+                            bTransforms.forEach(x => x.interactable = true)
+                            greenCurve.func = MM.functionTransformation(origF, toA, 1 / toB, toS, toT)
+                            greenCurve.highlightedPoints = origP.map(
+                                p => MM.pointTransformation(p[0], p[1], toA, 1 / toB, toS, toT))
 
+                            resetTransformButtons()
+                        }
+                    }))
+            }
+
+            game.tempdrawies = []
             const resetTransformButtons = (drawies) => {
                 drawies ??= game.tempdrawies
+                game.tempdrawies = []
                 drawies.forEach(x => game.remove_drawable(x))
                 bTransforms.forEach(x => x.color = "lightgreen")
-                plt.pltMore[2] = greenCurve
+                plt.pltMore[1] = greenCurve
                 if (game.currentField) {
                     game.currentField = null
                     radio_group.selected = game.previousField
@@ -672,9 +710,9 @@ class Game {
                     radio_group.buttons.forEach(x => x.interactable = true)
                 }
             }
+            game.resetTransformButtons = resetTransformButtons
 
-
-
+            //#region bStretch
             bStretch.on_click = () => {
                 resetTransformButtons()
                 bTransforms.forEach(x => x.color = "gray")
@@ -758,14 +796,17 @@ class Game {
                         const den = field.denominator != 0 ? field.denominator : 1
                         let val = num / den
                         if (val == 0) { val = 1 }
-                        console.log(val)
                         let [a, b] = [1, 1]
-                        if (direction == "x") { b = 1 / val }
                         if (direction == "y") { a = val }
-                        greenCurve.func = MM.functionTransformation(greenCurve.func, a, b, 0, 0)
+                        if (direction == "x") { b = val }
+                        /*greenCurve.func = MM.functionTransformation(greenCurve.func, a, b, 0, 0)
                         greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
                             p => MM.pointTransformation(p[0], p[1], a, b, 0, 0))
-                        resetTransformButtons()
+                            */
+                        animatedTransform(a, b, 0, 0,
+                            `Strech in the ${direction} direction by scale factor ${field.txt}`
+                        )
+                        //resetTransformButtons()
                     }
                     game.tempdrawies.push(ok)
                     game.add_drawable(ok)
@@ -794,7 +835,7 @@ class Game {
                 drawies.forEach(b => {
                     b.color = "lightgreen"
                     b.outline = 0
-                    b.fontsize = submitButton.fontsize
+                    b.fontsize = submitButton.fontsize//30
                 })
                 up.txt = "in x-axis"
                 down.txt = "in y-axis"
@@ -804,17 +845,19 @@ class Game {
                 down.hover_color = "purple"
 
                 up.on_click = () => {
-                    resetTransformButtons()
+                    /*resetTransformButtons()
                     greenCurve.func = MM.functionTransformation(greenCurve.func, -1, 1, 0, 0)
                     greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
-                        p => MM.pointTransformation(p[0], p[1], -1, 1, 0, 0))
+                        p => MM.pointTransformation(p[0], p[1], -1, 1, 0, 0))*/
+                    animatedTransform(-1, 1, 0, 0, "Reflect in the x-axis.")
 
                 }
                 down.on_click = () => {
-                    resetTransformButtons()
+                    animatedTransform(1, -1, 0, 0, "Reflect in the y-axis.")
+                    /*resetTransformButtons()
                     greenCurve.func = MM.functionTransformation(greenCurve.func, 1, -1, 0, 0)
                     greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
-                        p => MM.pointTransformation(p[0], p[1], 1, -1, 0, 0))
+                        p => MM.pointTransformation(p[0], p[1], 1, -1, 0, 0))*/
                 }
                 game.tempdrawies.push(...drawies)
                 this.add_drawable(drawies)
@@ -907,11 +950,11 @@ class Game {
                     const s = (STf[0].numerator / STf[0].denominator) * (STf[0].negative ? -1 : 1)
                     if (STf[1].denominator == 0) { STf[1].denominator = 1 }
                     const t = (STf[1].numerator / STf[1].denominator) * (STf[1].negative ? -1 : 1)
-                    greenCurve.func = MM.functionTransformation(greenCurve.func, 1, 1, s, t)
+                    /*greenCurve.func = MM.functionTransformation(greenCurve.func, 1, 1, s, t)
                     greenCurve.highlightedPoints = greenCurve.highlightedPoints.map(
                         p => MM.pointTransformation(p[0], p[1], 1, 1, s, t))
-
-                    resetTransformButtons()
+                    resetTransformButtons()*/
+                    animatedTransform(1, 1, s, t, `Translate by vector (${STf[0].txt},${STf[1].txt}).`)
                 }
                 game.tempdrawies.push(ok)
                 game.add_drawable(ok)
@@ -964,7 +1007,7 @@ class Game {
 
             const compressionsFix = (func, xs, a, b, s, t) => {
                 if (!stgs.compressionsFixDesired) { return [func, xs, a, b, s, t] }
-                if (-1 < a && a < 1) { func = MM.functionTransformation(func, Math.abs(1 / a), 1, 0, 0) }
+                if (-1 < a && a < 1) { func = MM.functionTransformation(game.func, Math.abs(1 / a), 1, 0, 0) }
                 if (b < -1 || b > 1) {
                     func = MM.functionTransformation(func, 1, Math.abs(1 / b), 0, 0)
                     xs = xs.map(x => Math.abs(b) * x)
@@ -1143,6 +1186,9 @@ class Game {
 
 
             }
+
+
+            //game.layers.flat().forEach(b => b = Button.make_circle(b))
         }
         //#endregion
         if (stgs.randomLevelData) {
@@ -1219,7 +1265,22 @@ class Game {
 const dev = {
     get solution() { return game.solution },
     /** @param {boolean} torf */
-    set animations(torf) { stgs.animationsEnabled = torf }
+    set animations(torf) { stgs.animationsEnabled = torf },
+    set func(callable) {
+        game.func = callable
+        game.plt.func = callable
+        game.plt.highlightedPoints = []
+        game.plt.pltMore = []
+        dev.highlightedPointsX = []
+        game.greenCurveReset()
+        game.resetTransformButtons()
+
+    },
+    set highlightedPointsX(arrayX) {
+        const pts = arrayX.map(x => [x, game.plt.func(x)])
+        game.plt.highlightedPoints = pts
+        game.pts = pts
+    }
 
 
 }/// end of dev
