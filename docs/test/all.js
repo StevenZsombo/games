@@ -2278,30 +2278,87 @@ class Mouser {
     }
 
     addListeners(canvas) {
-        canvas.addEventListener('pointermove', (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            this.whereAmI(e)
-            //e.pointerType //can be 'mouse', 'pen', 'touch'
+        const addPointerHandlers = () => {
+            canvas.addEventListener('pointermove', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+            })
+            canvas.addEventListener('pointerdown', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+                this.clicked = true
+                this.down = true
+            })
+            canvas.addEventListener('pointerup', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+                this.released = true
+                this.down = false
+            })
+            canvas.addEventListener('pointercancel', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.released = true
+            })
+        }
 
-        })
-        canvas.addEventListener('pointerdown', (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            this.whereAmI(e)
-            this.clicked = true
-            this.down = true
-            //e.shiftKey, e.ctrlKey //true or false
-            //button = 0 or 2
-            //for some reason clicking both simultaneously does sweet FA
-        })
-        canvas.addEventListener('pointerup', (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            this.whereAmI(e)
-            this.released = true
-            this.down = false
-        })
+        const addTouchMouseFallback = () => {
+            // touch events: normalize to have clientX/clientY for whereAmI
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const t = e.touches[0]
+                const ev = { clientX: t?.clientX, clientY: t?.clientY }
+                this.whereAmI(ev)
+            }, { passive: false })
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const t = e.touches[0]
+                const ev = { clientX: t?.clientX, clientY: t?.clientY }
+                this.whereAmI(ev)
+                this.clicked = true
+                this.down = true
+            }, { passive: false })
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const t = e.changedTouches[0]
+                const ev = { clientX: t?.clientX, clientY: t?.clientY }
+                this.whereAmI(ev)
+                this.released = true
+                this.down = false
+            }, { passive: false })
+
+            // mouse fallback for older desktops
+            canvas.addEventListener('mousemove', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+            })
+            canvas.addEventListener('mousedown', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+                this.clicked = true
+                this.down = true
+            })
+            canvas.addEventListener('mouseup', (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                this.whereAmI(e)
+                this.released = true
+                this.down = false
+            })
+        }
+
+        if (window.PointerEvent) addPointerHandlers()
+        else addTouchMouseFallback()
         /*
         canvas.addEventListener('pointerleave', (e) => {
             e.preventDefault()
@@ -2317,11 +2374,7 @@ class Mouser {
             //this.x = null
             //this.y = null
         })*/
-        canvas.addEventListener('pointercancel', (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            this.released = true
-        })
+        // wheel and other generic listeners
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault()
             e.stopPropagation()
