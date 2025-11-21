@@ -1,4 +1,4 @@
-//should import scripts.js, gui.js, MM.js, animations.js
+//should import scripts.js, gui.js, MM.js, animations.js, stgs.js
 const framerateUnlocked = false
 const dtUpperLimit = 1000 / 30
 const denybuttons = false
@@ -7,7 +7,7 @@ const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
 const fontFile = null//"resources/victoriabold.png" //set to null otherwise
-const filesList = "" //space-separated
+const filesList = null //space-separated //Cropper must be revised
 
 //#region window.onload
 window.onload = function () {
@@ -46,7 +46,6 @@ const beforeMain = function (canvas) {
             if (fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
             main(canvas)
         })
-
     } else {
         main(canvas)
     }
@@ -90,7 +89,7 @@ class Game {
         this.framerate = new Framerater(showFramerate)
         this.framerateUnlocked = framerateUnlocked //redundant unless reused
         this.animator = new Animator()
-        this.cropper = new Cropper()
+        //this.cropper = new Cropper()
 
         this.extras_on_update = []
         this.extras_on_draw = []
@@ -1339,10 +1338,12 @@ const dev = {
 /**@type {HTMLImageElement[]} */
 const files = {}
 
+
 /**@type {customFont} */
-const myFont = new customFont()
+//const myFont = new customFont()
 //*@type {Cropper}*/
-const cropper = new Cropper()
+//const cropper = new Cropper()
+
 /** @type {Game}*/
 var game
 
