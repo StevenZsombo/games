@@ -2,11 +2,10 @@
 const changelogGlobal =
     `
     2025.11.17.
-    Integer values are forced even if compressions are involved [REDACTED]
     Compressions are more common now (was 25% of stretches, now is 40%)
     Broken line functions are now made of at least 3 pieces (was 2)
     Changed the color of the axes from pink to plum (more visible)
-    y=sin(x) received x=3pi/2 as a guiding point
+    $
     2025.11.18.
     "Submit" button has been added. It must be clicked to verify a solution.
     The latest submission attempt will be plotted in blue.
@@ -16,13 +15,19 @@ const changelogGlobal =
     Lagrange interpolated polynomials are generated with generally smaller gradient.
     Lagrange interpolated parabolas will never be based on a symmetric V-shape of 3 points.
     No longer forcing integer values after compressions.
+    $
     2025.11.19.
     Added worded transformation options
     Added an animation to worded transformations - is visually insightful and also prevents spamming
+    $
     2025.11.20.
     Fixed animation bugs
     The blue curve is now also animated for visual feedback, though not step by step
     Input buttons are now lightblue for visual cohesion
+    $
+    2025.11.24.
+    Green "Undo" button now undoes the previous transformation instead of fully reverting the curve
+    Highlighted points for y=sin(x) are now [0,pi/2,pi,3pi/2]
     `
 const stgs = {
     tolerance: 0.02,

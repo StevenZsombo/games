@@ -511,7 +511,6 @@ class Game {
             const checkVictory = (forced = false) => {
                 if (game.hasWonAlready) { return }
                 if (forced || winCondition()) {
-                    console.log(winCondition())
                     GameEffects.fireworksShow()
                     game.hasWonAlready = true
                     levelSelectButton.color = "lightblue"
@@ -696,18 +695,39 @@ class Game {
             guidance.stretch(1, 1.2)
 
             const greenCurve = {}
+            const greenCurveHistory = []
             const greenCurveReset = () => {
-                plt.pltMore[1] = undefined
-                greenCurve.func = game.func
-                greenCurve.highlightedPoints = game.pts
-                greenCurve.color = "green"
+                if (greenCurveHistory.length > 1) {
+                    greenCurveHistory.pop()
+                    const previous = greenCurveHistory.at(-1)
+                    greenCurve.func = previous.func
+                    greenCurve.highlightedPoints = previous.highlightedPoints
+                    greenCurve.color = previous.color
+
+                } else {
+                    plt.pltMore[1] = undefined
+                    greenCurve.func = game.func
+                    greenCurve.highlightedPoints = game.pts
+                    greenCurve.color = "green"
+                    greenCurveHistory.pop()
+                }
             }
             game.greenCurveReset = greenCurveReset
+            game.greenCurveHistory = greenCurveHistory
             greenCurveReset()
             bTransformReset.on_click = () => {
+                const isResettingNotUndoing = bTransformReset.color == "gray"
                 resetTransformButtons()
-                game.sendFancy(bTransformReset, plt.rect)
-                greenCurveReset()
+                if (isResettingNotUndoing) {
+                    game.sendFancy(bTransformReset, guidance)
+                    if (greenCurveHistory.length == 0) {
+                        plt.pltMore[1] = undefined
+                    }
+                } else {
+                    game.sendFancy(bTransformReset, plt.rect)
+                    greenCurveReset()
+
+                }
 
             }
 
@@ -738,6 +758,7 @@ class Game {
                             targetCurve.highlightedPoints = origP.map(
                                 p => MM.pointTransformation(p[0], p[1], toA, 1 / toB, toS, toT))
                             resetTransformButtons()
+                            greenCurveHistory.push({ ...targetCurve })
                         }
                     }))
             }
@@ -968,9 +989,10 @@ class Game {
                 const STfradio = Button.make_radio(STf, true)
 
                 STf.forEach(field => {
-                    field.txtRefresh = () => {
+                    field.txtRefresh = (first) => {
+                        if (!first) { field.untouched = false }
                         if (field.numerator == 0) {
-                            field.txt = null
+                            field.txt = field.untouched ? null : "0"
                         } else {
                             field.txt = field.fraction ? field.numerator + "/" + (field.denominator) : field.numerator
                             if (field.negative) { field.txt = `-${field.txt}` }
@@ -982,8 +1004,10 @@ class Game {
                         this.denominator = ""
                         this.fraction = false
                         this.negative = false
-                        field.txtRefresh()
+                        field.untouched = true
+                        field.txtRefresh(true)
                     }
+
                     field.reset()
                     field.getValue = () => {
                         return (field.fraction ? field.numerator / field.denominator : field.numerator) * (field.negative ? -1 : 1)
@@ -1143,8 +1167,8 @@ class Game {
                 ]
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
                 let [func, xs] = MM.choice([
-                    [Math.sin, [-PI / 2, 0, PI / 2, 3 * PI / 2]],
-                    [Math.sin, [-PI / 2, 0, PI / 2, 3 * PI / 2]],
+                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
+                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
                     [Math.cos, [-PI, 0, PI, TWOPI]],
                     [Math.cos, [-PI, 0, PI, TWOPI]],
                     [Math.tan, [666]],
@@ -1214,7 +1238,7 @@ class Game {
             this.add_drawable(changelogButton)
             changelogButton.bottomat(rTypes.at(-1).bottom)
             changelogButton.leftat(rButs[0].left)
-            changelogButton.on_click = () => alert(stgs.changelog)
+            changelogButton.on_click = () => stgs.changelog.split("$").forEach(x => setTimeout(() => alert(x), 100))
             changelogButton.fontsize = 16
             changelogButton.txt = "Changelog"
 
