@@ -210,12 +210,12 @@ class MM {
         return Math.hypot(pos1.x - pos2.y, pos1.y - pos2.y)
     }
 
-    static drawTextSingleDepr(screen, txt, x, y, { font = "12px Times", color = "red", opacity = 0 } = {}) {
+    static drawTextSingle(screen, txt, x, y, {
+        font = "12px Times", color = "black", opacity = 0,
+        textAlign = "center", textBaseline = "middle" }) {
         screen.save()
-        //const f = font.split("px")
-        //font = `${f[0] * dpr}px${f.slice(1)}`
-        screen.textAlign = "center"
-        screen.textBaseline = "middle"
+        screen.textAlign = textAlign
+        screen.textBaseline = textBaseline
         screen.font = font
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
@@ -374,6 +374,7 @@ class MM {
     } = {}) {
         screen.save()
         screen.textAlign = textAlign
+        const drawTextStartX = textAlign == "left" ? rect.x : rect.centerX
         screen.textBaseline = textBaseline
         //const f = font.split("px")
         //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
@@ -383,7 +384,7 @@ class MM {
         const lines = Array.isArray(txtorarr) ? txtorarr : `${txtorarr}`.split("\n")
         const h = rect.height / lines.length
         for (let i = 0; i < lines.length; i++) {
-            screen.fillText(lines[i], rect.center.x, rect.y + (i + .5) * h)
+            screen.fillText(lines[i], drawTextStartX, rect.y + (i + .5) * h)
         }
         screen.restore()
     }
@@ -671,6 +672,22 @@ class MM {
     static strToArr(str) {
         return str.split(",").map(Number)
     }
+
+
+    static XYXYXYListToPairs(...XYXYXY) {
+        if (XYXYXY.length % 2) {
+            throw "Invalid input: XYXYXY must have an even number of terms"
+        }
+        return Array(XYXYXY.length / 2).fill().map((_, i) => [XYXYXY[2 * i], XYXYXY[2 * i + 1]])
+    }
+
+    static XYXYXYListToTwoArrays(...XYXYXY) {
+        if (XYXYXY.length % 2) {
+            throw "Invalid input: XYXYXY must have an even number of terms"
+        }
+        return [XYXYXY.filter((_, i) => !(i % 2)), XYXYXY.filter((_, i) => i % 2)]
+    }
+
 
     static brokenLineFunction(...polyXYXYXY) {
         const xs = polyXYXYXY.filter((_, i) => !(i % 2))

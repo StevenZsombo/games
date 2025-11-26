@@ -684,7 +684,7 @@ class Plot {
 		this.show_border_values_dp = 2
 		this.highlightedPoints = [] //
 		this.label_highlighted = true
-		this.label_highlighted_font = "12 px Times"
+		this.label_highlighted_font = "24px Times"
 		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true

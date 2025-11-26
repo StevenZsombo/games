@@ -105,7 +105,7 @@ class Keyboarder {
 	}
 
 	next_loop() {
-		for (const [k, v] in this.pressed) {
+		for (const k in this.pressed) {
 			this.pressed[k] = false
 		}
 		/*Object.keys(this.pressed).forEach(

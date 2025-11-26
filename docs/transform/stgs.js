@@ -28,6 +28,12 @@ const changelogGlobal =
     2025.11.24.
     Green "Undo" button now undoes the previous transformation instead of fully reverting the curve
     Highlighted points for y=sin(x) are now [0,pi/2,pi,3pi/2]
+    $
+    2025.11.26.
+    Green curve transformations are now recorded with green text.
+    Submit button remains inactive while green stuff plays.
+    Dev options extended for custom function drawing.
+    Added keyboard controls.
     `
 const stgs = {
     tolerance: 0.02,
@@ -36,7 +42,7 @@ const stgs = {
     allowVictoryByAlternateValues: false, //yet to be implemented
     randomLevelData: null,
     labelPoints: true,
-    randomType: "Any",
+    randomType: "Squiggly",
     firstRun: true,
     animationsEnabled: true,
     changelog: changelogGlobal,
