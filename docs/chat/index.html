@@ -1,60 +1,14 @@
+<html>
+
 <head>
-    <title>Simple Chat</title>
+    <title>Game by Steven Zs</title>
 </head>
 
 <body>
-    <div>
-        <button onclick="connect()">Connect</button>
-        <button onclick="disconnect()">Disconnect</button>
-    </div>
-    <div>
-        <input id="messageInput" placeholder="Type message">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-    <div id="messages"></div>
-
-    <script>
-        let socket = null;
-
-        function connect() {
-            let ip = prompt("gimme the IP")
-            ip = ip == "" ? "192.168.0.101" : ip
-            const address = `ws://${ip}:8000/`
-            console.log(ip)
-            socket = new WebSocket(address);
-
-            socket.onopen = () => {
-                addMessage('System: Connected to chat');
-            };
-
-            socket.onmessage = (event) => {
-                addMessage('Other: ' + event.data);
-            };
-
-            socket.onclose = () => {
-                addMessage('System: Disconnected');
-            };
-        }
-
-        function disconnect() {
-            if (socket) socket.close();
-        }
-
-        function sendMessage() {
-            const message = document.getElementById('messageInput').value;
-            if (message && socket?.readyState === WebSocket.OPEN) {
-                socket.send(message);
-                addMessage('You: ' + message);
-                document.getElementById('messageInput').value = '';
-            }
-        }
-
-        function addMessage(text) {
-            const messages = document.getElementById('messages');
-            messages.innerHTML += '<div>' + text + '</div>';
-        }
-
-        // Auto-connect
-        connect();
-    </script>
+    <div id="chat"></div>
 </body>
+
+
+<script src="chat.js"></script>
+
+</html>
