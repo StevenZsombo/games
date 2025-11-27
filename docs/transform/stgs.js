@@ -37,7 +37,7 @@ const changelogGlobal =
     `
 const stgs = {
     tolerance: 0.02,
-    stage: 3, //-1 for selector
+    stage: 1, //-1 for level selector
     victories: [],
     allowVictoryByAlternateValues: false, //yet to be implemented
     randomLevelData: null,
