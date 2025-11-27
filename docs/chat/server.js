@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 // bind to 0.0.0.0 so remote devices can connect
-const server = new WebSocket.Server({ host: '0.0.0.0', port: 8774 });
+const server = new WebSocket.Server({ host: '0.0.0.0', port: 8000 });
 
 server.on('connection', (socket) => {
     console.log('Client connected');
@@ -21,4 +21,4 @@ server.on('connection', (socket) => {
     });
 });
 
-console.log('WebSocket server running on ws://localhost:8774');
+console.log("server running")

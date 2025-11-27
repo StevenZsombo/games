@@ -17,12 +17,13 @@
         let socket = null;
 
         function connect() {
-            const ip = prompt("gimme the IP")
-            const address = ip ? `ws://${ip}:8774/` : 'ws://192.168.0.101:8774/'
+            let ip = prompt("gimme the IP")
+            ip = ip == "" ? "192.168.0.101" : ip
+            const address = `ws://${ip}:8000/`
+            console.log(ip)
             socket = new WebSocket(address);
 
             socket.onopen = () => {
-                console.log('✅ Connected');
                 addMessage('System: Connected to chat');
             };
 
