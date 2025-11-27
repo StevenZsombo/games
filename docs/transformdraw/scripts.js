@@ -536,7 +536,7 @@ class Button extends Clickable {
 
 	static make_checkbox(button, preservePreviousFunction = false) {
 		if (preservePreviousFunction) {
-			button.on_click = MM.extFunc(button.on_click, button.selected_flip.bind(button))
+			button.on_click = MM.extendFunction(button.on_click, button.selected_flip.bind(button))
 		} else {
 			button.on_click = button.selected_flip.bind(button)
 		}
@@ -559,7 +559,7 @@ class Button extends Clickable {
 				radio_group.selected = b
 			}
 			if (preservePreviousFunction) {
-				b.on_click = MM.extFunc(b.on_click, wanted)
+				b.on_click = MM.extendFunction(b.on_click, wanted)
 			} else {
 				b.on_click = wanted
 			}
@@ -714,14 +714,14 @@ class Plot {
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this })
-		this.highlightedPoints.forEach(p => this.highlightPoint(p))
+		this.highlightedPoints.forEach(p => this.highlightPoint(p, this))
 		this.pltMore?.forEach(item => {
 			if (item?.func) {
 				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 					{ ...this, ...item, axes: false }
 				)
 			}
-			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)
+			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item)
 			)
 
 		})
@@ -744,11 +744,11 @@ class Plot {
 		}
 	}
 
-	highlightPoint(p, color, label_highlighted) {
+	highlightPoint(p, settings = {}) {
 		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, { color: color ?? this.color })
-		label_highlighted ??= this.label_highlighted
-		if (label_highlighted) {
+		MM.drawCircle(this.plotScreen, x, y, 10, { color: settings.color, opacity: settings.opacity })
+
+		if (settings.label_highlighted) {
 			const label = `(${Number(p[0].toFixed(this.border_values_dp))}, ${Number(p[1].toFixed(this.border_values_dp))})`
 			this.plotScreen.font = this.label_highlighted_font
 			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)

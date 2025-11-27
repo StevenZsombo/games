@@ -276,6 +276,7 @@ class Game {
         plt.width = 4
         plt.label_highlighted = false
         Object.assign(plt, stgs.plt)
+        plt.matchAxesScaling()
         plt.show_border_values = false
         const level = this.randomSquiggly()
         plt.func = MM.brokenLineFunction(...level.pts.flat())
@@ -302,9 +303,12 @@ class Game {
             map(Button.fromRect)
         colorButtons.forEach((x, i) => {
             x.color = COLORS[i]
+            //x.outline_color = "black"
+            x.outline = 3
             x.on_click = () => this.selectColor(i)
             plt.pltMore[i] = { color: COLORS[i], highlightedPoints: [] }
         })
+        game.colorButtonsDefaultSize = colorButtons[0].width
 
         colorSelectorBG.move(0, -.6 * colorSelectorBG.height)
         guidance.colors = Button.fromRect(colorSelectorBG)
@@ -324,6 +328,7 @@ class Game {
                         game.clearAll(game.index)
                     }
                 }))
+                this.animator.add_anim(Anim.stepper(plt.pltMore[game.index], 500, "opacity", 0, 1))
             }
         })
         colorSelectorBG.move(0, -1.5 * colorSelectorBG.height)
@@ -338,9 +343,9 @@ class Game {
                         buttons.submit.interactable = true
                         const didTheyWin = game.checkVictory(game.index)
                         if (!didTheyWin) {
-                            this.animator.add_anim(Anim.setter(buttons.instruction, 1000, "txt", ["Try again to draw:"]))
-                            this.animator.add_anim(Anim.setter(buttons.submit, 1000, "txt", "Incorrect", { ditch: true, noLock: true }))
-                            this.animator.add_anim(Anim.setter(buttons.submit, 1000, "interactable", [false], { noLock: true }))
+                            //this.animator.add_anim(Anim.setter(buttons.instruction, 1000, "txt", ["Try again to draw:"]))
+                            this.animator.add_anim(Anim.setter(buttons.submit, 1500, "txt", "Incorrect, try again.", { ditch: true, noLock: true }))
+                            this.animator.add_anim(Anim.setter(buttons.submit, 1500, "interactable", [false], { noLock: true }))
                         }
                     }
                 }))
@@ -396,16 +401,15 @@ class Game {
                     const C = COLORS[game.index]
                     const screen = this.screen
                     MM.drawCircle(screen, u.x, u.y, 10, { color: null, outline: 2, outline_color: C })
-                    MM.drawCircle(screen, px.x, px.y, 6, { color: C })
-                    MM.drawCircle(screen, py.x, py.y, 6, { color: C })
+                    //MM.drawCircle(screen, px.x, px.y, 6, { color: C })
+                    //MM.drawCircle(screen, py.x, py.y, 6, { color: C })
                     MM.drawLine(screen, bg.left, u.y, bg.right, u.y, { color: C, width: 1 })
                     MM.drawLine(screen, u.x, bg.top, u.x, bg.bottom, { color: C, width: 1 })
-                    MM.drawCircle(screen, u.x, u.y, 10, { color: null, outline: 2, outline_color: C })
                 }
             )
         }
 
-        bg.on_click = (pos) => {
+        bg.on_release = (pos) => {
             let { x, y } = plt.pointerPosToCoord(pos)
             x = Math.round(x)
             y = Math.round(y)
@@ -448,12 +452,14 @@ class Game {
     }
     //#region randomSquiggly
     randomSquiggly() {
+        stgs.generationAttemptcount++
+        const { minX, maxX, minY, maxY } = stgs.plt
         let [a, b, s, t, ra, rb] = [1, 1, 0, 0, [1, 1], [1, 1]]
         const transOpts = [
             () => { ra = MM.choice([[2, 1], [3, 1], [4, 1], [1, 2], [1, 3], [3 / 2], [2 / 3]]) },
             () => { rb = MM.choice([[2, 1], [3, 1], [4, 1], [1, 2], [1, 3], [3 / 2], [2 / 3]]) },
-            () => { s = MM.choice([...MM.range(-5, 6)].filter(x => x != 0)) },
-            () => { t = MM.choice([...MM.range(-5, 6)].filter(x => x != 0)) },
+            () => { s = MM.choice([...MM.range(minX + 1, maxX)].filter(x => x != 0)) },
+            () => { t = MM.choice([...MM.range(minY + 1, maxY)].filter(x => x != 0)) },
             () => {
                 const r = MM.choice([0, 1, 2])
                 if (r == 0) { ra[0] *= -1 }
@@ -464,7 +470,6 @@ class Game {
         MM.choice(transOpts, MM.choice([2, 3, 3, 4])).forEach(x => x.call())
         a = ra[0] / ra[1]
         b = rb[0] / rb[1]
-        const { minX, maxX, minY, maxY } = stgs.plt
         const ptsXOpts = [...MM.range(minX + 1, maxX)].filter(x => Math.abs(x % Math.abs(a)) < 0.01).filter(x => MM.between(x, minX + 1, maxX - 1))
         const ptsYopts = [...MM.range(minY + 1, maxY)].filter(y => Math.abs(y % Math.abs(1 / b)) < 0.01).filter(y => MM.between(y, minY + 1, maxY - 1))
         const ptsPreTransform = [...MM.cartesianProduct(ptsXOpts, ptsYopts)]
@@ -518,8 +523,6 @@ class Game {
         }
 
 
-
-
         const eqn = `y = ${ta}f(${tb}x${tmbs})${tt}`
         const ret = {
             a, b, s, t,
@@ -527,15 +530,21 @@ class Game {
             eqn: eqn
         }
         if (stgs.logSolution) { console.log(ret) }
+        console.log(`Generation successful after ${stgs.generationAttemptcount} attempt(s).`)
         return ret
     }
     //#endregion
     //#region Controls
     selectColor(index) {
         game.index = index
-        game.colorButtons.forEach((x, i) => {
-            x.outline = i == index ? 16 : 0
-        })
+
+        game.colorButtons.forEach(
+            /**@param {Button} x */
+            (x, i) => {
+                //x.outline = i == index ? 16 : 0
+                const size = (i == index ? 1 : .4) * game.colorButtonsDefaultSize
+                x.resize(size, size)
+            })
     }
     addPoint(x, y) {
         const point = [x, y]
@@ -578,6 +587,14 @@ class Game {
             game.hasWonAlready = true
             GameEffects.fireworksShow()
             game.buttons.retry.txt = "New puzzle"
+            game.buttons.submit.txt = "Victory!!!"
+            game.buttons.submit.interactable = false
+            game.animator.add_anim(Anim.delay(500, {
+                on_end: () => {
+                    game.animator.add_anim(Anim.stepper(game.buttons.retry, 500, "rad", 0, TWOPI, { noLock: true, repeat: 3 }))
+                    //game.animator.add_anim(new Anim(game.buttons.retry, 500, Anim.f.scaleThroughFactor, { scaleFactor: .6, noLock: true, repeat: 3 }))
+                }
+            }))
         }
     }
     //#endregion
@@ -638,7 +655,9 @@ class Game {
 //#region dev options
 /// dev options
 const dev = {
-
+    redefineBounds: (minX, maxX, minY, maxY) => {
+        Object.assign(stgs.plt, { minX, maxX, minY, maxY })
+    }
 
 }/// end of dev
 //#endregion

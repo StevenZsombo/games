@@ -156,10 +156,17 @@ class MM {
         return arr.reduce((s, x) => s + x, 0)
     }
 
-    static extFunc(func, ext) {
+    static extendFunction(func, ext, extensionGoesBeforeInsteadOfAfter = false) {
+        if (extensionGoesBeforeInsteadOfAfter) {
+            return function (...args) {
+                ext?.(...args)
+                return func?.(...args)
+            }
+        }
+
         return function (...args) {
             func?.(...args)
-            return ext(...args)
+            return ext?.(...args)
             //func?.apply(this, args)
             //return ext.apply(this,args)
         }
@@ -201,7 +208,7 @@ class MM {
         screen.strokeRect(x, y, width, height)
         screen.restore()
     }
-
+    //#region MM.drawCircle
     static drawCircle(screen, x, y, width, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
         screen.globalAlpha = 1 - opacity
         if (color) {
@@ -220,7 +227,7 @@ class MM {
         }
         screen.globalAlpha = 1
     }
-
+    //#region MM.drawEllipse
     static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
         screen.globalAlpha = 1 - opacity
         if (color) {
@@ -239,6 +246,7 @@ class MM {
         screen.globalAlpha = 1
     }
 
+    //#region MM.drawLine
     static drawLine(ctx, x, y, u, w, { color = "black", width = 5 } = {}) {
         //ctx.save()
         ctx.strokeStyle = color
@@ -253,7 +261,7 @@ class MM {
     static drawLinePos(ctx, pt1, pt2, { color = "black", width = 5 } = {}) {
         MM.drawLine(ctx, pt1.x, pt1.y, pt2.x, pt2.y, { color, width })
     }
-
+    //#region MM.drawPolyLine
     static drawPolyLine(screen, xArr, yArr, { color = "blank", width = 4, offsetX = 0, offsetY = 0 } = {}) {
         if (xArr.length != yArr.length) { throw "drawPolyLine length mismatch" }
         screen.save()
@@ -274,12 +282,13 @@ class MM {
         const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
         return { x: drawX, y: drawY }
     }
-
+    //#region MM.plot
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3, axes: show_axes = true, axes_color = "plum", axes_width = 3,
         dottingDistance = 1, show_grid = true, grid_width = 1, grid_color = "lightgray",
-        show_axes_labels = true, axes_labels_font = "24px Times" } = {}) {
+        show_axes_labels = true, axes_labels_font = "24px Times",
+        opacity = 0 } = {}) {
         density ??= rect.width
         if (show_axes && dottingDistance) {
             screen.font = axes_labels_font
@@ -308,13 +317,10 @@ class MM {
             }
         }
 
-
-        /*MM.drawPolyLine(screen, xArr, yArr, {
-            color: color, width: width, offsetX: rect.x, offsetY: rect.y
-        })*/
         //drawing the curve, but not its vertical asymptotes
         if (func) {
             screen.save()
+            if (opacity) screen.globalAlpha = 1 - opacity
             screen.translate(rect.x, rect.y)
             screen.beginPath()
             screen.strokeStyle = color
