@@ -17,8 +17,9 @@
         let socket = null;
 
         function connect() {
-            // Connect to public echo server (for demo)
-            socket = new WebSocket('ws://localhost:8774/');
+            const ip = prompt("gimme the IP")
+            const address = ip ? `ws://${ip}:8774/` : 'ws://192.168.0.101:8774/'
+            socket = new WebSocket(address);
 
             socket.onopen = () => {
                 console.log('✅ Connected');
