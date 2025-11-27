@@ -171,6 +171,17 @@ class Anim {
 		const settings = { varNames, startVals, endVals, ...args }
 		return new Anim(obj, time, "stepMany", settings)
 	}
+
+	static setter(obj, time, varNames, vals, args = {}) {
+		if (!Array.isArray(varNames)) { varNames = varNames.split(" ") }
+		if (!Array.isArray(vals)) { vals = [vals] }
+
+		const settings = { varNames, vals, ...args }
+		return new Anim(obj, time, "setTempMany", settings)
+
+
+	}
+
 	static delay(time, args = {}) {
 		return new Anim(null, time, "delay", args)
 	}

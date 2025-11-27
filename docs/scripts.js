@@ -383,7 +383,7 @@ class Button extends Clickable {
 		super(options)
 		/**@type {string} */
 		this.txt = null //txtmult by default
-		this.fontsize = 24
+		this.fontSize = 24
 		this.font_color = "black"
 		this.font_font = "Times"
 		this.fontScale = 1
@@ -513,7 +513,7 @@ class Button extends Clickable {
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {
-			font: `${this.fontsize}px ${this.font_font}`,
+			font: `${this.fontSize}px ${this.font_font}`,
 			color: this.font_color,
 			opacity: this.opacity,
 			...this.textSettings
@@ -676,19 +676,24 @@ class Plot {
 		this.fixedRatio = false // to be implemented
 		this.color = "black"
 		this.width = 2
-		this.axes = true
+		this.show_axes = true
 		this.axes_color = "plum"//"deeppink",//"fuchsia",
 		this.axes_width = 1
+		this.show_axes_labels = true
+		this.axes_labels_font = "24px Times"
+		this.dottingDistance = 1
+		this.show_grid = true
+		this.grid_width = .5
+		this.grid_color = "lightgray"
 		this.show_border_values = true
-		this.show_border_values_font = "12px Times"
-		this.show_border_values_dp = 2
+		this.border_values_font = "12px Times"
+		this.border_values_dp = 2
 		this.highlightedPoints = [] //
 		this.label_highlighted = true
 		this.label_highlighted_font = "24px Times"
 		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true
-		this.dottingDistance = 1
 		this.func = func
 		this.rect = rect
 		this.density = rect.width * 2
@@ -698,6 +703,12 @@ class Plot {
 		this.plotScreen = this.plotCanvas.getContext("2d")
 		this.plotRect = new Rect(0, 0, rect.width, rect.height)
 
+	}
+	/**@param {Button} button - will be used as a background and control surface */
+	static fromButton(button) {
+		const ret = new Plot(null, button)
+		ret.addControls(null, button)
+		return ret
 	}
 
 	draw(screen) {
@@ -719,17 +730,17 @@ class Plot {
 		if (this.show_border_values) {
 			const { maxX, maxY, minX, minY } = this
 			screen.fillStyle = "black"
-			screen.font = this.show_border_values_font
+			screen.font = this.border_values_font
 			screen.textAlign = "center"
 			screen.textBaseline = "top"
-			screen.fillText(maxY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.top)
+			screen.fillText(maxY.toFixed(this.border_values_dp), this.rect.centerX, this.rect.top)
 			screen.textBaseline = "bottom"
-			screen.fillText(minY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.bottom)
+			screen.fillText(minY.toFixed(this.border_values_dp), this.rect.centerX, this.rect.bottom)
 			screen.textBaseline = "middle"
 			screen.textAlign = "left"
-			screen.fillText(minX.toFixed(this.show_border_values_dp), this.rect.left, this.rect.centerY)
+			screen.fillText(minX.toFixed(this.border_values_dp), this.rect.left, this.rect.centerY)
 			screen.textAlign = "right"
-			screen.fillText(maxX.toFixed(this.show_border_values_dp), this.rect.right, this.rect.centerY)
+			screen.fillText(maxX.toFixed(this.border_values_dp), this.rect.right, this.rect.centerY)
 		}
 	}
 
@@ -738,7 +749,7 @@ class Plot {
 		MM.drawCircle(this.plotScreen, x, y, 10, { color: color ?? this.color })
 		label_highlighted ??= this.label_highlighted
 		if (label_highlighted) {
-			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
+			const label = `(${Number(p[0].toFixed(this.border_values_dp))}, ${Number(p[1].toFixed(this.border_values_dp))})`
 			this.plotScreen.font = this.label_highlighted_font
 			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
 		}
