@@ -867,3 +867,249 @@ class Plot {
 
 }
 //#endregion
+
+//#region Field
+//Is a prerequisite for InputBoard.
+class Field extends Button {
+	constructor(button = {}, { isATerm = false, isACoefficient = false, defaultValue = 0 } = {}) {
+		super({ ...button })
+		this.isATerm = isATerm
+		this.isACoefficient = isACoefficient
+		this.defaultValue = defaultValue
+		this.untouched = true
+		this.color = "lightgray"
+		this.transparent = false
+		this.outline = 0
+		this.selected_color = "lightblue"
+		this.hover_color = "purple"
+
+		this.allowFraction = true
+		this.allowNegative = true
+
+		this.reset()
+
+	}
+	reset() {
+		this.numerator = 0
+		this.denominator = ""
+		this.fraction = false
+		this.negative = false
+		this.untouched = true
+		this.txtRefresh()
+		this.untouched = true
+	}
+
+	txtRefresh() {
+		let valText = this.fraction ? `${this.numerator}/${this.denominator == 0 ? "" : this.denominator}` : this.numerator
+		if (this.numerator == 0) {
+			if (this.isACoefficient) { valText = this.negative ? "-" : "" }
+			else if (this.isATerm) { valText = this.untouched ? "" : 0 }
+			else { valText = this.untouched ? "" : valText }
+		}
+		else {
+			if (this.isACoefficient) { valText = `${this.negative ? "-" : ""}${valText}` }
+			else if (this.isATerm) { valText = `${this.negative ? "-" : "+"}${valText}` }
+			else { valText = `${this.negative ? "-" : ""}${valText}` }
+		}
+
+		this.txt = valText
+	}
+
+	getValue() {
+		if (this.numerator == 0) { return this.negative ? -1 * this.defaultValue : this.defaultValue }
+		return (this.fraction ? this.numerator / this.denominator : this.numerator) * (this.negative ? -1 : 1)
+	}
+
+
+}
+//#endregion
+//#region InputBoard
+//Requires Field.
+class InputBoard {
+	/**
+	 * @param {Rect} inputBackground 
+	 * @param {Array<Field>} fields
+	*/
+	constructor(inputBackground, fields, { animationTime = 500 } = {}) {
+		if (!fields || fields.length == 0) {
+			throw "At least one field must be declared."
+		}
+		this.redefineFields(fields)
+		this.animationTime = animationTime
+		this.inputButtons = this.createButtonsBoard(inputBackground)
+
+	}
+
+
+	createButtonsBoard(inputBackground) {
+		const inputButtons = inputBackground.copy.
+			splitRow(1, 6)[1].
+			stretch(.55, .7).
+			move(-50, 0).
+			splitGrid(5, 3).
+			flat().map(x => x.deflate(10, 10)).
+			map(Button.fromRect)
+
+		const inputButtonsNumbers = [...inputButtons.slice(0, 9), inputButtons[10]]
+		inputButtonsNumbers.forEach((x, i) => {
+			x.txt = i + 1
+			x.on_click = () => {
+				this.addValueToField(x.txt)
+				if (this.animationTime) { GameEffects.sendFancy(x, this.currentField, this.animationTime) }
+			}
+		})
+		inputButtons.forEach(x => {
+			x.fontsize = 48
+			x.color = "lightblue"
+		})
+		inputButtons[10].txt = 0
+		inputButtons[10].on_click = () => {
+			this.addValueToField(0)
+			if (this.animationTime) { GameEffects.sendFancy(inputButtons[10], this.currentField, this.animationTime) }
+		}
+		inputButtons[9].txt = "+"
+		inputButtons[9].on_click = () => {
+			this.currentField.negative = false
+			this.currentField.txtRefresh()
+			if (this.animationTime) { GameEffects.sendFancy(inputButtons[9], this.currentField, this.animationTime) }
+		}
+		inputButtons[11].txt = "-"
+		inputButtons[11].on_click = () => {
+			this.currentField.negative = this.currentField.allowNegative
+			this.currentField.txtRefresh()
+			if (this.animationTime) { GameEffects.sendFancy(inputButtons[11], this.currentField, this.animationTime) }
+		}
+		inputButtons[13].txt = "/"
+		inputButtons[13].on_click = () => {
+			if (this.currentField.numerator != 0) {
+				this.currentField.fraction = this.currentField.allowFraction
+				this.currentField.txtRefresh()
+			}
+			if (this.animationTime) { GameEffects.sendFancy(inputButtons[13], this.currentField, this.animationTime) }
+		}
+		inputButtons[12].txt = "Reset"
+		inputButtons[12].fontsize = 30
+		const resetButtonFunction = () => {
+			this.fields.forEach(x => {
+				x.reset()
+				if (this.animationTime) {
+					GameEffects.sendFancy(inputButtons[12], x, this.animationTime)
+				}
+			})
+
+		}
+		inputButtons[12].on_click = () => {
+			resetButtonFunction()
+		}
+		inputButtons[14].txt = "Delete"
+		inputButtons[14].fontsize = 30
+		inputButtons[14].on_click = () => {
+			let curr = this.currentField
+			curr.txtRefresh()
+			let v = String(curr.txt)
+			if (v.length <= 1 || (v[0] == "+" && v.length == 2)) {
+				curr.reset()
+			} else {
+				if (curr.fraction) {
+					if (curr.denominator == "") {
+						curr.fraction = false
+					} else {
+						const str = String(curr.denominator)
+						curr.denominator = Number(str.substring(0, str.length - 1))
+					}
+				} else {
+					const str = String(curr.numerator)
+					curr.numerator = Number(str.substring(0, str.length - 1))
+				}
+			}
+			curr.txtRefresh()
+			if (this.animationTime) { GameEffects.sendFancy(inputButtons[14], this.currentField, this.animationTime) }
+		}
+		return inputButtons
+	}
+
+	getButtonsDict() {
+		const inputButtons = this.inputButtons
+		return {
+			0: inputButtons[10],
+			1: inputButtons[0],
+			2: inputButtons[1],
+			3: inputButtons[2],
+			4: inputButtons[3],
+			5: inputButtons[4],
+			6: inputButtons[5],
+			7: inputButtons[6],
+			8: inputButtons[7],
+			9: inputButtons[8],
+			"+": inputButtons[9],
+			"-": inputButtons[11],
+			"/": inputButtons[13],
+			"Delete": inputButtons[14],
+			"Reset": inputButtons[12]
+		}
+	}
+
+	/**@param {Array<Field>} fields  */
+	redefineFields(fields) {
+		if (!fields || fields.length == 0) { throw "At least one field must be provided" }
+		fields.forEach((f, i) => {
+			if (!(f instanceof Field)) { throw "The given object if not a field." }
+			f.on_click = () => { this.currentField = f }
+			f.txtRefresh()
+		})
+		this.fields = fields
+		this.focusField(0)
+		const radio_group = Button.make_radio(fields, true)
+		return radio_group
+	}
+
+	addnum(oldVal, addVal) {
+		if (oldVal == 0 && addVal == 0) { return 0 }
+		return Number(String(oldVal) + String(addVal))
+	}
+
+	addValueToField(value) {
+		const curr = this.currentField
+		if (curr.fraction) {
+			curr.denominator = this.addnum(curr.denominator, value)
+		} else {
+			curr.numerator = this.addnum(curr.numerator, value)
+		}
+		curr.untouched = false
+		curr.txtRefresh()
+	}
+
+	freezeFields() {
+		this.fields.forEach(x => {
+			x.interactable = false
+			x.selected = false
+		})
+
+	}
+
+	unfreezeFields() {
+		this.fields.forEach(x => x.interactable = true)
+		this.fields[0].on_click()
+	}
+
+	get currentFieldIndex() {
+		const index = this.fields.findIndex(x => x == this.currentField)
+		if (index == -1) { throw "Requested field cannot be found" }
+		return index
+	}
+
+	/**@param {number} index  */
+	focusField(index) {
+		this.currentField = this.fields[index]
+		this.currentField.on_click?.()
+	}
+
+	nextField() {
+		this.focusField((this.currentFieldIndex + 1) % this.fields.length)
+	}
+
+	previousField() {
+		this.focusField((this.currentFieldIndex - 1 + this.fields.length) % this.fields.length)
+	}
+}
+//#endregion

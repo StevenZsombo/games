@@ -2,79 +2,7 @@
 //dpr = 2 / 3
 //disabled for now, not worth bothering with
 
-class SpatialHashGrid {
-    constructor(sizeX, sizeY, dimX, dimY) {
-        this.sizeX = sizeX
-        this.sizeY = sizeY
-        this.dimX = dimX
-        this.dimY = dimY
-        this.cells = Array(dimX + 1).fill().map(y => (Array(dimY + 1).fill().map(x => new Set())))
-        //this.records = new Map()
-    }
-
-    addClient(client) {
-        this._insert(client)
-    }
-
-    _insert(client) {
-        const { x, y, right, bottom } = client
-
-        const tl = this._getCellIndex(x, y)
-        const br = this._getCellIndex(right, bottom)
-
-        //this.records.set(client, [tl, br])
-
-        for (let u = tl[0]; u < br[0]; u++) {
-            for (let w = tl[1]; w < br[1]; w++) {
-                this.cells[u][w].add(client)
-            }
-        }
-    }
-
-    _getCellIndex(x, y) {
-        const { sizeX, sizeY, dimX, dimY } = this
-        return [x / sizeX * dimX, y / sizeY * dimY].map(Math.floor)
-    }
-
-    updateClient(client) {
-        this.removeClient(client)
-        this._insert(client)
-    }
-
-    removeClient(client) {
-        /*
-        const [tl, br] = this.records.get(client)
-        for (let u = tl[0]; u < br[0]; u++) {
-            for (let w = tl[1]; w < br[1]; w++) {
-                this.cells[u][w].delete(client)
-            }
-        }*/
-        this.cells.forEach(x => x.forEach(y => y.delete(client)))
-    }
-
-    findNear(rect) {
-        const fin = new Set()
-        const { x, y, right, bottom } = rect
-
-        const tl = this._getCellIndex(x, y)
-        const br = this._getCellIndex(right, bottom)
-
-        for (let u = tl[0]; u <= br[0]; u++) {
-            for (let w = tl[1]; w <= br[1]; w++) {
-                this.cells[u]?.[w]?.forEach(member => {
-                    if (member !== rect) fin.add(member)
-                })
-            }
-        }
-
-        return fin
-    }
-
-    next_loop() {
-        this.cells = Array(this.dimX).fill().map(y => (Array(this.dimY).fill().map(x => new Set())))
-    }
-}
-
+//#region GameEffects
 class GameEffects {
     //requires a global "game" to run
     static fireworks(pos, howmany = 200, howlong = 2000, howbig = 5, howfar = 200) {
@@ -166,11 +94,43 @@ class GameEffects {
             objs.push(c)
         }
         return objs
-
     }
 
-}
+    static sendFancy(b, tgt, time = 500, newParamsForCopy = {}) {
+        /** @type {Button} cp */
+        const cp = b.copy
+        Object.assign(cp, newParamsForCopy)
+        cp.interactable = false
+        game.add_drawable(cp)
+        /*
+        game.animator.add_anim(cp, time, "moveTo", {
+            x: tgt.centerX - cp.width / 4,
+            y: tgt.centerY - cp.height / 4,
+            on_end: () => { game.remove_drawable(cp) },
+            noLock: true
+        })
+        game.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
+        game.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
+        */
+        const startX = cp.centerX
+        const startY = cp.centerY
+        const targetX = tgt.centerX
+        const targetY = tgt.centerY
+        const origW = cp.width
+        const origH = cp.height
+        const origFontSize = cp.fontsize
+        game.animator.add_anim(Anim.custom(cp, 500, function (t) {
+            const scale = Anim.interpol(1, .5, t)
+            cp.fontsize = origFontSize * scale
+            cp.centerat(Anim.interpol(startX, targetX, t), Anim.interpol(startY, targetY, t))
+            cp.resize(origW * scale, origH * scale)
+        }, null, { on_end: () => { game.remove_drawable(cp) } }))
+    }
 
+
+}
+//#endregions
+//#region UniqueArray
 const UniqueArray = function () {
     const set = new Set();
     const array = [];
@@ -189,7 +149,8 @@ const UniqueArray = function () {
         }
     }
 }
-
+//#endregion
+//#region MM
 class MM {
     static sum(arr) {
         return arr.reduce((s, x) => s + x, 0)
@@ -721,4 +682,5 @@ class MM {
 
 
 }
+//#endregion
 
