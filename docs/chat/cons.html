@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Serverless Console Chat</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 400px;
+            margin: 50px auto;
+        }
+
+        input,
+        button {
+            padding: 8px;
+            margin: 5px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Serverless Console Chat</h3>
+    <div>
+        <button onclick="createRoom()">Create Room</button><br>
+        <input type="text" id="roomInput" placeholder="Room ID to join">
+        <button onclick="joinRoom()">Join Room</button><br>
+        <input type="text" id="messageInput" placeholder="Type message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script src="cons.js"></script>
+</body>
+
+</html>
