@@ -7,7 +7,8 @@ const stgs = {
         maxY: 10
     },
     logSolution: true,
-    generationAttemptcount: 0
+    generationAttemptcount: 0,
+    level: null
 
 }/// end of settings
 

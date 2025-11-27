@@ -452,6 +452,11 @@ class Game {
     }
     //#region randomSquiggly
     randomSquiggly() {
+        if (stgs.level) {
+            const level = stgs.level
+            stgs.level = null
+            return level
+        }
         stgs.generationAttemptcount++
         const { minX, maxX, minY, maxY } = stgs.plt
         let [a, b, s, t, ra, rb] = [1, 1, 0, 0, [1, 1], [1, 1]]
@@ -513,13 +518,13 @@ class Game {
         else {
             const numer = -rb[0] * s
             const denom = rb[1]
-            const gcd = MM.gcd(Math.abs(numer), denom)
+            const gcd = Math.abs(MM.gcd(Math.abs(numer), denom))
             const simplified = [numer / gcd, denom / gcd]
             tmbs = simplified[0]
             if (simplified[1] != 1) {
                 tmbs = `${tmbs}/${simplified[1]}`
             }
-            if (simplified[0] > 0) tmbs = `-${tmbs}`
+            if (simplified[0] > 0) tmbs = `+${tmbs}`
         }
 
 
@@ -578,7 +583,10 @@ class Game {
         const correct = game.level.transPts.flat()
         if (MM.arrayEquals(attempt, correct)) {
             this.victory()
+            return true
         }
+
+        return false
 
     }
 
@@ -658,6 +666,7 @@ const dev = {
     redefineBounds: (minX, maxX, minY, maxY) => {
         Object.assign(stgs.plt, { minX, maxX, minY, maxY })
     }
+
 
 }/// end of dev
 //#endregion
