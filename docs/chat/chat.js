@@ -1,80 +1,106 @@
-let localConnection, remoteConnection;
-let dataChannel;
-const messages = document.getElementById('messages');
-const messageInput = document.getElementById('messageInput');
+let peerConnection, dataChannel;
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get('room');
+const isOffer = params.get('role') === 'offer';
 
-// Simple signaling using localStorage (for demo - replace with actual signaling in production)
-const signaling = {
-    sendOffer: (offer) => localStorage.setItem('offer', JSON.stringify(offer)),
-    getOffer: () => JSON.parse(localStorage.getItem('offer')),
-    sendAnswer: (answer) => localStorage.setItem('answer', JSON.stringify(answer)),
-    getAnswer: () => JSON.parse(localStorage.getItem('answer')),
-    clear: () => { localStorage.removeItem('offer'); localStorage.removeItem('answer'); }
-};
-
-async function createRoom() {
-    signaling.clear();
-    localConnection = new RTCPeerConnection();
-    dataChannel = localConnection.createDataChannel('chat');
-    setupDataChannel(dataChannel);
-
-    localConnection.onicecandidate = () => {
-        signaling.sendOffer(localConnection.localDescription);
-    };
-
-    const offer = await localConnection.createOffer();
-    await localConnection.setLocalDescription(offer);
+function createRoom() {
+    const roomId = Math.random().toString(36).substring(2, 8);
+    window.location.search = `?room=${roomId}&role=offer`;
 }
 
-async function joinRoom() {
-    const offer = signaling.getOffer();
-    if (!offer) return alert('No room found!');
+function joinRoom() {
+    const roomId = prompt('Enter room ID:');
+    if (roomId) window.location.search = `?room=${roomId}&role=answer`;
+}
 
-    remoteConnection = new RTCPeerConnection();
+function initializeConnection() {
+    if (!roomId) return;
 
-    remoteConnection.ondatachannel = (event) => {
-        dataChannel = event.channel;
-        setupDataChannel(dataChannel);
-    };
+    peerConnection = new RTCPeerConnection();
 
-    remoteConnection.onicecandidate = () => {
-        signaling.sendAnswer(remoteConnection.localDescription);
-    };
+    if (isOffer) {
+        dataChannel = peerConnection.createDataChannel('chat');
+        setupDataChannel();
 
-    await remoteConnection.setRemoteDescription(offer);
-    const answer = await remoteConnection.createAnswer();
-    await remoteConnection.setLocalDescription(answer);
+        peerConnection.createOffer()
+            .then(offer => peerConnection.setLocalDescription(offer))
+            .then(() => {
+                localStorage.setItem(`offer-${roomId}`, JSON.stringify(peerConnection.localDescription));
+                console.log('Offer created. Room ID:', roomId);
+                checkForAnswer();
+            });
+    } else {
+        peerConnection.ondatachannel = (event) => {
+            dataChannel = event.channel;
+            setupDataChannel();
+        };
+        checkForOffer();
+    }
 
-    // Complete handshake for creator
-    setTimeout(() => {
-        const finalAnswer = signaling.getAnswer();
-        if (finalAnswer) {
-            localConnection.setRemoteDescription(finalAnswer);
+    setupIceCandidates();
+}
+
+function setupDataChannel() {
+    dataChannel.onopen = () => console.log('✅ Data channel ready!');
+    dataChannel.onmessage = (event) => console.log('💬 Peer:', event.data);
+}
+
+function checkForOffer() {
+    const interval = setInterval(() => {
+        const offer = localStorage.getItem(`offer-${roomId}`);
+        if (offer) {
+            clearInterval(interval);
+            peerConnection.setRemoteDescription(JSON.parse(offer))
+                .then(() => peerConnection.createAnswer())
+                .then(answer => peerConnection.setLocalDescription(answer))
+                .then(() => {
+                    localStorage.setItem(`answer-${roomId}`, JSON.stringify(peerConnection.localDescription));
+                    console.log('Answer sent');
+                });
         }
     }, 1000);
 }
 
-function setupDataChannel(channel) {
-    channel.onopen = () => addMessage('System: Connected!');
-    channel.onclose = () => addMessage('System: Disconnected');
-    channel.onmessage = (event) => addMessage(`Peer: ${event.data}`);
+function checkForAnswer() {
+    const interval = setInterval(() => {
+        const answer = localStorage.getItem(`answer-${roomId}`);
+        if (answer) {
+            clearInterval(interval);
+            peerConnection.setRemoteDescription(JSON.parse(answer));
+            console.log('Answer received');
+        }
+    }, 1000);
+}
+
+function setupIceCandidates() {
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            const key = `ice-${roomId}-${isOffer ? 'offer' : 'answer'}`;
+            const candidates = JSON.parse(localStorage.getItem(key) || '[]');
+            candidates.push(event.candidate);
+            localStorage.setItem(key, JSON.stringify(candidates));
+        }
+    };
+
+    setInterval(() => {
+        const remoteKey = `ice-${roomId}-${isOffer ? 'answer' : 'offer'}`;
+        const remoteCandidates = JSON.parse(localStorage.getItem(remoteKey) || '[]');
+        remoteCandidates.forEach(candidate => {
+            peerConnection.addIceCandidate(candidate).catch(() => { });
+        });
+    }, 2000);
 }
 
 function sendMessage() {
-    const message = messageInput.value.trim();
-    if (message && dataChannel?.readyState === 'open') {
+    const message = document.getElementById('messageInput').value;
+    if (dataChannel && dataChannel.readyState === 'open' && message) {
         dataChannel.send(message);
-        addMessage(`You: ${message}`);
-        messageInput.value = '';
+        console.log('📤 You:', message);
+        document.getElementById('messageInput').value = '';
+    } else {
+        console.log('❌ Not ready or empty message');
     }
 }
 
-function addMessage(text) {
-    messages.innerHTML += `<div>${text}</div>`;
-    messages.scrollTop = messages.scrollHeight;
-}
-
-// Enter key to send
-messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-});
+// Auto-initialize if room is in URL
+if (roomId) initializeConnection();
