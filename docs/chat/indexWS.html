@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Chat</title>
+</head>
+
+<body>
+    <div>
+        <input id="roomInput" placeholder="Room name" value="lobby">
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    <div>
+        <input id="messageInput" placeholder="Type message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    <div id="messages"
+        style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin: 10px 0; padding: 10px;"></div>
+
+    <script src="chat.js"></script>
+</body>
+
+</html>

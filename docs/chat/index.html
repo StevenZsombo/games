@@ -1,0 +1,58 @@
+<head>
+    <title>Simple Chat</title>
+</head>
+
+<body>
+    <div>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+    </div>
+    <div>
+        <input id="messageInput" placeholder="Type message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    <div id="messages"></div>
+
+    <script>
+        let socket = null;
+
+        function connect() {
+            // Connect to public echo server (for demo)
+            socket = new WebSocket('ws://localhost:8774/');
+
+            socket.onopen = () => {
+                console.log('✅ Connected');
+                addMessage('System: Connected to chat');
+            };
+
+            socket.onmessage = (event) => {
+                addMessage('Other: ' + event.data);
+            };
+
+            socket.onclose = () => {
+                addMessage('System: Disconnected');
+            };
+        }
+
+        function disconnect() {
+            if (socket) socket.close();
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            if (message && socket?.readyState === WebSocket.OPEN) {
+                socket.send(message);
+                addMessage('You: ' + message);
+                document.getElementById('messageInput').value = '';
+            }
+        }
+
+        function addMessage(text) {
+            const messages = document.getElementById('messages');
+            messages.innerHTML += '<div>' + text + '</div>';
+        }
+
+        // Auto-connect
+        connect();
+    </script>
+</body>
