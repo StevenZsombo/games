@@ -17,8 +17,9 @@
         let socket = null;
 
         function connect() {
-            let ip = prompt("gimme the IP")
-            ip = ip == "" ? "192.168.0.101" : ip
+            let ip
+            //ip = prompt("gimme the IP")
+            ip = ip == "" ? location.hostname : ip
             const address = `ws://${ip}:8000/`
             console.log(ip)
             socket = new WebSocket(address);
