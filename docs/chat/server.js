@@ -31,5 +31,21 @@ wss.on('connection', (socket) => {
 });
 
 server.listen(8000, '0.0.0.0', () => {
-    console.log('HTTP + WebSocket server running on port 8000');
+    const os = require('os')
+    const nets = os.networkInterfaces()
+    const addrs = []
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                addrs.push(net.address)
+            }
+        }
+    }
+
+    if (addrs.length) {
+        console.log('Hosting server on the following:')
+        addrs.forEach(ip => {
+            console.log(`http://${ip}:8000`)
+        })
+    }
 });

@@ -22,14 +22,49 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', (socket) => {
+wss.on('connection', (socket, req) => {
+    const addr = (socket._socket && socket._socket.remoteAddress)
+        ? `${socket._socket.remoteAddress}:${socket._socket.remotePort}`
+        : (req && req.socket && req.socket.remoteAddress)
+            ? `${req.socket.remoteAddress}:${req.socket.remotePort}`
+            : 'unknown';
+    console.log('Client connected from', addr);
+
     socket.on('message', (data) => {
+        const msg = data.toString();
+        console.log('Received message from', addr, ':', msg);
+
+        // broadcast to other clients (preserve original behavior)
         wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) client.send(data.toString());
+            if (client !== socket && client.readyState === WebSocket.OPEN) client.send(msg);
+        });
+
+        // append message to record.txt
+        fs.appendFile(path.join(__dirname, 'record.txt'), msg + '\n', (err) => {
+            if (err) console.error('Failed to append to record.txt:', err);
         });
     });
+
+    socket.on('close', () => console.log('Client disconnected:', addr));
+    socket.on('error', (err) => console.error('Socket error from', addr, err));
 });
 
 server.listen(8000, '0.0.0.0', () => {
-    console.log('HTTP + WebSocket server running on port 8000');
+    const os = require('os')
+    const nets = os.networkInterfaces()
+    const addrs = []
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                addrs.push(net.address)
+            }
+        }
+    }
+
+    if (addrs.length) {
+        console.log('Hosting server on the following:')
+        addrs.forEach(ip => {
+            console.log(`http://${ip}:8000`)
+        })
+    }
 });
