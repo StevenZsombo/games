@@ -14,7 +14,9 @@ class Chat {
 
     connect(ip) {
         ip ??= location.hostname
-        const address = `ws://${ip}:8000/`
+        const isHostedOnine = location.protocol === "https:"
+        const address = isHostedOnine ? `wss://${location.hostname}` : `ws://${ip}:8000/`
+        console.log("Adress:", address)
         try {
             this.socket = new WebSocket(address)
             console.log("Attempting to connect...")

@@ -24,7 +24,7 @@ setTimeout(() => {
             game.isAcceptingInputs = true
         }
     })
-}, 0)
+}, 10)
 
 
 

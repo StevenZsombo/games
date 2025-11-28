@@ -1,3 +1,16 @@
+/*
+---local hosting---
+node this
+then join via ip:8000
+
+
+---online hosting---
+first host locally, then:
+ngrok http 8000
+then join via url
+*/
+
+
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
