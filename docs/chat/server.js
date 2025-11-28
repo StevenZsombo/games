@@ -1,24 +1,35 @@
 const WebSocket = require('ws');
-// bind to 0.0.0.0 so remote devices can connect
-const server = new WebSocket.Server({ host: '0.0.0.0', port: 8000 });
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
-server.on('connection', (socket) => {
-    console.log('Client connected');
+const server = http.createServer((req, res) => {
+    const filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
 
-    socket.on('message', (data) => {
-        console.log('Message:', data.toString());
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            res.writeHead(404);
+            res.end();
+            return;
+        }
 
-        // Broadcast to all other clients
-        server.clients.forEach(client => {
-            if (client !== socket && client.readyState === WebSocket.OPEN) {
-                client.send(data.toString());
-            }
-        });
-    });
-
-    socket.on('close', () => {
-        console.log('Client disconnected');
+        const ext = path.extname(filePath);
+        const contentType = ext === '.js' ? 'application/javascript' : 'text/html';
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(data);
     });
 });
 
-console.log("server running")
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', (socket) => {
+    socket.on('message', (data) => {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) client.send(data.toString());
+        });
+    });
+});
+
+server.listen(8000, '0.0.0.0', () => {
+    console.log('HTTP + WebSocket server running on port 8000');
+});
