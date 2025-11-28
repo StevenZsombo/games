@@ -1,48 +1,54 @@
 <html>
 
 <body>
+    <b>A-levels</b>
+    <ul id="alevelslist"></ul>
     <b>Games</b>
-    <br>
-    <ul id="gamelist">
-    </ul>
+    <ul id="gameslist"></ul>
 
 </body>
 
 <script>
     {
-        const data = { //tag: [path, name, txt]
+        const alevels = {
+            transform: ["transform/template.html", "Function transformations - Find the formula", "Function transformation puzzles - Find the formula"],
+            transformdraw: ["transformdraw/template.html", "Function transformations - Draw the function", "Function transformation puzzles - Draw the function"]
+
+        }
+        const games = {
             fox: ["fox/template.html", "Fox", "Catch the fox!"],
-            particles: ["particles/particles.html", "Particles", "these are my particles"],
-            cats: ["cats/cats.html", "Cats", "these are (not) my cats"],
-            lights: ["lights/index.html", "Lights", "these are my lights"],
+            particles: ["particles/particles.html", "Particles", "Particles simulation."],
+            cats: ["cats/cats.html", "Cats", "Rearrange the shuffled picture of the cats"],
+            lights: ["lights/index.html", "Lights", "Turn on all the lights, or explain why you can't."],
             pyramid: ["pyramid/template.html", "Pyramid", "Build a pyramid."],
-            coinflip: ["coinflip/coinflip.html", "Coin flip", "Coin flip game based on a 2025 Euclid contest problem"],
+            coinflip: ["coinflip/coinflip.html", "Coin flip", "Coin flip game based on a 2025 Euclid contest problem."],
             flippycat: ["flippycat/template.html", "Flippy cat", "Reveal the cat guarding their melons!"],
             //sec1: ["security1/index.html", "Security", "Security game"],
-            sec2: ["security2/index.html", "Security (advanced)", "More advanced version"],
-            batteries: ["batteries/batteries.html", "Batteries", "Very difficult puzzle"],
-            transform: ["transform/template.html", "Function transformations - Find the formula", "Function transformation puzzles - Find the formula"],
-            transformdraw: ["transformdraw/template.html", "Function transformations - Draw the function", "Function transformation puzzles - Draw the function"],
-            invaders: ["invaders/invaders.html", "Invaders", "my first attempt at javascript"]
-            //test: ["test/template.html", "Test", "Testing for budget tablets"]
+            sec2: ["security2/index.html", "Security (advanced)", "Unlock the advanced security, or explain why you can't."],
+            batteries: ["batteries/batteries.html", "Batteries", "A very difficult puzzle."],
+            invaders: ["invaders/invaders.html", "Invaders", "My first attempt at javascript."]
 
         }
 
-        //will append "particles.html" with the given text
 
-        const addToList = function (path, name, txt) {
+        const addToList = function (path, name, txt, targetlist) {
             const listitem = document.createElement('li')
-            listitem.innerHTML = `<a href="${path}">${name}</a>
-        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${txt}`
-            document.body.appendChild(listitem)
+            listitem.innerHTML = `<a href="${path}">${name}</a><br>${txt}`
+            //<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${txt}`
+            document.getElementById(targetlist).appendChild(listitem)
 
         }
-        for ([path, name, txt] of Object.values(data)) {
-            addToList(path, name, txt)
+        for ([path, name, txt] of Object.values(games)) {
+            addToList(path, name, txt, "gameslist")
         }
+        for ([path, name, txt] of Object.values(alevels)) {
+            addToList(path, name, txt, "alevelslist")
+        }
+
 
         document.body.insertAdjacentHTML("beforeend",
-            `<br><br><a href="template.html">The latest in-progress project </a>`
+            `<b>Other</b><br><a href="template.html">The latest in-progress project </a>
+            <br>Steven Istvan Zsombo`
         )
 
     }
