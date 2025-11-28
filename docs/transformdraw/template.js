@@ -262,6 +262,26 @@ class Game {
     //#endregion
     //#region initialize_more
     initialize_more() {
+        if (!stgs.numberOfTransformations) {
+            const diff = this.rect.copy.splitCol(1, 1, 1).
+                map(x => x.stretch(.8, .2)).
+                map(Button.fromRect)
+
+            diff.forEach((x, i) => {
+                x.txt = ["Random easy\n2 transformations", "Random medium\n3 transformations", "Random hard\n4-5 transformations"][i]
+                x.fontSize = 36
+                x.on_release = () => {
+                    stgs.numberOfTransformations = [2, 3, MM.choice([4, 4, 5])][i]
+                    main()
+                }
+            })
+
+            this.add_drawable(diff)
+
+            return
+        }
+
+
         const bg = Button.fromRect(this.rect.copy)
         bg.resize(1400, 1000)
         bg.topleftat(40, 40)
@@ -278,7 +298,7 @@ class Game {
         Object.assign(plt, stgs.plt)
         plt.matchAxesScaling()
         plt.show_border_values = false
-        const level = this.randomSquiggly()
+        const level = this.randomSquiggly(stgs.numberOfTransformations)
         plt.func = MM.brokenLineFunction(...level.pts.flat())
         plt.highlightedPoints = level.pts
         const COLORS = ["green", "red", "blue", "orange", "brown"]
@@ -451,12 +471,14 @@ class Game {
 
     }
     //#region randomSquiggly
-    randomSquiggly() {
+    randomSquiggly(numberOfTransformations) {
+        /*
         if (stgs.level) {
             const level = stgs.level
             stgs.level = null
             return level
-        }
+        }*/
+        stgs.numberOfTransformations = null
         stgs.generationAttemptcount++
         const { minX, maxX, minY, maxY } = stgs.plt
         let [a, b, s, t, ra, rb] = [1, 1, 0, 0, [1, 1], [1, 1]]
@@ -472,7 +494,8 @@ class Game {
                 if (r == 2) { ra[0] *= -1; rb[0] *= -1; }
             },
         ]
-        MM.choice(transOpts, MM.choice([2, 3, 3, 4])).forEach(x => x.call())
+        console.log({ transOpts, numberOfTransformations })
+        MM.choice(transOpts, numberOfTransformations).forEach(x => x.call())
         a = ra[0] / ra[1]
         b = rb[0] / rb[1]
         const ptsXOpts = [...MM.range(minX + 1, maxX)].filter(x => Math.abs(x % Math.abs(a)) < 0.01).filter(x => MM.between(x, minX + 1, maxX - 1))
@@ -481,6 +504,7 @@ class Game {
         const ptsAll = ptsPreTransform.map(p => {
             return {
                 pre: p,
+                mid: MM.pointTransformation(p[0], p[1], a, b, 0, 0),
                 post: MM.pointTransformation(p[0], p[1], a, b, s, t)
             }
         }).filter(p => {
@@ -488,6 +512,9 @@ class Game {
                 && MM.isNearInteger(p.post[1])
                 && MM.between(p.post[0], minX + 1, maxX - 1)
                 && MM.between(p.post[1], minY + 1, maxY - 1)
+                && MM.between(p.mid[0], minX + 1, maxX - 1)
+                && MM.between(p.mid[1], minY + 1, maxY - 1)
+
         })
         const myXvals = [...new Set(ptsAll.map(p => p.pre[0]))]
         const selectedXvals = MM.choice(myXvals, MM.choice([4, 4, 4, 5, 5]))
@@ -495,7 +522,7 @@ class Game {
             MM.choice(ptsAll.filter(p => p.pre[0] == x))
         ).sort((u, w) => u.pre[0] - w.pre[0])
         if (selectedPoints.length < 4) {
-            return this.randomSquiggly()
+            return this.randomSquiggly(numberOfTransformations)
             console.error({ a, b, s, t, ptsAll, myXvals, selectedXvals, selectedPoints })
             throw "could not generate points with the given criteria"
         }
@@ -547,7 +574,7 @@ class Game {
             /**@param {Button} x */
             (x, i) => {
                 //x.outline = i == index ? 16 : 0
-                const size = (i == index ? 1 : .4) * game.colorButtonsDefaultSize
+                const size = (i == index ? 1.2 : .6) * game.colorButtonsDefaultSize
                 x.resize(size, size)
             })
     }

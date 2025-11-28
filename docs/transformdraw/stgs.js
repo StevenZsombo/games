@@ -8,7 +8,8 @@ const stgs = {
     },
     logSolution: true,
     generationAttemptcount: 0,
-    level: null
+    level: null,
+    numberOfTransformations: null
 
 }/// end of settings
 
