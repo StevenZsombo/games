@@ -383,6 +383,7 @@ class Button extends Clickable {
 		super(options)
 		/**@type {string} */
 		this.txt = null //txtmult by default
+		this.dynamicText = null //can be any function
 		this.fontsize = 24
 		this.font_color = "black"
 		this.font_font = "Times"
@@ -483,13 +484,14 @@ class Button extends Clickable {
 			if (this.img != null) {
 				this.draw_image(screen)
 			}
+			if (this.dynamicText) { this.txt = this.dynamicText() }
 			if (this.txt != null) {
 				this.draw_text(screen)
 			}
 			if (this.rad) {
 				screen.restore() //started above, should go at the end
 			}
-
+			this.draw_more?.(screen)
 		}
 
 	}
@@ -510,6 +512,8 @@ class Button extends Clickable {
 	draw_image(screen) {
 		MM.drawImage(screen, this.img, this, this.opacity)
 	}
+
+	draw_more = null
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {

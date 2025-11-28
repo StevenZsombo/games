@@ -118,10 +118,10 @@ class GameEffects {
         const targetY = tgt.centerY
         const origW = cp.width
         const origH = cp.height
-        const origFontSize = cp.fontsize
+        const origFontSize = cp.fontSize
         game.animator.add_anim(Anim.custom(cp, 500, function (t) {
             const scale = Anim.interpol(1, .5, t)
-            cp.fontsize = origFontSize * scale
+            cp.fontSize = origFontSize * scale
             cp.centerat(Anim.interpol(startX, targetX, t), Anim.interpol(startY, targetY, t))
             cp.resize(origW * scale, origH * scale)
         }, null, { on_end: () => { game.remove_drawable(cp) } }))
@@ -156,10 +156,17 @@ class MM {
         return arr.reduce((s, x) => s + x, 0)
     }
 
-    static extFunc(func, ext) {
+    static extendFunction(func, ext, extensionGoesBeforeInsteadOfAfter = false) {
+        if (extensionGoesBeforeInsteadOfAfter) {
+            return function (...args) {
+                ext?.(...args)
+                return func?.(...args)
+            }
+        }
+
         return function (...args) {
             func?.(...args)
-            return ext(...args)
+            return ext?.(...args)
             //func?.apply(this, args)
             //return ext.apply(this,args)
         }
@@ -201,7 +208,7 @@ class MM {
         screen.strokeRect(x, y, width, height)
         screen.restore()
     }
-
+    //#region MM.drawCircle
     static drawCircle(screen, x, y, width, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
         screen.globalAlpha = 1 - opacity
         if (color) {
@@ -220,7 +227,7 @@ class MM {
         }
         screen.globalAlpha = 1
     }
-
+    //#region MM.drawEllipse
     static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
         screen.globalAlpha = 1 - opacity
         if (color) {
@@ -239,7 +246,8 @@ class MM {
         screen.globalAlpha = 1
     }
 
-    static drawLine(ctx, x, y, u, w, { color = 'black', width = 5 } = {}) {
+    //#region MM.drawLine
+    static drawLine(ctx, x, y, u, w, { color = "black", width = 5 } = {}) {
         //ctx.save()
         ctx.strokeStyle = color
         ctx.lineWidth = width
@@ -250,6 +258,10 @@ class MM {
         //ctx.restore()
     }
 
+    static drawLinePos(ctx, pt1, pt2, { color = "black", width = 5 } = {}) {
+        MM.drawLine(ctx, pt1.x, pt1.y, pt2.x, pt2.y, { color, width })
+    }
+    //#region MM.drawPolyLine
     static drawPolyLine(screen, xArr, yArr, { color = "blank", width = 4, offsetX = 0, offsetY = 0 } = {}) {
         if (xArr.length != yArr.length) { throw "drawPolyLine length mismatch" }
         screen.save()
@@ -270,13 +282,31 @@ class MM {
         const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
         return { x: drawX, y: drawY }
     }
-
+    //#region MM.plot
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
-        density, color = "black", width = 3, axes = true, axes_color = "lightgray", axes_width = 1,
-        dottingDistance = 0 } = {}) {
+        density, color = "black", width = 3, axes: show_axes = true, axes_color = "plum", axes_width = 3,
+        dottingDistance = 1, show_grid = true, grid_width = 1, grid_color = "lightgray",
+        show_axes_labels = true, axes_labels_font = "24px Times",
+        opacity = 0 } = {}) {
         density ??= rect.width
-        if (axes) {
+        if (show_axes && dottingDistance) {
+            screen.font = axes_labels_font
+            for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
+                if (show_grid) { MM.drawLine(screen, x, 0, x, rect.height, { color: grid_color, width: grid_width }) }
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+                if (show_axes_labels && i != 0) { screen.fillText(i, x - 10, y + 24) }
+            }
+            for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
+                let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
+                if (show_grid) { MM.drawLine(screen, 0, y, rect.width, y, { color: grid_color, width: grid_width }) }
+                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+                if (show_axes_labels && j != 0) { screen.fillText(j, x + 10, y + 6) }
+            }
+
+        }
+        if (show_axes) {
             if (minY <= 0 && maxY >= 0) {
                 const axPos = rect.y + (maxY / (maxY - minY)) * rect.height
                 MM.drawLine(screen, rect.left, axPos, rect.right, axPos, { color: axes_color, width: axes_width })
@@ -286,45 +316,35 @@ class MM {
                 MM.drawLine(screen, axPos, rect.top, axPos, rect.bottom, { color: axes_color, width: axes_width })
             }
         }
-        if (axes && dottingDistance) {
-            for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
-                let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
-                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
-            }
-            for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
-                let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
-                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
-            }
-        }
 
-        /*MM.drawPolyLine(screen, xArr, yArr, {
-            color: color, width: width, offsetX: rect.x, offsetY: rect.y
-        })*/
         //drawing the curve, but not its vertical asymptotes
-        screen.save()
-        screen.translate(rect.x, rect.y)
-        screen.beginPath()
-        screen.strokeStyle = color
-        screen.lineWidth = width
-        let prevDrawY = 1
-        for (let i = 0; i <= density; i++) {
-            const t = i / density
-            const valX = minX + t * (maxX - minX)
-            const valY = func(valX)
-            const drawX = t * rect.width
-            const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
-            const asympControl = (prevDrawY < 0 && drawY > rect.height) || (prevDrawY > rect.height && drawY < 0)
-            if (!asympControl) {
-                screen.lineTo(drawX, drawY)
-            } else {
-                screen.stroke()
-                screen.moveTo(drawX, drawY)
-                screen.beginPath()
+        if (func) {
+            screen.save()
+            if (opacity) screen.globalAlpha = 1 - opacity
+            screen.translate(rect.x, rect.y)
+            screen.beginPath()
+            screen.strokeStyle = color
+            screen.lineWidth = width
+            let prevDrawY = 1
+            for (let i = 0; i <= density; i++) {
+                const t = i / density
+                const valX = minX + t * (maxX - minX)
+                const valY = func(valX)
+                const drawX = t * rect.width
+                const drawY = rect.height - (valY - minY) / (maxY - minY) * rect.height
+                const asympControl = (prevDrawY < 0 && drawY > rect.height) || (prevDrawY > rect.height && drawY < 0)
+                if (!asympControl) {
+                    screen.lineTo(drawX, drawY)
+                } else {
+                    screen.stroke()
+                    screen.moveTo(drawX, drawY)
+                    screen.beginPath()
+                }
+                prevDrawY = drawY
             }
-            prevDrawY = drawY
+            screen.stroke()
+            screen.restore()
         }
-        screen.stroke()
-        screen.restore()
     }
 
 
@@ -394,6 +414,20 @@ class MM {
         let ret = x < min ? min : x
         ret = x > max ? max : ret
         return ret
+    }
+
+    static isNearInteger(x, tolerance = 0.01) {
+        const distance = Math.abs(x % 1)
+        return distance <= tolerance || distance >= (1 - tolerance)
+    }
+
+    static nearestInteger(x) {
+        return Math.round(x)
+    }
+
+    static gcd(a, b) {
+        while (b !== 0) [a, b] = [b, a % b]
+        return Math.abs(a)
     }
 
     static random(min, max) {
@@ -626,7 +660,9 @@ class MM {
     }
 
 
-
+    static arrayEquals(arr1, arr2) {
+        return arr1.length == arr2.length && arr1.every((x, i) => x == arr2[i])
+    }
     static arrToStr(arr) {
         return arr.join(",")
     }

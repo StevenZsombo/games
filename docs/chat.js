@@ -1,13 +1,15 @@
 //var char, SEND declared in the end
 
 class Chat {
-    constructor(ip = null) {
+    constructor(ip = null, name = null) {
+        if (name) { this.name = name }
         /**@type {WebSocket} socket */
         this.socket = null
         this.errorHandlers = []
         this.acquireName()
 
         this.connect(ip)
+
     }
 
     connect(ip) {
@@ -71,7 +73,7 @@ class Chat {
 
     receiveMessage(messageText) {
         const message = JSON.parse(messageText)
-        console.log(message)
+        //console.log(message)
         //return is the message has a target different than me
         if (message.target && message.target !== this.name) { return }
 
@@ -88,17 +90,41 @@ class Chat {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
         }
+        if (message.present) {
+            this.sendMessage({ presentResponse: 1 })
+        }
     }
 
     acquireName() {
+        if (this.name) { return }
         let name = localStorage.getItem("name")
         if (name) {
             this.name = name
         } else {
-            name = prompt("Please tell me your name.")
+            while (!name || name.length <= 3) {
+                name = prompt("Please tell me your name.")
+            }
             localStorage.setItem("name", name)
             this.name = name
         }
+    }
+
+    /**@param {String} target  */
+    orderResetName(target) {
+        const obj = {
+            target: target,
+            eval: `localStorage.removeItem("name"); location.reload();`
+        }
+        this.sendMessage(obj, true)
+    }
+
+    //**param {String} target */
+    orderReload(target) {
+        this.sendMessage({ target: target, eval: "location.reload()" }, true)
+    }
+
+    orderAttendance() {
+        this.sendMessage({ present: "ask" })
     }
 
 }
