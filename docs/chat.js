@@ -106,6 +106,4 @@ class Chat {
 
 
 
-var chat = new Chat()
-var SEND = chat.sendMessage.bind(chat)
-var SEV = function (code, alsoSendToSelf) { chat.sendMessage({ eval: code }), alsoSendToSelf }
+

@@ -1,6 +1,7 @@
 //should import scripts.js, gui.js, MM.js, animations.js
 // collect global settings into a single object for easier management
 const univ = {
+    isOnline: true,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 30,
     denybuttons: false,
@@ -29,6 +30,13 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
+
+    if (univ.isOnline) {
+        var chat = new Chat()
+        var SEND = chat.sendMessage.bind(chat)
+        var SEV = function (code, alsoSendToSelf) { chat.sendMessage({ eval: code }), alsoSendToSelf }
+    }
+
     const screen = canvas.getContext("2d")
     screen.imageSmoothingQuality = univ.imageSmoothingQuality
     screen.imageSmoothingEnabled = univ.imageSmoothingEnabled
