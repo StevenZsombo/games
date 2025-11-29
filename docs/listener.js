@@ -2,7 +2,7 @@ class Listener {
     constructor() {
         /**@type {Array<{name: string}>} */
         this.participants = {}
-        this.name = "GameMasterExcelsior"
+        this.name = "GM"
 
 
         this.on_message = null //takes obj, person
@@ -14,6 +14,7 @@ class Listener {
         this.eventSource.onmessage = (event) => {
             this.messageParsing(event.data)
         };
+
     }
 
 

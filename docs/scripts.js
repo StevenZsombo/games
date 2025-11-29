@@ -384,7 +384,7 @@ class Button extends Clickable {
 		/**@type {string} */
 		this.txt = null //txtmult by default
 		this.dynamicText = null //can be any function
-		this.fontsize = 24
+		this.fontSize = 24
 		this.font_color = "black"
 		this.font_font = "Times"
 		this.fontScale = 1
@@ -517,7 +517,7 @@ class Button extends Clickable {
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {
-			font: `${this.fontsize}px ${this.font_font}`,
+			font: `${this.fontSize}px ${this.font_font}`,
 			color: this.font_color,
 			opacity: this.opacity,
 			...this.textSettings
@@ -640,7 +640,7 @@ class Button extends Clickable {
 //#region MouseHelper
 class MouseHelper extends Button {
 	constructor(execute = true) {
-		super({ width: 50, height: 50, fontsize: 36 })
+		super({ width: 50, height: 50, fontSize: 36 })
 		this.update = (dt) => this.centeratV(game.mouser.pos)
 		if (execute) {
 			game.add_drawable(this)
@@ -680,9 +680,15 @@ class Plot {
 		this.fixedRatio = false // to be implemented
 		this.color = "black"
 		this.width = 2
-		this.axes = true
+		this.show_axes = true
 		this.axes_color = "plum"//"deeppink",//"fuchsia",
-		this.axes_width = 1
+		this.axes_width = 3
+		this.show_axes_labels = true
+		this.axes_labels_font = "24px Times"
+		this.dottingDistance = 1
+		this.show_grid = true
+		this.grid_width = 1
+		this.grid_color = "lightgray"
 		this.show_border_values = true
 		this.show_border_values_font = "12px Times"
 		this.show_border_values_dp = 2
@@ -692,7 +698,6 @@ class Plot {
 		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true
-		this.dottingDistance = 1
 		this.func = func
 		this.rect = rect
 		this.density = rect.width * 2
@@ -963,7 +968,7 @@ class InputBoard {
 			}
 		})
 		inputButtons.forEach(x => {
-			x.fontsize = 48
+			x.fontSize = 48
 			x.color = "lightblue"
 		})
 		inputButtons[10].txt = 0
@@ -992,7 +997,7 @@ class InputBoard {
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[13], this.currentField, this.animationTime) }
 		}
 		inputButtons[12].txt = "Reset"
-		inputButtons[12].fontsize = 30
+		inputButtons[12].fontSize = 30
 		const resetButtonFunction = () => {
 			this.fields.forEach(x => {
 				x.reset()
@@ -1006,7 +1011,7 @@ class InputBoard {
 			resetButtonFunction()
 		}
 		inputButtons[14].txt = "Delete"
-		inputButtons[14].fontsize = 30
+		inputButtons[14].fontSize = 30
 		inputButtons[14].on_click = () => {
 			let curr = this.currentField
 			curr.txtRefresh()

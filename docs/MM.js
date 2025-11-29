@@ -2,134 +2,7 @@
 //dpr = 2 / 3
 //disabled for now, not worth bothering with
 
-//#region GameEffects
-class GameEffects {
-    //requires a global "game" to run
-    static fireworks(pos, howmany = 200, howlong = 2000, howbig = 5, howfar = 200) {
-        const container = game.layers[9]
-        const { x, y } = pos
-        for (let i = 0; i < howmany; i++) {
-            const theta = MM.random(-60, 180 + 60) * ONEDEG
-            const vX = Math.cos(theta) * MM.random(.2, 3) * howfar
-            const vY = -Math.sin(theta) * MM.random(.2, 3) * howfar
-            const p = {
-                x: x, y: y,
-                color: MM.choice("red green blue orange".split(" ")),
-                size: howbig,
-                opacity: 0,
-                draw: function (screen) {
-                    MM.drawCircle(screen, this.x, this.y, this.size, {
-                        color: this.color, opacity: this.opacity
-                    })
-                }
-            }
-            container.push(p)
-            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
-                p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
-                p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
-                p.opacity = t ** 2
-                p.size = howbig * (1 - t)
-            }, null, {
-                on_end: () => {
-                    game.layers[9] = game.layers[9].filter(x => x !== p)
-                },
-            }))
-        }
-    }
 
-    static fireworksShow(howmanytimes = 5) {
-        const randomFireworks = () => {
-            GameEffects.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
-        }
-        const a = () => {
-            return new Anim({}, MM.random(400, 1200), "delay", {
-                on_end: randomFireworks
-            })
-        }
-        randomFireworks()
-        randomFireworks()
-        game.animator.add_sequence(
-            ...Array(howmanytimes).fill().map(_ => a())
-        )
-    }
-    /**@returns {Array<Anim>} the sequence that WILL be played*/
-    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5 } = {}) {
-        const origSize = lab.fontsize
-        const newSize = origSize * scaleFactor
-        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: origSize, endVal: newSize })
-        const b = () => new Anim(lab, 600, "stepMany", {
-            varNames: ["rad", "fontsize"],
-            endVals: [TWOPI, newSize],
-            startVals: [0, newSize]
-        })
-        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: newSize, endVal: origSize })
-        const seq = []
-        MM.forr(repeat, () => seq.push(a(), b(), c()))
-        game.animator.add_sequence(seq)
-        return seq
-
-    }
-
-    static dottedLine(fromX, fromY, toX, toY, {
-        dotNumber = 5, spacing = null, size = 5, includeStart = true, includeEnd = true, color = "black",
-        animate = true } = {}) {
-        const Circ = function (x, y, size, color) {
-            Object.assign(this, { x, y, size, color })
-            this.draw = function (screen) {
-                MM.drawCircle(screen, this.x, this.y, this.size, this)
-            }
-        }
-        if (spacing) {
-            dotNumber = Math.floor(MM.dist(fromX, fromY, toX, toY) / spacing)
-        }
-        const dotNumberActual = dotNumber + 2
-        const dx = (toX - fromX) / (dotNumberActual - 1)
-        const dy = (toY - fromY) / (dotNumberActual - 1)
-        const positions = Array(dotNumberActual).
-            fill([fromX, fromY].slice()).
-            map((v, i) => [v[0] + i * dx, v[1] + i * dy])
-        const objs = []
-        for (const place of positions) {
-            const c = new Circ(place[0], place[1], size, color)
-            objs.push(c)
-        }
-        return objs
-    }
-
-    static sendFancy(b, tgt, time = 500, newParamsForCopy = {}) {
-        /** @type {Button} cp */
-        const cp = b.copy
-        Object.assign(cp, newParamsForCopy)
-        cp.interactable = false
-        game.add_drawable(cp)
-        /*
-        game.animator.add_anim(cp, time, "moveTo", {
-            x: tgt.centerX - cp.width / 4,
-            y: tgt.centerY - cp.height / 4,
-            on_end: () => { game.remove_drawable(cp) },
-            noLock: true
-        })
-        game.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
-        game.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
-        */
-        const startX = cp.centerX
-        const startY = cp.centerY
-        const targetX = tgt.centerX
-        const targetY = tgt.centerY
-        const origW = cp.width
-        const origH = cp.height
-        const origFontSize = cp.fontSize
-        game.animator.add_anim(Anim.custom(cp, 500, function (t) {
-            const scale = Anim.interpol(1, .5, t)
-            cp.fontSize = origFontSize * scale
-            cp.centerat(Anim.interpol(startX, targetX, t), Anim.interpol(startY, targetY, t))
-            cp.resize(origW * scale, origH * scale)
-        }, null, { on_end: () => { game.remove_drawable(cp) } }))
-    }
-
-
-}
-//#endregions
 //#region UniqueArray
 const UniqueArray = function () {
     const set = new Set();
@@ -171,6 +44,10 @@ class MM {
             //return ext.apply(this,args)
         }
     }
+    static extFunc = MM.extendFunction
+
+
+
     static dist(x, y, u, w) {
         return Math.hypot(x - u, y - w)
     }
@@ -295,13 +172,13 @@ class MM {
             for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
                 if (show_grid) { MM.drawLine(screen, x, 0, x, rect.height, { color: grid_color, width: grid_width }) }
-                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+                MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
                 if (show_axes_labels && i != 0) { screen.fillText(i, x - 10, y + 24) }
             }
             for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
                 if (show_grid) { MM.drawLine(screen, 0, y, rect.width, y, { color: grid_color, width: grid_width }) }
-                MM.drawCircle(screen, x, y, axes_width * 2, { color: axes_color })
+                MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
                 if (show_axes_labels && j != 0) { screen.fillText(j, x + 10, y + 6) }
             }
 
@@ -716,7 +593,234 @@ class MM {
             s + yi * xs.reduce((p, xj, j) => i !== j ? p * (x - xj) / (xs[i] - xj) : p, 1), 0)
     }
 
+    static time() {
+        return new Date().toTimeString().split(' ')[0]
+    }
+
+    static localStorageBackup(key, howmany = 5) {
+        for (let i = howmany; i > 0; i--) {
+            localStorage.setItem(`${key}_${i}`, localStorage.getItem(`${key}_${i - 1}`))
+        }
+    }
+    static setByPath(obj, path, value) {
+        const keys = path.split('.');
+        const lastKey = keys.pop();
+        const target = keys.reduce((obj, key) => obj[key], obj);
+        target[lastKey] = value;
+    }
+
 
 }
 //#endregion
+//#region end of MM
 
+
+
+
+
+
+
+
+
+//#endregion
+//#region GameEffects
+class GameEffects {
+    //requires a global "game" to run
+    static fireworks(pos, howmany = 200, howlong = 2000, howbig = 5, howfar = 200) {
+        const container = game.layers[9]
+        const { x, y } = pos
+        for (let i = 0; i < howmany; i++) {
+            const theta = MM.random(-60, 180 + 60) * ONEDEG
+            const vX = Math.cos(theta) * MM.random(.2, 3) * howfar
+            const vY = -Math.sin(theta) * MM.random(.2, 3) * howfar
+            const p = {
+                x: x, y: y,
+                color: MM.choice("red green blue orange".split(" ")),
+                size: howbig,
+                opacity: 0,
+                draw: function (screen) {
+                    MM.drawCircle(screen, this.x, this.y, this.size, {
+                        color: this.color, opacity: this.opacity
+                    })
+                }
+            }
+            container.push(p)
+            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
+                p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
+                p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
+                p.opacity = t ** 2
+                p.size = howbig * (1 - t)
+            }, null, {
+                on_end: () => {
+                    game.layers[9] = game.layers[9].filter(x => x !== p)
+                },
+            }))
+        }
+    }
+
+    static fireworksShow(howmanytimes = 5) {
+        const randomFireworks = () => {
+            GameEffects.fireworks({ x: MM.random(100, game.WIDTH - 100), y: MM.random(100, game.HEIGHT - 100) })
+        }
+        const a = () => {
+            return new Anim({}, MM.random(400, 1200), "delay", {
+                on_end: randomFireworks
+            })
+        }
+        randomFireworks()
+        randomFireworks()
+        game.animator.add_sequence(
+            ...Array(howmanytimes).fill().map(_ => a())
+        )
+    }
+    /**@returns {Array<Anim>} the sequence that WILL be played*/
+    static victorySpin(lab, { scaleFactor = 1.6, repeat = 5 } = {}) {
+        const origSize = lab.fontsize
+        const newSize = origSize * scaleFactor
+        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: origSize, endVal: newSize })
+        const b = () => new Anim(lab, 600, "stepMany", {
+            varNames: ["rad", "fontsize"],
+            endVals: [TWOPI, newSize],
+            startVals: [0, newSize]
+        })
+        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: newSize, endVal: origSize })
+        const seq = []
+        MM.forr(repeat, () => seq.push(a(), b(), c()))
+        game.animator.add_sequence(seq)
+        return seq
+
+    }
+
+    static dottedLine(fromX, fromY, toX, toY, {
+        dotNumber = 5, spacing = null, size = 5, includeStart = true, includeEnd = true, color = "black",
+        animate = true } = {}) {
+        const Circ = function (x, y, size, color) {
+            Object.assign(this, { x, y, size, color })
+            this.draw = function (screen) {
+                MM.drawCircle(screen, this.x, this.y, this.size, this)
+            }
+        }
+        if (spacing) {
+            dotNumber = Math.floor(MM.dist(fromX, fromY, toX, toY) / spacing)
+        }
+        const dotNumberActual = dotNumber + 2
+        const dx = (toX - fromX) / (dotNumberActual - 1)
+        const dy = (toY - fromY) / (dotNumberActual - 1)
+        const positions = Array(dotNumberActual).
+            fill([fromX, fromY].slice()).
+            map((v, i) => [v[0] + i * dx, v[1] + i * dy])
+        const objs = []
+        for (const place of positions) {
+            const c = new Circ(place[0], place[1], size, color)
+            objs.push(c)
+        }
+        return objs
+    }
+
+    static sendFancy(b, tgt, time = 500, newParamsForCopy = {}) {
+        /** @type {Button} cp */
+        const cp = b.copy
+        Object.assign(cp, newParamsForCopy)
+        cp.interactable = false
+        game.add_drawable(cp)
+        /*
+        game.animator.add_anim(cp, time, "moveTo", {
+            x: tgt.centerX - cp.width / 4,
+            y: tgt.centerY - cp.height / 4,
+            on_end: () => { game.remove_drawable(cp) },
+            noLock: true
+        })
+        game.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
+        game.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
+        */
+        const startX = cp.centerX
+        const startY = cp.centerY
+        const targetX = tgt.centerX
+        const targetY = tgt.centerY
+        const origW = cp.width
+        const origH = cp.height
+        const origFontSize = cp.fontSize
+        game.animator.add_anim(Anim.custom(cp, 500, function (t) {
+            const scale = Anim.interpol(1, .5, t)
+            cp.fontSize = origFontSize * scale
+            cp.centerat(Anim.interpol(startX, targetX, t), Anim.interpol(startY, targetY, t))
+            cp.resize(origW * scale, origH * scale)
+        }, null, { on_end: () => { game.remove_drawable(cp) } }))
+    }
+
+    /**
+     * 
+     * @param {string} txt - Message to display
+     * @param {Array<number>} posFrac - Float position array coordinates as a fraction of screen size
+     * @param {Array<number} sizeFrac - Size as a fraction of screen size
+     * @param {Array<number} direction - "bottom top left right" where to come from
+     * @param {number} travelTime - How long it takes to move to position
+     * @param {number} floatTime - How long to linger
+     * @param {{}} [moreButtonSettings={}] - More settings to be applied to the created button
+     */
+    static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
+        travelTime = 500, floatTime = 1000,
+        moreButtonSettings = { color: "yellow" }, on_end = null } = {}
+    ) {
+        const b = new Button()
+        const { width: W, height: H } = game.rect
+        b.txt = txt
+        b.fontSize = 40
+        b.width = sizeFrac[0] * W
+        b.height = sizeFrac[1] * H
+        b.centerat(posFrac[0] * W, posFrac[1] * H)
+        Object.assign(b, moreButtonSettings)
+        const movement = {
+            bottom: [0, (1 - posFrac[1] + sizeFrac[1]) * H],
+            top: [0, -(posFrac[1] + sizeFrac[1]) * H],
+            left: [-(posFrac[0] + sizeFrac[0]) * W, 0],
+            right: [(1 - posFrac[0] + sizeFrac[0]) * W, 0]
+        }[direction]
+        /**@type {Array<Anim>} */
+        const seq = []
+        seq.push(new Anim(b, travelTime, Anim.f.moveFromRel, {
+            dx: movement[0], dy: movement[1]
+        }))
+        seq.push(Anim.delay(floatTime))
+        seq.push(new Anim(b, travelTime, Anim.f.moveToRel, {
+            dx: movement[0], dy: movement[1],
+            on_end: () => {
+                game.remove_drawable(b)
+                on_end?.()
+            }
+        }))
+        game.add_drawable(b)
+        game.animator.add_sequence(...seq)
+
+
+
+
+        return b
+    }
+
+    static popupPRESETS = {
+        bigYellow: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "yellow", fontSize: 40 } },
+        smallPink: { sizeFrac: [.2, .05], posFrac: [.5, .9], moreButtonSettings: { color: "pink", fontSize: 24 } },
+        topleftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
+        topleftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
+        topleftPink: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
+        kfBlue: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "blue", fontSize: 24, color: "lightgray" } },
+        kfRed: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "red", fontSize: 24, color: "lightgray" } },
+
+    }
+
+    /*static TODOkillfeed(txt, font_color = "black", moreButtonSettings = {}) {
+        game.killfeed ??= []
+        const y = game.killfeed.length * .075 + .05
+        game.killfeed.push(
+            GameEffects.popup(txt, {
+                sizeFrac: [.15, .05], posFrac: [.9, y], direction: "right",
+                moreButtonSettings: { font_color: font_color, ...moreButtonSettings },
+                travelTime: 200, floatTime: 500,
+                on_end: () => { game.killfeed?.shift() }
+            })
+        )
+    }*/
+
+}
+//#endregion

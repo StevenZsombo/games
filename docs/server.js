@@ -61,7 +61,9 @@ wss.on('connection', (socket, req) => {
         fs.appendFile('record.txt', msg + '\n', (err) => err && console.error('File error:', err));
     });
 
-    socket.on('close', () => console.log('Client disconnected:', addr));
+    socket.on('close', () => {
+        console.log('Client disconnected:', addr)
+    });
 });
 
 server.listen(8000, '0.0.0.0', () => {

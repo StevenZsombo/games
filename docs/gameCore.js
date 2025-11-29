@@ -31,6 +31,7 @@ window.onload = function () {
 
 const beforeMain = function (canvas) {
     if (univ.isOnline) { chat = new Chat() }
+    univ.on_first_run?.()
 
     const filelist = null
     //filelist = `${univ.fontFile}${univ.fontFile && univ.filesList ? " " : ""}${univ.filesList}` //fontFile goes first!
@@ -43,8 +44,6 @@ const beforeMain = function (canvas) {
     } else {
         main(canvas)
     }
-
-
 
 }
 
@@ -98,15 +97,21 @@ class GameCore {
         this.lastCycleTime = Date.now()
 
 
+
+
     }
     start() {
         this.status = "initializing"
         this.initialize()
         this.initialize_more()
+        univ.on_next_game?.()
+        univ.on_next_game = null
+        univ.on_each_start?.()
+
         /**@type {boolean} */
-        this.isRunning = true
-        this.isDrawing = true
-        this.isAcceptingInputs = true
+        this.isRunning ??= true
+        this.isDrawing ??= true
+        this.isAcceptingInputs ??= true
         this.status = "playing"
         this.tick()
     }
@@ -237,8 +242,7 @@ const myFont = new customFont()
 const cropper = new Cropper()
 /** @type {Game}*/
 var game
-/**@type {Chat} */
+/**@type {Chat|ChatServer} */
 var chat
-
 
 
