@@ -77,6 +77,7 @@ class GameCore {
             x: this.SIZE.x / 2,
             y: this.SIZE.y / 2
         }
+        this.WH = ([x, y]) => { this.WIDTH * x, this.WIDTH * y }
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(univ.denybuttons)
         this.framerate = new Framerater(univ.showFramerate)

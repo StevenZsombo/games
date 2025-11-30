@@ -7,18 +7,16 @@ class Listener {
         this.secureIDsToIgnore = new Set()
         this.allowPriorJoin = true
 
-        this.chat.receiveMessageParse = this.messageParsing.bind(this)
 
         this.on_message = null //takes obj, person
         this.on_message_more = null //takes obj, person
         this.on_reconnect = null //takes person
         this.on_join = null //takes person
-        /*
-                this.eventSource = new EventSource('http://localhost:8000/events');
-                this.eventSource.onmessage = (event) => {
-                    this.messageParsing(event.data)
-                };
-                */
+
+        this.eventSource = new EventSource('http://localhost:8000/events');
+        this.eventSource.onmessage = (event) => {
+            this.messageParsing(event.data)
+        };
 
     }
 

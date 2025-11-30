@@ -517,7 +517,8 @@ class Button extends Clickable {
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {
-			font: `${this.fontSize}px ${this.font_font}`,
+			fontSize: this.fontSize,
+			font: this.font_font,
 			color: this.font_color,
 			opacity: this.opacity,
 			...this.textSettings

@@ -10,65 +10,118 @@ ngrok http 8000
 then join via url
 */
 
-
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+const DOTS = {
+    red: '\x1b[31m●\x1b[0m',
+    green: '\x1b[32m●\x1b[0m',
+    blue: '\x1b[34m●\x1b[0m',
+    yellow: '\x1b[33m●\x1b[0m',
+    white: '\x1b[37m●\x1b[0m'
+}
+const COLORS = {
+    red: '\x1b[31m',
+    green: '\x1b[32m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    magenta: '\x1b[35m',
+    cyan: '\x1b[36m',
+    white: '\x1b[37m',
+    reset: '\x1b[0m'
+}
 
+// Colorize text
+const colorize = (text, color) => {
+    return COLORS[color] + text + COLORS.reset
+}
+
+const PORT = 8000
+
+// Minimal static server: serve index.html to normal clients, listener.html to listener
 const server = http.createServer((req, res) => {
-    if (req.url === '/events') {
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*'
-        });
-        sseClients.push(res);
-        req.on('close', () => sseClients.splice(sseClients.indexOf(res), 1));
-    } else {
-        const filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
-        fs.readFile(filePath, (err, data) => {
-            if (err) { res.writeHead(404); res.end(); return; }
-            const contentType = path.extname(filePath) === '.js' ? 'application/javascript' : 'text/html';
-            res.writeHead(200, { 'Content-Type': contentType });
-            res.end(data);
-        });
+    const urlPath = req.url === '/' ? '/index.html' : req.url
+
+    // serve explicit listener page at /listener.html (or /listener)
+    if (urlPath === '/listener' || urlPath === '/listener.html') {
+        const filePath = path.join(__dirname, 'listener.html')
+        return fs.readFile(filePath, (err, data) => {
+            if (err) { res.writeHead(404); res.end('Not found'); return }
+            res.writeHead(200, { 'Content-Type': 'text/html' })
+            res.end(data)
+        })
     }
-});
 
-const wss = new WebSocket.Server({ server });
-const sseClients = [];
+    // otherwise serve requested file (index.html for '/'), or 404
+    const filePath = path.join(__dirname, urlPath)
+    fs.readFile(filePath, (err, data) => {
+        if (err) { res.writeHead(404); res.end('Not found'); return }
+        const ext = path.extname(filePath)
+        const contentType = ext === '.js' ? 'application/javascript' : ext === '.css' ? 'text/css' : 'text/html'
+        res.writeHead(200, { 'Content-Type': contentType })
+        res.end(data)
+    })
+})
 
-wss.on('connection', (socket, req) => {
-    const addr = req.socket.remoteAddress ? `${req.socket.remoteAddress}:${req.socket.remotePort}` : 'unknown';
-    console.log('Client connected:', addr);
+const wss = new WebSocket.Server({ server })
 
-    socket.on('message', (data) => {
-        const msg = data.toString();
-        console.log('Message from', addr, ':', msg);
+// track listener sockets separately from regular clients
+const listeners = new Set()
 
-        // Broadcast to WebSocket clients
-        wss.clients.forEach(client => {
-            if (client !== socket && client.readyState === WebSocket.OPEN) client.send(msg);
-        });
+function appendRecord(line) {
+    fs.appendFile(path.join(__dirname, 'record.txt'), line + '\n', (err) => { if (err) console.error('record append error', err) })
+}
 
-        // Send to SSE clients
-        sseClients.forEach(client => client.write(`data: ${msg}\n\n`));
+wss.on('connection', (ws, req) => {
+    // use pathname to distinguish listener vs client: ws://host:8000/listener
+    let pathname = '/'
+    try { pathname = new URL(req.url, `http://${req.headers.host}`).pathname } catch (e) { pathname = req.url || '/' }
 
-        // Log to file
-        fs.appendFile('record.txt', msg + '\n', (err) => err && console.error('File error:', err));
-    });
+    const isListener = pathname === '/listener' || pathname === '/listener.html'
+    ws._isListener = isListener
 
-    socket.on('close', () => {
-        console.log('Client disconnected:', addr)
-    });
-});
+    if (isListener) {
+        listeners.add(ws)
+        console.log('\x1b[34m●\x1b[0mListener connected')
+    } else {
+        console.log('\x1b[32m●\x1b[0mClient connected:', req.socket.remoteAddress)
+    }
 
-server.listen(8000, '0.0.0.0', () => {
-    require('os').networkInterfaces();
-    Object.values(require('os').networkInterfaces()).flat()
-        .filter(net => net.family === 'IPv4' && !net.internal)
-        .forEach(net => console.log(`http://${net.address}:8000`));
-});
+    ws.on('message', (data) => {
+        const msg = (typeof data === 'string') ? data : data.toString()
+        appendRecord(msg)
+
+        if (ws._isListener) {
+            // message from listener -> broadcast to all regular clients
+            wss.clients.forEach(c => {
+                if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg)
+            })
+            console.log('Broadcast:', msg)
+        } else {
+            // message from a client -> forward only to listeners
+            listeners.forEach(l => {
+                if (l.readyState === WebSocket.OPEN) l.send(msg)
+            })
+            console.log('Client:', msg)
+        }
+    })
+
+    ws.on('close', () => {
+        if (ws._isListener) {
+            listeners.delete(ws)
+            console.log('\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m\x1b[34m●\x1b[0mListener disconnected')
+        } else {
+            console.log('\x1b[31m●\x1b[0mClient disconnected')
+        }
+    })
+})
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`)
+    const os = require('os')
+    const nets = os.networkInterfaces()
+    Object.values(nets).flat().filter(i => i && i.family === 'IPv4' && !i.internal)
+        .forEach(i => console.log(colorize(`Join on: http://${i.address}:${PORT}/`, "yellow")))
+})

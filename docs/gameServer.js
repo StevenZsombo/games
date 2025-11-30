@@ -22,8 +22,25 @@ Manual saves can be created, autosaves happen every minute too. 5 and 10 backups
 
 */
 const shared = {
-    "game.isAcceptingInputs": true
+    "game.isAcceptingInputs": true,
+    //"game.layers[8]": [], //game.layers[8],
+    leaderboard: "",
+    hasStartedContest: false
 }
+
+let isBroadcasting = false
+const broadcast = setInterval(
+    () => {
+        //if (game.layers[8]) { shared["game.layers[8]"] = game.layers[8] }
+        //chat.sendMessage({ demand: "game.layers[8]", value: shared["game.layers[8]"] })
+        if (!isBroadcasting) { return }
+        updateLeaderboard()
+        chat.sendMessage({ demand: "game.leaderboard", value: shared.leaderboard })
+    }, 1000)
+
+//const keepCheckingAttendance = setInterval(() => { chat.orderAttendance() }, 5000)
+
+
 const hq = {
     startContest: () => {
         COMM("game.startContest()")
@@ -31,6 +48,7 @@ const hq = {
         console.log("Contest has started.")
         GameEffects.popup("Contest has started.")
         shared.hasStartedContest = true
+        isBroadcasting = true
     },
     attendance: () => {
         chat.orderAttendance()
@@ -126,26 +144,20 @@ const autoSaveManager = setInterval(hq.autoSave, autoSaveInterval)
 
 const listener = new Listener()
 /**@type {ChatServer} */
-var chat = new ChatServer(null, listener.name)
+var chat = listener.chat
 const SEND = chat.sendMessage.bind(chat)
 const COMM = chat.sendCommand.bind(chat)
 const POPUP = (txt, settings) => chat.sendMessage({ popup: txt, popupSettings: settings })
 const ATTENDANCE = hq.attendance
-chat.receiveMessage = (messageText) => { }//console.log(JSON.parse(messageText)) }
+//chat.receiveMessage = (messageText) => { }//console.log(JSON.parse(messageText)) }
 const participants = listener.participants
-let lastClickedOn = null
+let LCN = null //last clicked name
+let LCP = null //last clicked person
 
 listener.on_message = (obj, person) => {
     checkPerson(person)
     if (obj.victory) {
-        person.score += obj.victory
-        chat.sendMessage({
-            popup: `Gained ${obj.victory} points.`, target: person.name
-        })
-        GameEffects.popup(`${person.name} gained ${person.score} points.`, {
-            posFrac: [.8, MM.random(.1, .9)], sizeFrac: [.3, .1], direction: "right",
-            moreButtonSettings: { fontSize: 36, color: "yellow" }
-        })
+        addToScore(obj, person)
     }
     if (obj.presentResponse) {
         game.animator.add_anim(Anim.setter(person.button, 1000, "color", "pink"))
@@ -192,14 +204,37 @@ const kickPerson = (nameOrPerson) => {
 const makeButtonFor = (person) => {
     /**@type {Button} */
     const b = Button.make_draggable(new Button({
-        dynamicText: () => `${person.name}: ${Number(person.score)}`, x: MM.random(400, 1400), y: MM.random(100, 900),
+        dynamicText: () => `${person.name}: ${Number(person.score)}`,
+        x: MM.random(400, 1400), y: MM.random(100, 900),
         fontSize: 36,
-        width: 300
+        width: 300,
+        color: "lightblue"
     }))
-    b.on_click = () => { lastClickedOn = person.name }
+    b.on_click = () => {
+        LCP = person
+        LCN = person.name
+    }
     person.button = b
-    game.add_drawable(b)
+    game.add_drawable(b, 8)
 
+}
+
+
+const addToScore = (obj, person) => {
+    person.score += obj.victory
+    chat.sendMessage({
+        popup: `Gained ${obj.victory} points.`, target: person.name
+    })
+    GameEffects.popup(`${person.name} gained ${obj.victory} points.`, {
+        posFrac: [.83, MM.random(.1, .9)], sizeFrac: [.3, .1], direction: "right",
+        moreButtonSettings: { fontSize: 36, color: "yellow" }
+    })
+
+    //updateLeaderboard()
+}
+
+const updateLeaderboard = () => {
+    shared.leaderboard = Object.values(participants).sort((u, w) => w.score - u.score).map(u => `${u.name}: ${u.score}`)
 }
 
 

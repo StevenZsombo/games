@@ -226,9 +226,10 @@ class MM {
 
 
     static drawText(screen, txtorarr, rect, {
-        font = "12px Times", color = "black", opacity = 0,
-        textAlign = "center", textBaseline = "middle"
-
+        fontSize = 12, font = "Times", color = "black", opacity = 0,
+        textAlign = "center", textBaseline = "middle",
+        spacing = 1.2
+        //"center left", "middle top" defined only
     } = {}) {
         screen.save()
         screen.textAlign = textAlign
@@ -236,13 +237,15 @@ class MM {
         screen.textBaseline = textBaseline
         //const f = font.split("px")
         //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
-        screen.font = font
+        screen.font = `${fontSize}px ${font}`
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
+
         const lines = Array.isArray(txtorarr) ? txtorarr : `${txtorarr}`.split("\n")
         const h = rect.height / lines.length
         for (let i = 0; i < lines.length; i++) {
-            screen.fillText(lines[i], drawTextStartX, rect.y + (i + .5) * h)
+            const y = textBaseline === "middle" ? (i + .5) * h : i * fontSize * spacing
+            screen.fillText(lines[i], drawTextStartX, rect.y + y)
         }
         screen.restore()
     }
@@ -314,6 +317,10 @@ class MM {
     static randomInt(min, maxInclusive) {
         maxInclusive += 1
         return Math.floor(Math.random() * (maxInclusive - min) + min)
+    }
+
+    static randomID() {
+        return Math.random().toString(36).substring(2, 10)
     }
 
     static randomColor(min = 50, max = 250) {
@@ -602,10 +609,19 @@ class MM {
             localStorage.setItem(`${key}_${i}`, localStorage.getItem(`${key}_${i - 1}`))
         }
     }
-    static setByPath(obj, path, value) {
+
+    static getByPath(path, startObj) {
+        startObj ??= window
         const keys = path.split('.');
         const lastKey = keys.pop();
-        const target = keys.reduce((obj, key) => obj[key], obj);
+        const target = keys.reduce((obj, key) => obj[key], startObj);
+        return target[lastKey]
+    }
+    static setByPath(path, value, startObj) {
+        startObj ??= window
+        const keys = path.split('.');
+        const lastKey = keys.pop();
+        const target = keys.reduce((obj, key) => obj[key], startObj);
         target[lastKey] = value;
     }
 

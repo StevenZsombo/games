@@ -22,9 +22,6 @@ class Chat {
     }
 
     connect(ip, isServer = false) {
-        if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) {
-            return
-        }
         const isHostedOnine = location.protocol === "https:"
         let address = isHostedOnine ? `wss://${location.hostname}/` : `ws://${location.host}/`
         if (isServer) address = "ws://localhost:8000/listener"
@@ -43,7 +40,7 @@ class Chat {
             }
             this.socket.onerror = (event) => {
                 //console.error("Something went wrong, attempting to reconnect.", event)
-                //console.log(event)
+                console.log(event)
                 this.scheduleReconnect(ip)
                 this.on_error?.()
                 this.on_issue?.()
@@ -60,8 +57,7 @@ class Chat {
 
         }
         catch (error) {
-            //console.log(error)
-            console.log("Some error happened")
+            console.log(error)
             this.scheduleReconnect(ip)
         }
     }

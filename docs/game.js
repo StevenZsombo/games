@@ -57,6 +57,9 @@ class Game extends GameCore {
         console.log(chat)
 */
 
+
+        this.leaderboard = []
+
         //#region makeLevel
         const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
             stgs.randomLevelData = null
@@ -743,8 +746,19 @@ class Game extends GameCore {
                 }
                 if (stgs.victories.includes(i)) { x.color = "lightgreen" }
             })
-            this.add_drawable(levelButtons)
-            this.add_drawable(levelInfo)
+            //this.add_drawable(levelButtons)
+            //this.add_drawable(levelInfo)
+
+            const leaderboardButton = levelInfo.copy
+            this.leaderboardButton = leaderboardButton
+            leaderboardButton.dynamicText = () => {
+                return this.leaderboard.join("\n")
+            }
+            leaderboardButton.textSettings = { textAlign: "left", textBaseline: "top" }
+            //leaderboardButton.transparent = false
+            leaderboardButton.bottomstretchat(700)
+            leaderboardButton.fontSize = 36
+            game.add_drawable(leaderboardButton)
 
             const compressionsFix = (func, xs, a, b, s, t) => {
                 if (!stgs.compressionsFixDesired) { return [func, xs, a, b, s, t] }
@@ -893,7 +907,7 @@ class Game extends GameCore {
                 stgs.difficulty = "hard"
             }
             const rInfo = new Button()
-            rInfo.txt = "Or generate one:"
+            rInfo.txt = "Generate a level:"
             rInfo.fontSize = levelInfo.fontSize
             rInfo.width = levelInfo.width
             rInfo.leftat(levelInfo.left)
@@ -915,7 +929,7 @@ class Game extends GameCore {
             let changelogButton = new Button()
             changelogButton.width = rTypes.at(-1).width
             changelogButton.height = rTypes.at(-1).height
-            this.add_drawable(changelogButton)
+            //this.add_drawable(changelogButton)
             changelogButton.bottomat(rTypes.at(-1).bottom)
             changelogButton.leftat(rButs[0].left)
             changelogButton.on_click = () => stgs.changelog.split("$").forEach(x => setTimeout(() => alert(x), 100))
@@ -923,6 +937,8 @@ class Game extends GameCore {
             changelogButton.txt = "Changelog"
 
 
+            stgs.firstRun = false
+            /*
             if (stgs.firstRun && stgs.animationsEnabled) {
                 stgs.firstRun = false
                 this.animator.add_anim(levelInfo, 1000, Anim.f.typingCentered)
@@ -940,6 +956,7 @@ class Game extends GameCore {
 
 
             }
+                */
 
 
             //game.layers.flat().forEach(b => b = Button.make_circle(b))

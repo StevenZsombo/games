@@ -62,6 +62,7 @@ const stgs = {
 }/// end of settings
 
 const levels = [
+
     [MM.brokenLineFunction(1, 2, 4, 6, 7, -2), [1, 4, 7], 1, 1, 2, 3],
     [MM.brokenLineFunction(-3, 3, 1, 5, 3, -1, 6, 2), [-3, 1, 3, 6], 1, -1 / 2, 0, 0],
     [MM.brokenLineFunction(1, 5, 2, 6, 7, -4), [1, 2, 7], -1, -1, 0, 2],
@@ -72,6 +73,7 @@ const levels = [
     [x => { if (x != 0) { return 4 / x / x } }, [-2, -1, 1, 2], -1, 1 / 2, 3, +2],
     [x => { if (x > -PI / 2 && x < PI / 2) { return 2 * Math.tan(x) } }, [-PI / 4, 0, PI / 4], 2, 1, 0, 10],
     [x => x ** 3 - 4 * x, [-2, 0, 1, 2], -1 / 3, 1 / 2, -1, 3]
+
 ]
 
 
