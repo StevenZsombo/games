@@ -29,6 +29,7 @@ const shared = {
 }
 
 let isBroadcasting = false
+let broadcastInterval = 1000
 const broadcast = setInterval(
     () => {
         //if (game.layers[8]) { shared["game.layers[8]"] = game.layers[8] }
@@ -36,13 +37,14 @@ const broadcast = setInterval(
         if (!isBroadcasting) { return }
         updateLeaderboard()
         chat.sendMessage({ demand: "game.leaderboard", value: shared.leaderboard })
-    }, 1000)
+    }, broadcastInterval)
 
 //const keepCheckingAttendance = setInterval(() => { chat.orderAttendance() }, 5000)
 
 
 const hq = {
     startContest: () => {
+        chat.orderAttendance()
         COMM("game.startContest()")
         Object.values(participants).forEach(x => x.score = 0)
         console.log("Contest has started.")
@@ -58,27 +60,8 @@ const hq = {
         })
     },
     updatePlayerCount: () => { COMM(`game.playerCount = ${listener.getNamelist().length}`) },
-    sendRules: () => {
-        chat.sendMessage({
-            popup: `You gain points for winning in the game.
-            Playing on easy does not give you any points.
+    showRules: () => chat.sendCommand("game.showRules()"),
 
-            First submit on medium: ${stgs.scoreForFirstTry.medium} points.
-            More than one submit on medium: ${stgs.scoreForNonFirstTry.medium} points.
-            First submit on hard: ${stgs.scoreForFirstTry.hard} points.
-            More than one submit on hard: ${stgs.scoreForNonFirstTry.hard} points.
-            
-            Using the green buttons to move the green curve does NOT cost you any points,
-            so feel free to experiment.
-
-            The contest will begin shortly. Good luck and have fun!`,
-            popupSettings: {
-                posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue" },
-                travelTime: 1000, floatTime: 20000
-            },
-            eval: "game.isAcceptingInputs = false;"
-        })
-    },
 
     //#region hq.save
     load: (i = 0) => {
@@ -147,7 +130,9 @@ const listener = new Listener()
 var chat = listener.chat
 const SEND = chat.sendMessage.bind(chat)
 const COMM = chat.sendCommand.bind(chat)
-const POPUP = (txt, settings) => chat.sendMessage({ popup: txt, popupSettings: settings })
+const POPUP = (txt, settings) => chat.sendMessage({
+    popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
+})
 const ATTENDANCE = hq.attendance
 //chat.receiveMessage = (messageText) => { }//console.log(JSON.parse(messageText)) }
 const participants = listener.participants

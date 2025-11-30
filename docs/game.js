@@ -60,6 +60,27 @@ class Game extends GameCore {
 
         this.leaderboard = []
 
+        this.showRules = () => {
+            const t = `You gain points for winning in the game.
+            Playing on easy does not give you any points.
+
+            First submit on medium: ${stgs.scoreForFirstTry.medium} points.
+            More than one submit on medium: ${stgs.scoreForNonFirstTry.medium} points.
+            First submit on hard: ${stgs.scoreForFirstTry.hard} points.
+            More than one submit on hard: ${stgs.scoreForNonFirstTry.hard} points.
+            
+            Using the green buttons to move the green curve does NOT cost you any points,
+            so feel free to experiment.
+
+            The contest will begin shortly. Good luck and have fun!`
+            GameEffects.popup(t,
+                {
+                    posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue" },
+                    travelTime: 1000, floatTime: 20000
+                })
+
+        }
+
         //#region makeLevel
         const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
             stgs.randomLevelData = null

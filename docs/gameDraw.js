@@ -3,7 +3,7 @@ const univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -12,7 +12,7 @@ const univ = {
 }
 
 
-if (true) { //contestmode
+if (false) { //contestmode
     setTimeout(() => {
         game.extras_temp.push(() => {
             game.playerCount = 1
@@ -65,6 +65,26 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
+        this.startContest = () => {
+
+            GameEffects.popup("Contest has started, good luck!")
+        }
+
+        this.showRules = () => {
+            const t = `You gain points for winning in the game.
+            
+            Winning on easy earns ${stgs.scoreValue.easy} points.
+            Winning on medium earns ${stgs.scoreValue.medium} points.
+            Winning on hard earns ${stgs.scoreValue.easy} points.
+
+            The contest will begin shortly. Good luck and have fun!`
+            GameEffects.popup(t,
+                {
+                    posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue" },
+                    travelTime: 1000, floatTime: 10000
+                })
+        }
+
 
 
 
@@ -74,18 +94,32 @@ class Game extends GameCore {
                 map(Button.fromRect)
 
             diff.forEach((x, i) => {
+                x.bottomat(1000)
                 x.txt = ["Random easy\n2 transformations", "Random medium\n3 transformations", "Random hard\n4-5 transformations"][i]
                 x.fontSize = 36
                 x.on_release = () => {
                     stgs.numberOfTransformations = [2, 3, MM.choice([4, 4, 5])][i]
+                    stgs.difficulty = "easy medium hard".split(" ")[i]
                     main()
                 }
             })
 
             this.add_drawable(diff)
+            this.leaderboard = []
+
+            const leaderboardButton = new Button()
+
+            leaderboardButton.leftat(diff[0].left)
+            leaderboardButton.bottomrightstretchatV(diff.at(-1).topright)
+            leaderboardButton.height -= 50
+            leaderboardButton.transparent = true
+            leaderboardButton.textSettings = { textAlign: "left", textBaseline: "top" }
+            leaderboardButton.dynamicText = () => this.leaderboard?.join("\n")
+            this.add_drawable(leaderboardButton)
 
             return
         }
+
 
 
         const bg = Button.fromRect(this.rect.copy)
@@ -437,7 +471,7 @@ class Game extends GameCore {
                 }
             }))
 
-            chat.sendMessage({ victory: 1 })
+            chat.sendMessage({ victory: stgs.scoreValue[stgs.difficulty] })
         }
     }
 

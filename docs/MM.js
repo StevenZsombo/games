@@ -776,8 +776,19 @@ class GameEffects {
      */
     static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
         travelTime = 500, floatTime = 1000,
-        moreButtonSettings = { color: "yellow" }, on_end = null } = {}
+        moreButtonSettings = { color: "yellow" }, on_end = null } = {},
+        preset
     ) {
+        if (preset) {
+            ({
+                posFrac = posFrac,
+                sizeFrac = sizeFrac,
+                direction = direction,
+                travelTime = travelTime,
+                floatTime = floatTime,
+                moreButtonSettings = moreButtonSettings
+            } = GameEffects.popupPRESETS[preset])
+        }
         const b = new Button()
         const { width: W, height: H } = game.rect
         b.txt = txt
@@ -817,11 +828,13 @@ class GameEffects {
     static popupPRESETS = {
         bigYellow: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "yellow", fontSize: 40 } },
         smallPink: { sizeFrac: [.2, .05], posFrac: [.5, .9], moreButtonSettings: { color: "pink", fontSize: 24 } },
+        megaBlue: { posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue", fontSize: 40 } },
         topleftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
         topleftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
         topleftPink: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         kfBlue: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "blue", fontSize: 24, color: "lightgray" } },
         kfRed: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "red", fontSize: 24, color: "lightgray" } },
+
 
     }
 
