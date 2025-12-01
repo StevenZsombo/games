@@ -44,9 +44,42 @@ const PORT = 8000
 const server = http.createServer((req, res) => {
     const urlPath = req.url === '/' ? '/index.html' : req.url
 
-    // serve explicit listener page at /listener.html (or /listener)
-    if (urlPath === '/listener' || urlPath === '/listener.html') {
+    // serve explicit listener page when the requested path's basename is listener.html
+    // or the path ends with '/listener'. In that case serve the listener.html file
+    // from that same path (so /foo/listener.html -> ./foo/listener.html and
+    // /foo/listener -> ./foo/listener.html). Protect against path traversal.
+    const cleanPath = urlPath.split('?')[0]
+
+    if (cleanPath === '/listener' || cleanPath === '/listener.html') {
+        // serve the root listener.html
         const filePath = path.join(__dirname, 'listener.html')
+        return fs.readFile(filePath, (err, data) => {
+            if (err) { res.writeHead(404); res.end('Not found'); return }
+            res.writeHead(200, { 'Content-Type': 'text/html' })
+            res.end(data)
+        })
+    }
+
+    // if the path ends with '/listener' (but is not the root '/listener'), redirect to .html
+    if (cleanPath.endsWith('/listener')) {
+        const target = cleanPath + '.html'
+        res.writeHead(302, { 'Location': target })
+        return res.end()
+    }
+
+    // if requested file is named listener.html in some folder, attempt to serve it
+    if (path.basename(cleanPath) === 'listener.html') {
+        // strip leading slash to make a safe relative path
+        let requested = cleanPath
+        if (requested.startsWith('/')) requested = requested.slice(1)
+        const filePath = path.normalize(path.join(__dirname, requested))
+
+        // security: ensure the resolved path is inside the project directory
+        const root = path.normalize(__dirname + path.sep)
+        if (!filePath.startsWith(root)) {
+            res.writeHead(400); res.end('Bad request'); return
+        }
+
         return fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); res.end('Not found'); return }
             res.writeHead(200, { 'Content-Type': 'text/html' })
@@ -79,18 +112,20 @@ wss.on('connection', (ws, req) => {
     let pathname = '/'
     try { pathname = new URL(req.url, `http://${req.headers.host}`).pathname } catch (e) { pathname = req.url || '/' }
 
-    const isListener = pathname === '/listener' || pathname === '/listener.html'
+    // recognize listener websocket connections on any path that ends with '/listener'
+    // or whose basename is 'listener.html'
+    const isListener = pathname.endsWith('/listener') || path.basename(pathname) === 'listener.html'
     ws._isListener = isListener
 
     if (isListener) {
         listeners.add(ws)
-        console.log('\x1b[34m●\x1b[0mListener connected')
+        console.log('\x1b[34m● Listener connected\x1b[0m', req.socket.remoteAddress)
     } else {
-        console.log('\x1b[32m●\x1b[0mClient connected:', req.socket.remoteAddress)
+        console.log('\x1b[32m● Client connected\x1b[0m', req.socket.remoteAddress)
     }
 
-    ws.on('message', (data) => {
-        const msg = (typeof data === 'string') ? data : data.toString()
+    // message processing helper
+    function processMessage(msg) {
         appendRecord(msg)
 
         if (ws._isListener) {
@@ -106,14 +141,49 @@ wss.on('connection', (ws, req) => {
             })
             console.log('Client:', msg)
         }
-    })
+    }
+
+    // Allow the socket to announce itself as a listener immediately after connect.
+    // Accepted first-message is: `"GM"`
+    // If the connection pathname already identified it as a listener, we skip this.
+    if (!ws._isListener) {
+
+        const initialHandler = (data) => {
+            const txt = (typeof data === 'string') ? data : data.toString()
+            // try raw token first
+            if (txt === `"GM"`) {
+                ws._isListener = true
+                listeners.add(ws)
+                console.log('\x1b[34m● Listener connected\x1b[0m', req.socket.remoteAddress)
+                return
+            }
+
+            // if not a registration message, process as normal
+            //            processMessage(txt)
+        }
+
+        // use once to handle the first message specially
+        ws.once('message', initialHandler)
+
+        // subsequent messages
+        ws.on('message', (data) => {
+            const msg = (typeof data === 'string') ? data : data.toString()
+            processMessage(msg)
+        })
+    } else {
+        // already a listener by pathname — normal processing
+        ws.on('message', (data) => {
+            const msg = (typeof data === 'string') ? data : data.toString()
+            processMessage(msg)
+        })
+    }
 
     ws.on('close', () => {
         if (ws._isListener) {
             listeners.delete(ws)
-            console.log('\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m\x1b[34m●\x1b[0mListener disconnected')
+            console.log('\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m Listener disconnected', req.socket.remoteAddress)
         } else {
-            console.log('\x1b[31m●\x1b[0mClient disconnected')
+            console.log('\x1b[31m●\x1b[0m Client disconnected', req.socket.remoteAddress)
         }
     })
 })

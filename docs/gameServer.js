@@ -145,7 +145,7 @@ listener.on_message = (obj, person) => {
         addToScore(obj, person)
     }
     if (obj.presentResponse) {
-        game.animator.add_anim(Anim.setter(person.button, 1000, "color", "pink"))
+        game.animator.add_anim(Anim.setter(person.button, 1000, "color", "pink", { ditch: true }))
     }
     if (obj.inquire) {
         if (shared[obj.inquire] !== undefined) {
@@ -166,6 +166,7 @@ listener.on_join = (person) => {
 
 
 const checkPerson = (person) => {
+    person = toPerson(person)
     if (!person?.initialized) {
         addPerson(person)
     }
@@ -179,12 +180,14 @@ const addPerson = (person) => {
 }
 
 const kickPerson = (nameOrPerson) => {
-    const person = typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
+    const person = toPerson(nameOrPerson)
     game.remove_drawable(person.button)
     chat.orderResetName(person.name)
     delete participants[person.name]
     delete person
 }
+
+const toPerson = (nameOrPerson) => typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
 
 const makeButtonFor = (person) => {
     /**@type {Button} */
@@ -193,12 +196,11 @@ const makeButtonFor = (person) => {
         x: MM.random(400, 1400), y: MM.random(100, 900),
         fontSize: 36,
         width: 300,
-        color: "lightblue"
+        color: "lightblue",
+
     }))
-    b.on_click = () => {
-        LCP = person
-        LCN = person.name
-    }
+    //b.update = () => b.color = Date.now() - person.lastSpoke < 1000 ? "lightgreen" : "lightblue"
+    b.on_click = () => { LCP = person; LCN = person.name; }
     person.button = b
     game.add_drawable(b, 8)
 

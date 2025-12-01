@@ -124,8 +124,7 @@ class Game extends GameCore {
             plt.axes_width = 3
             plt.label_highlighted = stgs.labelPoints
             plt.label_highlighted_font = "30px Times"
-            plt.dottingDistance = 1
-            plt.show_grid = false
+            plt.show_grid = true
             plt.show_axes_labels = false
 
             plt.addControls(game.mouser)
@@ -232,7 +231,7 @@ class Game extends GameCore {
 
             const announceVictory = () => {
                 const score = game.isFirstAttempt ? stgs.scoreForFirstTry[stgs.difficulty] : stgs.scoreForNonFirstTry[stgs.difficulty]
-                chat.sendMessage({ victory: score })
+                chat.sendSecure({ victory: score })
                 stgs.difficulty = "other"
             }
 

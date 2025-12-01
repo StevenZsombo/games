@@ -29,6 +29,7 @@ class MM {
         return arr.reduce((s, x) => s + x, 0)
     }
 
+
     static extendFunction(func, ext, extensionGoesBeforeInsteadOfAfter = false) {
         if (extensionGoesBeforeInsteadOfAfter) {
             return function (...args) {
@@ -162,24 +163,26 @@ class MM {
     //#region MM.plot
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
-        density, color = "black", width = 3, axes: show_axes = true, axes_color = "plum", axes_width = 3,
-        dottingDistance = 1, show_grid = true, grid_width = 1, grid_color = "lightgray",
+        density, color = "black", width = 3,
+        show_axes = true, axes_color = "plum", axes_width = 3,
         show_axes_labels = true, axes_labels_font = "24px Times",
+        show_dotting = true, dottingDistance = [1, 1], show_grid = true, grid_width = 1, grid_color = "lightgray",
         opacity = 0 } = {}) {
         density ??= rect.width
-        if (show_axes && dottingDistance) {
+        if (show_grid || show_dotting || show_axes_labels) {
             screen.font = axes_labels_font
-            for (let i = Math.floor(minX); i < maxX + 1; i += dottingDistance) {
+            const [dX, dY] = dottingDistance //distance in each direction
+            for (let i = Math.trunc(minX / dX) * dX; i <= maxX; i += dX) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
-                if (show_grid) { MM.drawLine(screen, x, 0, x, rect.height, { color: grid_color, width: grid_width }) }
-                MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
-                if (show_axes_labels && i != 0) { screen.fillText(i, x - 10, y + 24) }
+                show_grid && MM.drawLine(screen, x, 0, x, rect.height, { color: grid_color, width: grid_width })
+                show_dotting && MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
+                show_axes_labels && i != 0 && screen.fillText(i, x - 10, y + 24)
             }
-            for (let j = Math.floor(minY); j < maxY + 1; j += dottingDistance) {
+            for (let j = Math.trunc(minY / dY) * dY; j <= maxY; j += dY) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
-                if (show_grid) { MM.drawLine(screen, 0, y, rect.width, y, { color: grid_color, width: grid_width }) }
-                MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
-                if (show_axes_labels && j != 0) { screen.fillText(j, x + 10, y + 6) }
+                show_grid && MM.drawLine(screen, 0, y, rect.width, y, { color: grid_color, width: grid_width })
+                show_dotting && MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
+                show_axes_labels && j != 0 && screen.fillText(j, x + 10, y + 6)
             }
 
         }
@@ -601,7 +604,11 @@ class MM {
     }
 
     static time() {
-        return new Date().toTimeString().split(' ')[0]
+        return new Date().toTimeString().slice(0, 8)
+    }
+
+    static timestampToTime(timestamp) {
+        new Date(timestamp).toTimeString().slice(0, 8)
     }
 
     static localStorageBackup(key, howmany = 5) {

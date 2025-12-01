@@ -263,7 +263,13 @@ class Rect {
 	}
 
 	packInto(rects, justify = "center", align = "middle") {
+		//TODO
+	}
 
+	static packArray(sourceRects, targetRects) {
+		sourceRects.forEach((b, i) => {
+			b.centerinRect(targetRects[i])
+		})
 	}
 
 	splitCell(i, j, toti, totj, jspan = 1, ispan = 1) {
@@ -320,6 +326,7 @@ class Clickable extends Rect {
 		this.on_enter = null
 		this.on_leave = null
 		this.on_drag = null
+		this.on_drag_more = null
 		this.on_hold = null
 		this.on_wheel = null
 		this._drag_force_within = false //won't let the button separate from mouse while dragging
@@ -366,7 +373,11 @@ class Clickable extends Rect {
 		}
 		if (held && within) {
 			this.on_hold?.(pos)
-			this.last_clicked && this.on_drag?.(pos) //drag means you clicked and now you hold
+			//this.last_clicked && this.on_drag?.(pos) //drag means you clicked and now you hold
+			if (this.last_clicked) {
+				this.on_drag?.(pos)
+				this.on_drag_more?.(pos)
+			}
 			this.last_held = pos
 		}
 		if (wheel && within) {
@@ -383,7 +394,7 @@ class Button extends Clickable {
 		super(options)
 		/**@type {string} */
 		this.txt = null //txtmult by default
-		this.dynamicText = null //can be any function
+		this.dynamicText = null //can be any function; might be bad practice, as it is called as part of the draw function isntead of update but whatevs
 		this.fontSize = 24
 		this.font_color = "black"
 		this.font_font = "Times"
@@ -392,6 +403,7 @@ class Button extends Clickable {
 		this.outline = 2
 		this.outline_color = "black"
 		this.color = "gray"
+		this.dynamicColor = null //can be any function
 		this.transparent = false
 		this.selected = false
 		this.selected_color = "orange"
@@ -477,6 +489,7 @@ class Button extends Clickable {
 				} else {
 					draw_color = this.color
 				}
+
 				this.draw_color = draw_color
 				this.draw_background(screen)
 
@@ -686,7 +699,8 @@ class Plot {
 		this.axes_width = 3
 		this.show_axes_labels = true
 		this.axes_labels_font = "24px Times"
-		this.dottingDistance = 1
+		this.show_dotting = true
+		this.dottingDistance = [1, 1]
 		this.show_grid = true
 		this.grid_width = 1
 		this.grid_color = "lightgray"
@@ -717,7 +731,12 @@ class Plot {
 		this.pltMore?.forEach(item => {
 			if (item?.func) {
 				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-					{ ...this, ...item, axes: false }
+					{
+						...item,
+						show_dotting: false, show_axes_labels: false,
+						show_axes: false, show_grid: false,
+						show_border_values: false,
+					}
 				)
 			}
 			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)

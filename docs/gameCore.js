@@ -260,6 +260,8 @@ class ContestManager {
 
         this.on_start = null
         this.on_end = null
+
+
     }
 
     startContest() {

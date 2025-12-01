@@ -1,13 +1,17 @@
 //var char, SEND declared in the end
 
+//#region Chat
 class Chat {
     constructor(ip = null, name = null, isServer = false) {
         if (name) { this.name = name }
+
         /**@type {WebSocket} socket */
         this.socket = null
         this.errorHandler = null
         this.queue = []
         this.queueHandler = setInterval(this.queueSend.bind(this), 1500)
+        this.secureIDsToIgnore = new Set()
+        this.isServer = isServer
 
         this.acquireName()
 
@@ -36,7 +40,7 @@ class Chat {
                 console.log("Connected.")
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
-                this.sendMessage({ name: this.name, connected: MM.time(), nameID: this.nameID })
+                this.announceSelf()
                 this.on_join?.()
                 this.on_join_once?.()
                 this.on_join_once = null
@@ -85,6 +89,10 @@ class Chat {
         }
     }
 
+    announceSelf() {
+        this.isServer && this.attemptToSendText(`"GM"`)
+        this.sendMessage({ name: this.name, connected: MM.time(), nameID: this.nameID })
+    }
 
     sendMessage(obj, alsoSendToSelf = false) {
         if (typeof obj === "string") { obj = { str: obj } }
@@ -94,9 +102,6 @@ class Chat {
         if (alsoSendToSelf) this.receiveMessage(message)
     }
 
-    sendCommand(code, alsoSendToSelf = false) {
-        this.sendMessage({ eval: code }, alsoSendToSelf)
-    }
 
     sendSecure(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
@@ -110,7 +115,15 @@ class Chat {
         this.queue.forEach(this.sendMessage.bind(this))
     }
 
+    receiveEcho(echo) {
+        this.queue = this.queue.filter(x => x.id !== echo)
+    }
+
     acquireName() {
+        if (this.isServer) {
+            this.name = "GM"
+            return
+        }
         if (!this.name) {
             let name = localStorage.getItem("name")
             if (name) {
@@ -143,13 +156,26 @@ class Chat {
     receiveMessageParse(messageText) {
         return this.receiveMessage(JSON.parse(messageText))
     }
+
+    checkIfReceivedAlready(message) {//safe receiving
+        if (message.id) {
+            const processedAlready = this.secureIDsToIgnore.has(message.id)
+            this.sendMessage({ echo: message.id, target: name, processedAlready: processedAlready }) //will echo anyways
+            if (processedAlready) { return true } //but won't process twice
+            this.secureIDsToIgnore.add(message.id)
+        }
+        return false
+    }
     //#region receiveMessage
     receiveMessage(message) {
-        if (message.targetID && message.targetID !== this.nameID) { return }
-        else if (message.target && message.target !== this.name) { return }
+        if (message.targetID && message.targetID !== this.nameID) { return } //ignore by targetID
+        else if (message.target && message.target !== this.name) { return } //ignore by target (name)
+        if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
 
         if (message.SERVERnameAlreadyExists) { this.resetName("A user has already joined with that name, please select a different name.") }
         if (message.SERVERnameOrderedToReset) { this.resetName() }
+
+
         if (message.eval) { eval(message.eval) }
         if (message.log) { console.log(message.log) }
         if (message.alert) { alert(message.alert) }
@@ -167,7 +193,7 @@ class Chat {
             }
         }
         if (message.echo) {
-            this.queue = this.queue.filter(x => x.id !== message.echo)
+            this.receiveEcho(message.echo)
         }
         if (message.request) {
             this.sendMessage({ requestResponse: eval(message.request) })
@@ -185,16 +211,20 @@ class Chat {
     }
 
 }
+//#endregion 
 
 
-
-
+//#region ChatServer
 class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
         this.receiveMessage = () => { } //set to nothing, won't be needed anyways
 
 
+    }
+
+    sendCommand(code, alsoSendToSelf = false) {
+        this.sendMessage({ eval: code }, alsoSendToSelf)
     }
 
     /**@param {String} target  */
@@ -214,17 +244,17 @@ class ChatServer extends Chat {
         this.sendMessage({ present: "ask" })
     }
 }
+//#endregion
 
-
-
+//#region Listener
 class Listener {
     constructor() {
         /**@type {Array<{name: string}>} */
         this.participants = {}
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
-        this.secureIDsToIgnore = new Set()
         this.allowPriorJoin = true
+        this.isLogging = true
 
         this.chat.receiveMessageParse = this.messageParsing.bind(this)
 
@@ -242,7 +272,7 @@ class Listener {
     }
 
 
-    checkDuplicate(name, nameID, connected) {
+    checkUserDuplicate(name, nameID, connected) {
         if (this.participants[name] && this.participants[name]["nameID"] !== nameID) {
             const obj = {}
             obj[Listener.SERVER.SERVERnameAlreadyExists] = true
@@ -255,7 +285,7 @@ class Listener {
     }
 
     addNewParticipant(name, nameID, connected) {
-        if (this.checkDuplicate(name, nameID, connected)) { return }
+        if (this.checkUserDuplicate(name, nameID, connected)) { return }
         this.participants[name] = {
             name: name,
             nameID: nameID,
@@ -273,7 +303,7 @@ class Listener {
         const participants = this.participants
         const { name, ...compact } = message
         //resolving connectivity concerns
-        if (message.connected && !this.checkDuplicate(name, message.nameID, message.connected)) {
+        if (message.connected && !this.checkUserDuplicate(name, message.nameID, message.connected)) {
             if (participants[name]) {
                 participants[name].reconnections++
                 this.on_reconnect?.(participants[name])
@@ -283,21 +313,20 @@ class Listener {
                 this.on_join?.(participants[name])
             }
         }
-        if (!participants[name]) {
+        if (!participants[name]) { //see if late joining is okay
             this.addNewParticipant(name, "unknown")
             console.log("A participant joined without a connect message!!!")
             if (!this.allowPriorJoin) { throw "Joining in advance is not allowed" }
 
         }
-        console.log(name, compact)
-        //safe sending
-        if (message.id) {
-            this.chat.sendMessage({ echo: message.id, target: name }) //will echo anyways
-            if (this.secureIDsToIgnore.has(message.id)) { return } //but won't process twice
-            this.secureIDsToIgnore.add(message.id)
-        }
-        //anything else
+        this.isLogging && console.log(name, compact) //log is approved
 
+        //safe receiving
+        if (message.echo) { this.chat.receiveEcho(message.echo) } //unfortunate duplicate code...
+        if (this.chat.checkIfReceivedAlready(message)) { return }
+
+        //anything else
+        participants[name].lastSpoke = Date.now()
         if (messageShouldBeProcessed) {
             this.on_message?.(message, participants[name])
             this.on_message_more?.(message, participants[name])
@@ -315,3 +344,4 @@ class Listener {
 
 }
 
+//#endregion
