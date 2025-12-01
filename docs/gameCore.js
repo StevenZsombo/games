@@ -30,7 +30,10 @@ window.onload = function () {
 //#region beforeMain, main
 
 const beforeMain = function (canvas) {
-    if (univ.isOnline) { chat = new Chat() }
+    if (univ.isOnline) {
+        chat = new Chat()
+        contest = new ContestManager()
+    }
     univ.on_first_run?.()
 
     const filelist = null
@@ -245,5 +248,34 @@ const cropper = new Cropper()
 var game
 /**@type {Chat|ChatServer} */
 var chat
+/**@type {ContestManager} */
+var contest
 
+//#region ContestManager
+class ContestManager {
+    constructor() {
+        this.chat ??= chat
+        this.isActive = false
+        this.leaderboard = []
+
+        this.on_start = null
+        this.on_end = null
+    }
+
+    startContest() {
+        this.isActive = true
+        GameEffects.popup("Contest has started, good luck!")
+        this.on_end?.()
+    }
+
+    endContest() {
+        this.isActive = false
+        GameEffects.popup("Contest has ended. Stand by for the results.", { moreButtonSettings: { color: "red" }, floatTime: 5000 })
+        this.on_end?.()
+    }
+
+
+
+}
+//#endregion
 
