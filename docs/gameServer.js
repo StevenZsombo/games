@@ -19,11 +19,9 @@ Contest commences with hq.startContest()
 Manual saves can be created, autosaves happen every minute too. 5 and 10 backups respectively, all in localStorage.
 
 
-
 */
 const shared = {
-    "game.isAcceptingInputs": true,
-    //"game.layers[8]": [], //game.layers[8],
+    "contest.isActive": false,
     leaderboard: "",
     hasStartedContest: false
 }
@@ -36,7 +34,7 @@ const broadcast = setInterval(
         //chat.sendMessage({ demand: "game.layers[8]", value: shared["game.layers[8]"] })
         if (!isBroadcasting) { return }
         updateLeaderboard()
-        chat.sendMessage({ demand: "game.leaderboard", value: shared.leaderboard })
+        chat.sendMessage({ demand: "contest.leaderboard", value: shared.leaderboard })
     }, broadcastInterval)
 
 //const keepCheckingAttendance = setInterval(() => { chat.orderAttendance() }, 5000)
@@ -45,12 +43,18 @@ const broadcast = setInterval(
 const hq = {
     startContest: () => {
         chat.orderAttendance()
-        COMM("game.startContest()")
-        Object.values(participants).forEach(x => x.score = 0)
+        chat.sendMessage({ eval: "contest.startContest()" }) //let clients know
+        Object.values(participants).forEach(x => x.score = 0) //reset scores
         console.log("Contest has started.")
         GameEffects.popup("Contest has started.")
+        shared["contest.isActive"] = true
         shared.hasStartedContest = true
         isBroadcasting = true
+    },
+    endContest: () => {
+        shared["contest.isActive"] = false
+        shared.hasStartedContest = false
+        //keep broadcasting
     },
     attendance: () => {
         chat.orderAttendance()
@@ -61,6 +65,30 @@ const hq = {
     },
     updatePlayerCount: () => { COMM(`game.playerCount = ${listener.getNamelist().length}`) },
     showRules: () => chat.sendCommand("game.showRules()"),
+    feed: (person1, person2) => {
+        person1 = toPerson(person1)
+        person2 = toPerson(person2)
+        if (!person1.level) {
+            console.log(person1, " has no level data available.")
+            return
+        }
+        console.log(person1, person2)
+        chat.sendMessage(
+            {
+                demand: "stgs.randomLevelData",
+                value: person1.level,
+                target: person2.name
+            }
+        )
+        chat.sendMessage({
+            eval: "main()",
+            target: person2.name
+        })
+    },
+    feedAll(person) {
+        person = toPerson(person)
+        Object.values(participants).forEach(x => x !== person && hq.feed(person, x))
+    },
 
 
     //#region hq.save
@@ -79,6 +107,7 @@ const hq = {
         }
         console.log(`Loaded from ${localStorage.getItem(`time_${i}`)}`)
     },
+    loadAuto: (i = 0) => { hq.load(`auto_${i}`) },
     save: () => {
         //create 5 failsafes
         MM.localStorageBackup("participants", 5)
@@ -101,6 +130,9 @@ const hq = {
     listSaves: () => {
         for (let i = 0; i < 5; i++) {
             console.log({ i, time: localStorage.getItem(`time_${i}`), participants: localStorage.getItem(`participants_${i}`) })
+        }
+        for (let i = 0; i < 10; i++) {
+            console.log({ auto_i: i, time: localStorage.getItem(`time_auto_${i}`), participants: localStorage.getItem(`participants_auto_${i}`) ? "Saved." : "Error retrieving." })
         }
     },
     clearSaves: () => { //auto-save is cleared too
@@ -158,6 +190,9 @@ listener.on_message = (obj, person) => {
             console.error("Invalid request made by", person.name, obj)
         }
     }
+    if (obj.level) {
+        participants[person.name].level = obj.level
+    }
 }
 
 listener.on_join = (person) => {
@@ -177,6 +212,7 @@ const addPerson = (person) => {
     makeButtonFor(person)
     person.initialized = true
     hq.updatePlayerCount()
+    person.level = null
 }
 
 const kickPerson = (nameOrPerson) => {
@@ -200,7 +236,7 @@ const makeButtonFor = (person) => {
 
     }))
     //b.update = () => b.color = Date.now() - person.lastSpoke < 1000 ? "lightgreen" : "lightblue"
-    b.on_click = () => { LCP = person; LCN = person.name; }
+    b.on_click = () => { LCP = person; LCN = person.name; console.log("Clicked on", LCN) }
     person.button = b
     game.add_drawable(b, 8)
 
@@ -208,6 +244,10 @@ const makeButtonFor = (person) => {
 
 
 const addToScore = (obj, person) => {
+    if (!shared.hasStartedContest) {
+        console.log(`${person.name} requested ${obj.victory} points but the contest is not running.`)
+        return
+    }
     person.score += obj.victory
     chat.sendMessage({
         popup: `Gained ${obj.victory} points.`, target: person.name

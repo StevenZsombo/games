@@ -37,8 +37,11 @@ const changelogGlobal =
     $
     2025.11.29.
     Started upgrading to contest format.
+    $2025.12.02.
+    Better trig gridding
+    Trig horizontal translations are now always multiples of PI/4
     `
-const stgs = {
+var stgs = {
     tolerance: 0.02,
     stage: -1, //-1 for level selector
     victories: [],
@@ -57,7 +60,6 @@ const stgs = {
     difficulty: "other", //can be "easy medium hard"
     scoreForFirstTry: { easy: 0, medium: 4, hard: 14, other: 0 },
     scoreForNonFirstTry: { easy: 0, medium: 3, hard: 10, other: 0 },
-    minimumTimePerLevel: 10 * 1000 //set to 0 to disable
 
 }/// end of settings
 
@@ -74,6 +76,18 @@ const levels = [
     [x => { if (x > -PI / 2 && x < PI / 2) { return 2 * Math.tan(x) } }, [-PI / 4, 0, PI / 4], 2, 1, 0, 10],
     [x => x ** 3 - 4 * x, [-2, 0, 1, 2], -1 / 3, 1 / 2, -1, 3]
 
+]
+
+const TRIGFUNCTIONS = [
+    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
+    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
+    [Math.cos, [-PI, 0, PI, TWOPI]],
+    [Math.cos, [-PI, 0, PI, TWOPI]],
+    [Math.tan, [666]],
+    [Math.tan, [666]],
+    //[Math.atan, [-PI, 0, PI, TWOPI]],
+    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
+    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
 ]
 
 

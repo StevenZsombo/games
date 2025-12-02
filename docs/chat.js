@@ -2,14 +2,20 @@
 
 //#region Chat
 class Chat {
+    static RECONNECT_TIME = 10 * 1000 //default timeout is probably over a minute anyways
+    static RESEND_TIME = 1500
     constructor(ip = null, name = null, isServer = false) {
+        if (location.hostname === '') {
+            console.log("According to host name, you are offline. Will not make any connection attempts.")
+            return
+        }
         if (name) { this.name = name }
 
         /**@type {WebSocket} socket */
         this.socket = null
         this.errorHandler = null
         this.queue = []
-        this.queueHandler = setInterval(this.queueSend.bind(this), 1500)
+        this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
         this.secureIDsToIgnore = new Set()
         this.isServer = isServer
 
@@ -75,7 +81,7 @@ class Chat {
     }
 
     scheduleReconnect(ip) {
-        this.errorHandler ??= setInterval(this.connect.bind(this, ip), 1500)
+        this.errorHandler ??= setInterval(this.connect.bind(this, ip), Chat.RECONNECT_TIME)
 
 
     }
@@ -122,7 +128,17 @@ class Chat {
     acquireName() {
         if (this.isServer) {
             this.name = "GM"
+            this.nameID = "GM"
             return
+        }
+        if (!this.nameID) {
+            const stored = localStorage.getItem("nameID")
+            if (stored) {
+                this.nameID = stored
+            } else {
+                this.nameID = MM.randomID()
+                localStorage.setItem("nameID", this.nameID)
+            }
         }
         if (!this.name) {
             let name = localStorage.getItem("name")
@@ -136,20 +152,13 @@ class Chat {
                 this.name = name
             }
         }
-        if (!this.nameID) {
-            const stored = localStorage.getItem("nameID")
-            if (stored) {
-                this.nameID = stored
-            } else {
-                this.nameID = MM.randomID()
-                localStorage.setItem("nameID", this.nameID)
-            }
-        }
+
     }
 
     resetName(reason) {
         if (reason) alert(reason)
         localStorage.removeItem("name")
+        //localStorage.removeItem("nameID") //should not be reset - stay unique on per device per session basis
         location.reload()
     }
 
@@ -206,8 +215,12 @@ class Chat {
     }
     //#endregion
 
-    inquire() {
-
+    inquire(varName, secure = false) {
+        if (secure) {
+            this.sendSecure({ inquire: varName })
+        } else {
+            this.sendMessage({ inquire: varName })
+        }
     }
 
 }

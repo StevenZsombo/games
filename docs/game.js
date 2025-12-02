@@ -1,4 +1,4 @@
-const univ = {
+var univ = {
     isOnline: true,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 30,
@@ -9,9 +9,14 @@ const univ = {
     canvasStyleImageRendering: "smooth",
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
-    on_each_start: null,
-    on_first_run: null,
-    on_next_game: null
+    on_each_start: () => {
+        //game.isAcceptingInputs = contest.isActive
+    },
+    on_first_run: () => {
+        //chat.sendSecure({ inquire: "contest.isActive" })
+    },
+    on_next_game: null,
+    stgs: stgs
 }
 
 class Game extends GameCore {
@@ -49,13 +54,7 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
-        //this.isAcceptingInputs ??= false
-        /*chat.on_join_once = () => {
-            chat.sendMessage({ inquire: "game.isAcceptingInputs" })
-        }
 
-        console.log(chat)
-*/
 
 
         this.leaderboard = []
@@ -82,8 +81,24 @@ class Game extends GameCore {
         }
 
         //#region makeLevel
-        const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
-            stgs.randomLevelData = null
+        const makeLevel = (funcData, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
+            let func
+            if (typeof funcData === "function") {
+                console.error("outdated structure, funcData should be provided instead of a function")
+                func = funcData
+            } else {
+                if (funcData.type === "squiggly") {
+                    const { xs, ys } = funcData
+                    func = MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat())
+                } else if (funcData.type === "trig") {
+                    func = TRIGFUNCTIONS[funcData.chosenFunctionIndex][0]
+                } else if (funcData.type === "poly") {
+                    const { xs, ys } = funcData
+                    func = MM.lagrange(xs, ys)
+                }
+                chat?.sendSecure({ level: [funcData, ptsX, a, b, s, t] })
+            }
+            //stgs.randomLevelData = null
             stgs.stage = -1
             const backGround = Button.fromRect(this.rect.copy.splitCol(5, 4)[0].stretch(.9, .9).shrinkToSquare())
             const inputButtonsBackground = this.rect.copy.splitCol(5, 4)[1].stretch(.9, .9)
@@ -124,8 +139,12 @@ class Game extends GameCore {
             plt.axes_width = 3
             plt.label_highlighted = stgs.labelPoints
             plt.label_highlighted_font = "30px Times"
-            plt.show_grid = true
             plt.show_axes_labels = false
+            plt.show_grid = true
+            if (funcData.type === "trig") {
+                plt.dottingDistance = [PI / 2, 1]
+            }
+
 
             plt.addControls(game.mouser)
             const zoomIn = new Button({ txt: "+", fontSize: 60 })
@@ -265,7 +284,7 @@ class Game extends GameCore {
             levelSelectButton.color = "lightgray"
             levelSelectButton.bottomat(backGround.bottom)
             levelSelectButton.rightat(inputSpaces.at(-1).right)
-            levelSelectButton.on_click = () => { stgs.stage = -1; main() }
+            levelSelectButton.on_click = () => { stgs.stage = -1; stgs.randomLevelData = null; main() }
             game.add_drawable(levelSelectButton)
             if (stgs.animationsEnabled) {
                 /**@param {Button} b @param {Button} tgt*/
@@ -772,7 +791,8 @@ class Game extends GameCore {
             const leaderboardButton = levelInfo.copy
             this.leaderboardButton = leaderboardButton
             leaderboardButton.dynamicText = () => {
-                return this.leaderboard.join("\n")
+                const availableLeaderboard = contest.leaderboard ?? this.leaderboard
+                return availableLeaderboard.join("\n")
             }
             leaderboardButton.textSettings = { textAlign: "left", textBaseline: "top" }
             //leaderboardButton.transparent = false
@@ -857,7 +877,7 @@ class Game extends GameCore {
                 if (xs.length == 3 && xs[1] - xs[0] == xs[2] - xs[1] && ys[1] - ys[0] == ys[2] - ys[1]) {
                     xs[2] = xs[2] + 1
                 }
-                const levelData = [MM.lagrange(xs, ys), xs, a, b, s, t]
+                const levelData = [{ type: "poly", xs, ys }, xs, a, b, s, t]
                 return compressionsFix(...levelData)
             }
             const makeRandomTrig = (numberOfTransformations) => {
@@ -865,37 +885,28 @@ class Game extends GameCore {
                 const transformOptions = [
                     () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
                     () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { s = MM.choice([PI / 4, PI / 3, - 1, 1, -2, 2]) },
+                    () => { s = MM.choice([PI / 4, -PI / 4, PI / 2, -PI / 2]) },
                     () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
                     () => { a *= -1 },
                     () => { b *= -1 }
                 ]
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
-                let [func, xs] = MM.choice([
-                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-                    [Math.cos, [-PI, 0, PI, TWOPI]],
-                    [Math.cos, [-PI, 0, PI, TWOPI]],
-                    [Math.tan, [666]],
-                    [Math.tan, [666]],
-                    //[Math.atan, [-PI, 0, PI, TWOPI]],
-                    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
-                    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
-                ])
+                const chosenFunctionIndex = MM.randomInt(0, TRIGFUNCTIONS.length - 1)
+                let [func, xs] = TRIGFUNCTIONS[chosenFunctionIndex]
                 if (xs[0] == 666) {
                     if (a != 1) { a = MM.choice([1, 2, 1 / 2]) * Math.sign(a) }
                     if (b != 1) { b = MM.choice([1, 2, 1 / 2]) * Math.sign(b) }
                     xs = [PI / 4, 0, PI / 4, PI]
                 }
 
-                return [func, xs, a, b, s, t, true] //reorient
+                return [{ type: "trig", chosenFunctionIndex }, xs, a, b, s, t, true] //reorient
             }
             const makeRandomSquiggly = (numberOfTransformations = 1) => {
                 let [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
                 if (Math.abs(a) != 1 && Math.random() < .1) { a = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(a) }
                 if (Math.abs(b) != 1 && Math.random() < .1) { b = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(b) }
                 const [xs, ys] = getRandomPoints(MM.choice([4, 4, 4, 5, 5, 6]))
-                const levelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
+                const levelData = [{ type: "squiggly", xs, ys },
                     xs, a, b, s, t]
                 return compressionsFix(...levelData)
             }
@@ -1070,14 +1081,7 @@ class Game extends GameCore {
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    startContest() {
-        univ.on_next_game = () => {
-            GameEffects.popup("Contest has started, good luck!")
-            game.isAcceptingInputs = true
-        }
-        main()
-
-    }
+    startContest = contest.startContest
 
 
 

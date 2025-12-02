@@ -16,6 +16,12 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
+    window.addEventListener('beforeunload', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        //e.returnValue = ''
+    }
+    )
 
     const screen = canvas.getContext("2d")
     screen.imageSmoothingQuality = univ.imageSmoothingQuality
@@ -28,7 +34,6 @@ window.onload = function () {
 //#endregion
 
 //#region beforeMain, main
-
 const beforeMain = function (canvas) {
     if (univ.isOnline) {
         chat = new Chat()
@@ -107,7 +112,7 @@ class GameCore {
     start() {
         this.status = "initializing"
         this.initialize()
-        this.initialize_more()
+        this.initialize_more() //will throw error if not called from Game
         univ.on_next_game?.()
         univ.on_next_game = null
         univ.on_each_start?.()
@@ -260,14 +265,19 @@ class ContestManager {
 
         this.on_start = null
         this.on_end = null
+        this.on_pause = null
+        this.on_unpause = null
 
 
     }
 
     startContest() {
-        this.isActive = true
-        GameEffects.popup("Contest has started, good luck!")
-        this.on_end?.()
+        univ.on_next_game = () => {
+            this.isActive = true
+            GameEffects.popup("Contest has started, good luck!")
+            this.on_start?.()
+        }
+        main()
     }
 
     endContest() {
@@ -275,6 +285,19 @@ class ContestManager {
         GameEffects.popup("Contest has ended. Stand by for the results.", { moreButtonSettings: { color: "red" }, floatTime: 5000 })
         this.on_end?.()
     }
+
+    pauseContest() {
+        this.isActive = false
+        GameEffects.popup("Contest was paused, please stand by.")
+        this.on_pause?.()
+    }
+
+    unpauseContest() {
+        this.isActive = true
+        GameEffects.popup("Contest was unpaused, you may continue.")
+        this.on_unpause?.()
+    }
+
 
 
 

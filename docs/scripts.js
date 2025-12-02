@@ -262,9 +262,6 @@ class Rect {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
 
-	packInto(rects, justify = "center", align = "middle") {
-		//TODO
-	}
 
 	static packArray(sourceRects, targetRects) {
 		sourceRects.forEach((b, i) => {
@@ -821,7 +818,7 @@ class Plot {
 		return { x: drawX, y: drawY }
 	}
 
-	zoomAtPos(factor, pos) {
+	zoomAtPointer(factor, pos) {
 		let { x, y } = this.pointerPosToCoord(pos)
 		this.translateX(-x)
 		this.translateY(-y)
@@ -833,7 +830,7 @@ class Plot {
 	}
 
 	zoomAtCenter(factor) {
-		return this.zoomAtPos(factor, { x: this.rect.centerX, y: this.rect.centerY })
+		return this.zoomAtPointer(factor, { x: this.rect.centerX, y: this.rect.centerY })
 	}
 
 	translateX(u) {
@@ -889,7 +886,7 @@ class Plot {
 		}
 		button.on_wheel = function (wheel, pos) {
 			const factor = wheel < 0 ? 1.1 : 1 / (1.1)
-			plot.zoomAtPos(factor, pos)
+			plot.zoomAtPointer(factor, pos)
 		}
 	}
 
