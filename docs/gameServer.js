@@ -277,6 +277,40 @@ const ASK = (question, person) => {
     chat.sendSecure({ target: person.name, prompt: question })
 }
 
+var spybutton = null
+let previouslySpiedOn = null
+const SPY = (person, interval = 1000) => {
+    if (previouslySpiedOn) {
+        previouslySpiedOn.on_request_response = null
+        chat.sendMessage({ target: previouslySpiedOn.name, eval: "clearInterval(window.spyinterval)" })
+        previouslySpiedOn.button.move(100, 100)
+    }
+    person = toPerson(person)
+    previouslySpiedOn = person
+    if (!spybutton) {
+        spybutton = new Button()
+        spybutton.resize(1280, 720)
+        spybutton.topleftat(100, 100)
+        spybutton.img = new Image()
+        game.add_drawable(spybutton)
+    } else {
+        clearInterval(spybutton.spy)
+    }
+    spybutton.visible = person != null
+    if (!person) return
+
+    spybutton.drag_others_list = []
+    Button.make_drag_others(spybutton, [person.button])
+    person.button.bottomat(spybutton.bottom)
+    person.button.rightat(spybutton.right)
+
+    chat.sendMessage({ target: person.name, eval: "window.spy = null" })
+    chat.sendMessage({ target: person.name, eval: `window.spyinterval = setInterval(() => {window.spy=game.canvas.toDataURL()},${interval})` })
+    person.on_request_response = (x) => { spybutton.img.src = x }
+    spybutton.spy = setInterval(() => {
+        chat.sendMessage({ target: person.name, request: "spy" })
+    }, interval)
+}
 
 //#endregion
 class Game extends GameCore {

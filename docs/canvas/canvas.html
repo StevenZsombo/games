@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0;
+            background: #f0f0f0;
+        }
+
+        canvas {
+            display: block;
+            background: white;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        // Set canvas size to window
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Set drawing style
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+
+        // Mouse events
+        canvas.onmousedown = (e) => {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        };
+
+        canvas.onmousemove = (e) => {
+            if (!drawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        };
+
+        canvas.onmouseup = canvas.onmouseout = () => drawing = false;
+
+        // Touch support
+        canvas.ontouchstart = (e) => {
+            e.preventDefault();
+            drawing = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        };
+
+        canvas.ontouchmove = (e) => {
+            e.preventDefault();
+            if (!drawing) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            ctx.stroke();
+        };
+
+        canvas.ontouchend = () => drawing = false;
+
+        // Clear on spacebar
+        document.onkeydown = (e) => {
+            if (e.code === 'Space') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        };
+    </script>
+</body>
+
+</html>

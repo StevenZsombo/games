@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Screen Share</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #111;
+            color: #eee;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+            background: #000;
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        #shareBtn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #viewBtn {
+            background: #2196F3;
+            color: white;
+        }
+
+        #stopBtn {
+            background: #f44336;
+            color: white;
+        }
+
+        #status {
+            margin: 20px;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Screen Sharing</h1>
+
+    <div>
+        <button id="shareBtn" onclick="startSharing()">Share Screen</button>
+        <button id="viewBtn" onclick="startViewing()">View Screen</button>
+        <button id="stopBtn" onclick="stopAll()" style="display:none">Stop</button>
+    </div>
+
+    <div id="status">Click "Share Screen" or "View Screen"</div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Configuration
+        const WS_URL = 'ws://' + location.host;
+        const FPS = 15;
+        const QUALITY = 0.3;
+        const SCALE = 0.5;
+
+        // State
+        let ws = null;
+        let stream = null;
+        let video = null;
+        let isSharing = false;
+        let isViewing = false;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const shareBtn = document.getElementById('shareBtn');
+        const viewBtn = document.getElementById('viewBtn');
+        const stopBtn = document.getElementById('stopBtn');
+
+        // Connect WebSocket
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+
+            ws = new WebSocket(WS_URL);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                status.textContent = 'Connected to server';
+                console.log('WebSocket connected');
+            };
+
+            ws.onclose = () => {
+                status.textContent = 'Disconnected';
+                if (isSharing || isViewing) {
+                    setTimeout(connectWebSocket, 2000);
+                }
+            };
+
+            ws.onerror = () => {
+                status.textContent = 'Connection error';
+            };
+        }
+
+        // Start sharing screen
+        async function startSharing() {
+            try {
+                connectWebSocket();
+
+                // Get screen
+                status.textContent = 'Select screen to share...';
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { frameRate: FPS }
+                });
+
+                // Setup video element
+                video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+
+                video.onloadedmetadata = () => {
+                    // Set canvas size
+                    canvas.width = video.videoWidth * SCALE;
+                    canvas.height = video.videoHeight * SCALE;
+
+                    // Update UI
+                    isSharing = true;
+                    status.textContent = `Sharing ${canvas.width}x${canvas.height} at ${FPS}fps`;
+                    shareBtn.style.display = 'none';
+                    viewBtn.style.display = 'none';
+                    stopBtn.style.display = 'inline-block';
+
+                    // Tell server we're broadcaster
+                    ws.send('I_AM_BROADCASTER');
+
+                    // Start sending frames
+                    sendFrames();
+                };
+
+                // Handle when user stops sharing via browser UI
+                stream.getVideoTracks()[0].onended = () => {
+                    stopAll();
+                };
+
+            } catch (err) {
+                status.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        // Send frames to server
+        function sendFrames() {
+            if (!isSharing || !video || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            // Draw video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert to JPEG and send
+            canvas.toBlob(blob => {
+                if (blob && ws.readyState === WebSocket.OPEN) {
+                    blob.arrayBuffer().then(buffer => {
+                        ws.send(buffer);
+                    });
+                }
+            }, 'image/jpeg', QUALITY);
+
+            // Schedule next frame
+            setTimeout(sendFrames, 1000 / FPS);
+        }
+
+        // Start viewing shared screen
+        function startViewing() {
+            connectWebSocket();
+
+            isViewing = true;
+            status.textContent = 'Waiting for screen share...';
+            shareBtn.style.display = 'none';
+            viewBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-block';
+
+            // Tell server we're viewer
+            ws.send('I_AM_VIEWER');
+
+            // Handle incoming frames
+            ws.onmessage = async (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    const blob = new Blob([event.data], { type: 'image/jpeg' });
+                    const img = await createImageBitmap(blob);
+
+                    // Resize canvas to match image
+                    if (canvas.width !== img.width || canvas.height !== img.height) {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                    }
+
+                    ctx.drawImage(img, 0, 0);
+                    status.textContent = `Viewing ${img.width}x${img.height}`;
+                }
+            };
+        }
+
+        // Stop everything
+        function stopAll() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            if (video) {
+                video.srcObject = null;
+                video = null;
+            }
+
+            isSharing = false;
+            isViewing = false;
+
+            shareBtn.style.display = 'inline-block';
+            viewBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+
+            status.textContent = 'Stopped. Click "Share Screen" or "View Screen"';
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Initialize
+        connectWebSocket();
+
+        // Cleanup
+        window.addEventListener('beforeunload', stopAll);
+    </script>
+</body>
+
+</html>
