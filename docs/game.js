@@ -10,10 +10,23 @@ var univ = {
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
     on_each_start: () => {
-        //game.isAcceptingInputs = contest.isActive
+        /*if (contest.isActive) {
+            game.isAcceptingInputs = true
+        } else {
+            game.isAcceptingInputs = false
+            const waitingForContestStart = setInterval(
+                () => {
+                    if (contest.isActive) {
+                        game.isAcceptingInputs = true
+                        clearInterval(waitingForContestStart)
+                    }
+                }
+                , 200)
+        }*/ //crappy logic
     },
     on_first_run: () => {
         //chat.sendSecure({ inquire: "contest.isActive" })
+        //chat.inquire("contest.isActive", true)
     },
     on_next_game: null,
     stgs: stgs
@@ -72,16 +85,18 @@ class Game extends GameCore {
             so feel free to experiment.
 
             The contest will begin shortly. Good luck and have fun!`
+            game.isAcceptingInputs = false
             GameEffects.popup(t,
                 {
                     posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue" },
-                    travelTime: 1000, floatTime: 20000
+                    travelTime: 1000, floatTime: stgs.showRulesTimeSeconds * 1000, on_end: () => { game.isAcceptingInputs = true }
                 })
 
         }
 
         //#region makeLevel
         const makeLevel = (funcData, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
+            game.levelData = [funcData, ptsX, a, b, s, t]
             let func
             if (typeof funcData === "function") {
                 console.error("outdated structure, funcData should be provided instead of a function")
@@ -204,6 +219,12 @@ class Game extends GameCore {
             fields[3].isATerm = true
             fields.forEach(field => field.stretch(1.4, 1))
             const board = new InputBoard(inputButtonsBackground, fields, { animationTime: stgs.sendFancyTime })
+            board.on_reset = () => {
+                if (!greenCurrentlyInteracting) {
+                    if (plt.pltMore[2]) { plt.pltMore[2] = undefined }
+                    GameEffects.sendFancy(board.inputButtons[12], plt.rect)
+                }
+            }
             const inputButtons = board.inputButtons
             this.add_drawable(board.fields)
             this.add_drawable(board.inputButtons)
@@ -250,7 +271,7 @@ class Game extends GameCore {
 
             const announceVictory = () => {
                 const score = game.isFirstAttempt ? stgs.scoreForFirstTry[stgs.difficulty] : stgs.scoreForNonFirstTry[stgs.difficulty]
-                chat.sendSecure({ victory: score })
+                chat?.sendSecure({ victory: score })
                 stgs.difficulty = "other"
             }
 
@@ -791,7 +812,7 @@ class Game extends GameCore {
             const leaderboardButton = levelInfo.copy
             this.leaderboardButton = leaderboardButton
             leaderboardButton.dynamicText = () => {
-                const availableLeaderboard = contest.leaderboard ?? this.leaderboard
+                const availableLeaderboard = contest?.leaderboard ?? this.leaderboard
                 return availableLeaderboard.join("\n")
             }
             leaderboardButton.textSettings = { textAlign: "left", textBaseline: "top" }
@@ -800,15 +821,17 @@ class Game extends GameCore {
             leaderboardButton.fontSize = 36
             game.add_drawable(leaderboardButton)
 
-            const compressionsFix = (func, xs, a, b, s, t) => {
-                if (!stgs.compressionsFixDesired) { return [func, xs, a, b, s, t] }
+            const compressionsFix = (funcData, xs, a, b, s, t) => {
+                if (!stgs.compressionsFixDesired) { return [funcData, xs, a, b, s, t] }
+                const func = funcData
                 if (-1 < a && a < 1) { func = MM.functionTransformation(game.func, Math.abs(1 / a), 1, 0, 0) }
                 if (b < -1 || b > 1) {
                     func = MM.functionTransformation(func, 1, Math.abs(1 / b), 0, 0)
                     xs = xs.map(x => Math.abs(b) * x)
                     //s = Math.abs(b) * s
                 }
-                return [func, xs, a, b, s, t]
+                funcData.xs = xs
+                return [funcData, xs, a, b, s, t]
             }
             /**@returns {void} */
             const makeRandom = (numberOfTransformations = 1) => {
@@ -853,18 +876,20 @@ class Game extends GameCore {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
                     //stretch in y
-                    () => { a *= MM.randomInt(2, 5); a = Math.random() > .6 ? 1 / a : a },
+                    () => { a *= MM.randomInt(2, 4); a = Math.random() > .6 ? 1 / a : a },
                     //stretch in x
-                    () => { b *= MM.randomInt(2, 5); b = Math.random() > .6 ? 1 / b : b },
+                    () => { b *= MM.randomInt(2, 4); b = Math.random() > .6 ? 1 / b : b },
                     //reflect in y
                     () => { a *= -1 },
                     //reflect in x
                     () => { b *= -1 },
                     //translate
                     () => {
-                        s = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
-                        t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
-                    }
+                        //s = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                        //t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                        s = MM.choice([...MM.range(-5, 6)].filter(x => x))
+                    },
+                    () => { t = MM.choice([...MM.range(-5, 6)].filter(x => x)) }
                 ]
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
                 return [a, b, s, t]
@@ -883,10 +908,10 @@ class Game extends GameCore {
             const makeRandomTrig = (numberOfTransformations) => {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
-                    () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { s = MM.choice([PI / 4, -PI / 4, PI / 2, -PI / 2]) },
-                    () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
+                    () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2]) },
+                    () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2]) },
+                    () => { s = MM.choice([PI / 4, -PI / 4, PI / 2, -PI / 2, PI / 3, -PI / 3, 2 * PI / 3]) },
+                    () => { t = MM.choice([-3, -2, -1, 1, 2, 3, 3 / 2, -3 / 2, 1 / 2, -1 / 2]) },
                     () => { a *= -1 },
                     () => { b *= -1 }
                 ]
@@ -937,6 +962,8 @@ class Game extends GameCore {
                 makeRandom(MM.choice([4, 4, 4, 4, 5]))
                 stgs.difficulty = "hard"
             }
+
+
             const rInfo = new Button()
             rInfo.txt = "Generate a level:"
             rInfo.fontSize = levelInfo.fontSize
@@ -952,6 +979,9 @@ class Game extends GameCore {
             const rTypes = rBG.splitCol(1.5, 1, 1, 1, 1).map(Button.fromRect)
             rTypes[0].transparent = true
             rTypes.forEach((x, i) => x.txt = ["Type:", "Squiggly", "Poly", "Trig", "Any"][i])
+            rTypes.forEach(x => x.interactable = stgs.canChangeRandomType)
+
+
             rTypes.slice(1, 5).forEach(b => b.on_click = function () { stgs.randomType = b.txt })
             const typeRadio = Button.make_radio(rTypes.slice(1, 5), true)
             rTypes.slice(1, 5).find(x => x.txt == stgs.randomType).on_click()
@@ -963,7 +993,7 @@ class Game extends GameCore {
             //this.add_drawable(changelogButton)
             changelogButton.bottomat(rTypes.at(-1).bottom)
             changelogButton.leftat(rButs[0].left)
-            changelogButton.on_click = () => stgs.changelog.split("$").forEach(x => setTimeout(() => alert(x), 100))
+            changelogButton.on_click = () => changelogGlobal.split("$").forEach(x => setTimeout(() => alert(x), 100))
             changelogButton.fontSize = 16
             changelogButton.txt = "Changelog"
 
@@ -1081,7 +1111,7 @@ class Game extends GameCore {
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    startContest = contest.startContest
+    startContest = contest?.startContest
 
 
 

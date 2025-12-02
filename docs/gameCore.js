@@ -16,12 +16,15 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
+    globalThis.silentReload = false
     window.addEventListener('beforeunload', (e) => {
+        if (globalThis.silentReload) return
         e.preventDefault()
         e.stopPropagation()
         //e.returnValue = ''
     }
     )
+
 
     const screen = canvas.getContext("2d")
     screen.imageSmoothingQuality = univ.imageSmoothingQuality
@@ -37,6 +40,7 @@ window.onload = function () {
 const beforeMain = function (canvas) {
     if (univ.isOnline) {
         chat = new Chat()
+        if (!univ.isOnline) chat = null
         contest = new ContestManager()
     }
     univ.on_first_run?.()

@@ -2,11 +2,12 @@
 
 //#region Chat
 class Chat {
-    static RECONNECT_TIME = 10 * 1000 //default timeout is probably over a minute anyways
+    static RECONNECT_TIME = 3 * 1000 //default timeout is probably over a minute anyways
     static RESEND_TIME = 1500
     constructor(ip = null, name = null, isServer = false) {
         if (location.hostname === '') {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
+            univ.isOnline = false //hacky, but this prevents chat from existing
             return
         }
         if (name) { this.name = name }
@@ -111,6 +112,10 @@ class Chat {
 
     sendSecure(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
+        if (this.isServer && obj.target === undefined) {
+            console.error("The server cannot send untargeted secure messages.")
+            return
+        }
         obj.name ??= this.name
         obj.id = MM.randomID()
         this.queue.push(obj)
@@ -122,7 +127,7 @@ class Chat {
     }
 
     receiveEcho(echo) {
-        this.queue = this.queue.filter(x => x.id !== echo)
+        this.queue = this.queue.filter(x => x.id != echo)
     }
 
     acquireName() {
@@ -159,6 +164,12 @@ class Chat {
         if (reason) alert(reason)
         localStorage.removeItem("name")
         //localStorage.removeItem("nameID") //should not be reset - stay unique on per device per session basis
+        this.silentReload()
+
+    }
+
+    silentReload() {
+        globalThis.silentReload = true
         location.reload()
     }
 
@@ -169,7 +180,7 @@ class Chat {
     checkIfReceivedAlready(message) {//safe receiving
         if (message.id) {
             const processedAlready = this.secureIDsToIgnore.has(message.id)
-            this.sendMessage({ echo: message.id, target: name, processedAlready: processedAlready }) //will echo anyways
+            this.sendMessage({ echo: message.id, target: message.name, processedAlready: processedAlready }) //will echo anyways
             if (processedAlready) { return true } //but won't process twice
             this.secureIDsToIgnore.add(message.id)
         }
@@ -188,7 +199,7 @@ class Chat {
         if (message.eval) { eval(message.eval) }
         if (message.log) { console.log(message.log) }
         if (message.alert) { alert(message.alert) }
-        if (message.reload) { location.reload() }
+        if (message.reload) { this.silentReload() }
         if (message.prompt) {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
@@ -206,6 +217,10 @@ class Chat {
         }
         if (message.request) {
             this.sendMessage({ requestResponse: eval(message.request) })
+            //TODO
+            //IDEA
+            //Create a participant object that can be equipped with callbacks when responses are given.
+
         }
         if (message.demand) {
             MM.require(message, "value")
@@ -337,6 +352,10 @@ class Listener {
         //safe receiving
         if (message.echo) { this.chat.receiveEcho(message.echo) } //unfortunate duplicate code...
         if (this.chat.checkIfReceivedAlready(message)) { return }
+
+        //logging any requests
+        if (message.promptResponse) participants[name].on_prompt_response?.(message.promptResponse)
+        if (message.requestResponse) participants[name].on_request_response?.(message.requestResponse)
 
         //anything else
         participants[name].lastSpoke = Date.now()

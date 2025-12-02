@@ -86,6 +86,7 @@ const hq = {
         })
     },
     feedAll(person) {
+        person ??= LCP
         person = toPerson(person)
         Object.values(participants).forEach(x => x !== person && hq.feed(person, x))
     },
@@ -216,6 +217,7 @@ const addPerson = (person) => {
 }
 
 const kickPerson = (nameOrPerson) => {
+    nameOrPerson ??= LCP
     const person = toPerson(nameOrPerson)
     game.remove_drawable(person.button)
     chat.orderResetName(person.name)
@@ -233,9 +235,11 @@ const makeButtonFor = (person) => {
         fontSize: 36,
         width: 300,
         color: "lightblue",
-
     }))
-    //b.update = () => b.color = Date.now() - person.lastSpoke < 1000 ? "lightgreen" : "lightblue"
+    b.update = function () {
+        if (this.color !== "lightgreen" && this.color !== "lightblue") return
+        this.color = Date.now() - person.lastSpoke < 500 ? "lightgreen" : "lightblue"
+    }
     b.on_click = () => { LCP = person; LCN = person.name; console.log("Clicked on", LCN) }
     person.button = b
     game.add_drawable(b, 8)
@@ -252,9 +256,11 @@ const addToScore = (obj, person) => {
     chat.sendMessage({
         popup: `Gained ${obj.victory} points.`, target: person.name
     })
+    person.button.color = "yellow"
     GameEffects.popup(`${person.name} gained ${obj.victory} points.`, {
         posFrac: [.83, MM.random(.1, .9)], sizeFrac: [.3, .1], direction: "right",
-        moreButtonSettings: { fontSize: 36, color: "yellow" }
+        moreButtonSettings: { fontSize: 36, color: "yellow" },
+        on_end: () => { person.button.color = "lightblue" }
     })
 
     //updateLeaderboard()
@@ -264,7 +270,12 @@ const updateLeaderboard = () => {
     shared.leaderboard = Object.values(participants).sort((u, w) => w.score - u.score).map(u => `${u.name}: ${u.score}`)
 }
 
-
+const ASK = (question, person) => {
+    person ??= LCP
+    person = toPerson(person)
+    person.on_prompt_response = (txt) => { GameEffects.popup(`${person.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
+    chat.sendSecure({ target: person.name, prompt: question })
+}
 
 
 //#endregion

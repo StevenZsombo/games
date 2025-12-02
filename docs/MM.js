@@ -841,6 +841,10 @@ class GameEffects {
         topleftPink: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         kfBlue: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "blue", fontSize: 24, color: "lightgray" } },
         kfRed: { sizeFrac: [.15, .05], posFrac: [.9, 0.05], direction: "right", moreButtonSettings: { font_color: "red", fontSize: 24, color: "lightgray" } },
+        leftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
+        leftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
+        leftPink: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
+
 
 
     }

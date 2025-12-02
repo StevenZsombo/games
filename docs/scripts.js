@@ -963,6 +963,12 @@ class InputBoard {
 		this.redefineFields(fields)
 		this.animationTime = animationTime
 		this.inputButtons = this.createButtonsBoard(inputBackground)
+		this.on_reset = null
+		this.on_delete = null
+		this.on_number = null //(i) => {}
+		this.on_plus = null
+		this.on_minus = null
+		this.on_divide = null
 
 	}
 
@@ -982,6 +988,7 @@ class InputBoard {
 			x.on_click = () => {
 				this.addValueToField(x.txt)
 				if (this.animationTime) { GameEffects.sendFancy(x, this.currentField, this.animationTime) }
+				this.on_number?.(i + 1)
 			}
 		})
 		inputButtons.forEach(x => {
@@ -992,18 +999,21 @@ class InputBoard {
 		inputButtons[10].on_click = () => {
 			this.addValueToField(0)
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[10], this.currentField, this.animationTime) }
+			this.on_number?.(0)
 		}
 		inputButtons[9].txt = "+"
 		inputButtons[9].on_click = () => {
 			this.currentField.negative = false
 			this.currentField.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[9], this.currentField, this.animationTime) }
+			this.on_plus?.()
 		}
 		inputButtons[11].txt = "-"
 		inputButtons[11].on_click = () => {
 			this.currentField.negative = this.currentField.allowNegative
 			this.currentField.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[11], this.currentField, this.animationTime) }
+			this.on_minus?.()
 		}
 		inputButtons[13].txt = "/"
 		inputButtons[13].on_click = () => {
@@ -1012,6 +1022,7 @@ class InputBoard {
 				this.currentField.txtRefresh()
 			}
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[13], this.currentField, this.animationTime) }
+			this.on_divide?.()
 		}
 		inputButtons[12].txt = "Reset"
 		inputButtons[12].fontSize = 30
@@ -1022,10 +1033,10 @@ class InputBoard {
 					GameEffects.sendFancy(inputButtons[12], x, this.animationTime)
 				}
 			})
-
 		}
 		inputButtons[12].on_click = () => {
 			resetButtonFunction()
+			this.on_reset?.()
 		}
 		inputButtons[14].txt = "Delete"
 		inputButtons[14].fontSize = 30
@@ -1050,6 +1061,7 @@ class InputBoard {
 			}
 			curr.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[14], this.currentField, this.animationTime) }
+			this.on_delete?.()
 		}
 		return inputButtons
 	}

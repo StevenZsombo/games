@@ -15,6 +15,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+const DEFAULT_PAGE_TO_SERVE = '/template.html'
+
 const DOTS = {
     red: '\x1b[31m●\x1b[0m',
     green: '\x1b[32m●\x1b[0m',
@@ -42,7 +44,7 @@ const PORT = 8000
 
 // Minimal static server: serve index.html to normal clients, listener.html to listener
 const server = http.createServer((req, res) => {
-    const urlPath = req.url === '/' ? '/index.html' : req.url
+    const urlPath = req.url === '/' ? DEFAULT_PAGE_TO_SERVE : req.url
 
     // serve explicit listener page when the requested path's basename is listener.html
     // or the path ends with '/listener'. In that case serve the listener.html file

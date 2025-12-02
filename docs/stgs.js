@@ -1,4 +1,56 @@
 /// settings
+var stgs = {
+    tolerance: 0.02,
+    stage: -1, //-1 for level selector
+    victories: [],
+    allowVictoryByAlternateValues: false, //yet to be implemented
+    randomLevelData: null,
+    labelPoints: true,
+    randomType: "Any",
+    canChangeRandomType: true,
+    firstRun: true,
+    animationsEnabled: true,
+    compressionsFixDesired: false,
+    matchedAxesDesired: true,
+    transformAnimationTime: 1000, //can set to 0 to disable animation
+    sendFancyTime: 500, //can set to 0 to disable animation
+    transformSendFancyTime: 500,
+    difficulty: "other", //can be "easy medium hard"
+    scoreForFirstTry: { easy: 0, medium: 4, hard: 14, other: 0 },
+    scoreForNonFirstTry: { easy: 0, medium: 3, hard: 10, other: 0 },
+    showRulesTimeSeconds: 20
+
+}/// end of settings
+
+const levels = [
+
+    [MM.brokenLineFunction(1, 2, 4, 6, 7, -2), [1, 4, 7], 1, 1, 2, 3],
+    [MM.brokenLineFunction(-3, 3, 1, 5, 3, -1, 6, 2), [-3, 1, 3, 6], 1, -1 / 2, 0, 0],
+    [MM.brokenLineFunction(1, 5, 2, 6, 7, -4), [1, 2, 7], -1, -1, 0, 2],
+    [MM.brokenLineFunction(1, 2, 2, 4, 3, 1, 4, 5, 5, 1), [1, 2, 3, 4, 5], 2, 3, 1, - 2],
+    [x => Math.sin(x), [0, 3 * PI / 2, PI, TWOPI], -1, 2, 0, 2],
+    [x => { return Math.sqrt(16 - (x - 4) * (x - 4)) }, [0, 4, 8], -1 / 4, 1 / 2, -1, 3],
+    [x => { if (x < -3 || x > 9) { return }; return (x * x - 4 * x + 6) }, [-3, 2, 9], 2 / 3, -1 / 2, 4, -3],
+    [x => { if (x != 0) { return 4 / x / x } }, [-2, -1, 1, 2], -1, 1 / 2, 3, +2],
+    [x => { if (x > -PI / 2 && x < PI / 2) { return 2 * Math.tan(x) } }, [-PI / 4, 0, PI / 4], 2, 1, 0, 10],
+    [x => x ** 3 - 4 * x, [-2, 0, 1, 2], -1 / 3, 1 / 2, -1, 3]
+
+]
+
+const TRIGFUNCTIONS = [
+    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
+    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
+    [Math.cos, [0, PI / 2, PI, TWOPI]],
+    [Math.cos, [0, PI / 2, PI, TWOPI]],
+    [Math.tan, [666]],
+    [Math.tan, [666]],
+    //[Math.atan, [-PI, 0, PI, TWOPI]],
+    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
+    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
+]
+
+
+
 const changelogGlobal =
     `
     2025.11.17.
@@ -41,54 +93,3 @@ const changelogGlobal =
     Better trig gridding
     Trig horizontal translations are now always multiples of PI/4
     `
-var stgs = {
-    tolerance: 0.02,
-    stage: -1, //-1 for level selector
-    victories: [],
-    allowVictoryByAlternateValues: false, //yet to be implemented
-    randomLevelData: null,
-    labelPoints: true,
-    randomType: "Squiggly",
-    firstRun: true,
-    animationsEnabled: true,
-    changelog: changelogGlobal,
-    compressionsFixDesired: false,
-    matchedAxesDesired: true,
-    transformAnimationTime: 1000, //can set to 0 to disable animation
-    sendFancyTime: 500, //can set to 0 to disable animation
-    transformSendFancyTime: 500,
-    difficulty: "other", //can be "easy medium hard"
-    scoreForFirstTry: { easy: 0, medium: 4, hard: 14, other: 0 },
-    scoreForNonFirstTry: { easy: 0, medium: 3, hard: 10, other: 0 },
-
-}/// end of settings
-
-const levels = [
-
-    [MM.brokenLineFunction(1, 2, 4, 6, 7, -2), [1, 4, 7], 1, 1, 2, 3],
-    [MM.brokenLineFunction(-3, 3, 1, 5, 3, -1, 6, 2), [-3, 1, 3, 6], 1, -1 / 2, 0, 0],
-    [MM.brokenLineFunction(1, 5, 2, 6, 7, -4), [1, 2, 7], -1, -1, 0, 2],
-    [MM.brokenLineFunction(1, 2, 2, 4, 3, 1, 4, 5, 5, 1), [1, 2, 3, 4, 5], 2, 3, 1, - 2],
-    [x => Math.sin(x), [0, 3 * PI / 2, PI, TWOPI], -1, 2, 0, 2],
-    [x => { return Math.sqrt(16 - (x - 4) * (x - 4)) }, [0, 4, 8], -1 / 4, 1 / 2, -1, 3],
-    [x => { if (x < -3 || x > 9) { return }; return (x * x - 4 * x + 6) }, [-3, 2, 9], 2 / 3, -1 / 2, 4, -3],
-    [x => { if (x != 0) { return 4 / x / x } }, [-2, -1, 1, 2], -1, 1 / 2, 3, +2],
-    [x => { if (x > -PI / 2 && x < PI / 2) { return 2 * Math.tan(x) } }, [-PI / 4, 0, PI / 4], 2, 1, 0, 10],
-    [x => x ** 3 - 4 * x, [-2, 0, 1, 2], -1 / 3, 1 / 2, -1, 3]
-
-]
-
-const TRIGFUNCTIONS = [
-    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-    [Math.cos, [-PI, 0, PI, TWOPI]],
-    [Math.cos, [-PI, 0, PI, TWOPI]],
-    [Math.tan, [666]],
-    [Math.tan, [666]],
-    //[Math.atan, [-PI, 0, PI, TWOPI]],
-    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
-    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
-]
-
-
-
