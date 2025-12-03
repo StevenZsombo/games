@@ -2,12 +2,12 @@
 
 //#region Chat
 class Chat {
-    static RECONNECT_TIME = 5 * 1000 //default timeout is probably over a minute anyways
+    static RECONNECT_TIME = 2 * 1000 //default timeout is probably over a minute anyways
     static RESEND_TIME = 1500
-    static BLINKING_TIME = 5 * 1000
+    static BLINKING_TIME = 0 //feature no longer needed: disconnections are now handled via server.js and Listener
+    static HOSTNAMES_INDICATING_OFFLINE = ['', 'stevenzsombo.github.io']
     constructor(ip = null, name = null, isServer = false) {
-        //if (location.hostname === '' || location.hostname === 'stevenzsombo.github.io') {
-        if (location.hostname === '') {
+        if (Chat.HOSTNAMES_INDICATING_OFFLINE.includes(location.hostname)) {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
             univ.isOnline = false //hacky, but this prevents chat from existing
             return
@@ -179,7 +179,7 @@ class Chat {
     }
 
     receiveMessageParse(messageText) {
-        return this.receiveMessage(JSON.parse(messageText))
+        return this.receiveMessage?.(JSON.parse(messageText))
     }
 
     checkIfReceivedAlready(message) {//safe receiving
@@ -232,6 +232,10 @@ class Chat {
             MM.setByPath(message.demand, message.value)
             //eval(`${message.demand} = ${message.value}`)
         }
+        if (message.shared) {
+            contest.shared = message.shared
+            contest.on_share?.()
+        }
     }
     //#endregion
 
@@ -251,9 +255,7 @@ class Chat {
 class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
-        this.receiveMessage = () => { } //set to nothing, won't be needed anyways
-
-
+        this.receiveMessage = null//set to nothing, won't be needed anyways
     }
 
     sendCommand(code, alsoSendToSelf = false) {
@@ -278,12 +280,34 @@ class ChatServer extends Chat {
     }
 }
 //#endregion
+//#region Participant
+class Participant {
+    constructor(name, nameID, connected) {
+        this.name = name
+        this.nameID = nameID
+        this.connected = connected ?? "unknown"
+        this.reconnections = 0
+        this.initialized = false
 
+        this.on_reconnect = null
+        this.on_join = null
+        this.on_disconnect = null
+        this.isConnected = true
+
+        this.on_request_response = null
+        this.on_request_response_once = null
+        this.on_prompt_response = null
+        this.on_request_response_once = null
+    }
+}
+//#endregion
 //#region Listener
 class Listener {
     constructor() {
-        /**@type {Array<{name: string}>} */
+        //hacky, declare as Person instead of Participant, but whatever.
+        /**@type {Object.<string, Person>} */
         this.participants = {}
+
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
         this.allowPriorJoin = true
@@ -293,14 +317,9 @@ class Listener {
 
         this.on_message = null //takes obj, person
         this.on_message_more = null //takes obj, person
-        this.on_reconnect = null //takes person
-        this.on_join = null //takes person
-        /*
-                this.eventSource = new EventSource('http://localhost:8000/events');
-                this.eventSource.onmessage = (event) => {
-                    this.messageParsing(event.data)
-                };
-                */
+        this.on_participant_reconnect = null //takes person
+        this.on_participant_join = null //takes person
+        this.on_participant_disconnect = null //takes person
 
     }
 
@@ -319,31 +338,32 @@ class Listener {
 
     addNewParticipant(name, nameID, connected) {
         if (this.checkUserDuplicate(name, nameID, connected)) { return }
-        this.participants[name] = {
-            name: name,
-            nameID: nameID,
-            connected: connected,
-            reconnections: 0,
-            initialized: false
-        }
+        this.participants[name] = new Person(name, nameID, connected)
+
     }
 
 
     messageParsing(messageText) {
         const message = JSON.parse(messageText)
         if (!message.name || message.name == this.name) { return }
-        let messageShouldBeProcessed = true
         const participants = this.participants
         const { name, ...compact } = message
         //resolving connectivity concerns
+        if (name == "WS" && message.disconnectedAddress) {
+            this.participantHasJustDisconnected(message.disconnectedAddress)
+            return
+        }
         if (message.connected && !this.checkUserDuplicate(name, message.nameID, message.connected)) {
             if (participants[name]) {
                 participants[name].reconnections++
-                this.on_reconnect?.(participants[name])
+                participants[name].on_reconnect?.()
+                participants[name].isConnected = true
+                this.on_participant_reconnect?.(participants[name])
             } else {
                 MM.require(message, "nameID")
                 this.addNewParticipant(name, message.nameID, message.connected)
-                this.on_join?.(participants[name])
+                participants[name].isConnected = true
+                this.on_participant_join?.(participants[name])
             }
         }
         if (!participants[name]) { //see if late joining is okay
@@ -352,22 +372,46 @@ class Listener {
             if (!this.allowPriorJoin) { throw "Joining in advance is not allowed" }
 
         }
+        if (message.connectedAddress) participants[name].connectedAddress = message.connectedAddress
+
+
         this.isLogging && console.log(name, compact) //log is approved
+
+        const person = participants[name]
+        person.lastSpoke = Date.now()
 
         //safe receiving
         if (message.echo) { this.chat.receiveEcho(message.echo) } //unfortunate duplicate code...
-        if (this.chat.checkIfReceivedAlready(message)) { return }
+        if (this.chat.checkIfReceivedAlready(message)) { return } //if duplicate, then ignore.
 
         //logging any requests
-        if (message.promptResponse) participants[name].on_prompt_response?.(message.promptResponse)
-        if (message.requestResponse) participants[name].on_request_response?.(message.requestResponse)
+        if (message.promptResponse) {
+            person.on_prompt_response?.(message.promptResponse)
+            person.on_request_response_once?.(message.promptResponse)
+            person.on_request_response_once = null
+        }
+        if (message.requestResponse) {
+            person.on_request_response?.(message.requestResponse)
+            person.on_request_response_once?.(message.requestResponse)
+            person.on_request_response_once = null
+        }
 
         //anything else
-        participants[name].lastSpoke = Date.now()
-        if (messageShouldBeProcessed) {
-            this.on_message?.(message, participants[name])
-            this.on_message_more?.(message, participants[name])
+
+        this.on_message?.(message, person)
+        this.on_message_more?.(message, person)
+
+    }
+
+    participantHasJustDisconnected(address) {
+        const person = Object.values(this.participants).find(x => x.connectedAddress === address)
+        if (!person) {
+            console.error("A disconnected person could not be identified", address)
+            return
         }
+        person.isConnected = false
+        person.on_disconnect?.()
+        this.on_participant_disconnect?.(person)
     }
 
     getNamelist() {

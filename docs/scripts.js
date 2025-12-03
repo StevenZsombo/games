@@ -536,9 +536,11 @@ class Button extends Clickable {
 
 	}
 
+	/*
 	check(x, y, clicked, released, held, wheel) {//invisible buttons are also drawn now
 		return super.check(x, y, clicked, released, held, wheel)
 	}
+	*/
 
 	get copy() {
 		let result = new Button()

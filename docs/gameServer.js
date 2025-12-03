@@ -15,46 +15,107 @@ const univ = {
 }
 /* Usage comments.
 Contest commences with hq.startContest()
-
 Manual saves can be created, autosaves happen every minute too. 5 and 10 backups respectively, all in localStorage.
-
-
+shared is broadcasted entirely and is received by the clients in contest.shared
 */
-const shared = {
-    "contest.isActive": false,
-    leaderboard: "",
-    hasStartedContest: false
-}
 
+const shared = {
+    leaderboard: "",
+    isActive: false
+}
+//#region Person
+class Person extends Participant {
+    constructor(name, nameID, connected) {
+        super(name, nameID, connected)
+        //initialized by Listener, actually.
+    }
+
+
+    kick() {
+        game.remove_drawable(this.button)
+        chat.orderResetName(this.name)
+        delete participants[this.name]
+    }
+
+    initialize() {
+        this.initialized = true
+        this.score = 0
+        this.createButton()
+
+    }
+
+    createButton(makeVisible = true) {
+        const person = this
+        /**@type {Button} */
+        const b = Button.make_draggable(new Button({
+            dynamicText: () => `${person.name}: ${Number(person.score)}`,
+            x: MM.random(400, 1400), y: MM.random(100, 900),
+            fontSize: 36,
+            width: 300,
+            color: "lightblue",
+        }))
+        b.update = function () {
+            if (this.color !== "lightblue" && this.color !== "lightgreen" && this.color !== "red") return
+            this.color = !person.isConnected ? "red" : Date.now() - person.lastSpoke < 500 ? "lightgreen" : "lightblue"
+        }
+        b.on_click = () => { LCP = person; LCN = person.name; console.log("Clicked on", LCN) }
+        person.button = b
+        makeVisible && game.add_drawable(b, 8)
+        return b
+    }
+
+    static to(nameOrPerson) {
+        return typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
+    }
+
+    static check(person) {
+        person = Person.to(person)
+        if (!person?.initialized) {
+            person.initialize()
+        }
+        return person
+    }
+}
+//#endregion
+//#region broadcasting
 let isBroadcasting = false
 let broadcastInterval = 1000
+const updateShared = () => {
+    updateLeaderboard()
+}
 const broadcast = setInterval(
     () => {
-        //if (game.layers[8]) { shared["game.layers[8]"] = game.layers[8] }
-        //chat.sendMessage({ demand: "game.layers[8]", value: shared["game.layers[8]"] })
         if (!isBroadcasting) { return }
-        updateLeaderboard()
-        chat.sendMessage({ demand: "contest.leaderboard", value: shared.leaderboard })
+        updateShared()
+        chat.sendMessage({ shared: shared })
     }, broadcastInterval)
 
-//const keepCheckingAttendance = setInterval(() => { chat.orderAttendance() }, 5000)
 
+//#endregion
+//#region hq
 
 const hq = {
-    startContest: () => {
+    startContest: (notChained = true) => {
         chat.orderAttendance()
-        chat.sendMessage({ eval: "contest.startContest()" }) //let clients know
-        Object.values(participants).forEach(x => x.score = 0) //reset scores
+        notChained && chat.sendMessage({ eval: "contest.startContest()" }) //let clients know
         console.log("Contest has started.")
         GameEffects.popup("Contest has started.")
-        shared["contest.isActive"] = true
-        shared.hasStartedContest = true
+        shared.isActive = true
         isBroadcasting = true
     },
-    endContest: () => {
-        shared["contest.isActive"] = false
-        shared.hasStartedContest = false
-        //keep broadcasting
+    startAfter: (seconds) => {
+        chat.sendMessage({ eval: `contest.startAfter(${seconds})` })
+        GameEffects.countdown("Contest will start", seconds, () => hq.startContest(false))
+    },
+    endContest: (notChained = true) => {
+        shared.isActive = false
+        notChained && chat.sendMessage({ eval: "contest.endContest()" })
+        console.log("Contest has ended.")
+        GameEffects.popup("Contest has ended.", GameEffects.popupPRESETS.redLinger)
+    },
+    endAfter: (seconds) => {
+        chat.sendMessage({ eval: `contest.endAfter(${seconds})` })
+        GameEffects.countdown("Contest will end", seconds, () => hq.endContest(false))
     },
     attendance: () => {
         chat.orderAttendance()
@@ -63,11 +124,10 @@ const hq = {
             popupSettings: GameEffects.popupPRESETS.smallPink
         })
     },
-    updatePlayerCount: () => { COMM(`game.playerCount = ${listener.getNamelist().length}`) },
-    showRules: () => chat.sendCommand("game.showRules()"),
+    showRules: () => chat.sendCommand("contest.showRules()"),
     feed: (person1, person2) => {
-        person1 = toPerson(person1)
-        person2 = toPerson(person2)
+        person1 = Person.to(person2)
+        person1 = Person.to(person2)
         if (!person1.level) {
             console.log(person1, " has no level data available.")
             return
@@ -87,7 +147,7 @@ const hq = {
     },
     feedAll(person) {
         person ??= LCP
-        person = toPerson(person)
+        person = Person.to(person)
         Object.values(participants).forEach(x => x !== person && hq.feed(person, x))
     },
 
@@ -99,14 +159,18 @@ const hq = {
             console.log("Save not found.")
             return
         }
-        const retrieved = JSON.parse(data)
-        for (const name in retrieved) {
+        Object.entries(JSON.parse(data)).forEach(([name, info]) => {
             if (!participants[name]) {
-                participants[name] = retrieved[name]
-                const { x, y } = participants[name].button
-                makeButtonFor(participants[name]).topleftat(x, y)
+                const person = new Person(name, info.nameID, info.connected)
+                participants[name] = person
+                Object.assign(person, info)
+                const { x, y } = person.button
+                person.createButton().topleftat(x, y)
+            } else {
+                Person.check(participants[name])
+                participants[name].score += info.score
             }
-        }
+        })
         console.log(`Loaded from ${localStorage.getItem(`time_${i}`)}`)
     },
     loadAuto: (i = 0) => { hq.load(`auto_${i}`) },
@@ -152,8 +216,8 @@ const hq = {
     }
     //#endregion
 }
+//#endregion
 //#region Listener setup
-
 
 const autoSaveInterval = 60 * 1000 //every 60 seconds
 const autoSaveManager = setInterval(hq.autoSave, autoSaveInterval)
@@ -169,12 +233,14 @@ const POPUP = (txt, settings) => chat.sendMessage({
 })
 const ATTENDANCE = hq.attendance
 //chat.receiveMessage = (messageText) => { }//console.log(JSON.parse(messageText)) }
+/**@type {Object.<string,Participant>} */
 const participants = listener.participants
+
 let LCN = null //last clicked name
 let LCP = null //last clicked person
 
 listener.on_message = (obj, person) => {
-    checkPerson(person)
+    person = Person.check(person)
     if (obj.victory) {
         addToScore(obj, person)
     }
@@ -197,62 +263,13 @@ listener.on_message = (obj, person) => {
     }
 }
 
-listener.on_join = (person) => {
-    checkPerson(person)
-}
-
-
-const checkPerson = (person) => {
-    person = toPerson(person)
-    if (!person?.initialized) {
-        addPerson(person)
-    }
-}
-
-const addPerson = (person) => {
-    person.score = 0
-    makeButtonFor(person)
-    person.initialized = true
-    hq.updatePlayerCount()
-    person.level = null
-}
-
-const kickPerson = (nameOrPerson) => {
-    nameOrPerson ??= LCP
-    const person = toPerson(nameOrPerson)
-    game.remove_drawable(person.button)
-    chat.orderResetName(person.name)
-    delete participants[person.name]
-    delete person
-}
-
-const toPerson = (nameOrPerson) => typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
-
-const makeButtonFor = (person) => {
-    /**@type {Button} */
-    const b = Button.make_draggable(new Button({
-        dynamicText: () => `${person.name}: ${Number(person.score)}`,
-        x: MM.random(400, 1400), y: MM.random(100, 900),
-        fontSize: 36,
-        width: 300,
-        color: "lightblue",
-    }))
-    b.update = function () {
-        if (this.color !== "lightgreen" && this.color !== "lightblue" && this.color !== "red") return
-        //this.color = Date.now() - person.lastSpoke < 500 ? "lightgreen" : "lightblue"
-        const sinceLastSpoke = Date.now() - person.lastSpoke
-        this.color = sinceLastSpoke < 500 ? "lightgreen" : sinceLastSpoke < 8000 ? "lightblue" : "red"
-    }
-    b.on_click = () => { LCP = person; LCN = person.name; console.log("Clicked on", LCN) }
-    person.button = b
-    game.add_drawable(b, 8)
-    return b
-
-}
+listener.on_participant_join = Person.check
+listener.on_participant_reconnect = Person.check
 
 
 const addToScore = (obj, person) => {
-    if (!shared.hasStartedContest) {
+    person = Person.check(person)
+    if (!shared.isActive) {
         console.log(`${person.name} requested ${obj.victory} points but the contest is not running.`)
         return
     }
@@ -276,7 +293,7 @@ const updateLeaderboard = () => {
 
 const ASK = (question, person) => {
     person ??= LCP
-    person = toPerson(person)
+    person = Person.check(person)
     person.on_prompt_response = (txt) => { GameEffects.popup(`${person.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
     chat.sendSecure({ target: person.name, prompt: question })
 }
@@ -289,7 +306,7 @@ const SPY = (person, interval = 1000) => {
         //chat.sendMessage({ target: previouslySpiedOn.name, eval: "clearInterval(window.spyinterval)" })
         previouslySpiedOn.button.move(100, 100)
     }
-    person = toPerson(person)
+    person = Person.to(person)
     previouslySpiedOn = person
     if (!spybutton) {
         spybutton = new Button()
@@ -387,7 +404,7 @@ class Game extends GameCore {
 
 
     }
-    #end
+    //#endregion
     ///end draw_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                            ^^^^DRAW^^^^                                                      ///
     ///                                                                                                              ///

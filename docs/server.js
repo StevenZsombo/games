@@ -34,7 +34,6 @@ const COLORS = {
     white: '\x1b[37m',
     reset: '\x1b[0m'
 }
-
 // Colorize text
 const colorize = (text, color) => {
     return COLORS[color] + text + COLORS.reset
@@ -42,6 +41,7 @@ const colorize = (text, color) => {
 
 const PORT = 8000
 
+//#region HTTP server
 // Minimal static server: serve index.html to normal clients, listener.html to listener
 const server = http.createServer((req, res) => {
     const urlPath = req.url === '/' ? DEFAULT_PAGE_TO_SERVE : req.url
@@ -99,6 +99,12 @@ const server = http.createServer((req, res) => {
         res.end(data)
     })
 })
+//#endregion
+
+
+
+
+//#region WebSocket server
 
 const wss = new WebSocket.Server({ server })
 
@@ -156,8 +162,12 @@ wss.on('connection', (ws, req) => {
             if (txt === `"GM"`) {
                 ws._isListener = true
                 listeners.add(ws)
-                console.log('\x1b[34m● Listener connected\x1b[0m', req.socket.remoteAddress)
+                console.log('\x1b[34m● Confirmed listener connected\x1b[0m', req.socket.remoteAddress)
                 return
+            } else {
+                const initialMsg = JSON.parse(txt)
+                initialMsg.connectedAddress = `${req.socket.remoteAddress}:${req.socket.remotePort}`
+                processMessage(JSON.stringify(initialMsg))
             }
 
             // if not a registration message, process as normal
@@ -186,6 +196,7 @@ wss.on('connection', (ws, req) => {
             console.log('\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m Listener disconnected', req.socket.remoteAddress)
         } else {
             console.log('\x1b[31m●\x1b[0m Client disconnected', req.socket.remoteAddress)
+            processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` }))
         }
     })
 })
@@ -197,3 +208,6 @@ server.listen(PORT, '0.0.0.0', () => {
     Object.values(nets).flat().filter(i => i && i.family === 'IPv4' && !i.internal)
         .forEach(i => console.log(colorize(`Join on: http://${i.address}:${PORT}/`, "yellow")))
 })
+
+
+//#endregion

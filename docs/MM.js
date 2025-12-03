@@ -844,9 +844,24 @@ class GameEffects {
         leftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
         leftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
         leftPink: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
+        redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 }
 
 
+    }
 
+    static countdown(message = "Countdown", seconds, on_end = null) {
+        const b = GameEffects.popup(null, {
+            posFrac: [.5, .9], sizeFrac: [.5, .1], direction: "bottom", travelTime: 500, floatTime: (seconds - .25) * 1000,
+            moreButtonSettings: {
+                color: "orange"
+            },
+            on_end: on_end
+        })
+        const a = Anim.custom({}, seconds * 1000, (t) => b.txt = `${message} in ${Math.ceil(a.time / 1000)}`)
+        game.animator.add_anim(a)
+
+        //setTimeout(() => game.remove_drawable(b), (seconds + .5) * 1000)
+        //on_end && setTimeout(on_end, seconds * 1000)
     }
 
     /*static TODOkillfeed(txt, font_color = "black", moreButtonSettings = {}) {

@@ -117,8 +117,8 @@ class GameCore {
         this.status = "initializing"
         this.initialize()
         this.initialize_more() //will throw error if not called from Game
-        univ.on_next_game?.()
-        univ.on_next_game = null
+        univ.on_next_game_once?.()
+        univ.on_next_game_once = null
         univ.on_each_start?.()
 
         /**@type {boolean} */
@@ -185,6 +185,7 @@ class GameCore {
 
     }
     update_drawables(dt) {
+
         for (const layer of this.layers) {
             for (const item of layer) {
                 item.update?.(dt)
@@ -264,19 +265,25 @@ var contest
 class ContestManager {
     constructor() {
         this.chat ??= chat
+        this.shared = {}
+        this.on_share = null
+
         this.isActive = false
-        this.leaderboard = []
 
         this.on_start = null
         this.on_end = null
         this.on_pause = null
         this.on_unpause = null
 
+        this.doesPauseBlockInputs = true
+
+        this.rules = "Rules are yet to be set."
+
 
     }
 
     startContest() {
-        univ.on_next_game = () => {
+        univ.on_next_game_once = () => {
             this.isActive = true
             GameEffects.popup("Contest has started, good luck!")
             this.on_start?.()
@@ -286,7 +293,7 @@ class ContestManager {
 
     endContest() {
         this.isActive = false
-        GameEffects.popup("Contest has ended. Stand by for the results.", { moreButtonSettings: { color: "red" }, floatTime: 5000 })
+        GameEffects.popup("Contest has ended. Stand by for the results.", GameEffects.popupPRESETS.redLinger)
         this.on_end?.()
     }
 
@@ -294,12 +301,34 @@ class ContestManager {
         this.isActive = false
         GameEffects.popup("Contest was paused, please stand by.")
         this.on_pause?.()
+        game.isAcceptingInputs = this.doesPauseBlockInputs
     }
 
     unpauseContest() {
         this.isActive = true
         GameEffects.popup("Contest was unpaused, you may continue.")
         this.on_unpause?.()
+        game.isAcceptingInputs = true
+    }
+
+    show_rules(time = 10000) {
+        game.isAcceptingInputs = false
+        GameEffects.popup(this.rules, {
+            moreButtonSettings: {
+                ...GameEffects.popupPRESETS.megaBlue, floatTime: time,
+                on_end: () => { game.isAcceptingInputs = true }
+            }
+        })
+    }
+
+
+
+    startAfter(seconds) {
+        GameEffects.countdown("Contest will start", seconds, this.startContest())
+    }
+
+    endAfter(seconds) {
+        GameEffects.countdown("Contest will end", seconds, this.endContest())
     }
 
 

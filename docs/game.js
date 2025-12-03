@@ -9,26 +9,9 @@ var univ = {
     canvasStyleImageRendering: "smooth",
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
-    on_each_start: () => {
-        /*if (contest.isActive) {
-            game.isAcceptingInputs = true
-        } else {
-            game.isAcceptingInputs = false
-            const waitingForContestStart = setInterval(
-                () => {
-                    if (contest.isActive) {
-                        game.isAcceptingInputs = true
-                        clearInterval(waitingForContestStart)
-                    }
-                }
-                , 200)
-        }*/ //crappy logic
-    },
-    on_first_run: () => {
-        //chat.sendSecure({ inquire: "contest.isActive" })
-        //chat.inquire("contest.isActive", true)
-    },
-    on_next_game: null,
+    on_each_start: null,
+    on_first_run: null,
+    on_next_game_once: null,
     stgs: stgs
 }
 
