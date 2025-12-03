@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Working LaTeX to Canvas</title>
+    <!-- Self-host these files locally -->
+    <script src="./katex.min.js"></script>
+    <link rel="stylesheet" href="./katex.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        textarea {
+            width: 500px;
+            height: 80px;
+            font-size: 16px;
+            padding: 10px;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            background: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>LaTeX to Canvas Renderer</h1>
+
+    <div class="controls">
+        <textarea id="latexInput">\int_{2}^{5}\frac{x^3}{2}dx</textarea><br>
+        <button onclick="renderToCanvas()">Render to Canvas</button>
+        <button onclick="renderToSVG()">Render to SVG First</button>
+        <button onclick="downloadPNG()">Download PNG</button>
+    </div>
+
+    <div>
+        <canvas id="outputCanvas" width="800" height="200"></canvas>
+    </div>
+
+    <!-- Hidden container for KaTeX rendering -->
+    <div id="renderContainer" style="position: absolute; left: -10000px; top: -10000px;"></div>
+
+    <script>
+        // Method 1: Direct rendering using html2canvas (most reliable)
+        async function renderToCanvas() {
+            const latex = document.getElementById('latexInput').value.trim();
+            const canvas = document.getElementById('outputCanvas');
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('renderContainer');
+
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            container.innerHTML = '';
+
+            if (!latex) {
+                alert('Please enter LaTeX code');
+                return;
+            }
+
+            try {
+                // Create rendering div
+                const renderDiv = document.createElement('div');
+                renderDiv.style.fontSize = '32px'; // Larger for better quality
+                renderDiv.style.padding = '20px';
+                container.appendChild(renderDiv);
+
+                // Render KaTeX
+                katex.render(latex, renderDiv, {
+                    displayMode: true,
+                    throwOnError: false,
+                    output: 'html'
+                });
+
+                console.log('Rendered HTML:', renderDiv.innerHTML);
+
+                // Method 1A: Try html2canvas if available
+                if (typeof html2canvas !== 'undefined') {
+                    await renderWithHtml2Canvas(renderDiv, canvas, ctx);
+                }
+                // Method 1B: Try SVG conversion
+                else if (trySVGConversion(renderDiv, canvas, ctx)) {
+                    return;
+                }
+                // Method 1C: Simple text fallback
+                else {
+                    renderSimpleText(latex, canvas, ctx);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                renderSimpleText(latex, canvas, ctx);
+            }
+        }
+
+        // Method 2: Force SVG rendering
+        function renderToSVG() {
+            const latex = document.getElementById('latexInput').value.trim();
+            const canvas = document.getElementById('outputCanvas');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create a temporary span for KaTeX
+            const span = document.createElement('span');
+            span.style.position = 'absolute';
+            span.style.left = '-9999px';
+
+            // Render with mathml output which often includes SVG
+            katex.render(latex, span, {
+                displayMode: true,
+                throwOnError: false,
+                output: 'mathml'
+            });
+
+            document.body.appendChild(span);
+
+            // Look for SVG or create one from MathML
+            const svg = span.querySelector('svg') || createSVGFromMathML(span);
+
+            if (svg) {
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const img = new Image();
+
+                img.onload = () => {
+                    const x = (canvas.width - img.width) / 2;
+                    const y = (canvas.height - img.height) / 2;
+                    ctx.drawImage(img, x, y);
+                    document.body.removeChild(span);
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+            } else {
+                document.body.removeChild(span);
+                renderToCanvas(); // Fallback to main method
+            }
+        }
+
+        // Helper function to create SVG from KaTeX HTML
+        function createSVGFromKaTeX(htmlElement) {
+            // Create SVG with text elements matching KaTeX styling
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+
+            // Copy styles
+            const style = window.getComputedStyle(htmlElement);
+            svg.setAttribute('width', htmlElement.offsetWidth + 20);
+            svg.setAttribute('height', htmlElement.offsetHeight + 20);
+
+            // Convert HTML to SVG text (simplified)
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute('x', '10');
+            text.setAttribute('y', '50');
+            text.setAttribute('font-family', style.fontFamily || 'KaTeX_Main, serif');
+            text.setAttribute('font-size', style.fontSize || '32px');
+            text.setAttribute('fill', style.color || 'black');
+
+            // Extract text content (simplified)
+            const latex = document.getElementById('latexInput').value;
+            let svgText = latex
+                .replace(/\\int/g, '∫')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+                .replace(/\^\{([^}]+)\}/g, '^$1')
+                .replace(/_\{([^}]+)\}/g, '_$1');
+
+            text.textContent = svgText;
+            svg.appendChild(text);
+
+            return svg;
+        }
+
+        // Simple text rendering as last resort
+        function renderSimpleText(latex, canvas, ctx) {
+            ctx.font = 'bold 36px "Cambria Math", "Times New Roman", serif';
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Convert basic LaTeX symbols
+            let text = latex
+                .replace(/\\int/g, '∫')
+                .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+                .replace(/\^\{([^}]+)\}/g, '^$1')
+                .replace(/_\{([^}]+)\}/g, '_$1')
+                .replace(/\\pi/g, 'π')
+                .replace(/\\alpha/g, 'α')
+                .replace(/\\beta/g, 'β')
+                .replace(/\\gamma/g, 'γ')
+                .replace(/\\infty/g, '∞')
+                .replace(/\\sum/g, '∑')
+                .replace(/\\sqrt/g, '√')
+                .replace(/\{/g, '')
+                .replace(/\}/g, '');
+
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            // Draw integral limits manually
+            if (latex.includes('\\int')) {
+                ctx.font = '20px "Cambria Math", serif';
+                ctx.fillText('5', canvas.width / 2 - 50, canvas.height / 2 - 25);
+                ctx.fillText('2', canvas.width / 2 - 50, canvas.height / 2 + 35);
+            }
+        }
+
+        // Try to convert KaTeX HTML to SVG
+        function trySVGConversion(htmlElement, canvas, ctx) {
+            const svg = createSVGFromKaTeX(htmlElement);
+            if (svg) {
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const img = new Image();
+
+                img.onload = () => {
+                    const x = (canvas.width - img.width) / 2;
+                    const y = (canvas.height - img.height) / 2;
+                    ctx.drawImage(img, x, y);
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+                return true;
+            }
+            return false;
+        }
+
+        // Load html2canvas for better rendering
+        function loadHtml2Canvas() {
+            return new Promise((resolve) => {
+                if (typeof html2canvas !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload = resolve;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Use html2canvas for perfect rendering
+        async function renderWithHtml2Canvas(htmlElement, canvas, ctx) {
+            await loadHtml2Canvas();
+
+            try {
+                const tempCanvas = await html2canvas(htmlElement, {
+                    backgroundColor: null,
+                    scale: 2, // Higher quality
+                    useCORS: true,
+                    logging: false
+                });
+
+                const x = (canvas.width - tempCanvas.width) / 2;
+                const y = (canvas.height - tempCanvas.height) / 2;
+                ctx.drawImage(tempCanvas, x, y);
+
+            } catch (error) {
+                console.error('html2canvas error:', error);
+                renderSimpleText(document.getElementById('latexInput').value, canvas, ctx);
+            }
+        }
+
+        // Download function
+        function downloadPNG() {
+            const canvas = document.getElementById('outputCanvas');
+            const link = document.createElement('a');
+            link.download = 'latex-render.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Initialize
+        window.onload = function () {
+            // Load html2canvas for better rendering
+            loadHtml2Canvas();
+
+            // Auto-render after a short delay
+            setTimeout(() => {
+                if (document.getElementById('latexInput').value) {
+                    renderToCanvas();
+                }
+            }, 500);
+        };
+    </script>
+</body>
+
+</html>
