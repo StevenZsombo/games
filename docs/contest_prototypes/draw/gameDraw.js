@@ -75,7 +75,7 @@ class Game extends GameCore {
             
             Winning on easy earns ${stgs.scoreValue.easy} points.
             Winning on medium earns ${stgs.scoreValue.medium} points.
-            Winning on hard earns ${stgs.scoreValue.easy} points.
+            Winning on hard earns ${stgs.scoreValue.hard} points.
 
             The contest will begin shortly. Good luck and have fun!`
             GameEffects.popup(t,
