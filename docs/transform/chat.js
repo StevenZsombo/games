@@ -2,11 +2,9 @@
 
 //#region Chat
 class Chat {
-    static RECONNECT_TIME = 5 * 1000 //default timeout is probably over a minute anyways
+    static RECONNECT_TIME = 3 * 1000 //default timeout is probably over a minute anyways
     static RESEND_TIME = 1500
-    static BLINKING_TIME = 5 * 1000
     constructor(ip = null, name = null, isServer = false) {
-        //if (location.hostname === '' || location.hostname === 'stevenzsombo.github.io') {
         if (location.hostname === '') {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
             univ.isOnline = false //hacky, but this prevents chat from existing
@@ -21,7 +19,7 @@ class Chat {
         this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
         this.secureIDsToIgnore = new Set()
         this.isServer = isServer
-        this.blinkingInterval = this.isServer ? 0 : Chat.BLINKING_TIME //zero for no blinking
+        this.blinkingInterval = this.isServer ? 0 : 5000 //zero for no blinking
         this.blinkingHandler = this.blinkingInterval ? setInterval(this.sendMessage.bind(this, { blink: 1 }),
             this.blinkingInterval) : null
 

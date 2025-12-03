@@ -74,7 +74,8 @@ class Game extends GameCore {
 
         this.showRules = () => {
             const t = `You gain points for winning in the game.
-            Playing on easy does not give you any points.
+            
+            Winning on easy gives you ${stgs.scoreForFirstTry.easy} point.
 
             First submit on medium: ${stgs.scoreForFirstTry.medium} points.
             More than one submit on medium: ${stgs.scoreForNonFirstTry.medium} points.
@@ -99,7 +100,7 @@ class Game extends GameCore {
             game.levelData = [funcData, ptsX, a, b, s, t]
             let func
             if (typeof funcData === "function") {
-                console.error("outdated structure, funcData should be provided instead of a function")
+                !stgs.isOnline && console.error("outdated structure, funcData should be provided instead of a function")
                 func = funcData
             } else {
                 if (funcData.type === "squiggly") {
@@ -806,8 +807,8 @@ class Game extends GameCore {
                 }
                 if (stgs.victories.includes(i)) { x.color = "lightgreen" }
             })
-            //this.add_drawable(levelButtons)
-            //this.add_drawable(levelInfo)
+            this.add_drawable(levelButtons)
+            this.add_drawable(levelInfo)
 
             const leaderboardButton = levelInfo.copy
             this.leaderboardButton = leaderboardButton
@@ -998,9 +999,10 @@ class Game extends GameCore {
             changelogButton.txt = "Changelog"
 
 
-            stgs.firstRun = false
-            /*
-            if (stgs.firstRun && stgs.animationsEnabled) {
+
+
+            if (stgs.firstRun && stgs.animationsEnabled && stgs.levelSelectorAnimation) {
+
                 stgs.firstRun = false
                 this.animator.add_anim(levelInfo, 1000, Anim.f.typingCentered)
                 const everyBody = [...levelButtons, ...rTypes, ...rButs, rInfo, changelogButton]
@@ -1017,7 +1019,7 @@ class Game extends GameCore {
 
 
             }
-                */
+
 
 
             //game.layers.flat().forEach(b => b = Button.make_circle(b))

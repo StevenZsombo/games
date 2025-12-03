@@ -99,11 +99,12 @@ const hq = {
             console.log("Save not found.")
             return
         }
-        const retrieved = JSON.parse()
+        const retrieved = JSON.parse(data)
         for (const name in retrieved) {
             if (!participants[name]) {
                 participants[name] = retrieved[name]
-                makeButtonFor(participants[name])
+                const { x, y } = participants[name].button
+                makeButtonFor(participants[name]).topleftat(x, y)
             }
         }
         console.log(`Loaded from ${localStorage.getItem(`time_${i}`)}`)
@@ -237,12 +238,15 @@ const makeButtonFor = (person) => {
         color: "lightblue",
     }))
     b.update = function () {
-        if (this.color !== "lightgreen" && this.color !== "lightblue") return
-        this.color = Date.now() - person.lastSpoke < 500 ? "lightgreen" : "lightblue"
+        if (this.color !== "lightgreen" && this.color !== "lightblue" && this.color !== "red") return
+        //this.color = Date.now() - person.lastSpoke < 500 ? "lightgreen" : "lightblue"
+        const sinceLastSpoke = Date.now() - person.lastSpoke
+        this.color = sinceLastSpoke < 500 ? "lightgreen" : sinceLastSpoke < 8000 ? "lightblue" : "red"
     }
     b.on_click = () => { LCP = person; LCN = person.name; console.log("Clicked on", LCN) }
     person.button = b
     game.add_drawable(b, 8)
+    return b
 
 }
 
@@ -282,7 +286,7 @@ let previouslySpiedOn = null
 const SPY = (person, interval = 1000) => {
     if (previouslySpiedOn) {
         previouslySpiedOn.on_request_response = null
-        chat.sendMessage({ target: previouslySpiedOn.name, eval: "clearInterval(window.spyinterval)" })
+        //chat.sendMessage({ target: previouslySpiedOn.name, eval: "clearInterval(window.spyinterval)" })
         previouslySpiedOn.button.move(100, 100)
     }
     person = toPerson(person)
@@ -304,11 +308,11 @@ const SPY = (person, interval = 1000) => {
     person.button.bottomat(spybutton.bottom)
     person.button.rightat(spybutton.right)
 
-    chat.sendMessage({ target: person.name, eval: "window.spy = null" })
-    chat.sendMessage({ target: person.name, eval: `window.spyinterval = setInterval(() => {window.spy=game.canvas.toDataURL()},${interval})` })
+    //chat.sendMessage({ target: person.name, eval: "window.spy = null" })
+    //chat.sendMessage({ target: person.name, eval: `window.spyinterval = setInterval(() => {window.spy=game.canvas.toDataURL()},${interval})` })
     person.on_request_response = (x) => { spybutton.img.src = x }
     spybutton.spy = setInterval(() => {
-        chat.sendMessage({ target: person.name, request: "spy" })
+        chat.sendMessage({ target: person.name, request: "game.canvas.toDataURL()" })
     }, interval)
 }
 

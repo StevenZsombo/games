@@ -10,14 +10,15 @@ var stgs = {
     canChangeRandomType: true,
     firstRun: true,
     animationsEnabled: true,
+    levelSelectorAnimation: false, //disable for online mode
     compressionsFixDesired: false,
     matchedAxesDesired: true,
     transformAnimationTime: 1000, //can set to 0 to disable animation
     sendFancyTime: 500, //can set to 0 to disable animation
     transformSendFancyTime: 500,
     difficulty: "other", //can be "easy medium hard"
-    scoreForFirstTry: { easy: 0, medium: 4, hard: 14, other: 0 },
-    scoreForNonFirstTry: { easy: 0, medium: 3, hard: 10, other: 0 },
+    scoreForFirstTry: { easy: 1, medium: 6, hard: 18, other: 0 },
+    scoreForNonFirstTry: { easy: 1, medium: 4, hard: 14, other: 0 },
     showRulesTimeSeconds: 20
 
 }/// end of settings

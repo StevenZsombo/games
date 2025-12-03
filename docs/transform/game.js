@@ -1,233 +1,38 @@
-//should import scripts.js, gui.js, MM.js, animations.js
-const framerateUnlocked = false
-const dtUpperLimit = 1000 / 30
-const denybuttons = false
-const showFramerate = false
-const imageSmoothingEnabled = true
-const imageSmoothingQuality = "high" // options: "low", "medium", "high"
-const canvasStyleImageRendering = "smooth"
-const fontFile = null//"resources/victoriabold.png" //set to null otherwise
-const filesList = "" //space-separated
-
-//#region window.onload
-window.onload = function () {
-    const canvas = document.getElementById("myCanvas")
-    document.body.style.overflow = 'hidden';
-    canvas.style.touchAction = 'none'
-    canvas.style.userSelect = 'none'
-    canvas.style.webkitUserDrag = 'none'
-    document.addEventListener('dragover', (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-    }
-    )
-    document.addEventListener('drop', (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-    }
-    )
-    const screen = canvas.getContext("2d")
-    screen.imageSmoothingQuality = imageSmoothingQuality
-    screen.imageSmoothingEnabled = imageSmoothingEnabled
-    canvas.style.imageRendering = canvasStyleImageRendering
-    //canvas.tabIndex = 0
-    //canvas.focus()
-    beforeMain(canvas)
-}
-//#endregion
-
-//#region beforeMain, main
-
-const beforeMain = function (canvas) {
-    const filelist = null
-    //filelist = `${fontFile}${fontFile && filesList ? " " : ""}${filesList}` //fontFile goes first!
-    if (filelist) {//croper, files, myFont are all GLOBAL
-        cropper.load_images(filelist.split(" "), files, () => {
-            if (fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
-            main(canvas)
-        })
-
-    } else {
-        main(canvas)
-    }
-
-
-
-}
-
-const main = function (canvas) {
-    canvas ??= document.getElementById("myCanvas")
-    if (game !== undefined) { game.isRunning = false }
-    game = new Game(canvas)
-    game.start()
-}
-//#endregion
-
-//#region Game
-class Game {
-    constructor() {
-        const canvas = document.getElementById("myCanvas")
-        this.canvas = canvas
-        /**@type {RenderingContext} */
-        this.screen = canvas.getContext("2d")
-
-        this.WIDTH = canvas.width
-        this.HEIGHT = canvas.height
-        this.SIZE = {
-            x: this.WIDTH,
-            y: this.HEIGHT
-        }
-        /**@type {Rect}*/
-        this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
-        this.BGCOLOR = stgs.BGCOLOR ?? "linen"
-        //null for transparent
-        this.CENTER = {
-            x: this.SIZE.x / 2,
-            y: this.SIZE.y / 2
-        }
-        this.mouser = new Mouser(canvas)
-        this.keyboarder = new Keyboarder(denybuttons)
-        this.framerate = new Framerater(showFramerate)
-        this.framerateUnlocked = framerateUnlocked //redundant unless reused
-        this.animator = new Animator()
-        this.cropper = new Cropper()
-
-        this.extras_on_update = []
-        this.extras_on_draw = []
-        this.extras_temp = []
-
-        this.layers = Array(10).fill().map(x => [])
-
-        showFramerate && this.add_drawable(this.framerate.button)
-
-
-        this.lastCycleTime = Date.now()
-
-
-    }
-    start() {
-        this.status = "initializing"
-        this.initialize()
-        this.initialize_more()
-        /**@type {boolean} */
-        this.isRunning = true
-        this.isDrawing = true
-        this.isAcceptingInputs = true
-        this.status = "playing"
-        this.tick()
-    }
-    initialize() {
-
-    }
-
-    tick() {
-        if (!this.isDrawing) {
-            this.drawnAlready = true
-        }
-        if (!this.isRunning) {
-            return
-        }
-        const now = Date.now()
-        const dt = Math.min((now - this.lastCycleTime), dtUpperLimit)
-        this.lastCycleTime = now
-
-        const screen = this.screen
-        this.drawnAlready ? null : this.draw_reset(screen)
-        this.update(dt)
-        this.update_more(dt)
-        this.extras_on_update.forEach(x => x.call(this))
-        this.drawnAlready ? null : this.draw(screen)
-        this.drawnAlready ? null : this.draw_more(screen)
-        this.extras_on_draw.forEach(x => x.call(this))
-        this.next_loop()
-        this.next_loop_more()
-        this.extras_temp.forEach(x => x.call(this))
-        this.extras_temp.length = 0
-        if (!this.isRunning) {
-            return
-        }
-
-        this.framerate.update(dt, this.drawnAlready)
-        if (!this.framerateUnlocked) {
-            requestAnimationFrame(this.tick.bind(this))
+var univ = {
+    isOnline: false,
+    framerateUnlocked: false,
+    dtUpperLimit: 1000 / 30,
+    denybuttons: false,
+    showFramerate: false,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high", // options: "low", "medium", "high"
+    canvasStyleImageRendering: "smooth",
+    fontFile: null, // "resources/victoriabold.png" //set to null otherwise
+    filesList: "", //space-separated
+    on_each_start: () => {
+        /*if (contest.isActive) {
+            game.isAcceptingInputs = true
         } else {
-            setTimeout(this.tick.bind(this), 0)
-            if (!this.drawnAlready) {
-                this.drawnAlready = true
-                requestAnimationFrame((function () { this.drawnAlready = false }).bind(this))
-                this.animator.draw()
-            }
-        }
-
-
-
-
-    }
-
-    update(dt) {
-        //update
-        const now = Date.now()
-        this.keyboarder.update(dt, now)
-        this.update_drawables(dt)
-        this.animator.update(dt)
-
-    }
-    update_drawables(dt) {
-        for (const layer of this.layers) {
-            for (const item of layer) {
-                item.update?.(dt)
-                if (this.isAcceptingInputs) {
-                    item.check?.(this.mouser.x, this.mouser.y, this.mouser.clicked, this.mouser.released, this.mouser.held, this.mouser.wheel)
+            game.isAcceptingInputs = false
+            const waitingForContestStart = setInterval(
+                () => {
+                    if (contest.isActive) {
+                        game.isAcceptingInputs = true
+                        clearInterval(waitingForContestStart)
+                    }
                 }
-            }
-        }
-    }
+                , 200)
+        }*/ //crappy logic
+    },
+    on_first_run: () => {
+        //chat.sendSecure({ inquire: "contest.isActive" })
+        //chat.inquire("contest.isActive", true)
+    },
+    on_next_game: null,
+    stgs: stgs
+}
 
-    draw(screen) {
-        //draw
-        this.draw_layers(screen)
-        this.framerate.draw(screen)
-
-    }
-
-    draw_reset(screen) {
-        if (this.BGCOLOR) {
-            screen.fillStyle = this.BGCOLOR
-            screen.fillRect(0, 0, this.WIDTH, this.HEIGHT)
-        } else {
-            screen.clearRect(0, 0, this.WIDTH, this.HEIGHT)
-        }
-    }
-
-    draw_layers(screen) {
-        for (const layer of this.layers) {
-            for (const item of layer) {
-                item.draw(screen)
-            }
-        }
-    }
-
-    next_loop() {
-        this.mouser.next_loop()
-        this.keyboarder.next_loop()
-    }
-    close() {
-        this.isRunning = false
-        setTimeout(x => game.screen.fillRect(0, 0, game.WIDTH, game.HEIGHT), 100)
-
-    }
-    add_drawable(items, layer = 5) {
-        if (!Array.isArray(items)) {
-            items = [items]
-        }
-        for (const item of items) {
-            this.layers[layer].push(item)
-        }
-    }
-    remove_drawable(item) {
-        this.layers = this.layers.map(x => x.filter(y => y !== item))
-    }
-    //#endregion
+class Game extends GameCore {
     //#region more
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -262,8 +67,55 @@ class Game {
     //#endregion
     //#region initialize_more
     initialize_more() {
+
+
+
+        this.leaderboard = []
+
+        this.showRules = () => {
+            const t = `You gain points for winning in the game.
+            
+            Winning on easy gives you ${stgs.scoreForFirstTry.easy} point.
+
+            First submit on medium: ${stgs.scoreForFirstTry.medium} points.
+            More than one submit on medium: ${stgs.scoreForNonFirstTry.medium} points.
+            First submit on hard: ${stgs.scoreForFirstTry.hard} points.
+            More than one submit on hard: ${stgs.scoreForNonFirstTry.hard} points.
+            
+            Using the green buttons to move the green curve does NOT cost you any points,
+            so feel free to experiment.
+
+            The contest will begin shortly. Good luck and have fun!`
+            game.isAcceptingInputs = false
+            GameEffects.popup(t,
+                {
+                    posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue" },
+                    travelTime: 1000, floatTime: stgs.showRulesTimeSeconds * 1000, on_end: () => { game.isAcceptingInputs = true }
+                })
+
+        }
+
         //#region makeLevel
-        const makeLevel = (func, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
+        const makeLevel = (funcData, ptsX = [], a = 1, b = 1, s = 0, t = 0, reorient = true) => {
+            game.levelData = [funcData, ptsX, a, b, s, t]
+            let func
+            if (typeof funcData === "function") {
+                stgs.isOnline && console.error("outdated structure, funcData should be provided instead of a function")
+                func = funcData
+            } else {
+                if (funcData.type === "squiggly") {
+                    const { xs, ys } = funcData
+                    func = MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat())
+                } else if (funcData.type === "trig") {
+                    func = TRIGFUNCTIONS[funcData.chosenFunctionIndex][0]
+                } else if (funcData.type === "poly") {
+                    const { xs, ys } = funcData
+                    func = MM.lagrange(xs, ys)
+                }
+                chat?.sendSecure({ level: [funcData, ptsX, a, b, s, t] })
+            }
+            //stgs.randomLevelData = null
+            stgs.stage = -1
             const backGround = Button.fromRect(this.rect.copy.splitCol(5, 4)[0].stretch(.9, .9).shrinkToSquare())
             const inputButtonsBackground = this.rect.copy.splitCol(5, 4)[1].stretch(.9, .9)
             backGround.color = "white"
@@ -300,15 +152,20 @@ class Game {
             plt.show_border_values = false
             plt.highlightedPoints = pts
             plt.highlightedPointsMore = transPts
-            plt.axes_width = 2
+            plt.axes_width = 3
             plt.label_highlighted = stgs.labelPoints
             plt.label_highlighted_font = "30px Times"
-            plt.dottingDistance = 1
+            plt.show_axes_labels = false
+            plt.show_grid = true
+            if (funcData.type === "trig") {
+                plt.dottingDistance = [PI / 2, 1]
+            }
+
 
             plt.addControls(game.mouser)
-            const zoomIn = new Button({ txt: "+", fontsize: 60 })
-            const zoomOut = new Button({ txt: "-", fontsize: 60 })
-            const zoomReset = new Button({ txt: "\u21B6", fontsize: 60 })//"@"
+            const zoomIn = new Button({ txt: "+", fontSize: 60 })
+            const zoomOut = new Button({ txt: "-", fontSize: 60 })
+            const zoomReset = new Button({ txt: "\u21B6", fontSize: 60 })//"@"
             const zoomies = [zoomIn, zoomOut, zoomReset]
             game.add_drawable(zoomies)
             zoomies.forEach(x => {
@@ -341,7 +198,7 @@ class Game {
             inputButtonsBackground.stretch(1.15, 1).move(-10, 0)
             const inputSpaces = inputButtonsBackground.copy.move(0, 100).splitRow(1, 6)[0].splitCol(...Array(8).fill(1)).map(Button.fromRect)
             inputSpaces.forEach(x => {
-                x.fontsize = 48
+                x.fontSize = 48
                 //x.font_color = "blue"
                 x.stretch(1, .5)
                 x.transparent = true
@@ -363,6 +220,12 @@ class Game {
             fields[3].isATerm = true
             fields.forEach(field => field.stretch(1.4, 1))
             const board = new InputBoard(inputButtonsBackground, fields, { animationTime: stgs.sendFancyTime })
+            board.on_reset = () => {
+                if (!greenCurrentlyInteracting) {
+                    if (plt.pltMore[2]) { plt.pltMore[2] = undefined }
+                    GameEffects.sendFancy(board.inputButtons[12], plt.rect)
+                }
+            }
             const inputButtons = board.inputButtons
             this.add_drawable(board.fields)
             this.add_drawable(board.inputButtons)
@@ -378,7 +241,7 @@ class Game {
             guidance.transparent = transFunc
             guidance.txt_default = "Find the equation of the red curve \nas a function of the black curve y=f(x)."
             guidance.txt = guidance.txt_default
-            guidance.fontsize = 36
+            guidance.fontSize = 36
 
 
 
@@ -406,6 +269,13 @@ class Game {
                 */
 
             }
+
+            const announceVictory = () => {
+                const score = game.isFirstAttempt ? stgs.scoreForFirstTry[stgs.difficulty] : stgs.scoreForNonFirstTry[stgs.difficulty]
+                chat?.sendSecure({ victory: score })
+                stgs.difficulty = "other"
+            }
+
             game.hasWonAlready = false
             game.isFirstAttempt = true
             const checkVictory = (forced = false) => {
@@ -415,6 +285,7 @@ class Game {
                     game.hasWonAlready = true
                     levelSelectButton.color = "lightblue"
                     guidance.txt = "Victory!"
+                    announceVictory()
                     if (!stgs.victories.includes(stgs.stage)) {
                         stgs.victories.push(stgs.stage)
                         localStorage.setItem("functionvictories", MM.arrToStr(stgs.victories))
@@ -429,33 +300,20 @@ class Game {
             const levelSelectButton = Button.fromRect(inputButtons.at(-1).rect)
             levelSelectButton.txt = "Back to level select"
             game.levelSelectButton = levelSelectButton
-            levelSelectButton.fontsize = 24
+            levelSelectButton.fontSize = 24
             levelSelectButton.width = 250
             levelSelectButton.height = 80
             levelSelectButton.color = "lightgray"
             levelSelectButton.bottomat(backGround.bottom)
             levelSelectButton.rightat(inputSpaces.at(-1).right)
-            levelSelectButton.on_click = () => { stgs.stage = -1; main() }
+            levelSelectButton.on_click = () => { stgs.stage = -1; stgs.randomLevelData = null; main() }
             game.add_drawable(levelSelectButton)
             if (stgs.animationsEnabled) {
                 /**@param {Button} b @param {Button} tgt*/
                 const sendFancy = (b, tgt, time = stgs.sendFancyTime) => {
                     GameEffects.sendFancy(b, tgt, time)
                 }
-                /*const sendFancy = (b, tgt, time = stgs.sendFancyTime) => {
-                    
-                const cp = b.copy
-                cp.clickable = false
-                game.add_drawable(cp)
-                this.animator.add_anim(cp, time, "moveTo", {
-                    x: tgt.centerX - cp.width / 4,
-                    y: tgt.centerY - cp.height / 4,
-                    on_end: () => { game.remove_drawable(cp) },
-                    noLock: true
-                })
-                this.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
-                this.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
-            }*/
+
                 game.sendFancy = sendFancy
 
             }
@@ -477,7 +335,7 @@ class Game {
             submitButton.bottomstretchat(levelSelectButton.bottom)
             submitButton.centerat(inputButtons[1].centerX, submitButton.centerY)
             submitButton.txt = "Submit"
-            submitButton.fontsize = inputButtons[0].fontsize
+            submitButton.fontSize = inputButtons[0].fontSize
             submitButton.color = "lightblue"
             levelSelectButton.deg = -90
             levelSelectButton.centerat(fields.at(-1).right, submitButton.bottom)
@@ -571,7 +429,7 @@ class Game {
                 b.width = 200
                 b.height = submitButton.height
                 b.txt = "Stretch Reflect Translate".split(" ")[i]
-                b.fontsize = inputButtons[0].fontsize
+                b.fontSize = inputButtons[0].fontSize
                 b.color = "lightgreen"
             })
             game.add_drawable(bTransforms)
@@ -586,7 +444,7 @@ class Game {
             game.add_drawable(bTransformReset)
             bTransformReset.color = "lightgreen"
             bTransformReset.txt = "\u21B6" //"@"
-            bTransformReset.fontsize = zoomReset.fontsize
+            bTransformReset.fontSize = zoomReset.fontSize
             bTransforms.push(bTransformReset)
 
             guidance.transparent = false
@@ -662,7 +520,7 @@ class Game {
                 const origF = targetCurve.func
                 const origP = targetCurve.highlightedPoints
                 const greenCopy = guidance.copy
-                greenCopy.fontsize = 30
+                greenCopy.fontSize = 30
                 greenCopy.color = "lightgreen"
                 greenCopy.txt = message
                 greenHistory.push(message)
@@ -722,7 +580,7 @@ class Game {
                 drawies.forEach(b => {
                     b.color = "lightgreen"
                     b.outline = 0
-                    b.fontsize = 30
+                    b.fontSize = 30
                 })
                 up.txt = "in x-direction"
                 down.txt = "in y-direction"
@@ -749,7 +607,7 @@ class Game {
                     game.tempdrawies.push(field)
                     game.add_drawable(field)
                     field.resize(fields[0].width, fields[0].height)
-                    field.fontsize = fields[0].fontsize
+                    field.fontSize = fields[0].fontSize
                     field.outline = 0
                     field.color = "lightblue"
                     board.freezeFields()
@@ -810,7 +668,7 @@ class Game {
                 drawies.forEach(b => {
                     b.color = "lightgreen"
                     b.outline = 0
-                    b.fontsize = submitButton.fontsize//30
+                    b.fontSize = submitButton.fontSize//30
                 })
                 up.txt = "in x-axis"
                 down.txt = "in y-axis"
@@ -850,7 +708,7 @@ class Game {
                 drawies.forEach(b => {
                     b.color = "lightgreen"
                     b.outline = 0
-                    b.fontsize = 30
+                    b.fontSize = 30
                 })
 
                 game.add_drawable(drawies)
@@ -870,7 +728,7 @@ class Game {
                     field.hover_color = "purple"
                     field.selected_color = "lightblue"
                     field.hover_selected_color = null
-                    field.fontsize = fields[0].fontsize
+                    field.fontSize = fields[0].fontSize
                     field.defaultValue = 0
                     field.isATerm = false
                     field.txtRefresh()
@@ -923,6 +781,7 @@ class Game {
         //#endregion
         //#region levelSelector
         const levelSelector = () => {
+            stgs.difficulty = "other"
             if (localStorage.getItem("functionvictories")) {
                 stgs.victories = MM.strToArr(localStorage.getItem("functionvictories"))
             }
@@ -935,13 +794,13 @@ class Game {
             const levelInfo = Button.fromRect(this.rect.copy.stretch(.8, .8)).deflate(20, 20)
             levelInfo.height = levelButtons[0].top
             levelInfo.topat(0 + 25)
-            levelInfo.txt = "Select level:"
+            levelInfo.txt = "Select a level:"
             levelInfo.transparent = true
-            levelInfo.fontsize = 48
+            levelInfo.fontSize = 48
             levelButtons.forEach((x, i) => {
                 x.deflate(20, 20)
                 x.txt = i + 1
-                x.fontsize = 48
+                x.fontSize = 48
                 x.on_click = () => {
                     stgs.stage = i
                     main()
@@ -951,15 +810,29 @@ class Game {
             this.add_drawable(levelButtons)
             this.add_drawable(levelInfo)
 
-            const compressionsFix = (func, xs, a, b, s, t) => {
-                if (!stgs.compressionsFixDesired) { return [func, xs, a, b, s, t] }
+            const leaderboardButton = levelInfo.copy
+            this.leaderboardButton = leaderboardButton
+            leaderboardButton.dynamicText = () => {
+                const availableLeaderboard = contest?.leaderboard ?? this.leaderboard
+                return availableLeaderboard.join("\n")
+            }
+            leaderboardButton.textSettings = { textAlign: "left", textBaseline: "top" }
+            //leaderboardButton.transparent = false
+            leaderboardButton.bottomstretchat(700)
+            leaderboardButton.fontSize = 36
+            game.add_drawable(leaderboardButton)
+
+            const compressionsFix = (funcData, xs, a, b, s, t) => {
+                if (!stgs.compressionsFixDesired) { return [funcData, xs, a, b, s, t] }
+                const func = funcData
                 if (-1 < a && a < 1) { func = MM.functionTransformation(game.func, Math.abs(1 / a), 1, 0, 0) }
                 if (b < -1 || b > 1) {
                     func = MM.functionTransformation(func, 1, Math.abs(1 / b), 0, 0)
                     xs = xs.map(x => Math.abs(b) * x)
                     //s = Math.abs(b) * s
                 }
-                return [func, xs, a, b, s, t]
+                funcData.xs = xs
+                return [funcData, xs, a, b, s, t]
             }
             /**@returns {void} */
             const makeRandom = (numberOfTransformations = 1) => {
@@ -978,6 +851,10 @@ class Game {
                 }
                 let levelData = maker(numberOfTransformations)
                 stgs.randomLevelData = levelData
+                /*setTimeout( 
+                    () => { stgs.randomLevelData = null }
+                    , stgs.minimumTimePerLevel)
+                    */
                 main() // Restart is called here, nowhere else
             }
 
@@ -1000,18 +877,20 @@ class Game {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
                     //stretch in y
-                    () => { a *= MM.randomInt(2, 5); a = Math.random() > .6 ? 1 / a : a },
+                    () => { a *= MM.randomInt(2, 4); a = Math.random() > .6 ? 1 / a : a },
                     //stretch in x
-                    () => { b *= MM.randomInt(2, 5); b = Math.random() > .6 ? 1 / b : b },
+                    () => { b *= MM.randomInt(2, 4); b = Math.random() > .6 ? 1 / b : b },
                     //reflect in y
                     () => { a *= -1 },
                     //reflect in x
                     () => { b *= -1 },
                     //translate
                     () => {
-                        s = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
-                        t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
-                    }
+                        //s = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                        //t = MM.choice([-10, -8, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10])
+                        s = MM.choice([...MM.range(-5, 6)].filter(x => x))
+                    },
+                    () => { t = MM.choice([...MM.range(-5, 6)].filter(x => x)) }
                 ]
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
                 return [a, b, s, t]
@@ -1024,45 +903,36 @@ class Game {
                 if (xs.length == 3 && xs[1] - xs[0] == xs[2] - xs[1] && ys[1] - ys[0] == ys[2] - ys[1]) {
                     xs[2] = xs[2] + 1
                 }
-                const levelData = [MM.lagrange(xs, ys), xs, a, b, s, t]
+                const levelData = [{ type: "poly", xs, ys }, xs, a, b, s, t]
                 return compressionsFix(...levelData)
             }
             const makeRandomTrig = (numberOfTransformations) => {
                 let [a, b, s, t] = [1, 1, 0, 0]
                 const transformOptions = [
-                    () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2, 4, 1 / 4]) },
-                    () => { s = MM.choice([PI / 4, PI / 3, - 1, 1, -2, 2]) },
-                    () => { t = MM.choice([-3, -2, -1, 1, 2, 3]) },
+                    () => { a = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2]) },
+                    () => { b = MM.choice([2, 3, 1 / 2, 1 / 3, 2 / 3, 3 / 2]) },
+                    () => { s = MM.choice([PI / 4, -PI / 4, PI / 2, -PI / 2, PI / 3, -PI / 3, 2 * PI / 3]) },
+                    () => { t = MM.choice([-3, -2, -1, 1, 2, 3, 3 / 2, -3 / 2, 1 / 2, -1 / 2]) },
                     () => { a *= -1 },
                     () => { b *= -1 }
                 ]
                 MM.choice(transformOptions, numberOfTransformations).forEach(x => x.call())
-                let [func, xs] = MM.choice([
-                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-                    [Math.sin, [0, PI / 2, PI, 3 * PI / 2]],
-                    [Math.cos, [-PI, 0, PI, TWOPI]],
-                    [Math.cos, [-PI, 0, PI, TWOPI]],
-                    [Math.tan, [666]],
-                    [Math.tan, [666]],
-                    //[Math.atan, [-PI, 0, PI, TWOPI]],
-                    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
-                    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
-                ])
+                const chosenFunctionIndex = MM.randomInt(0, TRIGFUNCTIONS.length - 1)
+                let [func, xs] = TRIGFUNCTIONS[chosenFunctionIndex]
                 if (xs[0] == 666) {
                     if (a != 1) { a = MM.choice([1, 2, 1 / 2]) * Math.sign(a) }
                     if (b != 1) { b = MM.choice([1, 2, 1 / 2]) * Math.sign(b) }
                     xs = [PI / 4, 0, PI / 4, PI]
                 }
 
-                return [func, xs, a, b, s, t, true] //reorient
+                return [{ type: "trig", chosenFunctionIndex }, xs, a, b, s, t, true] //reorient
             }
             const makeRandomSquiggly = (numberOfTransformations = 1) => {
                 let [a, b, s, t] = getRandomTransformABST(numberOfTransformations)
                 if (Math.abs(a) != 1 && Math.random() < .1) { a = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(a) }
                 if (Math.abs(b) != 1 && Math.random() < .1) { b = MM.choice([3 / 2, 3 / 2, 5 / 2]) * Math.sign(b) }
                 const [xs, ys] = getRandomPoints(MM.choice([4, 4, 4, 5, 5, 6]))
-                const levelData = [MM.brokenLineFunction(...xs.map((x, i) => [x, ys[i]]).flat()),
+                const levelData = [{ type: "squiggly", xs, ys },
                     xs, a, b, s, t]
                 return compressionsFix(...levelData)
             }
@@ -1077,16 +947,27 @@ class Game {
             rButs[1].txt = "Random medium"
             rButs[2].txt = "Random hard"
             rButs.forEach(x => {
-                x.fontsize = levelButtons[0].fontsize
+                x.fontSize = levelButtons[0].fontSize
             })
 
             this.add_drawable(rButs)
-            rButs[0].on_click = () => makeRandom(1)
-            rButs[1].on_click = () => makeRandom(MM.choice([2, 2, 3]))
-            rButs[2].on_click = () => makeRandom(MM.choice([4, 4, 4, 4, 5]))
+            rButs[0].on_click = () => {
+                stgs.difficulty = "easy"
+                makeRandom(1)
+            }
+            rButs[1].on_click = () => {
+                makeRandom(MM.choice([2, 2, 3]))
+                stgs.difficulty = "medium"
+            }
+            rButs[2].on_click = () => {
+                makeRandom(MM.choice([4, 4, 4, 4, 5]))
+                stgs.difficulty = "hard"
+            }
+
+
             const rInfo = new Button()
-            rInfo.txt = "Or generate one:"
-            rInfo.fontsize = levelInfo.fontsize
+            rInfo.txt = "Generate a level:"
+            rInfo.fontSize = levelInfo.fontSize
             rInfo.width = levelInfo.width
             rInfo.leftat(levelInfo.left)
             rInfo.bottomat(rButs[0].top)
@@ -1099,6 +980,9 @@ class Game {
             const rTypes = rBG.splitCol(1.5, 1, 1, 1, 1).map(Button.fromRect)
             rTypes[0].transparent = true
             rTypes.forEach((x, i) => x.txt = ["Type:", "Squiggly", "Poly", "Trig", "Any"][i])
+            rTypes.forEach(x => x.interactable = stgs.canChangeRandomType)
+
+
             rTypes.slice(1, 5).forEach(b => b.on_click = function () { stgs.randomType = b.txt })
             const typeRadio = Button.make_radio(rTypes.slice(1, 5), true)
             rTypes.slice(1, 5).find(x => x.txt == stgs.randomType).on_click()
@@ -1107,15 +991,18 @@ class Game {
             let changelogButton = new Button()
             changelogButton.width = rTypes.at(-1).width
             changelogButton.height = rTypes.at(-1).height
-            this.add_drawable(changelogButton)
+            //this.add_drawable(changelogButton)
             changelogButton.bottomat(rTypes.at(-1).bottom)
             changelogButton.leftat(rButs[0].left)
-            changelogButton.on_click = () => stgs.changelog.split("$").forEach(x => setTimeout(() => alert(x), 100))
-            changelogButton.fontsize = 16
+            changelogButton.on_click = () => changelogGlobal.split("$").forEach(x => setTimeout(() => alert(x), 100))
+            changelogButton.fontSize = 16
             changelogButton.txt = "Changelog"
 
 
-            if (stgs.firstRun && stgs.animationsEnabled) {
+
+
+            if (stgs.firstRun && stgs.animationsEnabled && stgs.levelSelectorAnimation) {
+
                 stgs.firstRun = false
                 this.animator.add_anim(levelInfo, 1000, Anim.f.typingCentered)
                 const everyBody = [...levelButtons, ...rTypes, ...rButs, rInfo, changelogButton]
@@ -1132,6 +1019,7 @@ class Game {
 
 
             }
+
 
 
             //game.layers.flat().forEach(b => b = Button.make_circle(b))
@@ -1157,6 +1045,7 @@ class Game {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
+        /*
         if (game.buttonsDict) {
             for (let [k, b] of Object.entries(game.buttonsDict)) {
                 if (this.keyboarder.pressed[k] == true) {
@@ -1182,7 +1071,7 @@ class Game {
                 if (b && b.interactable && b.clickable) { b.on_click() }
             }
         }
-
+        */
 
 
 
@@ -1223,6 +1112,8 @@ class Game {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    startContest = contest?.startContest
 
 
 
@@ -1272,17 +1163,5 @@ const dev = {
 
 
 }/// end of dev
-//#endregion
-
-/**@type {HTMLImageElement[]} */
-const files = {}
-
-/**@type {customFont} */
-const myFont = new customFont()
-//*@type {Cropper}*/
-const cropper = new Cropper()
-/** @type {Game}*/
-var game
-
 
 
