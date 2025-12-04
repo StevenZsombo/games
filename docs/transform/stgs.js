@@ -3,7 +3,9 @@ var stgs = {
     tolerance: 0.02,
     stage: -1, //-1 for level selector
     victories: [],
-    allowVictoryByAlternateValues: false, //yet to be implemented
+    allowVictoryByAlternateValues: true, //yet to be implemented
+    alternateVictoryCheckForX: [...MM.range(1, 20).map(x => (x - 10) / 10)],
+    alternateVictoryTolerance: 0.1,
     randomLevelData: null,
     labelPoints: true,
     randomType: "Any",
@@ -44,10 +46,10 @@ const TRIGFUNCTIONS = [
     [Math.cos, [0, PI / 2, PI, TWOPI]],
     [Math.cos, [0, PI / 2, PI, TWOPI]],
     [Math.tan, [666]],
-    [Math.tan, [666]],
+    [Math.tan, [666]]
     //[Math.atan, [-PI, 0, PI, TWOPI]],
-    [x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
-    [x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
+    //[x => 1 / Math.cos(x), [-PI, 0, PI, TWOPI]],
+    //[x => 1 / Math.sin(x), [-PI / 2, PI / 2, 3 * PI / 2, 5 * PI / 2]]
 ]
 
 
@@ -93,4 +95,8 @@ const changelogGlobal =
     $2025.12.02.
     Better trig gridding
     Trig horizontal translations are now always multiples of PI/4
+    $
+    2025.12.04.
+    Alternate but correct solutions are now accepted (checked for 10 points)
+    Removed sec and coses from random trig
     `

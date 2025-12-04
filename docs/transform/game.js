@@ -249,7 +249,15 @@ class Game extends GameCore {
                 if (checkfor == "blue") {
                     const [vA, vB, vmBS, vT] = fields.map(x => x.getValue())
                     const byParam = [[vA, a], [vB, b], [vmBS, -b * s], [vT, t]].every(x => Math.abs(x[0] - x[1]) < stgs.tolerance)
-                    return byParam
+                    if (byParam || !stgs.allowVictoryByAlternateValues) return byParam
+                    const blue = game.plt.pltMore[2].func
+                    const tgt = game.plt.pltMore[0].func
+                    const xs = stgs.alternateVictoryCheckForX
+                    return xs.every(x =>
+                        !Number.isFinite(blue(x)) || !Number.isFinite(tgt(x)) ||
+                        Math.abs(blue(x) - tgt(x)) < stgs.alternateVictoryTolerance
+                    )
+
                 }
                 if (checkfor == "green") {
                     const byPoints = greenCurve.highlightedPoints.flat().map((x, i) =>
@@ -280,7 +288,9 @@ class Game extends GameCore {
             game.isFirstAttempt = true
             const checkVictory = (forced = false) => {
                 if (game.hasWonAlready) { return }
-                if (forced || winCondition()) {
+                const win = winCondition()
+                if (!win) game.isFirstAttempt = false
+                if (forced || win) {
                     GameEffects.fireworksShow()
                     game.hasWonAlready = true
                     levelSelectButton.color = "lightblue"
@@ -410,6 +420,8 @@ class Game extends GameCore {
                 if (greenCurrentlyInteracting) { return }
                 //resetTransformButtons()
                 if (plt.pltMore[2]) { plt.pltMore[2] = undefined }
+                plotTheirInputAnimated(checkVictory)
+                /*
                 const win = winCondition()
                 if (win) { //victory
                     plotTheirInputAnimated(checkVictory)
@@ -417,7 +429,7 @@ class Game extends GameCore {
                     game.isFirstAttempt = false
                 }
                 if ((!win) && (!game.isFirstAttempt)) { plotTheirInputAnimated() }
-
+                */
             }
 
             const bStretch = new Button()
@@ -991,7 +1003,7 @@ class Game extends GameCore {
             let changelogButton = new Button()
             changelogButton.width = rTypes.at(-1).width
             changelogButton.height = rTypes.at(-1).height
-            //this.add_drawable(changelogButton)
+            this.add_drawable(changelogButton)
             changelogButton.bottomat(rTypes.at(-1).bottom)
             changelogButton.leftat(rButs[0].left)
             changelogButton.on_click = () => changelogGlobal.split("$").forEach(x => setTimeout(() => alert(x), 100))
@@ -1045,7 +1057,7 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-        /*
+
         if (game.buttonsDict) {
             for (let [k, b] of Object.entries(game.buttonsDict)) {
                 if (this.keyboarder.pressed[k] == true) {
@@ -1071,7 +1083,7 @@ class Game extends GameCore {
                 if (b && b.interactable && b.clickable) { b.on_click() }
             }
         }
-        */
+
 
 
 
