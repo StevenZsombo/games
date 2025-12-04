@@ -3,7 +3,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 30,
     denybuttons: false,
-    showFramerate: false,
+    showFramerate: true,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -12,7 +12,7 @@ var univ = {
     on_each_start: null,
     on_first_run: null,
     on_next_game_once: null,
-    stgs: stgs
+    allowQuietReload: true
 }
 
 class Game extends GameCore {

@@ -633,14 +633,14 @@ class MM {
         }
     }
 
-    checkForMathJaxDepr() {
-        if (window.MathJax) { this.refresh(); return }
+    static loadScript(scriptName, callback) {
         const script = document.createElement("script")
         script.onload = () => {
             this.refresh.bind(this)
-            console.log(this)
+            console.log(scriptName, "succesfully loaded.")
+            callback?.()
         }
-        script.src = "tex-svg.js"
+        script.src = scriptName
         document.head.appendChild(script)
     }
 

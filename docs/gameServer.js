@@ -266,6 +266,28 @@ listener.on_message = (obj, person) => {
 listener.on_participant_join = Person.check
 listener.on_participant_reconnect = Person.check
 
+const connectionInfoButton = new Button()
+univ.on_each_start = () => {
+    connectionInfoButton.resize(game.WIDTH * .9, game.HEIGHT * .1)
+    connectionInfoButton.bottomat(game.HEIGHT * .95)
+    connectionInfoButton.leftat(game.HEIGHT * .05)
+    connectionInfoButton.fontSize = 48
+    game.add_drawable(connectionInfoButton)
+    connectionInfoButton.visible = false
+}
+listener.chat.on_disconnect = () => {
+    connectionInfoButton.visible = true
+    connectionInfoButton.color = "red"
+    connectionInfoButton.txt = "Connection lost to server, attempting to reconnect..."
+}
+
+listener.chat.on_join = () => {
+    connectionInfoButton.visible = false
+    connectionInfoButton.color = "green"
+    connectionInfoButton.txt = listener.chat.reconnections > 0 ? "Succesfully reconnected." : "Connected."
+    game.animator.add_anim(Anim.setter(connectionInfoButton, 1000, "visible", [true], { ditch: true }))
+}
+
 
 const addToScore = (obj, person) => {
     person = Person.check(person)

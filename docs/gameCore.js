@@ -16,9 +16,8 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
-    globalThis.silentReload = false
     window.addEventListener('beforeunload', (e) => {
-        if (globalThis.silentReload) return
+        if (univ.allowQuietReload) return
         e.preventDefault()
         e.stopPropagation()
         //e.returnValue = ''
@@ -89,7 +88,6 @@ class GameCore {
             x: this.SIZE.x / 2,
             y: this.SIZE.y / 2
         }
-        this.WH = ([x, y]) => { this.WIDTH * x, this.WIDTH * y }
         this.mouser = new Mouser(canvas)
         this.keyboarder = new Keyboarder(univ.denybuttons)
         this.framerate = new Framerater(univ.showFramerate)

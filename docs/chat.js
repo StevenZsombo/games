@@ -16,6 +16,7 @@ class Chat {
 
         /**@type {WebSocket} socket */
         this.socket = null
+        this.reconnections = -1
         this.errorHandler = null
         this.queue = []
         this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
@@ -50,6 +51,7 @@ class Chat {
             console.log("Attempting to connect...")
             this.socket.onopen = () => {
                 console.log("Connected.")
+                this.reconnections++
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
                 this.announceSelf()
@@ -106,12 +108,11 @@ class Chat {
         this.sendMessage({ name: this.name, connected: MM.time(), nameID: this.nameID })
     }
 
-    sendMessage(obj, alsoSendToSelf = false) {
+    sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
         obj.name ??= this.name
         const message = JSON.stringify(obj)
         this.attemptToSendText(message)
-        if (alsoSendToSelf) this.receiveMessage(message)
     }
 
 
@@ -174,7 +175,7 @@ class Chat {
     }
 
     silentReload() {
-        globalThis.silentReload = true
+        univ.allowQuietReload = true
         location.reload()
     }
 
@@ -248,38 +249,9 @@ class Chat {
     }
 
 }
-//#endregion 
-
-
-//#region ChatServer
-class ChatServer extends Chat {
-    constructor(ip, name) {
-        super(ip, name, true)
-        this.receiveMessage = null//set to nothing, won't be needed anyways
-    }
-
-    sendCommand(code, alsoSendToSelf = false) {
-        this.sendMessage({ eval: code }, alsoSendToSelf)
-    }
-
-    /**@param {String} target  */
-    orderResetName(target) {
-        const obj = {}
-        obj[Listener.SERVER.SERVERnameOrderedToReset] = true
-        obj.target = target
-        this.sendMessage(obj, true)
-    }
-
-    //**param {String} target */
-    orderReload(target) {
-        this.sendMessage({ target: target, eval: "location.reload()" }, true)
-    }
-
-    orderAttendance() {
-        this.sendMessage({ present: "ask" })
-    }
-}
 //#endregion
+
+
 //#region Participant
 class Participant {
     constructor(name, nameID, connected) {
@@ -301,6 +273,35 @@ class Participant {
     }
 }
 //#endregion
+
+
+
+//#region ChatServer
+class ChatServer extends Chat {
+    constructor(ip, name) {
+        super(ip, name, true)
+        this.receiveMessage = null//set to nothing, won't be needed anyways
+    }
+    sendCommand(code) {
+        this.sendMessage({ eval: code })
+    }
+    /**@param {String} target  */
+    orderResetName(target) {
+        const obj = {}
+        obj[Listener.SERVER.SERVERnameOrderedToReset] = true
+        obj.target = target
+        this.sendMessage(obj, true)
+    }
+    //**param {String} target */
+    orderReload(target) {
+        this.sendMessage({ target: target, eval: "location.reload()" }, true)
+    }
+    orderAttendance() {
+        this.sendMessage({ present: "ask" })
+    }
+}
+//#endregion
+
 //#region Listener
 class Listener {
     constructor() {
@@ -322,6 +323,7 @@ class Listener {
         this.on_participant_disconnect = null //takes person
 
     }
+
 
 
     checkUserDuplicate(name, nameID, connected) {
@@ -356,13 +358,14 @@ class Listener {
         if (message.connected && !this.checkUserDuplicate(name, message.nameID, message.connected)) {
             if (participants[name]) {
                 participants[name].reconnections++
-                participants[name].on_reconnect?.()
                 participants[name].isConnected = true
+                participants[name].on_reconnect?.()
                 this.on_participant_reconnect?.(participants[name])
             } else {
                 MM.require(message, "nameID")
                 this.addNewParticipant(name, message.nameID, message.connected)
                 participants[name].isConnected = true
+                participants[name].on_join?.()
                 this.on_participant_join?.(participants[name])
             }
         }
