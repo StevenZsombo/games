@@ -253,10 +253,12 @@ class Game extends GameCore {
                     const blue = game.plt.pltMore[2].func
                     const tgt = game.plt.pltMore[0].func
                     const xs = stgs.alternateVictoryCheckForX
-                    return xs.every(x =>
+                    const alternate = xs.every(x =>
                         !Number.isFinite(blue(x)) || !Number.isFinite(tgt(x)) ||
                         Math.abs(blue(x) - tgt(x)) < stgs.alternateVictoryTolerance
                     )
+                    if (alternate) console.log("victory by alternate method")
+                    return alternate
 
                 }
                 if (checkfor == "green") {

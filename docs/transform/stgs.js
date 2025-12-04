@@ -5,7 +5,7 @@ var stgs = {
     victories: [],
     allowVictoryByAlternateValues: true, //yet to be implemented
     alternateVictoryCheckForX: [...MM.range(1, 20).map(x => (x - 10) / 10)],
-    alternateVictoryTolerance: 0.1,
+    alternateVictoryTolerance: 0.02,
     randomLevelData: null,
     labelPoints: true,
     randomType: "Any",
