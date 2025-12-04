@@ -242,7 +242,7 @@ class GameCore {
     }
     //#endregion
 
-
+    get layersFlat() { return this.layers.flat() }
 
 } //this is the last closing brace for class Game
 

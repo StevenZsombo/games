@@ -262,8 +262,11 @@ class Rect {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
 
-	packInto(rects, justify = "center", align = "middle") {
 
+	static packArray(sourceRects, targetRects) {
+		sourceRects.forEach((b, i) => {
+			b.centerinRect(targetRects[i])
+		})
 	}
 
 	splitCell(i, j, toti, totj, jspan = 1, ispan = 1) {
@@ -320,6 +323,7 @@ class Clickable extends Rect {
 		this.on_enter = null
 		this.on_leave = null
 		this.on_drag = null
+		this.on_drag_more = null
 		this.on_hold = null
 		this.on_wheel = null
 		this._drag_force_within = false //won't let the button separate from mouse while dragging
@@ -366,7 +370,11 @@ class Clickable extends Rect {
 		}
 		if (held && within) {
 			this.on_hold?.(pos)
-			this.last_clicked && this.on_drag?.(pos) //drag means you clicked and now you hold
+			//this.last_clicked && this.on_drag?.(pos) //drag means you clicked and now you hold
+			if (this.last_clicked) {
+				this.on_drag?.(pos)
+				this.on_drag_more?.(pos)
+			}
 			this.last_held = pos
 		}
 		if (wheel && within) {
@@ -383,6 +391,7 @@ class Button extends Clickable {
 		super(options)
 		/**@type {string} */
 		this.txt = null //txtmult by default
+		this.dynamicText = null //can be any function; might be bad practice, as it is called as part of the draw function isntead of update but whatevs
 		this.fontSize = 24
 		this.font_color = "black"
 		this.font_font = "Times"
@@ -391,6 +400,7 @@ class Button extends Clickable {
 		this.outline = 2
 		this.outline_color = "black"
 		this.color = "gray"
+		this.dynamicColor = null //can be any function
 		this.transparent = false
 		this.selected = false
 		this.selected_color = "orange"
@@ -399,6 +409,7 @@ class Button extends Clickable {
 		this.visible = true
 		this.tag = ""
 		this.img = null
+		this.imgScale = 0 //0 for fitting in the button, number for scaling
 		this.opacity = 0
 		this.rad = 0
 
@@ -476,6 +487,7 @@ class Button extends Clickable {
 				} else {
 					draw_color = this.color
 				}
+
 				this.draw_color = draw_color
 				this.draw_background(screen)
 
@@ -483,13 +495,14 @@ class Button extends Clickable {
 			if (this.img != null) {
 				this.draw_image(screen)
 			}
+			if (this.dynamicText) { this.txt = this.dynamicText() }
 			if (this.txt != null) {
 				this.draw_text(screen)
 			}
 			if (this.rad) {
 				screen.restore() //started above, should go at the end
 			}
-
+			this.draw_more?.(screen)
 		}
 
 	}
@@ -508,12 +521,15 @@ class Button extends Clickable {
 		})
 	}
 	draw_image(screen) {
-		MM.drawImage(screen, this.img, this, this.opacity)
+		MM.drawImage(screen, this.img, this, this.opacity, this.rad, this.imgScale)
 	}
+
+	draw_more = null
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {
-			font: `${this.fontSize}px ${this.font_font}`,
+			fontSize: this.fontSize,
+			font: this.font_font,
 			color: this.font_color,
 			opacity: this.opacity,
 			...this.textSettings
@@ -521,9 +537,11 @@ class Button extends Clickable {
 
 	}
 
+	/*
 	check(x, y, clicked, released, held, wheel) {//invisible buttons are also drawn now
 		return super.check(x, y, clicked, released, held, wheel)
 	}
+	*/
 
 	get copy() {
 		let result = new Button()
@@ -534,9 +552,11 @@ class Button extends Clickable {
 		this.selected = !this.selected
 	}
 
+	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
 	static make_checkbox(button, preservePreviousFunction = false) {
+		button ??= this
 		if (preservePreviousFunction) {
-			button.on_click = MM.extendFunction(button.on_click, button.selected_flip.bind(button))
+			button.on_click = MM.extFunc(button.on_click, button.selected_flip.bind(button))
 		} else {
 			button.on_click = button.selected_flip.bind(button)
 		}
@@ -544,6 +564,7 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Array<Button>} buttons @param {boolean} [preservePreviousFunction=false]   */
 	static make_radio(buttons, preservePreviousFunction = false) {
 		let radio_group = {
 			buttons: buttons,
@@ -559,7 +580,7 @@ class Button extends Clickable {
 				radio_group.selected = b
 			}
 			if (preservePreviousFunction) {
-				b.on_click = MM.extendFunction(b.on_click, wanted)
+				b.on_click = MM.extFunc(b.on_click, wanted)
 			} else {
 				b.on_click = wanted
 			}
@@ -570,7 +591,9 @@ class Button extends Clickable {
 		return radio_group
 	}
 
+	/**@param {Button} button  */
 	static make_draggable(button) {
+		button ??= this
 		button.on_drag = function (pos) {
 			this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
 		}
@@ -593,7 +616,9 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Button} button  */
 	static make_polygon(button, polyXYXYXY) {
+		button ??= this
 		button.polyXYXYXY = polyXYXYXY
 		button.draw_background = function (screen) {
 			MM.drawPolygon(screen, this.polyXYXYXY, { ...this, color: this.draw_color })
@@ -613,7 +638,6 @@ class Button extends Clickable {
 	/**@param {Button} button  */
 	static make_circle(button) {
 		button ??= this
-
 		button.draw_background = function (screen) {
 			MM.drawCircle(screen, this.centerX, this.centerY, this.width, {
 				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
@@ -626,8 +650,18 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Button} button @param {customFont} customFontInstance */
 	static make_pixelFont(button, customFontInstance) {
+		button ??= this
 		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
+	}
+
+	/**@param {Button} button  */
+	static make_latex(button, texInitial, imgScale = 1) {
+		button ??= this
+		button.latex = new LatexManager(texInitial)
+		button.img = button.latex.img
+		button.imgScale = imgScale
 	}
 
 }
@@ -636,7 +670,7 @@ class Button extends Clickable {
 //#region MouseHelper
 class MouseHelper extends Button {
 	constructor(execute = true) {
-		super({ width: 50, height: 50, fontsize: 36 })
+		super({ width: 50, height: 50, fontSize: 36 })
 		this.update = (dt) => this.centeratV(game.mouser.pos)
 		if (execute) {
 			game.add_drawable(this)
@@ -678,16 +712,17 @@ class Plot {
 		this.width = 2
 		this.show_axes = true
 		this.axes_color = "plum"//"deeppink",//"fuchsia",
-		this.axes_width = 1
+		this.axes_width = 3
 		this.show_axes_labels = true
 		this.axes_labels_font = "24px Times"
-		this.dottingDistance = 1
+		this.show_dotting = true
+		this.dottingDistance = [1, 1]
 		this.show_grid = true
-		this.grid_width = .5
+		this.grid_width = 1
 		this.grid_color = "lightgray"
 		this.show_border_values = true
-		this.border_values_font = "12px Times"
-		this.border_values_dp = 2
+		this.show_border_values_font = "12px Times"
+		this.show_border_values_dp = 2
 		this.highlightedPoints = [] //
 		this.label_highlighted = true
 		this.label_highlighted_font = "24px Times"
@@ -704,24 +739,23 @@ class Plot {
 		this.plotRect = new Rect(0, 0, rect.width, rect.height)
 
 	}
-	/**@param {Button} button - will be used as a background and control surface */
-	static fromButton(button) {
-		const ret = new Plot(null, button)
-		ret.addControls(null, button)
-		return ret
-	}
 
 	draw(screen) {
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this })
-		this.highlightedPoints.forEach(p => this.highlightPoint(p, this))
+		this.highlightedPoints.forEach(p => this.highlightPoint(p))
 		this.pltMore?.forEach(item => {
 			if (item?.func) {
 				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
-					{ ...this, ...item, axes: false }
+					{
+						...item,
+						show_dotting: false, show_axes_labels: false,
+						show_axes: false, show_grid: false,
+						show_border_values: false,
+					}
 				)
 			}
-			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item)
+			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)
 			)
 
 		})
@@ -730,26 +764,26 @@ class Plot {
 		if (this.show_border_values) {
 			const { maxX, maxY, minX, minY } = this
 			screen.fillStyle = "black"
-			screen.font = this.border_values_font
+			screen.font = this.show_border_values_font
 			screen.textAlign = "center"
 			screen.textBaseline = "top"
-			screen.fillText(maxY.toFixed(this.border_values_dp), this.rect.centerX, this.rect.top)
+			screen.fillText(maxY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.top)
 			screen.textBaseline = "bottom"
-			screen.fillText(minY.toFixed(this.border_values_dp), this.rect.centerX, this.rect.bottom)
+			screen.fillText(minY.toFixed(this.show_border_values_dp), this.rect.centerX, this.rect.bottom)
 			screen.textBaseline = "middle"
 			screen.textAlign = "left"
-			screen.fillText(minX.toFixed(this.border_values_dp), this.rect.left, this.rect.centerY)
+			screen.fillText(minX.toFixed(this.show_border_values_dp), this.rect.left, this.rect.centerY)
 			screen.textAlign = "right"
-			screen.fillText(maxX.toFixed(this.border_values_dp), this.rect.right, this.rect.centerY)
+			screen.fillText(maxX.toFixed(this.show_border_values_dp), this.rect.right, this.rect.centerY)
 		}
 	}
 
-	highlightPoint(p, settings = {}) {
+	highlightPoint(p, color, label_highlighted) {
 		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, { color: settings.color, opacity: settings.opacity })
-
-		if (settings.label_highlighted) {
-			const label = `(${Number(p[0].toFixed(this.border_values_dp))}, ${Number(p[1].toFixed(this.border_values_dp))})`
+		MM.drawCircle(this.plotScreen, x, y, 10, { color: color ?? this.color })
+		label_highlighted ??= this.label_highlighted
+		if (label_highlighted) {
+			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
 			this.plotScreen.font = this.label_highlighted_font
 			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
 		}
@@ -803,7 +837,7 @@ class Plot {
 		return { x: drawX, y: drawY }
 	}
 
-	zoomAtPos(factor, pos) {
+	zoomAtPointer(factor, pos) {
 		let { x, y } = this.pointerPosToCoord(pos)
 		this.translateX(-x)
 		this.translateY(-y)
@@ -815,7 +849,7 @@ class Plot {
 	}
 
 	zoomAtCenter(factor) {
-		return this.zoomAtPos(factor, { x: this.rect.centerX, y: this.rect.centerY })
+		return this.zoomAtPointer(factor, { x: this.rect.centerX, y: this.rect.centerY })
 	}
 
 	translateX(u) {
@@ -871,7 +905,7 @@ class Plot {
 		}
 		button.on_wheel = function (wheel, pos) {
 			const factor = wheel < 0 ? 1.1 : 1 / (1.1)
-			plot.zoomAtPos(factor, pos)
+			plot.zoomAtPointer(factor, pos)
 		}
 	}
 
@@ -948,6 +982,12 @@ class InputBoard {
 		this.redefineFields(fields)
 		this.animationTime = animationTime
 		this.inputButtons = this.createButtonsBoard(inputBackground)
+		this.on_reset = null
+		this.on_delete = null
+		this.on_number = null //(i) => {}
+		this.on_plus = null
+		this.on_minus = null
+		this.on_divide = null
 
 	}
 
@@ -967,28 +1007,32 @@ class InputBoard {
 			x.on_click = () => {
 				this.addValueToField(x.txt)
 				if (this.animationTime) { GameEffects.sendFancy(x, this.currentField, this.animationTime) }
+				this.on_number?.(i + 1)
 			}
 		})
 		inputButtons.forEach(x => {
-			x.fontsize = 48
+			x.fontSize = 48
 			x.color = "lightblue"
 		})
 		inputButtons[10].txt = 0
 		inputButtons[10].on_click = () => {
 			this.addValueToField(0)
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[10], this.currentField, this.animationTime) }
+			this.on_number?.(0)
 		}
 		inputButtons[9].txt = "+"
 		inputButtons[9].on_click = () => {
 			this.currentField.negative = false
 			this.currentField.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[9], this.currentField, this.animationTime) }
+			this.on_plus?.()
 		}
 		inputButtons[11].txt = "-"
 		inputButtons[11].on_click = () => {
 			this.currentField.negative = this.currentField.allowNegative
 			this.currentField.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[11], this.currentField, this.animationTime) }
+			this.on_minus?.()
 		}
 		inputButtons[13].txt = "/"
 		inputButtons[13].on_click = () => {
@@ -997,9 +1041,10 @@ class InputBoard {
 				this.currentField.txtRefresh()
 			}
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[13], this.currentField, this.animationTime) }
+			this.on_divide?.()
 		}
 		inputButtons[12].txt = "Reset"
-		inputButtons[12].fontsize = 30
+		inputButtons[12].fontSize = 30
 		const resetButtonFunction = () => {
 			this.fields.forEach(x => {
 				x.reset()
@@ -1007,13 +1052,13 @@ class InputBoard {
 					GameEffects.sendFancy(inputButtons[12], x, this.animationTime)
 				}
 			})
-
 		}
 		inputButtons[12].on_click = () => {
 			resetButtonFunction()
+			this.on_reset?.()
 		}
 		inputButtons[14].txt = "Delete"
-		inputButtons[14].fontsize = 30
+		inputButtons[14].fontSize = 30
 		inputButtons[14].on_click = () => {
 			let curr = this.currentField
 			curr.txtRefresh()
@@ -1035,6 +1080,7 @@ class InputBoard {
 			}
 			curr.txtRefresh()
 			if (this.animationTime) { GameEffects.sendFancy(inputButtons[14], this.currentField, this.animationTime) }
+			this.on_delete?.()
 		}
 		return inputButtons
 	}
@@ -1123,4 +1169,31 @@ class InputBoard {
 		this.focusField((this.currentFieldIndex - 1 + this.fields.length) % this.fields.length)
 	}
 }
+//#endregion
+//#region LatexManager
+class LatexManager {
+	constructor(tex) {
+		this._tex = tex
+		this._texLast = null
+		this.img = new Image()
+		this.refresh()
+	}
+	/**@param {string} str  */
+	set tex(str) {
+		if (str === this._texLast) return
+		this._texLast = this._tex
+		this._tex = str
+		this.refresh()
+	}
+	get tex() { return this._tex }
+
+	refresh() {
+		this.img.src = 'data:image/svg+xml;base64,' + btoa(
+			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
+		)
+	}
+
+
+}
+
 //#endregion

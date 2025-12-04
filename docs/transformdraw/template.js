@@ -381,7 +381,9 @@ class Game {
         buttons.instruction.transparent = true
         colorSelectorBG.move(0, colorSelectorBG.height)
         buttons.eqn = Button.fromRect(colorSelectorBG)
-        buttons.eqn.txt = level.eqn
+        //buttons.eqn.txt = level.eqn
+        Button.make_latex(buttons.eqn, level.eqn, 2.5)
+
         buttons.eqn.transparent = true
 
         buttons.retry.stretch(.5, .5)
@@ -526,40 +528,60 @@ class Game {
             console.error({ a, b, s, t, ptsAll, myXvals, selectedXvals, selectedPoints })
             throw "could not generate points with the given criteria"
         }
-        let ta, tb, tmbs, tt
+        let ta, tb, tmbs, tt, ts
         if (a == 1) { ta = "" }
         else if (a == -1) { ta = "-" }
-        else {
-            ta = ra[0]
-            if (ra[1] != 1) { ta = `(${ra[0]}/${ra[1]})` }
-        }
-        if (b == 1) { tb = "" }
-        else if (b == -1) { tb = "-" }
-        else {
-            tb = rb[0]
-            if (rb[1] != 1) { tb = `(${rb[0]}/${rb[1]})` }
-        }
-        if (t == 0) { tt = "" }
-        else { tt = t > 0 ? `+${t}` : t }
-        if (s == 0) { tmbs = "" }
-        else {
-            const numer = -rb[0] * s
-            const denom = rb[1]
-            const gcd = Math.abs(MM.gcd(Math.abs(numer), denom))
-            const simplified = [numer / gcd, denom / gcd]
-            tmbs = simplified[0]
-            if (simplified[1] != 1) {
-                tmbs = `${tmbs}/${simplified[1]}`
+        else if (ra[1] == 1) { ta = ra[0] }
+        else { ta = `${ra[0] > 0 ? "" : "-"}\\frac{${Math.abs(ra[0])}}{${ra[1]}}` }
+        if (b == 1) { tb = "x" }
+        else if (b == -1) { tb = "-x" }
+        else if (rb[1] == 1) { tb = `${rb[0]}x` }
+        else { tb = `${rb[0] > 0 ? "" : "-"}\\frac{${Math.abs(rb[0]) == 1 ? "" : Math.abs(rb[0])}x}{${rb[1]}}` }
+        tt = t == 0 ? "" : t > 0 ? `+${t}` : t
+        const numer = -rb[0] * s
+        const denom = rb[1]
+        const gcd = Math.abs(MM.gcd(Math.abs(numer), denom))
+        const numersimp = numer / gcd
+        const denomsimp = denom / gcd
+        if (numersimp == 0) { ts = "" }
+        else if (denomsimp == 1) { ts = numersimp > 0 ? `+${numersimp}` : numersimp }
+        else { ts = `${numersimp > 0 ? "+" : "-"}\\frac{${Math.abs(numersimp)}}{${denomsimp}}` }
+        const eqn = `y = ${ta}f\\left(${tb}${ts}\\right)${tt}`
+        const oldeqn = (() => {
+            if (a == 1) { ta = "" }
+            else if (a == -1) { ta = "-" }
+            else {
+                ta = ra[0]
+                if (ra[1] != 1) { ta = `(${ra[0]}/${ra[1]})` }
             }
-            if (simplified[0] > 0) tmbs = `+${tmbs}`
-        }
+            if (b == 1) { tb = "" }
+            else if (b == -1) { tb = "-" }
+            else {
+                tb = rb[0]
+                if (rb[1] != 1) { tb = `(${rb[0]}/${rb[1]})` }
+            }
+            if (t == 0) { tt = "" }
+            else { tt = t > 0 ? `+${t}` : t }
+            if (s == 0) { tmbs = "" }
+            else {
+                const numer = -rb[0] * s
+                const denom = rb[1]
+                const gcd = Math.abs(MM.gcd(Math.abs(numer), denom))
+                const simplified = [numer / gcd, denom / gcd]
+                tmbs = simplified[0]
+                if (simplified[1] != 1) {
+                    tmbs = `${tmbs}/${simplified[1]}`
+                }
+                if (simplified[0] > 0) tmbs = `+${tmbs}`
+            }
+            return `y = ${ta}f(${tb}x${tmbs})${tt}`
+        })()
 
-
-        const eqn = `y = ${ta}f(${tb}x${tmbs})${tt}`
         const ret = {
             a, b, s, t,
             pts: selectedPoints.map(p => p.pre), transPts: selectedPoints.map(p => p.post).sort((u, w) => u[0] - w[0]),
-            eqn: eqn
+            eqn: eqn,
+            oldeqn: oldeqn
         }
         if (stgs.logSolution) { console.log(ret) }
         console.log(`Generation successful after ${stgs.generationAttemptcount} attempt(s).`)

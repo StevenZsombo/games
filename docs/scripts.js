@@ -409,6 +409,7 @@ class Button extends Clickable {
 		this.visible = true
 		this.tag = ""
 		this.img = null
+		this.imgScale = 0 //0 for fitting in the button, number for scaling
 		this.opacity = 0
 		this.rad = 0
 
@@ -520,7 +521,7 @@ class Button extends Clickable {
 		})
 	}
 	draw_image(screen) {
-		MM.drawImage(screen, this.img, this, this.opacity)
+		MM.drawImage(screen, this.img, this, this.opacity, this.rad, this.imgScale)
 	}
 
 	draw_more = null
@@ -551,7 +552,9 @@ class Button extends Clickable {
 		this.selected = !this.selected
 	}
 
+	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
 	static make_checkbox(button, preservePreviousFunction = false) {
+		button ??= this
 		if (preservePreviousFunction) {
 			button.on_click = MM.extFunc(button.on_click, button.selected_flip.bind(button))
 		} else {
@@ -561,6 +564,7 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Array<Button>} buttons @param {boolean} [preservePreviousFunction=false]   */
 	static make_radio(buttons, preservePreviousFunction = false) {
 		let radio_group = {
 			buttons: buttons,
@@ -587,7 +591,9 @@ class Button extends Clickable {
 		return radio_group
 	}
 
+	/**@param {Button} button  */
 	static make_draggable(button) {
+		button ??= this
 		button.on_drag = function (pos) {
 			this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
 		}
@@ -610,7 +616,9 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Button} button  */
 	static make_polygon(button, polyXYXYXY) {
+		button ??= this
 		button.polyXYXYXY = polyXYXYXY
 		button.draw_background = function (screen) {
 			MM.drawPolygon(screen, this.polyXYXYXY, { ...this, color: this.draw_color })
@@ -630,7 +638,6 @@ class Button extends Clickable {
 	/**@param {Button} button  */
 	static make_circle(button) {
 		button ??= this
-
 		button.draw_background = function (screen) {
 			MM.drawCircle(screen, this.centerX, this.centerY, this.width, {
 				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
@@ -643,8 +650,18 @@ class Button extends Clickable {
 		return button
 	}
 
+	/**@param {Button} button @param {customFont} customFontInstance */
 	static make_pixelFont(button, customFontInstance) {
+		button ??= this
 		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
+	}
+
+	/**@param {Button} button  */
+	static make_latex(button, texInitial, imgScale = 1) {
+		button ??= this
+		button.latex = new LatexManager(texInitial)
+		button.img = button.latex.img
+		button.imgScale = imgScale
 	}
 
 }
@@ -1152,4 +1169,31 @@ class InputBoard {
 		this.focusField((this.currentFieldIndex - 1 + this.fields.length) % this.fields.length)
 	}
 }
+//#endregion
+//#region LatexManager
+class LatexManager {
+	constructor(tex) {
+		this._tex = tex
+		this._texLast = null
+		this.img = new Image()
+		this.refresh()
+	}
+	/**@param {string} str  */
+	set tex(str) {
+		if (str === this._texLast) return
+		this._texLast = this._tex
+		this._tex = str
+		this.refresh()
+	}
+	get tex() { return this._tex }
+
+	refresh() {
+		this.img.src = 'data:image/svg+xml;base64,' + btoa(
+			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
+		)
+	}
+
+
+}
+
 //#endregion

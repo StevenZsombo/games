@@ -256,10 +256,21 @@ class MM {
     /*drawImage(image, dx, dy)
     drawImage(image, dx, dy, dWidth, dHeight)
     drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)*/
-    static drawImage(screen, img, rect, opacity = 0, rad = 0) {
+    static drawImage(screen, img, rect, opacity = 0, rad = 0, imgScale = true) {
         screen.save()
         if (opacity) { screen.globalAlpha = 1 - opacity }
-        screen.drawImage(img, rect.x, rect.y, rect.width, rect.height)
+        if (!imgScale) {
+            screen.drawImage(img, rect.x, rect.y, rect.width, rect.height)
+        } else {
+            let { width, height } = img
+            width *= imgScale
+            height *= imgScale
+            screen.drawImage(img,
+                rect.x + (rect.width - width) / 2,
+                rect.y + (rect.height - height) / 2,
+                width, height
+            )
+        }
         screen.restore()
     }
 
@@ -615,6 +626,17 @@ class MM {
         for (let i = howmany; i > 0; i--) {
             localStorage.setItem(`${key}_${i}`, localStorage.getItem(`${key}_${i - 1}`))
         }
+    }
+
+    checkForMathJaxDepr() {
+        if (window.MathJax) { this.refresh(); return }
+        const script = document.createElement("script")
+        script.onload = () => {
+            this.refresh.bind(this)
+            console.log(this)
+        }
+        script.src = "tex-svg.js"
+        document.head.appendChild(script)
     }
 
     static getByPath(path, startObj) {
