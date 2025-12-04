@@ -414,8 +414,7 @@ class LatexManager {
 	}
 	/**@param {string} str  */
 	set tex(str) {
-		if (str === this._texLast) return
-		this._texLast = this._tex
+		if (str === this._tex) return
 		this._tex = str
 		this.refresh()
 	}
