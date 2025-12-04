@@ -256,22 +256,27 @@ class MM {
     /*drawImage(image, dx, dy)
     drawImage(image, dx, dy, dWidth, dHeight)
     drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)*/
-    static drawImage(screen, img, rect, opacity = 0, rad = 0, imgScale = true) {
-        screen.save()
-        if (opacity) { screen.globalAlpha = 1 - opacity }
-        if (!imgScale) {
-            screen.drawImage(img, rect.x, rect.y, rect.width, rect.height)
+    static drawImage(screen, img, rect, opacity = 0, rad = 0, imgScale = 0) {
+        if (opacity) { screen.save(); screen.globalAlpha = 1 - opacity }
+        let { width, height } = img
+        if (!imgScale) {//fit within automatically
+            width = width * rect.height / height
+            height = rect.height
+            if (width > rect.width) {
+                height = height * rect.width / width
+                width = rect.width
+            }
         } else {
             let { width, height } = img
             width *= imgScale
             height *= imgScale
-            screen.drawImage(img,
-                rect.x + (rect.width - width) / 2,
-                rect.y + (rect.height - height) / 2,
-                width, height
-            )
         }
-        screen.restore()
+        screen.drawImage(img,
+            rect.x + (rect.width - width) / 2,
+            rect.y + (rect.height - height) / 2,
+            width, height
+        )
+        opacity && screen.restore()
     }
 
     static drawRotated(screen, obj, rad, drawFunc, drawFuncArgs = []) {

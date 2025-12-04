@@ -404,3 +404,29 @@ class customFont {
 		}
 	}
 }
+
+class LatexManager {
+	constructor(tex) {
+		this._tex = tex
+		this._texLast = null
+		this.img = new Image()
+		this.refresh()
+	}
+	/**@param {string} str  */
+	set tex(str) {
+		if (str === this._texLast) return
+		this._texLast = this._tex
+		this._tex = str
+		this.refresh()
+	}
+	get tex() { return this._tex }
+
+	refresh() {
+		this.img.src = 'data:image/svg+xml;base64,' + btoa(
+			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
+		)
+	}
+
+
+}
+//#endregion

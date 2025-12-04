@@ -382,9 +382,10 @@ class Game {
         colorSelectorBG.move(0, colorSelectorBG.height)
         buttons.eqn = Button.fromRect(colorSelectorBG)
         //buttons.eqn.txt = level.eqn
-        Button.make_latex(buttons.eqn, level.eqn, 2.5)
-
+        Button.make_latex(buttons.eqn, level.eqn)
+        buttons.eqn.outline = 5
         buttons.eqn.transparent = true
+        buttons.eqn.stretch(.9, .9)
 
         buttons.retry.stretch(.5, .5)
         buttons.retry.topat(bg.top)

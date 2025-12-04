@@ -657,7 +657,7 @@ class Button extends Clickable {
 	}
 
 	/**@param {Button} button  */
-	static make_latex(button, texInitial, imgScale = 1) {
+	static make_latex(button, texInitial, imgScale = 0) {
 		button ??= this
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img

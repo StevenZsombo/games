@@ -657,7 +657,7 @@ class Button extends Clickable {
 	}
 
 	/**@param {Button} button  */
-	static make_latex(button, texInitial, imgScale = 1) {
+	static make_latex(button, texInitial, imgScale = 0) {
 		button ??= this
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img
@@ -1170,30 +1170,4 @@ class InputBoard {
 	}
 }
 //#endregion
-//#region LatexManager
-class LatexManager {
-	constructor(tex) {
-		this._tex = tex
-		this._texLast = null
-		this.img = new Image()
-		this.refresh()
-	}
-	/**@param {string} str  */
-	set tex(str) {
-		if (str === this._texLast) return
-		this._texLast = this._tex
-		this._tex = str
-		this.refresh()
-	}
-	get tex() { return this._tex }
 
-	refresh() {
-		this.img.src = 'data:image/svg+xml;base64,' + btoa(
-			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
-		)
-	}
-
-
-}
-
-//#endregion
