@@ -346,6 +346,30 @@ class MM {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
 
+    static randomArray(length) {
+        return Array(length).fill().map(Math.random).map(x => x - 0.5)
+    }
+
+    static randomMatrix(rows, columns) {
+        return Array(rows).fill().map(() => MM.randomArray(columns))
+    }
+
+    static matrixTimesVector(matrix, vector) {
+        return matrix.map(row => row.reduce((sum, val, j) => sum + val * vector[j]), 0)
+    }
+
+    static vectorPlusVector(v, w) {
+        return v.map((x, i) => x + w[i])
+    }
+
+    static matrixLinearCombination(a, mat1, b, mat2) {
+        return mat1.map((row, i) => row.map((entry, j) => a * entry + b * mat2[i][j]))
+    }
+
+    static vectorLinearCombination(a, v, b, w) {
+        return v.map((_, i) => a * v[i] + b * w[i])
+    }
+
     static forr(startIndex, funcOrEndIndex, funcIfEndIndex) {
         //forr(2,f) or forr(2,4,f)
         let start, end, func

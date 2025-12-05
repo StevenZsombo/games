@@ -146,9 +146,9 @@ class GameCore {
         this.update(dt)
         this.update_more(dt)
         this.extras_on_update.forEach(x => x.call(this))
-        this.drawnAlready ? null : this.draw(screen)
-        this.drawnAlready ? null : this.draw_more(screen)
-        this.extras_on_draw.forEach(x => x.call(this))
+        !this.drawnAlready && this.draw(screen)
+        !this.drawnAlready && this.draw_more(screen)
+        !this.drawnAlready && this.extras_on_draw.forEach(x => x.call(this))
         this.next_loop()
         this.next_loop_more()
         this.extras_temp.forEach(x => x.call(this))
@@ -241,6 +241,8 @@ class GameCore {
     //#endregion
 
     get layersFlat() { return this.layers.flat() }
+    toggleFramerateUnlocked() { this.framerateUnlocked = !this.framerateUnlocked }
+    toggleIsDrawing() { this.isDrawing = !this.isDrawing; this.drawnAlready = false; }
 
 } //this is the last closing brace for class Game
 
