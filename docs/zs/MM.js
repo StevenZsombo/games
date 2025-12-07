@@ -414,6 +414,21 @@ class MM {
         }
     }
 
+    static randomIndexByWeight(weights) {
+        if (!Array.isArray(weights) || weights.length == 0) {
+            console.error(weights)
+            throw "Invalid weights"
+        }
+        const totalWeight = MM.sum(weights)
+        const selectAfter = Math.random() * totalWeight
+        let weightSoFar = 0
+        for (let i = 0; ; i++) {
+            weightSoFar += weights[i]
+            if (weightSoFar >= selectAfter) return i
+        }
+        throw "what?"
+    }
+
     static shuffle(arr) {
         return [...arr].sort(x => Math.random() - .5)
     }

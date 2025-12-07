@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_PAGE_TO_SERVE = '/template.html'
+const DEFAULT_LISTENER_PAGE_TO_SERVE = 'zlistener/listener.html'
 
 const DOTS = {
     red: '\x1b[31m●\x1b[0m',
@@ -54,7 +55,7 @@ const server = http.createServer((req, res) => {
 
     if (cleanPath === '/listener' || cleanPath === '/listener.html') {
         // serve the root listener.html
-        const filePath = path.join(__dirname, 'listener.html')
+        const filePath = path.join(__dirname, DEFAULT_LISTENER_PAGE_TO_SERVE)
         return fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); res.end('Not found'); return }
             res.writeHead(200, { 'Content-Type': 'text/html' })

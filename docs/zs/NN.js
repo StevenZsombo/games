@@ -3,57 +3,57 @@ class AgentManager {
     agents = []
     generations = 1
     highestScore = 0
-    mutationChance = 0.05
-
+    mutationChancePerAgent = 0.1
+    mutationChancePerWeight = 0.05
+    mutationChancePerBias = 0.05
+    cutoffRatio = 0.5 //must be greater than elitism
+    elitismRatio = 0.1
+    newBloodRatio = 0.1
 
     constructor() {
 
     }
 
-    geneticAlgorithm() {
+    geneticAlgorithm(populationTargetSize) {
         this.generations++
         const breed = this.breed
-        let agents = [...this.agents].sort((x, y) => y.score - x.score) // ordered by score
-        let newAgents = []
-        newAgents.push(...agents.slice(0, 10)) //10 best kept - 10 so far
-        let moms, dads
-        moms = agents.slice(0, 10)
-        dads = MM.shuffle(moms)
-        newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i])))//10 best paired - 20 so far
-        moms = MM.choice(agents.slice(0, 50), 30)
-        dads = MM.choice(agents.slice(0, 50), 30)
-        newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i])))//30 of the best 50 paired - 50 so far
-        newAgents.push(...Array(10).fill().map(_ => new Agent(moms[0].nodesPerLayer))) //10 randoms - 60 so far
-        moms = MM.choice(agents.slice(0, 50), 30)
-        dads = MM.choice(agents.slice(0, 50), 30)
-        newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i], .4, .6)))//30 of the best 50 averaged - 90 so far
-        moms = MM.choice(agents.slice(0, 50), 10)
-        dads = MM.choice(agents.slice(0, 50), 10)
-        newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i], .1, .4)))//10 wild ones
+        const oldAgents = [...this.agents].sort((x, y) => y.score - x.score).slice(
+            0, Math.floor(this.cutoffRatio * this.agents.length) + 1
+        ) // ordered by score, cut off after a certain ratio
+        populationTargetSize ??= oldAgents.length
 
-        /*
-                newAgents.push(...Array(10).fill().map(() => new Agent)) //10 so far
-                newAgents.forEach((x, i) => x.brain = agents[i].brain)
-                let moms, dads
-                moms = agents.slice(0, 10)
-                dads = MM.shuffle(agents.slice(0, 10))
-                newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i]))) //20 so far
-                moms = agents.slice(0, 30)
-                dads = MM.shuffle(agents.slice(0, 30))
-                newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i]))) //50 so far
-                newAgents.push(...Array(10).fill().map(x => new Agent())) //60 so far
-                moms = MM.choice(agents.slice(0, 50), 30)
-                dads = MM.choice(agents.slice(0, 50), 30)
-                newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i]))) //90 so far
-                moms = agents.slice(0, 5)
-                dads = MM.shuffle(agents.slice(0, 5))
-                newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i]))) //95 so far
-                moms = agents.slice(0, 5)
-                dads = MM.shuffle(agents.slice(0, 5))
-                newAgents.push(...moms.map((_, i) => breed(moms[i], dads[i]))) //100 so far
-        */
-        newAgents.forEach(x => x.score = 0) //reset any leftover scores
-        this.agents = newAgents.map(this.mutate)
+        let newAgents = []
+        for (let i = 0; i < populationTargetSize * this.elitismRatio; i++) {
+            const old = oldAgents[i]
+            const mut = new Agent(old.nodesPerLayer, old.matrices, old.biases)
+            mut.mutate(this.perWeight, this.perBias)
+            mut.id = `${old.id}~${old.score}`
+            newAgents.push(mut)
+        }
+        for (let i = 0; i < populationTargetSize * this.elitismRatio; i++) {
+            newAgents.push(oldAgents[i])
+            oldAgents[i].id += `+${oldAgents[i].score}`
+        }
+        for (let i = 0; i < populationTargetSize * this.newBloodRatio; i++) {
+            newAgents.push(new Agent(oldAgents[0].nodesPerLayer))
+        }
+
+        const weights = oldAgents.map(x => x.score ** 2)
+        while (newAgents.length < populationTargetSize) {
+            const momIndex = MM.randomIndexByWeight(weights)
+            const mom = oldAgents[momIndex]
+            const dadIndex = MM.randomIndexByWeight(weights.filter((x, i) => i !== momIndex))
+            const dad = oldAgents.filter(x => x !== mom)[dadIndex]
+            const kid = this.breed(mom, dad, 0, 0.3)
+            if (Math.random() < this.mutationChancePerAgent) kid.mutate(this.perWeight, this.perBias)
+            kid.id = `(${mom.id}:${dad.id})->(${mom.score}^${dad.score})`
+            newAgents.push(kid)
+        }
+
+        this.agents = newAgents
+        this.agents.forEach(x => x.score = 0)
+
+
     }
     /**@param {Agent} mom @param {Agent} dad */
     breed(mom, dad, momChanceLowerBound = .95, momChanceUpperBound = 1) {
@@ -65,10 +65,12 @@ class AgentManager {
         return offspring
     }
     /**@param {Agent} agent */
-    mutate(agent, mutationChance) {
-        mutationChance ??= this.mutationChance
-        agent.mutate(mutationChance)
+    mutate(agent) {
+        agent.mutate(this.mutationChancePerWeight, this.mutationChancePerBias)
         return agent
+    }
+    resetIDs() {
+        this.agents.forEach(x => x.id = "")
     }
 
 
@@ -79,10 +81,11 @@ class Agent {
     constructor(nodesPerLayer = [2, 6, 6, 1], matrices, biases) {
         this.score = 0
         this.nodesPerLayer = nodesPerLayer
+        this.id = ""
 
         this.layers = []
-        this.matrices = matrices ?? []
-        this.biases = biases ?? []
+        this.matrices = matrices ? matrices.map(mat => mat.map(row => [...row])) : []
+        this.biases = biases ? biases.map(x => [...x]) : []
         nodesPerLayer.forEach((count, i) => {
             this.layers.push(Array(count).fill(0))
             if (matrices && biases) return
@@ -106,10 +109,14 @@ class Agent {
         })
     }
 
-    mutate(mutationChance) {
+    mutate(perWeight, perBias) {
         this.matrices.forEach((matrix, k) => matrix.forEach((row, i) => row.forEach((entry, j) => {
-            if (Math.random < mutationChance) row[j] = Math.random()
+            if (Math.random() < perWeight) row[j] *= (Math.random * 3 - 1.5)
         })))
+        this.biases.forEach((bias, k) => bias.forEach((entry, j) => {
+            if (Math.random() < perBias) bias[j] *= (Math.random * 3 - 1.5)
+        }))
+        return this
     }
 
     get outputs() { return this.layers.at(-1) }
@@ -117,6 +124,10 @@ class Agent {
     static fromJSON(json) {
         if (typeof json === "string") json = JSON.parse(json)
         return new Agent(json.nodesPerLayer, json.matrices, json.biases)
+    }
+    toJSON() {
+        const { nodesPerLayer, matrices, biases } = this
+        return { nodesPerLayer, matrices, biases }
     }
 
     /**@param {Agent} agent */

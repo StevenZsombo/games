@@ -23,11 +23,12 @@ const rules = {
     movespeed: 10,
     birdsize: 20,
     agentstartingX: 200,
-    birdjumpstrength: 8,
+    birdjumpstrength: 6.5,
     difficultyIncreasesOverTime: true,
     addAI: true,
-    nextGenerationThresholdInclusive: 5,
-    pipedistancefixed: false
+    nextGenerationThresholdInclusive: 0,
+    pipedistancefixed: false,
+    populationSize: 100
 }
 
 let rulesTemp = { ...rules }
@@ -80,7 +81,7 @@ const generationFinished = function () {
     game.isPaused = true
     game.isDrawing = false
     birds.forEach(x => x.agent.score = x.score)
-    manager.geneticAlgorithm()
+    manager.geneticAlgorithm(rules.populationSize)
     birds = manager.agents.map((x, i) => new Bird(x))
 
     manager.generations++
@@ -103,6 +104,8 @@ const showBrain = function (agent, circleSize = 50) {
     agent ??= bestBird
     if (agent instanceof Bird) agent = agent.agent
     if (!agent) return
+    agent.showBrain(window.watcher, false)
+    return
     game.watcher.shownBrain = agent
     game.extras_on_draw = []
     const watcher = game.watcher
@@ -182,7 +185,7 @@ class Game extends GameCore {
     initialize_more() {
         rulesTemp = { ...rules }
         if (birds.length == 0 && rules.addAI) {
-            birds.push(...Array(100).fill().map(() => new Bird()))
+            birds.push(...Array(rules.populationSize).fill().map(() => new Bird()))
         } else {
             this.add_drawable(birds)
         }
