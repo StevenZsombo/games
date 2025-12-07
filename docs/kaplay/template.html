@@ -36,17 +36,23 @@
 
 <body>
   <canvas id="myCanvas" width="1920" height="1080"></canvas>
+  <script>
+    const oldGlobals = Object.keys(window) 
+  </script>
+  <script src="https://unpkg.com/kaplay@3001.0.19/dist/kaplay.js"></script>
+  <script>
+    const newGlobals = Object.keys(window);
+    console.log(newGlobals.filter(x => !oldGlobals.includes(x)));
+  </script>
 
-
-  <!-- <script src="tex-svg.js"></script> -->
-  <script src="zs/MM.js" defer></script>
-  <script src="zs/scripts.js" defer></script>
-  <script src="zs/animations.js" defer></script>
-  <script src="zs/gui.js" defer></script>
-  <script src="zs/stgs.js" defer></script>
-  <script src="zs/chat.js" defer></script>
-  <script src="zs/NN.js" defef></script>
-  <script src="zs/gameCore.js" defer></script>
+  <!-- <script src="MM.js" defer></script>
+  <script src="scripts.js" defer></script>
+  <script src="animations.js" defer></script>
+  <script src="gui.js" defer></script>
+  <script src="stgs.js" defer></script>
+  <script src="chat.js" defer></script>
+  <script src="NN.js" defef></script>
+  <script src="gameCore.js" defer></script> -->
   <script src="game.js" defer></script>
 </body>
 

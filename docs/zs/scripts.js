@@ -654,6 +654,7 @@ class Button extends Clickable {
 	static make_pixelFont(button, customFontInstance) {
 		button ??= this
 		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
+		return button
 	}
 
 	/**@param {Button} button  */
@@ -662,6 +663,11 @@ class Button extends Clickable {
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img
 		button.imgScale = imgScale
+		Object.defineProperty(button, "tex", {
+			get() { return button.latex.tex },
+			set(v) { button.latex.tex = v }
+		})
+		return button
 	}
 
 }

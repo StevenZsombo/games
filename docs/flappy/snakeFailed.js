@@ -1,148 +1,152 @@
 var univ = {
     isOnline: false,
-    framerateUnlocked: false,
+    framerateUnlocked: true,
     dtUpperLimit: 999999999,//1000 / 30,
     denybuttons: false,
     showFramerate: true,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
+    allowQuietReload: true,
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
     on_each_start: null,
     on_first_run: null,
-    on_next_game_once: null,
-    allowQuietReload: true
+    on_next_game_once: null
+
 }
 
-const rules = {
-    gravity: .3,
-    pipewidth: 60,
-    pipegap: 230,
-    pipedistance: 600,
-    movespeed: 10,
-    birdsize: 20,
-    agentstartingX: 200,
-    birdjumpstrength: 8,
-    difficultyIncreasesOverTime: true,
-    addAI: true,
-    nextGenerationThresholdInclusive: 5,
-    pipedistancefixed: false
+let rules = {
+    boardSize: 32,
+    movesleftAfterApple: 200,
+    appleReward: 10000,
+    collisionPenalty: 100,
+    stepPenalty: 0.01,
+    LAYERS: [17, 17, 4]
 }
+/**@param {Snake} s */
+let computescore = (s) => s.apples * rules.appleReward - s.steps * rules.stepPenalty - s.collisions * rules.collisionPenalty
 
-let rulesTemp = { ...rules }
+const rulesOrig = { ...rules }
 
-class Pipe {
-    constructor() {
-        this.x = game.WIDTH
-        this.y = MM.random(300 + rulesTemp.pipegap, game.HEIGHT - 300)
-        this.draw = (screen) => {
-            MM.fillRect(screen, this.x, this.y, rulesTemp.pipewidth, game.HEIGHT - this.y, { color: "green" })
-            MM.fillRect(screen, this.x, 0, rulesTemp.pipewidth, this.y - rulesTemp.pipegap, { color: "green" })
-        }
-        game.add_drawable(this)
-    }
-}
-
-/**@type {Array<Pipe>} */
-let pipes = []
-let nextPipe = null
-
-class Bird {
-    constructor(agent) {
-        this.x = rulesTemp.agentstartingX
-        this.y = 400
-        this.velocity = 0
+class Snake {
+    constructor(agent, rect) {
+        this.head = [4, 2]
+        this.body = [[2, 2], [3, 2]]
+        this.direction = 1
+        this.addFoodToBoard()
         this.color = MM.randomColor()
-        this.draw = (screen) => { MM.drawCircle(screen, this.x, this.y, rulesTemp.birdsize, this) }
-        game.add_drawable(this, 6)
-        this.score = 0
-        this.alive = true
-        /**@type {Agent} */
-        this.agent = agent ?? new Agent([4, 6, 6, 6, 1]) //brain init
+        this.opacity = .5
+        this.rect = rect ?? game.rect
+        this.isAlive = true
 
+        this.score = 0
+        this.steps = 0
+        this.apples = 0
+        this.collisions = 0
+        this.movesleft = rules.movesleftAfterApple
+        /**@type {Agent} */
+        this.agent = agent ?? new Agent(rules.LAYERS)
     }
-    jump() { this.velocity = -rulesTemp.birdjumpstrength }
+
+    addFoodToBoard() {
+        let food = [MM.randomInt(0, rules.boardSize - 1), MM.randomInt(0, rules.boardSize - 1)]
+        if (this.body.some(b => b.every((x, i) => x == food[i]))) { this.addFoodToBoard() }
+        else { this.food = food }
+    }
+
+    move() {
+        this.steps++
+        this.head[0] += Snake.directions[this.direction][0]
+        this.head[1] += Snake.directions[this.direction][1]
+        if (this.food && this.head.every((x, i) => x == this.food[i])) {
+            this.apples++
+            this.movesleft = rules.movesleftAfterApple
+            this.addFoodToBoard()
+        } else {
+            this.body.shift()
+        }
+        if (this.isDanger(...this.head)) {
+            this.die()
+            this.collisions++
+        }
+        this.body.push([...this.head])
+        if (--this.movesleft <= 0) this.die()
+    }
+
+    isBody(x, y) {
+        return this.body.some(([u, w]) => x == u && y == w)
+    }
+
+    isWall(x, y) {
+        return x < 0 || y < 0 || x >= rules.boardSize || y >= rules.boardSize
+    }
+    isDanger(x, y) {
+        return this.isWall(x, y) || this.isBody(x, y)
+    }
+
+    draw(screen) {
+        const rect = this.rect
+        if (!rect) return
+        const sX = rect.width / rules.boardSize
+        const sY = rect.height / rules.boardSize
+            ;
+        this.body.forEach(([x, y]) => MM.fillRect(
+            screen, rect.x + x * sX, rect.y + y * sY, sX, sY,
+            this
+        ))
+        MM.fillRect(screen, rect.x + this.head[0] * sX, rect.y + this.head[1] * sY, sX, sY,
+            { ...this, color: "black" }
+        )
+        MM.fillRect(screen, rect.x + this.food[0] * sX, rect.y + this.food[1] * sY, sX, sY,
+            { ...this, color: "red" }
+        )
+    }
+
+    die() { }
+
+    //static directions = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }
+    static directions = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+
+    changeDirection(index) {
+        /*
+        let current = this.direction
+        if (index == "left" && current == "right") return
+        if (index == "right" && current == "left") return
+        if (index == "up" && current == "down") return
+        if (index == "down" && current == "up") return
+        */
+        if ((this.direction - index) % 2) this.direction = index
+    }
+}
+
+let snakes = []
+let bestSnake = null
+const bestSnakeChanged = (from) => {
+    if (from) from.rect = from.rectOrig
+    if (!game.playField) return
+    bestSnake = [...game.remaining][0]
+    if (!bestSnake) return
+    bestSnake.rect = game.playField
+    bestSnake.agent.showBrain(game.showField)
 
 
 }
 
-let brains = new Map()
-
-
-
-/**@type {Array<Bird>} */
-let birds = []
 const manager = new AgentManager()
 
 
 const generationFinished = function () {
     game.isPaused = true
-    game.isDrawing = false
-    birds.forEach(x => x.agent.score = x.score)
+    snakes.forEach(s => s.score = computescore(s))
+    snakes.forEach(s => s.agent.score = s.score)
+    manager.highestScore = Math.max(...snakes.map(s => s.score), manager.highestScore)
     manager.geneticAlgorithm()
-    birds = manager.agents.map((x, i) => new Bird(x))
-
-    manager.generations++
     main()
 
 }
 
 
-let bestBird = null
-const bestBirdChanged = () => {
-    bestBird = [...game.remaining][0]
-    if (game.extras_on_draw.length) showBrain(bestBird)
-}
-
-
-
-showBrainByDefault = true
-/**@param {Agent} agent */
-const showBrain = function (agent, circleSize = 50) {
-    agent ??= bestBird
-    if (agent instanceof Bird) agent = agent.agent
-    if (!agent) return
-    game.watcher.shownBrain = agent
-    game.extras_on_draw = []
-    const watcher = game.watcher
-    //Drawing and setting up the nodes
-    const nodes = []
-    const cols = watcher.splitGrid(1, agent.layers.length).flat()
-    agent.layers.forEach((layer, i) => {
-        nodes.push([])
-        let rows = cols[i].splitGrid(layer.length, 1).flat().map(Button.fromRect)
-        rows.forEach((b, j) => {
-            nodes.at(-1).push(b)
-            Button.make_circle(b)
-            b.move(b.width / 2, b.height / 2)
-            b.width = 50
-            b.height = 0
-            b.update = function () {
-                let v = agent.layers[i][j] //expect -1 to 1
-                this.color = MM.valueToColor(v)
-            }
-            b.dynamicText = () => {
-                b.update()
-                return Number(agent.layers[i][j]).toFixed(2)
-
-            }
-        })
-    })
-    //Drawing and setting up the lines
-    const lineWidth = 30
-    game.extras_on_draw.push(() => {
-        agent.matrices.forEach((matrix, k) => matrix.forEach((row, i) => row.forEach((v, j) => {
-            MM.drawLine(game.screen, nodes[k][j].centerX, nodes[k][j].centerY,
-                nodes[k + 1][i].centerX, nodes[k + 1][i].centerY,
-                { width: Math.max(1, Math.abs(v) * lineWidth), color: MM.valueToColor(v) }
-            )
-        })))
-    })
-    game.extras_on_draw.push(...nodes.flat().map(x => x.draw.bind(x, game.screen)))
-
-
-}
 
 
 class Game extends GameCore {
@@ -180,18 +184,35 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
-        rulesTemp = { ...rules }
-        if (birds.length == 0 && rules.addAI) {
-            birds.push(...Array(100).fill().map(() => new Bird()))
+        rules = { ...rulesOrig }
+        const rects = ((b) => b.rightat(game.WIDTH - b.top))(this.rect.copy.resize(1000, 1000)).splitGrid(10, 10).flat().map(Button.fromRect)
+        rects.forEach(x => {
+            x.color = "white"
+        })
+
+        if (snakes.length == 0) {
+            rects.forEach(x => snakes.push(new Snake(undefined, x)))
+            manager.agents = snakes.map(x => x.agent)
         } else {
-            this.add_drawable(birds)
+            snakes = rects.map((r, i) => new Snake(manager.agents[i], r))
         }
-        this.score = 0
-        pipes.length = 0
-        pipes.push(new Pipe())
-        nextPipe = pipes[0]
-        this.remaining = new Set(birds)
-        if (manager.agents.length == 0) manager.agents = birds.map(x => x.agent)
+        this.add_drawable(snakes)
+        this.add_drawable(rects, 3)
+
+        this.remaining = new Set(snakes)
+        snakes.forEach(s => {
+            s.die = () => {
+                this.remaining.delete(s)
+                s.isAlive = false
+                s.color = "black"
+                if (s === bestSnake) bestSnakeChanged(s)
+            }
+            s.rectOrig = s.rect
+        })
+
+        this.time = 0
+        bestSnake = snakes[0]
+
 
 
 
@@ -203,7 +224,6 @@ class Game extends GameCore {
 
         this.commands =
             [
-                "q: jump",
                 "w: pause",
                 "d: draw?",
                 "f: speed?",
@@ -218,6 +238,7 @@ class Game extends GameCore {
         watcher.resize(1000, 600)
         watcher.topat(0)
         watcher.rightat(game.WIDTH)
+
         this.add_drawable(watcher, 3)
         const commandButton = watcher.copy.stretch(.15, 1)
         commandButton.rightat(watcher.right)
@@ -229,11 +250,7 @@ class Game extends GameCore {
         const stats = new Button()
         this.stats = stats
         stats.dynamicText = () => [
-            ["Generation", manager.generations],
-            ["Highest score", manager.highestScore],
-            ["Current score", game.score],
-            ["Birds left:", game.remaining.size]
-
+            [0, 0]
         ].map(([x, y]) => x + ": " + y).join("\n")
         stats.resize(400, 300)
         stats.opacity = 0.25
@@ -241,11 +258,18 @@ class Game extends GameCore {
         stats.bottomat(game.rect.bottom)
         this.add_drawable(stats)
 
+        watcher.visible = false
+        commandButton.visible = false
+        stats.visible = false
 
-        bestBirdChanged()
-        showBrainByDefault && showBrain()
+        this.playField = Button.fromRect(this.rect.copy.resize(400, 400).leftat(10).topat(100))
+        this.showField = this.playField.copy.move(0, 500)
+        this.playField.color = "white"
+        this.add_drawable(this.playField, 3)
+        this.add_drawable(this.showField, 3)
+        this.showField.visible = false
 
-        // this.player = new Bird()
+        bestSnakeChanged()
 
 
 
@@ -261,101 +285,65 @@ class Game extends GameCore {
     //#region update_more
     update_more(dt) {
 
-        if (this.keyboarder.pressed["q"]) if (this.player) { this.player.jump() } else {
-            this.player = new Bird(); this.player.x -= 100; this.player.y = bestBird?.y || 400; this.player.color = "red"
-        }
         if (this.keyboarder.pressed["w"]) game.isPaused = !game.isPaused
         if (this.keyboarder.pressed["r"]) rules.addAI && generationFinished()
         if (this.keyboarder.pressed["d"]) game.toggleIsDrawing()
         if (this.keyboarder.pressed["f"]) game.toggleFramerateUnlocked()
-        if (this.keyboarder.pressed["c"]) if (game.extras_on_draw.length == 0) { showBrain() } else { game.extras_on_draw.length = 0 }
+        if (this.keyboarder.pressed["c"]) console.error("to be implemented")
 
 
 
         //pause if no agents left
-        if (this.remaining.size <= rules.nextGenerationThresholdInclusive && rules.addAI) {
-            generationFinished()
-        }
+        if (game.remaining.size <= 0) generationFinished()
 
         //pause stops here
         if (game.isPaused) return
-
+        this.time++
 
 
         //#region neural network updates
         this.updateNeuralNetworks(dt)
-        //#endregion
+            //#endregion
 
-        //#region game updates
-        if (pipes.at(-1)?.x < game.WIDTH - rulesTemp.pipedistance) {
-            if (rules.pipedistancefixed || Math.random() < 0.1 || pipes.length == 1) pipes.push(new Pipe())
-        }
-        if (pipes[0]?.x + rulesTemp.pipewidth < 0) pipes.shift()
-        nextPipe = pipes.find(pipe => pipe.x + rulesTemp.pipewidth > rulesTemp.birdsize + rulesTemp.agentstartingX)
-        for (const pipe of pipes) {
-            pipe.x -= rulesTemp.movespeed
-        }
-        this.score += 1
-        if (rulesTemp.difficultyIncreasesOverTime && this.score % 600 == 0) {
-            rulesTemp.movespeed += rules.movespeed * .05
-            rulesTemp.pipegap *= 0.95
-            rulesTemp.pipewidth *= 0.9
-        }
-
-        manager.highestScore = this.score > manager.highestScore ? this.score : manager.highestScore
-        for (const bird of this.remaining) {
-            if (bird.alive) {
-                bird.y += bird.velocity
-                bird.velocity += rulesTemp.gravity
-                bird.score += 1
-                //check collisions
-                if (
-                    bird.y < 0 || bird.y > game.HEIGHT ||
-                    bird.x + rulesTemp.birdsize >= nextPipe.x &&
-                    bird.x - rulesTemp.birdsize <= nextPipe.x + rulesTemp.pipewidth &&
-                    (bird.y + rulesTemp.birdsize > nextPipe.y || bird.y - rulesTemp.birdsize < nextPipe.y - rulesTemp.pipegap)
-                ) {
-                    bird.alive = false
-                }
-            } else if (bird.x >= -100) {
-                bird.x -= rulesTemp.movespeed
-            } else {
-                this.remaining.delete(bird)
-                if (bird === bestBird) bestBirdChanged()
-                game.remove_drawable(bird)
-            }
-        }
-
-
-        if (this.player) {
-            if (this.dead) return
-            const bird = this.player
-            bird.y += bird.velocity
-            bird.velocity += rulesTemp.gravity
-            if (pipes.find(pipe =>
-                bird.y < 0 || bird.y > game.HEIGHT ||
-                bird.x + rulesTemp.birdsize >= pipe.x &&
-                bird.x - rulesTemp.birdsize <= pipe.x + rulesTemp.pipewidth &&
-                (bird.y + rulesTemp.birdsize > pipe.y || bird.y - rulesTemp.birdsize < pipe.y - rulesTemp.pipegap)
-            )
-            ) {
-                this.dead = true
-                this.remove_drawable(bird)
-                GameEffects.popup("Game over :(", { on_end: () => { game.player = null; game.dead = null } })
-            }
-        }
+            //#region game updates
+            ;
+        [...this.remaining].forEach(s => s.move())
 
         //#endregion
 
     }
 
     updateNeuralNetworks(dt) {
-        for (const bird of game.remaining) {
-            const agent = bird.agent
-            const distanceVector = [bird.x - nextPipe.x, bird.y - nextPipe.y]
-            agent.propagate([distanceVector[0] / 100, distanceVector[1] / 100, bird.velocity / 10, rulesTemp.movespeed / 20])
-            if (agent.outputs[0] > .5) bird.jump()
-        }
+        ;
+        snakes.forEach(/**@param {Snake} s*/ s => {
+            const [x, y] = s.head
+            s.agent.propagate([
+                Math.sign(s.food[0] - s.head[0]),
+                Math.sign(s.food[1] - s.head[1]),
+                Math.abs(s.food[0] - s.head[0]) + Math.abs(s.food[1] - s.head[1]) / rules.boardSize,
+                s.movesleft / rules.movesleftAfterApple,
+                s.isBody(x, y + 1),
+                s.isBody(x, y - 1),
+                s.isBody(x - 1, y),
+                s.isBody(x + 1, y),
+                (s.direction == 0),
+                (s.direction == 1),
+                (s.direction == 2),
+                (s.direction == 3),
+                s.body.length / 100,
+                x / rules.boardSize,
+                y / rules.boardSize,
+                1 - x / rules.boardSize,
+                1 - y / rules.boardSize
+            ].map(Number))
+            const out = s.agent.outputs
+            const largestIndex = out.reduce((p, c, i, a) => c > a[p] ? i : p, 0)
+            s.changeDirection(largestIndex)
+        })
+
+
+
+
     }
     //#endregion
     ///end update_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -365,7 +353,6 @@ class Game extends GameCore {
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region draw_more
     draw_more(screen) {
-        MM.drawCircle(screen, nextPipe.x, nextPipe.y, 5, { color: "red" })
 
 
 
@@ -375,7 +362,7 @@ class Game extends GameCore {
 
 
     }
-    #end
+
     ///end draw_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                            ^^^^DRAW^^^^                                                      ///
     ///                                                                                                              ///
@@ -406,10 +393,3 @@ const dev = {
 
 }/// end of dev
 
-
-
-/*
-
-
-
-*/

@@ -314,6 +314,9 @@ class MM {
         ret = x > max ? max : ret
         return ret
     }
+    static clamp(x, minXAllowed, maxXAllowed) {
+        return x < minXAllowed ? minXAllowed : x > maxXAllowed ? maxXAllowed : x
+    }
 
     static isNearInteger(x, tolerance = 0.01) {
         const distance = Math.abs(x % 1)
@@ -346,8 +349,17 @@ class MM {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
 
+    static sigmoid(x) {
+        return 1 / (1 + Math.exp(-x))
+    }
+
+    static ReLU(x) {
+        return x > -0 ? x : 0
+    }
+
     static randomArray(length) {
         return Array(length).fill().map(Math.random).map(x => x - 0.5)
+        // return Array(length).fill().map(Math.random)
     }
 
     static randomMatrix(rows, columns) {
@@ -362,8 +374,13 @@ class MM {
         return v.map((x, i) => x + w[i])
     }
 
+
+    static vectorMinusVector(v, w) {
+        return v.map((x, i) => x - w[i])
+    }
+
     static matrixLinearCombination(a, mat1, b, mat2) {
-        return mat1.map((row, i) => row.map((entry, j) => a * entry + b * mat2[i][j]))
+        return mat1.map((row, i) => row.map((_, j) => a * mat1[i][j] + b * mat2[i][j]))
     }
 
     static vectorLinearCombination(a, v, b, w) {
@@ -658,10 +675,10 @@ class MM {
     }
 
     static loadScript(scriptName, callback) {
+        const oldGlobals = Object.keys(window)
         const script = document.createElement("script")
         script.onload = () => {
-            this.refresh.bind(this)
-            console.log(scriptName, "succesfully loaded.")
+            console.log(scriptName, "succesfully loaded.\nNew globals:", Object.keys(window).filter(x => !oldGlobals.includes(x)))
             callback?.()
         }
         script.src = scriptName
@@ -681,6 +698,12 @@ class MM {
         const lastKey = keys.pop();
         const target = keys.reduce((obj, key) => obj[key], startObj);
         target[lastKey] = value;
+    }
+
+    static valueToColor(v) {
+        return v < 0
+            ? `rgb(255,${Math.floor(255 * (1 + v))},${Math.floor(255 * (1 + v))})`
+            : `rgb(${Math.floor(255 * (1 - v))},${Math.floor(255 * (1 - v))},255)`
     }
 
 

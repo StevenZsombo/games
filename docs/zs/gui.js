@@ -1,3 +1,4 @@
+//#region Framerater
 class Framerater {
 	constructor(isRunning = true) {
 		this.measuredTimeInterval = 1000
@@ -45,7 +46,7 @@ class Framerater {
 		}
 	}
 }
-
+//#region Keyboarder
 class Keyboarder {
 	constructor(denybuttons) {
 		if (denybuttons === null) {
@@ -115,6 +116,8 @@ class Keyboarder {
 
 }
 
+
+//#region Mouser
 class Mouser {
 	constructor(canvas) {
 		this.x = null
@@ -229,6 +232,7 @@ class Mouser {
 
 }
 
+//#region Cropper
 class Cropper {
 	constructor() {
 		/**@type {HTMLCanvasElement} */
@@ -327,7 +331,7 @@ class Cropper {
 		return ret
 	}
 }
-
+//#region customFont
 class customFont {
 	static pattern = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~" `
 
@@ -404,14 +408,18 @@ class customFont {
 		}
 	}
 }
-
+//#endregion
+//#region LatexManager
 class LatexManager {
 	constructor(tex) {
-		this._tex = tex
+		//if (!window["MathJax"]) { MM.loadScript("tex-svg.js") }
+		MM.require(window, "MathJax")
+		this._tex = tex ?? ""
 		this._texLast = null
 		this.img = new Image()
 		this.refresh()
 	}
+
 	/**@param {string} str  */
 	set tex(str) {
 		if (str === this._tex) return
@@ -426,6 +434,55 @@ class LatexManager {
 		)
 	}
 
+	static matrixToTex(matrix) {
+		if (!matrix || matrix.length == 0) return ""
+		if (!Array.isArray(matrix[0])) return LatexManager.vectorToTex(matrix)
+		return `\\begin{pmatrix}${matrix.map(row => row.join("&")).join("\\\\")}\\end{pmatrix}`
+	}
+
+	static vectorToTex(vector) {
+		return `\\begin{pmatrix}${vector.join("\\\\")}\\end{pmatrix}`
+	}
+
 
 }
 //#endregion
+
+class Supabase {
+	static acquireName() {
+		const nameID = localStorage.getItem('nameID') ||
+			(() => {
+				const nameID = MM.randomID()
+				localStorage.setItem("nameID", nameID)
+				return nameID
+			})()
+		const name = localStorage.getItem('name') ||
+			(() => {
+				const name = prompt("Please tell me your name");
+				localStorage.setItem("name", name)
+				return name
+			})()
+		return { name, nameID }
+	}
+	static async addRow(event, data) {
+		const SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
+		const SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
+		try {
+			await fetch(`${SUPABASE_URL}/rest/v1/gameEvents`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'apikey': SUPABASE_KEY,
+					'Authorization': `Bearer ${SUPABASE_KEY}`
+				},
+				body: JSON.stringify({
+					event, data,
+					...Supabase.acquireName()
+				})
+			})
+			console.log("Sent to server", event, data)
+		} catch (e) {
+			console.error("Failed to write", event, data)
+		}
+	}
+}
