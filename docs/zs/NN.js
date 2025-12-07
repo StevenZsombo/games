@@ -16,23 +16,23 @@ class AgentManager {
 
     geneticAlgorithm(populationTargetSize) {
         this.generations++
+        populationTargetSize ??= this.agents.length
         const breed = this.breed
         const oldAgents = [...this.agents].sort((x, y) => y.score - x.score).slice(
             0, Math.floor(this.cutoffRatio * this.agents.length) + 1
         ) // ordered by score, cut off after a certain ratio
-        populationTargetSize ??= oldAgents.length
 
         let newAgents = []
         for (let i = 0; i < populationTargetSize * this.elitismRatio; i++) {
             const old = oldAgents[i]
             const mut = new Agent(old.nodesPerLayer, old.matrices, old.biases)
             mut.mutate(this.perWeight, this.perBias)
-            mut.id = `${old.id}~${old.score}`
+            //mut.id = `${old.id}~${old.score}`
             newAgents.push(mut)
         }
         for (let i = 0; i < populationTargetSize * this.elitismRatio; i++) {
             newAgents.push(oldAgents[i])
-            oldAgents[i].id += `+${oldAgents[i].score}`
+            //oldAgents[i].id += `+${oldAgents[i].score}`
         }
         for (let i = 0; i < populationTargetSize * this.newBloodRatio; i++) {
             newAgents.push(new Agent(oldAgents[0].nodesPerLayer))
@@ -46,7 +46,7 @@ class AgentManager {
             const dad = oldAgents.filter(x => x !== mom)[dadIndex]
             const kid = this.breed(mom, dad, 0, 0.3)
             if (Math.random() < this.mutationChancePerAgent) kid.mutate(this.perWeight, this.perBias)
-            kid.id = `(${mom.id}:${dad.id})->(${mom.score}^${dad.score})`
+            //kid.id = `(${mom.id}:${dad.id})->(${mom.score}^${dad.score})`
             newAgents.push(kid)
         }
 

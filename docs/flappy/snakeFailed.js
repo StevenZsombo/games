@@ -19,13 +19,14 @@ var univ = {
 let rules = {
     boardSize: 32,
     movesleftAfterApple: 200,
-    appleReward: 10000,
-    collisionPenalty: 100,
-    stepPenalty: 0.01,
-    LAYERS: [17, 17, 4]
+    appleReward: 5000,
+    surviveReward: 1000,
+    collisionPenalty: 500,
+    stepPenalty: 0.1,
+    LAYERS: [4, 7, 7, 7, 4]
 }
 /**@param {Snake} s */
-let computescore = (s) => s.apples * rules.appleReward - s.steps * rules.stepPenalty - s.collisions * rules.collisionPenalty
+let computescore = (s) => s.apples * rules.appleReward - s.steps * rules.stepPenalty - s.collisions * rules.collisionPenalty + s.survived * rules.surviveReward
 
 const rulesOrig = { ...rules }
 
@@ -44,6 +45,7 @@ class Snake {
         this.steps = 0
         this.apples = 0
         this.collisions = 0
+        this.survived = 0
         this.movesleft = rules.movesleftAfterApple
         /**@type {Agent} */
         this.agent = agent ?? new Agent(rules.LAYERS)
@@ -71,7 +73,10 @@ class Snake {
             this.collisions++
         }
         this.body.push([...this.head])
-        if (--this.movesleft <= 0) this.die()
+        if (--this.movesleft <= 0) {
+            this.die()
+            this.survived = 1
+        }
     }
 
     isBody(x, y) {
@@ -142,6 +147,7 @@ const generationFinished = function () {
     snakes.forEach(s => s.agent.score = s.score)
     manager.highestScore = Math.max(...snakes.map(s => s.score), manager.highestScore)
     manager.geneticAlgorithm()
+    snakes = manager.agents.map((x, i) => new Snake(x, snakes[i].rectOrig))
     main()
 
 }
@@ -193,8 +199,6 @@ class Game extends GameCore {
         if (snakes.length == 0) {
             rects.forEach(x => snakes.push(new Snake(undefined, x)))
             manager.agents = snakes.map(x => x.agent)
-        } else {
-            snakes = rects.map((r, i) => new Snake(manager.agents[i], r))
         }
         this.add_drawable(snakes)
         this.add_drawable(rects, 3)
@@ -318,23 +322,20 @@ class Game extends GameCore {
         snakes.forEach(/**@param {Snake} s*/ s => {
             const [x, y] = s.head
             s.agent.propagate([
-                Math.sign(s.food[0] - s.head[0]),
-                Math.sign(s.food[1] - s.head[1]),
-                Math.abs(s.food[0] - s.head[0]) + Math.abs(s.food[1] - s.head[1]) / rules.boardSize,
-                s.movesleft / rules.movesleftAfterApple,
-                s.isBody(x, y + 1),
-                s.isBody(x, y - 1),
-                s.isBody(x - 1, y),
-                s.isBody(x + 1, y),
-                (s.direction == 0),
-                (s.direction == 1),
-                (s.direction == 2),
-                (s.direction == 3),
-                s.body.length / 100,
-                x / rules.boardSize,
+                //Math.sign(s.food[0] - s.head[0]),
+                //Math.sign(s.food[1] - s.head[1]),
+                s.isDanger(x, y + 1),
+                s.isDanger(x, y - 1),
+                s.isDanger(x - 1, y),
+                s.isDanger(x + 1, y),
+                //s.direction == 0 ? 1 : s.direction == 2 ? -1 : 0,
+                //s.direction == 1 ? 1 : s.direction == 3 ? -1 : 0,
+                //s.body.length / 100
+                /*x / rules.boardSize,
                 y / rules.boardSize,
                 1 - x / rules.boardSize,
                 1 - y / rules.boardSize
+                */
             ].map(Number))
             const out = s.agent.outputs
             const largestIndex = out.reduce((p, c, i, a) => c > a[p] ? i : p, 0)
