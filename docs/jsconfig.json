@@ -5,7 +5,7 @@
     },
     "include": [
         "./*.js",
-        "./zs//*.js"
+        "./zs/*.js"
     ],
     "exclude": [
         "node_modules",
