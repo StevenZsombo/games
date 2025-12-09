@@ -305,8 +305,8 @@ class MM {
 
     }
 
-    static between(x, min, max) {
-        return (x >= min) && (x <= max)
+    static between(x, bound1, bound2) {
+        return (x < bound1) != (x < bound2) || x == bound1 || x == bound2
     }
 
     static boundWithin(x, min, max) {
@@ -576,7 +576,9 @@ class MM {
         this.centeratV(MM.rotatePointAroundPoint(this.cx, this.cy, u, w, rad))
     }
 
-    /**Determines if the given point is "to the right of" the given line.*/
+    /**Determines if the given point is "to the right of" the given line.
+     * It might be to its left instead but nobody cares.
+    */
     static collideRightOfLine(ptx, pty, la, lb, lu, lw) {
         const vx = ptx - la
         const vy = pty - lb
