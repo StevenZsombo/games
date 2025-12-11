@@ -217,117 +217,30 @@ const [a1, a2] = [test1, test2].map(parse)
 
 let a = a1
 
-const bitHack = n => [...Array(2 ** n)].map((_, i) =>
-    Array.from({ length: n }, (_, j) => !!(i & (1 << j)))
-)
+const greedy = ({ buttons, joltage }) => {
+    buttons = [...buttons].sort((x, y) => y.length - x.length)
+    let grouped = buttons.reduce((s, t) => ((s.get(t.length) ?? s.set(t.length, []).get(t.length)).push(t), s), new Map())
+    let start = joltage.map(x => 0)
+    let presses = buttons.map(x => 0)
 
-const press = (lights, buttons, bits) => {
-    let start = Array(lights.length).fill(false)
-    bits.forEach((x, i) => {
-        if (x) buttons[i].forEach(u => start[u] = !start[u])        //or ^=1 for bitwise xor with true
-    })
-    return lights.every((x, i) => x == start[i])
+    
+    return { grouped, start, presses, buttons }
 }
 
-
-const allGood = row => {
-    let allBits = bitHack(row.buttons.length)
-    let goodBits = allBits.filter(bits => press(row.lights, row.buttons, bits))
-    return Math.min(...goodBits.map(x => x.reduce((s, t) => s + t)))
-}
-
-/*part 2 plan
-handle the least?any button first, then remove those buttons. repeat until done. track as we must.
-*/
-
-
-
-
-//sum objects and size-1 separators for splitting them. can use day 3 pointer logic, or recursion.
-
-/*
-const jSet = ({ buttons, joltage }) => {
-    for (let target = 0; target < joltage.length; target++) { //can optimize min -> max
-        let relevant = buttons.filter(b => b.includes(target))
-        let targetJoltage = joltage[target]
-        //say the target joltage is 7. need a mask of relevant$button length ints that sum to 7.
+const attemptPress = (button, current, joltage) => {
+    let after = [...current]
+    button.forEach(b => after[b]++)
+    let win = true
+    let valid = true
+    for ([i, x] of current.entries()) {
+        if (x > joltage[i]) {
+            valid = false
+            win = false
+            break
+        }
+        if (!win || x <= joltage[i]) {
+            win = false
+        }
     }
+    return { after, win, valid }
 }
-*/
-
-let wins
-let bestWin
-let loopcount //4839703 with depth
-const reset = () => { wins = [], bestWin = 0, loopcount = 0 }
-reset()
-
-
-const addJoltage = (buttons, joltage, start, presses) => {
-    start ??= Array(joltage.length).fill(0)
-    presses ??= 0
-    if (bestWin && presses + 1 >= bestWin) return
-    let anyWin = false
-    for (let b of buttons) {
-        loopcount++
-        let afterPress = [...start]
-        b.forEach(x => afterPress[x] += 1)
-        let win = true
-        for (let [i, x] of afterPress.entries()) {
-            if (x > joltage[i]) return null
-            if (x < joltage[i]) win = false
-        }
-        if (win) {
-            wins.push(presses + 1)
-            if (!bestWin || bestWin > presses + 1) bestWin = presses + 1
-            return presses + 1
-        }
-        addJoltage(buttons, joltage, afterPress, presses + 1)
-    }
-}
-
-const rec = ({ buttons, joltage }) => {
-    reset()
-    addJoltage(buttons, joltage)
-}
-
-const step = (buttons, joltage, start) => {
-    //presses ??= 0
-    //if (bestWin && presses + 1 >= bestWin) return
-    let ret = []
-    outerloop:
-    for (let b of buttons) {
-        loopcount++
-        let afterPress = [...start]
-        b.forEach(x => afterPress[x] += 1)
-        let win = true
-        innerloop:
-        for (let [i, x] of afterPress.entries()) {
-            if (x > joltage[i]) continue outerloop
-            if (x < joltage[i]) {
-                win = false
-            }
-        }
-        if (win) {
-            return true
-        }
-        ret.push(afterPress)
-    }
-    return ret
-}
-
-const manage = ({ buttons, joltage }) => {
-    let presses = 0
-    let currentState = [Array(joltage.length).fill(0)]
-    while (true) {
-        presses++
-        let afterStates = []
-        for (let item of currentState) {
-            let after = step(buttons, joltage, item)
-            if (after === true) return presses
-            afterStates.push(...after.filter(x => x))
-        }
-        currentState = afterStates
-
-    }
-}
-

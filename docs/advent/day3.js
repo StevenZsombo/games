@@ -217,12 +217,15 @@ var tagged = a.map(row => row.map((x, i) => {
     return { n: x, i: i }
 }))
 
-var reversedSorted = tagged.map(x => [...x].reverse().sort((x, y) => y.n - x.n))
+//var reversedSorted = tagged.map(x => [...x].reverse().sort((x, y) => y.n - x.n))
 
 var rmm = row =>
-    row.reduce((s, t) => t.n > s.max ? { max: t.n, i: t.i } : s, { max: 0, i: 0 })
+    row.reduce((s, t, i) => t.n >= s.max.n ? { max: t, index: i } : s, { max: row[0], index: 0 })
 
+var lmm = row =>
+    row.reduce((s, t, i) => t.n > s.max.n ? { max: t, index: i } : s, { max: row[0], index: 0 })
 
+/*
 var attempt = (row, targetSize = 12, selected = null) => {
     selected ??= []
     while (selected.length < targetSize) {
@@ -233,8 +236,60 @@ var attempt = (row, targetSize = 12, selected = null) => {
     }
     return selected.sort((x, y) => x.i - y.i)
 }
+    */
 
 //var ans = tagged.map(x => attempt(x))
 
+var toNum = data => Number(data.sort((x, y) => x.i - y.i).map(x => x.n).join(""))
 
+/*
+var attempt = (row, targetSize = 12) => {
+    row = [...row]
+    let selected = []
+    while (selected.length < targetSize) {
+        let l = lmm(row)
+        let r = rmm(row)
+        if (toNum([...selected, r.max]) >= toNum([...selected, l.max])) {
+            selected.push(r.max)
+            row.splice(r.index, 1)
+        } else {
+            selected.push(l.max)
+            row.splice(l.index, 1)
+        }
+    }
+    return toNum(selected)
+}
 
+*/
+/*var attempt = (row, targetSize = 12) => {
+    let def = row.slice(-targetSize).map(x => { return { ...x } })
+    def.forEach((x, ind) => {
+        for (let pointer = ind - 1; pointer >= 0; pointer--) {
+            if (ind > 0 && pointer == def[ind - 1].i) continue
+            if (row[pointer].n >= def[ind].n) {
+                def[ind] = row[pointer]
+            }
+        }
+
+    })
+    return def
+}
+*/
+
+var attempt = (arr, targetSize = 12) => {
+    let pointers = arr.map((x, i) => i).slice(-targetSize)
+    for (let i = 0; i < pointers.length; i++) {
+        let bestValue = arr[pointers[i]]
+        let bestIndex = pointers[i]
+        for (let j = bestIndex - 1; j >= 0; j--) {
+            if (i > 0 && j == pointers[i - 1]) break
+            if (arr[j] >= bestValue) {
+                bestValue = arr[j]
+                bestIndex = j
+            }
+        }
+        pointers[i] = bestIndex
+    }
+
+    return pointers.map(j => arr[j])
+}
