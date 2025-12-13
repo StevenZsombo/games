@@ -332,6 +332,59 @@ class MM {
         return Math.abs(a)
     }
 
+    static fact(n) {
+        if (n == 0 || n == 1) return 1
+        return this.range(1, n + 1).reduce((s, t) => s * t, 1)
+    }
+    static binom(n, k) {
+        return Array.from({ length: k }, (_, i) => i).reduce((s, t) => s * (n - t) / (t + 1), 1)
+    }
+    static smallestPrimeFactor(n) { //unoptimized and not using BigInt
+        if (!Number.isFinite(n)) throw "can't factorize non-numbers"
+        for (let j = 2; j <= n; j++) {
+            if (!(n % j)) return j
+        }
+    }
+    static isPrime(n) {
+        return n == this.smallestPrimeFactor(n)
+    }
+    static primeFactorization(n) {
+        const ret = []
+        while (n >= 2) {
+            let spf = this.smallestPrimeFactor(n)
+            do {
+                ret.push(spf)
+                n /= spf
+            } while (!(n % spf))
+        }
+        return ret
+    }
+    /**@param {number} upto - Returns an array of all primes up to a number.  */
+    static primes(upto) {
+        const a = Array(upto + 1).fill(true)
+        a[0] = a[1] = false
+        for (let i = 2; i < upto + 1; i++) {
+            if (a[i]) {
+                let j = i
+                while (j < upto + 1) {
+                    j += i
+                    a[j] = false
+                }
+            }
+        }
+        return a.reduce((s, t, i) => (t && s.push(i), s), [])
+    }
+    static divisors(n) { //grossly unpotimized but whatevs
+        if (n <= 0) return []
+        const ret = []
+        for (let d = 1; d <= n; d++) {
+            if (!(n % d)) ret.push(d)
+        }
+        return ret
+    }
+
+
+
     static random(min, max) {
         return Math.random() * (max - min) + min
     }
@@ -496,48 +549,63 @@ class MM {
     static reshape(arr, cols) {
         ret = []
         while (arr.length) { ret.push(arr.splice(0, 3)) }
-        return
     }
 
     static mapNested(arr, func) {  //maps the elements of elements
         return arr.map(x => x.map(func))
     }
-
-    static *range(startorend, end) {
-        const [start, stop] = end !== undefined ? [startorend, end] : [0, startorend]
+    /**
+     * Returns all integers from 0 (or start) to exclusive end.
+     * @overload 
+     * @param {number} endExclusive
+     * @returns {Generator<number>}
+     * @overload
+     * @param {number} start 
+     * @param {number} endExclusive
+     * @returns {Generator<number>}
+     */
+    static *range(startOrEnd, endExclusive) {
+        const [start, stop] = endExclusive !== undefined ? [startOrEnd, endExclusive] : [0, startOrEnd]
         for (let i = start; i < stop; i++) {
             yield i
         }
-
     }
-    static *sliding_window(arr, windowsize) {
-        if (arr.length < windowsize) {
+    static *sliding_window(arr, windowSize) {
+        if (arr.length < windowSize) {
             return
         }
-        for (let i = 0; i <= arr.length - windowsize; i++) {
-            yield arr.slice(i, i + windowsize)
+        for (let i = 0; i <= arr.length - windowSize; i++) {
+            yield arr.slice(i, i + windowSize)
         }
         return
     }
 
-    static *permutations(a, k, c = [], u = new Set()) {
-        if (k === 0) yield c;
-        else for (const [i, v] of a.entries())
-            if (!u.has(i) && k > 0)
-                yield* MM.permutations(a, k - 1, [...c, v], new Set([...u, i]));
+    static *permutations(arr, wanted, c = [], u = new Set()) {
+        if (wanted === 0) yield c;
+        else for (const [i, v] of arr.entries())
+            if (!u.has(i) && wanted > 0)
+                yield* MM.permutations(arr, wanted - 1, [...c, v], new Set([...u, i]));
     }
 
-    static *combinations(arr, k, start = 0, current = []) {
-        if (k === 0) {
+    static *combinations(arr, wanted, start = 0, current = []) {
+        if (wanted === 0) {
             yield [...current];
             return;
         }
-        for (let i = start; i <= arr.length - k; i++) {
+        for (let i = start; i <= arr.length - wanted; i++) {
             current.push(arr[i]);
-            yield* MM.combinations(arr, k - 1, i + 1, current);
+            yield* MM.combinations(arr, wanted - 1, i + 1, current);
             current.pop();
         }
     }
+
+    static *powerset(arr) {
+        for (let mask = 0; mask < (1 << arr.length); mask++) {
+            yield arr.filter((_, i) => mask & (1 << i));
+        }
+    }
+
+
     static *cartesianProduct(...arrays) {
         if (arrays.length === 0) yield [];
         else {
@@ -549,6 +617,27 @@ class MM {
             }
         }
     }
+    /**Cycle through arrays or iterators infinitely. */
+    static *cycle(...iters) {
+        const values = iters.flatMap(x => [...x])
+        let index = 0
+        while (true) {
+            yield values[index]
+            index++
+            if (index == values.length) index = 0
+        }
+
+
+    }
+    /**Concatenate iterators */
+    static *concat(...iters) {
+        for (let iter of iters) for (let i of iter) yield i
+    }
+    /**Count from start=0 to infinity */
+    static *count(start = 0) {
+        while (true) yield start++
+    }
+
 
     static pairs(arr) {
         return arr.flatMap((u, i) => arr.slice(i + 1).map(w => [w, u]))
