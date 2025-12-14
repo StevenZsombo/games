@@ -147,13 +147,13 @@ class Anim {
 	 * Creates a custom animation
 	 * @param {Object} obj - Target object
 	 * @param {number} time - Duration in ms
-	 * @param {Function} func - Animation function, receives t = 0 -> 1
-	 * @param {string|Array<string>} origStrArr - Space-separated string or array
-	 * @returns {Anim} Animation instance
+	 * @param {Function} func - Animation function, bounds to object, receives t = 0 -> 1
+	 * @param {string|Array<string>} origStrOrArr - Space-separated string or array
+	 * @returns {Anim}
 	 */
-	static custom(obj, time, func, origStrArr, args = {}) {
-		if (origStrArr && !Array.isArray(origStrArr)) { origStrArr = origStrArr.split(" ") }
-		const settings = { func: func, orig: origStrArr, ...args }
+	static custom(obj, time, func, origStrOrArr, args = {}) {
+		if (origStrOrArr && !Array.isArray(origStrOrArr)) origStrOrArr = origStrOrArr.split(" ")
+		const settings = { func: func, orig: origStrOrArr, ...args }
 		return new Anim(obj, time, "custom", settings)
 	}
 	/**
@@ -540,7 +540,7 @@ class Anim {
 	}
 
 	custom() {
-		//{func: (t,obj)=>{}}, {orig:string[]} will be restored at the end
+		//{func: (t)=>{}} bound to object, {orig:string[]} will be restored at the end
 		if (!this.init) {
 			MM.require(this, "func")
 			this.init = true
@@ -550,8 +550,7 @@ class Anim {
 			}
 		}
 		const t = this.lerp(1 - this.time / this.totTime) //0 -> 1
-		//this.func.bind(this, t)
-		this.func(t, this.obj)
+		this.func.call(this.obj, t)
 
 	}
 }

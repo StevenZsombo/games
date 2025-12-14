@@ -1068,7 +1068,7 @@ const parse = str => {
     let fields = t.pop()
     let sizes = fields.map(x => x.split(":")[0].split("x").map(Number))
     let wanted = fields.map(x => x.split(":")[1].split(" ").slice(1).map(Number))
-    let presents = t.map(x => x.slice(1))
+    let presents = t.map(x => x.slice(1).map(x => x.split("").map(x => x == "#")))
     return { presents, fields, sizes, wanted }
 
 }
@@ -1083,3 +1083,21 @@ const volumeCheck = function (obj = a) {
     return volumes
 }
 volumeCheck()
+/*
+const getRotated = (obj = a) => {
+    obj.presentsRotated = []
+    for (let present of obj.presents) {
+        let ret = [present]
+        Array(3).fill().forEach(() => {
+            ret.push(present.map((row, i) => row.map((_, j) => ret.at(-1).at(j).at(-i + 1))))
+        })
+        obj.presentsRotated.push(ret)
+    }
+}
+getRotated()*/
+//no clue whatsoever.
+
+const att = ({ sizes, wanted, presentsRotated }) => {
+
+
+}

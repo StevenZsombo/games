@@ -209,6 +209,7 @@ const parse = str => {
             lights: row.shift().split("").slice(1, -1).map(x => x === "#"),
             joltage: row.pop().slice(1, -1).split(",").map(Number),
             buttons: row.map(x => x.slice(1, -1).split(",").map(Number)).sort((x, y) => y.length - x.length)
+            //sorted from largest
         }
     })
 }
@@ -223,4 +224,45 @@ const determineAllowance = (obj) => {
         obj.allowance.push(Math.min(...b.map(x => obj.joltage[x])))
     })
     return obj
+}
+
+
+const possibilities = function* (upperBounds) {
+    let current = [...upperBounds]
+    while (true) {
+        current[current.length - 1] -= 1
+        for (let j = current.length - 1; j > 0; j--) {
+            if (current[j] < 0) {
+                current[j] = upperBounds[j]
+                current[j - 1] -= 1
+            }
+        }
+        if (current[0] < 0) break
+        yield [...current]
+    }
+}
+
+const wellpressed = (buttons, presses, joltage) => {
+    const output = joltage.map(x => 0)
+    presses.forEach((press, j) => {
+        buttons[j].forEach(x => output[x] += press)
+    })
+    return output.every((x, i) => x == joltage[i])
+}
+
+
+const attempt = obj => {
+    if (!obj.allowance) determineAllowance(obj)
+    ans = possibilities(obj.allowance).find(x => wellpressed(obj.buttons, x, obj.joltage))
+    return ans.reduce((s, t) => s + t)
+}
+
+const tryit = (a) => { 
+    let total = a.length
+    let res = []
+    for (let i = 0; i < total; i++) { 
+        let ans = attempt(a[i])
+        res.push(ans)
+        console.log(res)
+    }
 }

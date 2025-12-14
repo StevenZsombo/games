@@ -1,7 +1,7 @@
 var univ = {
     isOnline: false,
-    framerateUnlocked: false,
-    dtUpperLimit: 999999999,//1000 / 30,
+    framerateUnlocked: true,
+    dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
     showFramerate: true,
     imageSmoothingEnabled: true,
