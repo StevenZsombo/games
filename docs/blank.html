@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Game by Steven Zs</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      /* Disable scrolling */
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+    }
+
+    canvas {
+      /* 16:9 aspect ratio (800/450 = ~1.778) */
+      width: min(177.8vh, 100vw);
+      /* 16/9 of viewport height */
+      height: min(56.25vw, 100vh);
+      /* 9/16 of viewport width */
+      /*image-rendering: smooth;*/
+      /* will override in code anyways*/
+      /* AA->noAA being: smooth, auto, crisp-edges, pixelated */
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="myCanvas" width="1920" height="1080"></canvas>
+
+
+  <script src="zs/tex-svg.js"></script>
+  <script src="zs/nerd-all.js"></script>
+  <script src="zs/MM.js" defer></script>
+  <script src="zs/scripts.js" defer></script>
+  <script src="zs/animations.js" defer></script>
+  <script src="zs/gui.js" defer></script>
+  <script src="zs/stgs.js" defer></script>
+  <script src="zs/chat.js" defer></script>
+  <script src="zs/NN.js" defer></script>
+  <script src="zs/iso.js" defer></script>
+  <script src="zs/gameCore.js" defer></script>
+  <script src="zs/sketchBlank.js" defer></script>
+</body>
+
+</html>

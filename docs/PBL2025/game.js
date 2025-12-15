@@ -188,6 +188,15 @@ class Game extends GameCore {
         startedWithTheseBirds = birds
         generations += 1
 
+        const stats = new Button()
+        stats.bottomat(game.rect.height)
+        stats.width = 200
+        stats.leftat(0)
+        stats.dynamicText = () =>
+            `Generations : ${generations}
+        Birds: ${birds.length}
+        Score: ${bestBird.score}`
+        game.add_drawable(stats)
 
 
 

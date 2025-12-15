@@ -25,8 +25,17 @@ const UniqueArray = function () {
 //#endregion
 //#region MM
 class MM {
-    static sum(arr) {
-        return arr.reduce((s, x) => s + x, 0)
+    static sum(iterable) {
+        return iterable.reduce((s, t) => s + t, 0)
+    }
+    static product(iterable) {
+        return iterable.reduce((s, t) => s * t, 1)
+    }
+    static min(iterable) {
+        return iterable.reduce((s, t) => s < t ? s : t)
+    }
+    static max(iterable) {
+        return iterable.reduce((s, t) => s > t ? s : t)
     }
 
 
@@ -37,7 +46,6 @@ class MM {
                 return func?.(...args)
             }
         }
-
         return function (...args) {
             func?.(...args)
             return ext?.(...args)
@@ -160,6 +168,7 @@ class MM {
         const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
         return { x: drawX, y: drawY }
     }
+
     //#region MM.plot
     /**@param {Rect} rect @param {CanvasRenderingContext2D} screen*/
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
@@ -288,7 +297,7 @@ class MM {
         const [diffx, diffy] = [cx - nx, cy - ny]
         screen.translate(diffx, diffy)
         screen.rotate(rad)
-        if (drawFunc = undefined) {
+        if (drawFunc == undefined) {
             drawFunc.apply(obj, screen, ...drawFuncArgs)
         } else {
             obj.draw(screen)
@@ -331,6 +340,59 @@ class MM {
         while (b !== 0) [a, b] = [b, a % b]
         return Math.abs(a)
     }
+
+    static fact(n) {
+        //if (n == 0 || n == 1) return 1
+        return this.range(1, n + 1).reduce((s, t) => s * t, 1)
+    }
+    static binom(n, k) {
+        return Array.from({ length: k }, (_, i) => i).reduce((s, t) => s * (n - t) / (t + 1), 1)
+    }
+    static smallestPrimeFactor(n) { //unoptimized and not using BigInt
+        if (!Number.isFinite(n)) throw "can't factorize non-numbers"
+        for (let j = 2; j <= n; j++) {
+            if (!(n % j)) return j
+        }
+    }
+    static isPrime(n) {
+        return n == this.smallestPrimeFactor(n)
+    }
+    static primeFactorization(n) {
+        const ret = []
+        while (n >= 2) {
+            let spf = this.smallestPrimeFactor(n)
+            do {
+                ret.push(spf)
+                n /= spf
+            } while (!(n % spf))
+        }
+        return ret
+    }
+    /**@param {number} upto - Returns an array of all primes up to a number.  */
+    static primes(upto) {
+        const a = Array(upto + 1).fill(true)
+        a[0] = a[1] = false
+        for (let i = 2; i < upto + 1; i++) {
+            if (a[i]) {
+                let j = i
+                while (j < upto + 1) {
+                    j += i
+                    a[j] = false
+                }
+            }
+        }
+        return a.reduce((s, t, i) => (t && s.push(i), s), [])
+    }
+    static divisors(n) { //grossly unpotimized but whatevs
+        if (n <= 0) return []
+        const ret = []
+        for (let d = 1; d <= n; d++) {
+            if (!(n % d)) ret.push(d)
+        }
+        return ret
+    }
+
+
 
     static random(min, max) {
         return Math.random() * (max - min) + min
@@ -386,9 +448,22 @@ class MM {
     static vectorLinearCombination(a, v, b, w) {
         return v.map((_, i) => a * v[i] + b * w[i])
     }
-
+    /**
+     * - Call a function each time over the given range.
+     * - Returns the array of outputs Python-like.
+     * - Can iterate backwards.
+     * @overload
+     * @param {number} startIndex 
+     * @param {Function} function
+     * @returns {Array<any>}
+     * 
+     * @overload
+     * @param {number} startIndex
+     * @param {number} endIndexExclusive
+     * @param {Function} function
+     * @returns {Array<any>}
+     */
     static forr(startIndex, funcOrEndIndex, funcIfEndIndex) {
-        //forr(2,f) or forr(2,4,f)
         let start, end, func
         if (funcIfEndIndex) {
             [start, end, func] = [startIndex, funcOrEndIndex, funcIfEndIndex]
@@ -402,6 +477,39 @@ class MM {
         }
         return ret
     }
+    /**
+     * - Lazy evaluation over a range. 
+     * - Returns a generator.
+     * - ...which does not execute before consumed.
+     * - Can iterate backwards.
+     * @overload
+     * @param {number} startIndex 
+     * @param {Function} function
+     * @returns {Generator}
+     * 
+     * @overload
+     * @param {number} startIndex
+     * @param {number} endIndexExclusive
+     * @param {Function} function
+     * @returns {Generator}
+     */
+    static *forrGenerator(startIndex, funcOrEndIndex, funcIfEndIndex) {
+        let start, end, func
+        if (funcIfEndIndex) {
+            [start, end, func] = [startIndex, funcOrEndIndex, funcIfEndIndex]
+        } else {
+            [start, end, func] = [0, startIndex, funcOrEndIndex]
+        }
+        const step = start < end ? 1 : -1
+        const ret = []
+        for (let i = start; i < end; i += step) {
+            yield func(i)
+        }
+    }
+
+
+
+
     /**
      * @param {Array} arr - Array to choose from
      * @param {number} [num]
@@ -480,79 +588,158 @@ class MM {
         }
     }
 
-    static *zip(u, w) {
-        const ret = []
-        const min = Math.min(u.length, w.length)
-        for (let i = 0; i < min; i++) {
-            yield [u[i], w[i]]
+    static *zip(...iterables) {
+        const generators = iterables.map(this.toGenerator)
+        let items
+        while (true) {
+            items = generators.map(x => x.next())
+            if (items.some(x => x.done)) return
+            yield items.map(x => x.value)
         }
-        return ret
     }
 
-    static getter(obj, propertyString, func) {
+    static monkeyPatchGetter(obj, propertyString, func) {
         Object.defineProperty(obj, propertyString, { get() { return func(obj) } })
     }
 
-    static reshape(arr, cols) {
-        ret = []
-        while (arr.length) { ret.push(arr.splice(0, 3)) }
-        return
+    static reshape(arr, columnsWidth) {
+        let ret = []
+        for (let i = 0; i < arr.length; i += columnsWidth) {
+            ret.push(arr.slice(i, i + columnsWidth))
+        }
+        return ret
     }
 
     static mapNested(arr, func) {  //maps the elements of elements
         return arr.map(x => x.map(func))
     }
-
-    static *range(startorend, end) {
-        const [start, stop] = end !== undefined ? [startorend, end] : [0, startorend]
+    /**
+     * Returns a generator of all integers from 0 (or start) to exclusive end.
+     * @overload 
+     * @param {number} endExclusive
+     * @returns {Generator<number>}
+     * @overload
+     * @param {number} start 
+     * @param {number} endExclusive
+     * @returns {Generator<number>}
+     */
+    static *range(startOrEnd, endExclusive = null) {
+        const [start, stop] = endExclusive !== null ? [startOrEnd, endExclusive] : [0, startOrEnd]
         for (let i = start; i < stop; i++) {
             yield i
         }
-
     }
-    static *sliding_window(arr, windowsize) {
-        if (arr.length < windowsize) {
-            return
+    /**
+    * Returns a generator of all integers from 0 (or start) to exclusive end.
+    * @overload 
+    * @param {number} endExclusive
+    * @returns {Array<number>}
+    * @overload
+    * @param {number} start 
+    * @param {number} endExclusive
+    * @returns {Array<number>}
+    */
+
+    static indices(startOrEnd, endExlusive = null) {
+        const [start, end] = endExlusive !== null ? [startOrEnd, endExlusive] : [0, startOrEnd]
+        return Array.from({ length: end - start }, (_, i) => start + i)
+    }
+    /**@param {Iterable} iterable - Converts an iterable to a generator.*/
+    static * toGenerator(iterable) {
+        yield* iterable
+    }
+    /**
+     * @param {Array | Generator} arrayOrGenerator 
+     * @param {number} windowSize 
+     */
+    static * sliding_window(arrayOrGenerator, windowSize) {
+        const generator = this.toGenerator(arrayOrGenerator)
+        const window = Array.from({ length: windowSize }, x => generator.next().value)
+        yield [].concat(window)
+        for (let item of generator) {
+            window.shift()
+            window.push(item)
+            yield [].concat(window)
         }
-        for (let i = 0; i <= arr.length - windowsize; i++) {
-            yield arr.slice(i, i + windowsize)
-        }
-        return
     }
 
-    static *permutations(a, k, c = [], u = new Set()) {
-        if (k === 0) yield c;
-        else for (const [i, v] of a.entries())
-            if (!u.has(i) && k > 0)
-                yield* MM.permutations(a, k - 1, [...c, v], new Set([...u, i]));
+    static * permutations(arr, nrWanted, c = [], u = new Set()) {
+        if (nrWanted === 0) yield c;
+        else for (const [i, v] of arr.entries())
+            if (!u.has(i) && nrWanted > 0)
+                yield* this.permutations(arr, nrWanted - 1, [...c, v], new Set([...u, i]));
     }
 
-    static *combinations(arr, k, start = 0, current = []) {
-        if (k === 0) {
+    static * combinations(arr, nrWanted, start = 0, current = []) {
+        if (nrWanted === 0) {
             yield [...current];
             return;
         }
-        for (let i = start; i <= arr.length - k; i++) {
+        for (let i = start; i <= arr.length - nrWanted; i++) {
             current.push(arr[i]);
-            yield* MM.combinations(arr, k - 1, i + 1, current);
+            yield* this.combinations(arr, nrWanted - 1, i + 1, current);
             current.pop();
         }
     }
-    static *cartesianProduct(...arrays) {
+
+    static * powerset(arr) {
+        for (let mask = 0; mask < (1 << arr.length); mask++) {
+            yield arr.filter((_, i) => mask & (1 << i));
+        }
+    }
+
+    static * cartesianProduct(...arrays) {
         if (arrays.length === 0) yield [];
         else {
             const [first, ...rest] = arrays;
             for (const item of first) {
-                for (const product of MM.cartesianProduct(...rest)) {
+                for (const product of this.cartesianProduct(...rest)) {
                     yield [item, ...product];
                 }
             }
         }
     }
+    /**Cycle through arrays or iterators infinitely. */
+    static * cycle(...iters) {
+        const values = iters.flatMap(x => [...x])
+        let index = 0
+        while (true) {
+            yield values[index]
+            index++
+            if (index == values.length) index = 0
+        }
 
+
+    }
+    /**Concatenate iterators */
+    static * concat(...iters) {
+        for (let iter of iters) for (let i of iter) yield i
+    }
+    /** - Poor man's islice. */
+    static * slice(generator, startIndex, endIndex = null) {
+        generator = this.toGenerator(generator)
+        let i = 0
+        while (i < startIndex) (generator.next(), i++)
+        while (endIndex === null || i < endIndex) {
+            const { value, done } = generator.next()
+            if (done) return
+            yield value
+            i++
+        }
+    }
+    /**Count from start=0 to infinity */
+    static * count(start = 0) {
+        while (true) yield start++
+    }
+
+    /**
+     * - Returns arrays. For a generator approach, use MM.combinations 
+     * @returns {Array<Array>}
+    */
     static pairs(arr) {
         return arr.flatMap((u, i) => arr.slice(i + 1).map(w => [w, u]))
     }
+
 
     static rotatePointAroundOrigin(x, y, rad) {
         const [c, s] = [Math.cos(rad), Math.sin(rad)]
@@ -564,7 +751,7 @@ class MM {
 
     static rotatePointAroundPoint(x, y, a, b, rad) {
         const [dx, dy] = [x - a, y - b]
-        const r = MM.rotatePointAroundOrigin(dx, dy, rad)
+        const r = this.rotatePointAroundOrigin(dx, dy, rad)
         return ({
             x: r.x + a,
             y: r.y + b
@@ -576,9 +763,7 @@ class MM {
         this.centeratV(MM.rotatePointAroundPoint(this.cx, this.cy, u, w, rad))
     }
 
-    /**Determines if the given point is "to the right of" the given line.
-     * It might be to its left instead but nobody cares.
-    */
+    /**Determines if the given point is "to the right of" the given line. */
     static collideRightOfLine(ptx, pty, la, lb, lu, lw) {
         const vx = ptx - la
         const vy = pty - lb
@@ -722,21 +907,12 @@ class MM {
             ? `rgb(255,${Math.floor(255 * (1 + v))},${Math.floor(255 * (1 + v))})`
             : `rgb(${Math.floor(255 * (1 - v))},${Math.floor(255 * (1 - v))},255)`
     }
-
+    //#endregion
 
 }
 //#endregion
-//#region end of MM
 
 
-
-
-
-
-
-
-
-//#endregion
 //#region GameEffects
 class GameEffects {
     //requires a global "game" to run

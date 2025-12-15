@@ -537,11 +537,6 @@ class Button extends Clickable {
 
 	}
 
-	/*
-	check(x, y, clicked, released, held, wheel) {//invisible buttons are also drawn now
-		return super.check(x, y, clicked, released, held, wheel)
-	}
-	*/
 
 	get copy() {
 		let result = new Button()
@@ -554,7 +549,6 @@ class Button extends Clickable {
 
 	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
 	static make_checkbox(button, preservePreviousFunction = false) {
-		button ??= this
 		if (preservePreviousFunction) {
 			button.on_click = MM.extFunc(button.on_click, button.selected_flip.bind(button))
 		} else {
@@ -593,7 +587,6 @@ class Button extends Clickable {
 
 	/**@param {Button} button  */
 	static make_draggable(button) {
-		button ??= this
 		button.on_drag = function (pos) {
 			this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
 		}
@@ -618,7 +611,6 @@ class Button extends Clickable {
 
 	/**@param {Button} button  */
 	static make_polygon(button, polyXYXYXY) {
-		button ??= this
 		button.polyXYXYXY = polyXYXYXY
 		button.draw_background = function (screen) {
 			MM.drawPolygon(screen, this.polyXYXYXY, { ...this, color: this.draw_color })
@@ -637,7 +629,6 @@ class Button extends Clickable {
 
 	/**@param {Button} button  */
 	static make_circle(button) {
-		button ??= this
 		button.draw_background = function (screen) {
 			MM.drawCircle(screen, this.centerX, this.centerY, this.width, {
 				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
@@ -652,14 +643,12 @@ class Button extends Clickable {
 
 	/**@param {Button} button @param {customFont} customFontInstance */
 	static make_pixelFont(button, customFontInstance) {
-		button ??= this
 		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
 		return button
 	}
 
 	/**@param {Button} button  */
 	static make_latex(button, texInitial, imgScale = 0) {
-		button ??= this
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img
 		button.imgScale = imgScale

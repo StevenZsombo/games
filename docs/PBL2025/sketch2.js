@@ -98,7 +98,7 @@ const bestBirdChanged = () => {
 
 
 
-showBrainByDefault = false
+showBrainByDefault = true
 
 /**@param {Agent} agent */
 const showBrain = function (agent, circleSize = 50) {

@@ -268,11 +268,22 @@ class Game {
                 map(Button.fromRect)
 
             diff.forEach((x, i) => {
-                x.txt = ["Random easy\n2 transformations", "Random medium\n3 transformations", "Random hard\n4-5 transformations"][i]
+                x.txt = ["Random easy\n1 transformation", "Random medium\n2-3 transformations", "Random hard\n4-5 transformations"][i]
                 x.fontSize = 36
                 x.on_release = () => {
-                    stgs.numberOfTransformations = [2, 3, MM.choice([4, 4, 5])][i]
+                    stgs.numberOfTransformations = [1, MM.choice([2, 2, 3]), MM.choice([4, 4, 5])][i]
                     main()
+                }
+                x.hover_color = "lightblue"
+                const bg = x.copy
+                x.transparent = true
+                bg.txt = null
+                game.add_drawable(bg)
+                x.on_enter = function () {
+                    const anim = new Anim(bg, 1000, Anim.f.scaleThroughFactor,
+                        { scaleFactor: 1.2, ditch: true }
+                    )
+                    game.animator.add_anim(anim)
                 }
             })
 
@@ -391,6 +402,8 @@ class Game {
         buttons.retry.topat(bg.top)
         buttons.retry.rightat(colorSelectorBG.right)
         buttons.retry.txt = "Give up"
+        buttons.retry.hover_color = "red";
+        [buttons.submit, buttons.clear].forEach(x => x.hover_color = "lightblue")
 
 
 
@@ -444,6 +457,7 @@ class Game {
         buttons.retry.on_click = () => {
             if (!game.hasWonAlready) {
                 buttons.retry.txt = "New puzzle"
+                buttons.retry.hover_color = "lightblue"
                 game.hasWonAlready = true
                 const sol = { color: "fuchsia" }
                 plt.pltMore[COLORS.length + 1] = sol
@@ -649,7 +663,14 @@ class Game {
             game.buttons.submit.interactable = false
             game.animator.add_anim(Anim.delay(500, {
                 on_end: () => {
-                    game.animator.add_anim(Anim.stepper(game.buttons.retry, 500, "rad", 0, TWOPI, { noLock: true, repeat: 3 }))
+                    const vib = new Anim(game.buttons.retry, 800, Anim.f.scaleThroughFactor, {
+                        scaleFactor: 1.15, repeat: 10
+                    })
+                    game.animator.add_anim(Anim.stepper(game.buttons.retry, 800, "rad", 0, TWOPI, {
+                        noLock: true, repeat: 3,
+                        on_end: () => game.buttons.retry.color = "fuchsia",
+                        chain: vib
+                    }))
                     //game.animator.add_anim(new Anim(game.buttons.retry, 500, Anim.f.scaleThroughFactor, { scaleFactor: .6, noLock: true, repeat: 3 }))
                 }
             }))

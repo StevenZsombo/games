@@ -267,6 +267,7 @@ class Game {
 		gd.retry = new Button({ width: 150, height: 60, on_click: gd.selector, txt: "Retry" })
 		let retry = gd.retry
 		retry.bottomleftat(20, this.HEIGHT - 20)
+		retry.hover_color = "lightblue"
 		this.add_clickable(gd.retry)
 
 
