@@ -276,7 +276,6 @@ class MM {
                 width = rect.width
             }
         } else {
-            let { width, height } = img
             width *= imgScale
             height *= imgScale
         }

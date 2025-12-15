@@ -8,6 +8,7 @@ class Cube extends Clickable {
         this.z = z// to be implemented
         this.color = color
         this.side_color = side_color
+        this.hasSides = true
         this.outline_color = outline_color
         this.outline = outline
         /**@type {CubeGrid}*/
@@ -32,20 +33,22 @@ class Cube extends Clickable {
         screen.closePath()
         screen.stroke()
         screen.fill()
-        screen.fillStyle = this.side_color
-        screen.beginPath()
-        screen.moveTo(x - size, y + size / 2)
-        screen.lineTo(x - size, y + size * 3 / 2)
-        screen.lineTo(x, y + size * 2)
-        screen.lineTo(x + size, y + size * 3 / 2)
-        screen.lineTo(x + size, y + size / 2)
-        screen.lineTo(x, y + size)
-        screen.closePath()
-        screen.stroke()
-        screen.fill()
-        screen.moveTo(x, y + size)
-        screen.lineTo(x, y + size * 2)
-        screen.stroke()
+        if (this.hasSides) {
+            screen.fillStyle = this.side_color
+            screen.beginPath()
+            screen.moveTo(x - size, y + size / 2)
+            screen.lineTo(x - size, y + size * 3 / 2)
+            screen.lineTo(x, y + size * 2)
+            screen.lineTo(x + size, y + size * 3 / 2)
+            screen.lineTo(x + size, y + size / 2)
+            screen.lineTo(x, y + size)
+            screen.closePath()
+            screen.stroke()
+            screen.fill()
+            screen.moveTo(x, y + size)
+            screen.lineTo(x, y + size * 2)
+            screen.stroke()
+        }
     }
 
     collidepoint(x, y) {//takes in its own position

@@ -263,9 +263,10 @@ class Rect {
 	}
 
 
-	static packArray(sourceRects, targetRects) {
-		sourceRects.forEach((b, i) => {
-			b.centerinRect(targetRects[i])
+	static packArray(rectsToMove, destinationRects, alsoResize = false) {
+		rectsToMove.forEach((b, i) => {
+			b.centerinRect(destinationRects[i])
+			alsoResize && b.resize(destinationRects[i].width, destinationRects[i].height)
 		})
 	}
 
