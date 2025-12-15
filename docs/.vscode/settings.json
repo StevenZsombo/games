@@ -5,5 +5,7 @@
         ".hintrc": true,
         "final.code-workspace": true,
         "jsconfig.json": true,
+        "favicon.png": true,
+        "favicon.ico": true
     }
 }
