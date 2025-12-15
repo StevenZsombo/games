@@ -1034,7 +1034,9 @@ class Game extends GameCore {
 
             }
 
-
+            [changelogButton].concat(levelButtons).concat(rButs).forEach(b => {
+                b.hover_color = "lightblue"
+            })
 
             //game.layers.flat().forEach(b => b = Button.make_circle(b))
         }

@@ -1,4 +1,9 @@
 {
     "html.validate.enable": false,
-    "html.suggest.html5": false
+    "html.suggest.html5": false,
+    "files.exclude": {
+        ".hintrc": true,
+        "final.code-workspace": true,
+        "jsconfig.json": true,
+    }
 }

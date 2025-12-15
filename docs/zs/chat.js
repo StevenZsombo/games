@@ -198,36 +198,23 @@ class Chat {
         else if (message.target && message.target !== this.name) { return } //ignore by target (name)
         if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
 
-        if (message.SERVERnameAlreadyExists) { this.resetName("A user has already joined with that name, please select a different name.") }
-        if (message.SERVERnameOrderedToReset) { this.resetName() }
+        if (message.SERVERnameAlreadyExists) this.resetName("A user has already joined with that name, please select a different name.")
+        if (message.SERVERnameOrderedToReset) this.resetName()
 
 
-        if (message.eval) { eval(message.eval) }
-        if (message.log) { console.log(message.log) }
-        if (message.alert) { alert(message.alert) }
-        if (message.reload) { this.silentReload() }
+        if (message.eval) eval(message.eval)
+        if (message.log) console.log(message.log)
+        if (message.alert) alert(message.alert)
+        if (message.reload) this.silentReload()
         if (message.prompt) {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
         }
-        if (message.present) {
-            this.sendMessage({ presentResponse: 1 })
-        }
-        if (message.popup) {
-            if (game) {
-                GameEffects.popup(message.popup, message.popupSettings)
-            }
-        }
-        if (message.echo) {
-            this.receiveEcho(message.echo)
-        }
-        if (message.request) {
-            this.sendMessage({ requestResponse: eval(message.request) })
-            //TODO
-            //IDEA
-            //Create a participant object that can be equipped with callbacks when responses are given.
+        if (message.present) this.sendMessage({ presentResponse: MM.time() })
+        if (message.popup) game && GameEffects.popup(message.popup, message.popupSettings)
+        if (message.echo) this.receiveEcho(message.echo)
+        if (message.request) this.sendMessage({ requestResponse: eval(message.request) })
 
-        }
         if (message.demand) {
             MM.require(message, "value")
             MM.setByPath(message.demand, message.value)
@@ -347,7 +334,10 @@ class Listener {
 
     messageParsing(messageText) {
         const message = JSON.parse(messageText)
-        if (!message.name || message.name == this.name) { return }
+        if (!message.name || message.name == this.name) {
+            console.error("Received an unnamed message", message)
+            return
+        }
         const participants = this.participants
         const { name, ...compact } = message
         //resolving connectivity concerns
@@ -372,8 +362,10 @@ class Listener {
         if (!participants[name]) { //see if late joining is okay
             this.addNewParticipant(name, "unknown")
             console.log("A participant joined without a connect message!!!")
-            if (!this.allowPriorJoin) { throw "Joining in advance is not allowed" }
-
+            if (!this.allowPriorJoin) {
+                //throw "Joining in advance is not allowed" //bad idea
+                console.erroe("Joining in advance should NOT be allowed!")
+            }
         }
         if (message.connectedAddress) participants[name].connectedAddress = message.connectedAddress
 

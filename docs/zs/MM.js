@@ -369,7 +369,7 @@ class MM {
         return ret
     }
     /**@param {number} upto - Returns an array of all primes up to a number.  */
-    static primes(upto) {
+    static primes(upto = 999) {
         const a = Array(upto + 1).fill(true)
         a[0] = a[1] = false
         for (let i = 2; i < upto + 1; i++) {
