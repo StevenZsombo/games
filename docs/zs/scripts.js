@@ -333,6 +333,7 @@ class Clickable extends Rect {
 		this.last_held = null
 		this.interactable = true
 		this.clickable = true
+		this.isBlocking = false //whether it blocks when clicked or not
 		Object.assign(this, options)
 	}
 

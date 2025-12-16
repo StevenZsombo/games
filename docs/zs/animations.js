@@ -14,7 +14,7 @@ class Animator {
 		} else if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
 			console.error(this); throw "Object is locked"
 		}
-		this.locked.add(objoranim.obj)
+		objoranim.obj && this.locked.add(objoranim.obj)
 		this.animations.push(objoranim)
 
 
