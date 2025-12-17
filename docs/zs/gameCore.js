@@ -165,7 +165,7 @@ class GameCore {
             if (!this.drawnAlready) {
                 this.drawnAlready = true
                 requestAnimationFrame((function () { this.drawnAlready = false }).bind(this))
-                this.animator.draw()
+                //this.animator.draw()
             }
         }
 

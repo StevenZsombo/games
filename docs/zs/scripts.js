@@ -142,6 +142,14 @@ class Rect {
 		this.y = y - this.height / 2
 		return this
 	}
+	centeratX(x) {
+		this.x = x - this.width / 2
+		return this
+	}
+	centeratY(y) {
+		this.y = y - this.height / 2
+		return this
+	}
 
 	centeratV({ x, y }) {
 		return this.centerat(x, y)

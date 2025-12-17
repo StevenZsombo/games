@@ -53,9 +53,11 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
-        if (stgs.stage !== null) {
+        if (stgs.stage !== -1) {
             this.makeLevel()
-        }
+        } else (
+            this.levelSelector()
+        )
 
 
 
@@ -121,13 +123,61 @@ class Game extends GameCore {
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    levelSelector() {
+        const levelList = Object.keys(stgs.levels)
+        const numberOfLevels = levelList.length
+        const sq = Math.ceil(Math.sqrt(numberOfLevels))
+        const infoButton = new Button({ width: this.WIDTH })
+        const lvlButtons = this.rect.copy.
+            stretch(.8, .6).
+            topat(200).
+            splitGrid(sq, sq).flat().
+            map(x => x.stretch(.8, .8)).
+            map(Button.fromRect)
+
+        lvlButtons.forEach((x, i) => {
+            x.txt = Object.keys(stgs.levels)[i]
+            x.fontSize = 48
+            x.on_release = () => {
+                stgs.stage = levelList[i]
+                main()
+            }
+        })
+        infoButton.centeratY(lvlButtons[0].top / 2)
+        infoButton.transparent = true
+        infoButton.txt = "Select level:"
+        infoButton.fontSize = 48
+
+        this.add_drawable(lvlButtons)
+        this.add_drawable(infoButton)
+    }
 
     makeLevel() {
-        const reactor = new Reactor(this, 6, 6, 220, 160)
+        const reactor = new Reactor(this, 6, 6, 210, 150)
         this.add_drawable(reactor)
         this.reactor = reactor
         window.r = reactor
         reactor.start()//remove later
+
+        const speedButtonsBG = new Rect(0, 0, 600, 60)
+        speedButtonsBG.bottomat(reactor.buttonsMatrix.at(-1).at(-1).bottom)
+        speedButtonsBG.rightat(this.WIDTH - 20)
+        const speedButtons = speedButtonsBG.splitCol(15, 10, 10, 10, 10, 10).map(Button.fromRect)
+        speedButtons.forEach((b, i) => {
+            b.txt = ["Speed:", "STOP", ".25x", "1x", "2x", "8x"][i]
+            if (i == 0) {
+                b.transparent = true
+                return
+            }
+            b.on_click = () => {
+                this.animator.speedMultiplier = [null, 0, .25, 1, 2, 8][i]
+            }
+        })
+        Button.make_radio(speedButtons.slice(1), true)
+        speedButtons[3].on_click()
+        this.speedButtons = speedButtons
+        this.add_drawable(speedButtons)
+        reactor.loadLevel(stgs.levels[stgs.stage])
 
     }
     dropDownEnd() {
@@ -143,12 +193,8 @@ class Game extends GameCore {
         const reactor = this.reactor
         const menu = Object.keys(Reactor.t).map((x, i) => new Button({
             txt: x,
-            //width: reactor.width * .7,
-            //height: reactor.height * .5,
             color: "pink",
             on_click: () => reactor.addPiece(...reactor.LCP, x),
-            //x: this.mouser.x + 10,
-            //y: this.mouser.y + 10
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
         const del = menu[0].copy

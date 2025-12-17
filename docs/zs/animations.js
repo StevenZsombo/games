@@ -3,6 +3,7 @@ class Animator {
 		this.animations = [] //non-sequences lock by default unless {noLock:true}
 		this.sequences = [] //sequences don't use lock
 		this.locked = new Set()
+		this.speedMultiplier = 1
 	}
 
 	add_anim(objoranim, time, code, args = {}) {
@@ -36,8 +37,16 @@ class Animator {
 		})
 	}
 
+	resetAndFlushAll() {
+		this.animations.length = 0
+		this.sequences.length = 0
+		this.locked.clear()
+	}
+
 
 	update(dt) {
+		if (this.speedMultiplier == 0) return
+		dt *= this.speedMultiplier
 		const newAnims = []
 		for (const anim of this.animations) {
 			anim.time -= dt //times+frames are only managed here
@@ -96,8 +105,7 @@ class Animator {
 		this.locked.delete(anim.obj)
 		return chains
 	}
-	draw() {
-	}
+	//draw() {	}//wtf
 
 }
 
