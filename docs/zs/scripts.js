@@ -256,7 +256,14 @@ class Rect {
 		return { leftIn, rightIn, topIn, bottomIn }
 
 	}
-
+	/**@param {Rect} other  */
+	fitThisWithinAnotherRect(other) {
+		if (this.left < other.left) this.leftat(other.left)
+		if (this.top < other.top) this.topat(other.top)
+		if (this.right > other.right) this.rightat(other.right)
+		if (this.bottom > other.bottom) this.bottomat(other.bottom)
+		return this
+	}
 
 	get copy() {
 		return new Rect(this.x, this.y, this.width, this.height)
@@ -310,6 +317,7 @@ class Rect {
 	splitGridWeight(colWeights = [1], rowWeights = [1]) {
 		return this.splitRow(...rowWeights).map(r => r.splitCol(...colWeights))
 	}
+
 
 
 }

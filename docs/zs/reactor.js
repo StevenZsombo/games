@@ -1,16 +1,16 @@
 class Reactor {
     /**@param {Game} game  */
-    constructor(game, rows, cols) {
+    constructor(game, rows, cols, width, height) {
         this.game = game
         this.places = Array(rows).fill().map(_ => Array(cols).fill(null))
         /**@type {ReactorPiece[]} */
         this.pieces = []
         /**@type {ReactorPoly[]} */
         this.polys = []
-        this.width = 180
-        this.height = 90
+        this.width = width
+        this.height = height
         this.x = 20
-        this.y = 80
+        this.y = 60
         this.rows = rows
         this.cols = cols
         const reactor = this
@@ -33,9 +33,11 @@ class Reactor {
         ))
         this.game.add_drawable(this.buttonsMatrix.flat(), 3)
         this.state = Reactor.s.idle
-        this.stepTime = 800
+        this.stepTime = 400
         this.polysToRemove = []
         this.nextStepExtras = []
+        this.isLogging = false
+        this.otherButtons = []
     }
 
     refreshButtons(...piecesOrPolys) {
@@ -58,6 +60,7 @@ class Reactor {
         this.polysToRemove.forEach(x => this.removePoly(x)) //remove from previous cycle
         this.polysToRemove.length = 0
 
+
         this.polys.forEach(x => {
             this.game.animator.add_anim(x.button, this.stepTime, Anim.f.moveToRel, {
                 dx: this.width * x.heading[1], dy: this.height * x.heading[0],
@@ -66,7 +69,7 @@ class Reactor {
             })
             x.pos[0] += x.heading[0]
             x.pos[1] += x.heading[1]
-            if (x.pos[0] < 0 || x.pos[1] < 0 || x.pos[0] >= this.rows || x.pos[1] >= this.cols) {
+            if (this.outOfBounds(...x.pos)) {
                 this.polysToRemove.push(x)
                 // x.button.move(this.width * x.heading[1], this.height * x.heading[0]) //awkward
             } else {
@@ -78,9 +81,12 @@ class Reactor {
 
         // this.refreshButtons()
 
-        if (this.state !== Reactor.s.justBeganStepping) return//hacky
+        //if (this.state !== Reactor.s.justBeganStepping) return//hacky
         const animFinishStep = Anim.delay(this.stepTime, { on_end: () => this.requestState(Reactor.s.readyToStep) })
         this.game.animator.add_anim(animFinishStep)
+    }
+    outOfBounds(x, y) {
+        return x < 0 || y < 0 || x >= this.rows || y >= this.cols
     }
 
     checkContact(poly) {
@@ -89,16 +95,11 @@ class Reactor {
         contact.on_contact?.(poly)
     }
 
-    requestState(requested) {
-        if (this.state !== Reactor.s.devPause) this.state = requested
-        //if (requested === Reactor.s.idle) this.state = requested
-        //if (this.state !== Reactor.s.idle) this.state = requested
-    }
+
     update(dt) {
-        if (this.state == Reactor.s.readyToStep) {
-            this.state = Reactor.s.justBeganStepping
-            this.step()
-            this.state = Reactor.s.steppingCurrently
+        if (this.state === Reactor.s.readyToStep) {
+            if (this.requestState(Reactor.s.steppingCurrently))
+                this.step()
         }
 
     }
@@ -159,6 +160,16 @@ class Reactor {
     removePieceAt(x, y) {
         this.removePiece(this.findPieceAt(x, y))
     }
+    /**@param {Button} button  */
+    addOther(button) {
+        this.otherButtons.push(button)//kind of pointless 
+        this.game.add_drawable(button)
+    }
+    /**@param {ReactorPiece | ReactorPoly} button  */
+    removeOther(button) {
+        this.otherButtons = this.otherButtons.filter(x => x !== button)
+        this.game.remove_drawable(button)
+    }
 
 
     static s = Object.freeze({
@@ -168,27 +179,74 @@ class Reactor {
         justBeganStepping: "justBeganStepping",
         devPause: "devPause"
     })
+    requestState(requested) {
+        if (requested === Reactor.s.steppingCurrently) {
+            if (
+                this.state === Reactor.s.readyToStep
+                // this.state === Reactor.s.justBeganStepping
+            ) return this.setState(requested)
+        }
+        /*if (requested == Reactor.s.justBeganStepping) {
+            if (
+                this.state === Reactor.s.readyToStep ||
+                this.state === Reactor.s.idle
+            ) return this.setState(requested)
+        }*/
+        if (requested == Reactor.s.readyToStep) {
+            if (
+                this.state === Reactor.s.idle ||
+                this.state === Reactor.s.steppingCurrently
+            ) return this.setState(requested)
+        }
+        return false
+        //if (requested === Reactor.s.idle) this.state = requested
+        //if (this.state !== Reactor.s.idle) this.state = requested
+    }
+    setState(set) {
+        this.state = set
+        this.isLogging && console.log("state:", set)
+        return true
+    }
 
     start() {
         this.requestState(Reactor.s.readyToStep)
-        if (this.state === Reactor.s.readyToStep) this.step()
+        //if (this.state === Reactor.s.readyToStep) this.step()//called in update
     }
     pause() {
         this.requestState(Reactor.s.idle)
     }
 
+    AnimBank = {
+        shrinkAway: (button) => {
+            this.addOther(button)
+            const { width, height, imgScale } = button
+            this.game.animator.add_anim(Anim.custom(button, this.stepTime, (t) => {
+                button.resize((1 - t) * width, (1 - t) * height)
+                button.imgScale = imgScale * (1 - t)
+            }, "", {
+                on_end: () => this.removeOther(button)
+                //ditch: true
+            }))
+        }
+    }
+
+    static contentHeightRatio = .6
+    static contentWidthRatio = .6
+
 }
 
 class ReactorPiece {
-    /**@param {Reactor} parent  */
+    static heightRatio = .6
+    static widthRatio = .6
     constructor(options) {//can take limited
         MM.require(options, "parent x y type")
+        /**@type {Reactor}*/
         this.parent = options.parent
         this.type = options.type
         this.button = Button.make_latex(new Button({
             txt: this.type,
-            width: this.parent.width * .7,
-            height: this.parent.height * .9
+            width: this.parent.width * ReactorPiece.widthRatio,
+            height: this.parent.height * ReactorPiece.heightRatio
         }))
         this.x = options.x
         this.y = options.y
@@ -201,18 +259,25 @@ class ReactorPiece {
     static IN(parent, x, y) {
         const options = { parent, x, y, type: Reactor.t.IN }
         options.on_step = function () {
-            if (this.parent.polys.length == 0) {
-                this.parent.nextStepExtras.push(() =>
-                    this.parent.addPoly(this.x, this.y, [4, 0, -1].map(x => new Rational(x))))
+            if (parent.polys.length == 0) {
+                parent.nextStepExtras.push(() =>
+                    //parent.addPoly(this.x, this.y, [4, 0, -1].map(x => new Rational(x))))
+                    parent.addPoly(this.x, this.y, ReactorPoly.randomArrForPoly())
+                )
             }
         }
         return new ReactorPiece(options)
     }
     /**@param {Reactor} parent  */
     static OUT(parent, x, y) {
-        const on_contact = function (poly) {
-            console.log(poly.getTex())
-            this.parent.polysToRemove.push(poly)
+        /**@param {ReactorPoly} poly*/
+        const on_contact = (poly) => {
+            parent.isLogging && console.log("OUT:", poly.getTex())
+            parent.polysToRemove.push(poly)
+            const after = () => {
+                parent.AnimBank.shrinkAway(poly.button.copy)
+            }
+            parent.nextStepExtras.push(after)
         }
         const options = { parent, x, y, type: Reactor.t.OUT, on_contact }
         return new ReactorPiece(options)
@@ -249,7 +314,8 @@ class ReactorPiece {
         return new ReactorPiece(options)
     }
     static LEAD(parent, x, y) {
-        const on_contact = function (poly) { poly.arr = [poly.arr.findLast(x => x.numerator != 0)] }
+        // const on_contact = function (poly) { poly.arr = [poly.arr.findLast(x => x.numerator != 0)] }
+        const on_contact = function (poly) { poly.arr = poly.arr.slice(-1) }
         const options = { parent, x, y, type: Reactor.t.LEAD, on_contact }
         return new ReactorPiece(options)
     }
@@ -273,18 +339,24 @@ class ReactorPiece {
 
 
 class ReactorPoly {
-    /**@param {Reactor} parent */
+    static widthRatio = .9
+    static heightRatio = .9
+    static imgScale = 0
+
     constructor(parent, x, y, arr) {
+        /**@type {Reactor} parent*/
         this.parent = parent
-        this.heading = [0, 1]
+        this.heading = [1, 0]
         this.pos = [x, y]
+        if (arr.at(-1).numerator == 0) throw "leading coefficient can't be zero"
+        if (!(arr[0] instanceof Rational)) arr = arr.map(x => new Rational(x))
         /**@type {Array<Rational>} */
         this.arr = arr
 
         this.button = Button.make_latex(new Button({
             color: "lightgray",
-            width: parent.width * .9,
-            height: parent.height * .9,
+            width: parent.width * ReactorPoly.widthRatio,
+            height: parent.height * ReactorPoly.heightRatio
         }), undefined, ReactorPoly.imgScale)
     }
 
@@ -297,7 +369,7 @@ class ReactorPoly {
             //terms.push(x.isUnit ? )
             let term = ""
             if (!x.isUnit || i == 0) { term += x.getTex() }
-            else { if (x.numerator < 0) term += "-" }
+            else { term += x.numerator < 0 ? "-" : "+" }
             term += `${i >= 1 ? "x" : ""}${i >= 2 ? "^{" + i + "}" : ""}`
             terms.push(term)
         })
@@ -323,14 +395,36 @@ class ReactorPoly {
         // this.parent.refreshButtons(this)
     }
 
-    static imgScale = 2.5
+
+    static randomArrForPoly({ minTerms = 1, maxTerms = 3, minDeg = 0, maxDeg = 7,
+        minNumer = 1, maxNumer = 5, minDenom = 1, maxDenom = 3,
+        negativeChance = 0.5
+    } = {}) {
+        let terms = MM.randomInt(minTerms, maxTerms)
+        let termDegrees = MM.choice([...MM.range(minDeg, maxDeg + 1)], terms)
+        let termCoeffs = termDegrees.map(x => new Rational(MM.randomInt(minNumer, maxNumer), MM.randomInt(minDenom, maxDenom)))
+        if (negativeChance) termCoeffs = termCoeffs.map(x => Math.random() < negativeChance ? x.multiplyBy(-1) : x)
+        let highestDegree = MM.max(termDegrees)
+        let arr = Array(highestDegree + 1).fill(new Rational(0))
+        for (let [deg, coeff] of MM.zip(termDegrees, termCoeffs))
+            arr[deg] = coeff
+        return arr
+    }
 }
 
 class Rational {
+    /**
+     * @param {number | Array<number>} numerator - integer, or array [num,denom]
+     * @param {number | undefined} denominator - automatically 1 if not given
+     */
     constructor(numerator, denominator) {
         if (denominator < 0) {
             denominator *= -1
             numerator *= -1
+        }
+        if (Array.isArray(numerator)) {
+            if (numerator.length > 2) throw "invalid input for numerator: array too large"
+            [numerator, denominator] = numerator
         }
         if (denominator === undefined) denominator = 1
         this.numerator = numerator

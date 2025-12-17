@@ -123,7 +123,7 @@ class Game extends GameCore {
 
 
     makeLevel() {
-        const reactor = new Reactor(this, 9, 9)
+        const reactor = new Reactor(this, 6, 6, 220, 160)
         this.add_drawable(reactor)
         this.reactor = reactor
         window.r = reactor
@@ -135,7 +135,7 @@ class Game extends GameCore {
         this.menu = null
     }
 
-    dropDown() {
+    dropDown(cols = 2) {
         if (this.menu) {
             this.dropDownEnd()
             return
@@ -143,20 +143,32 @@ class Game extends GameCore {
         const reactor = this.reactor
         const menu = Object.keys(Reactor.t).map((x, i) => new Button({
             txt: x,
-            width: reactor.width * .7,
-            height: reactor.height * .5,
+            //width: reactor.width * .7,
+            //height: reactor.height * .5,
             color: "pink",
             on_click: () => reactor.addPiece(...reactor.LCP, x),
-            x: this.mouser.x + 10,
-            y: this.mouser.y + 10
+            //x: this.mouser.x + 10,
+            //y: this.mouser.y + 10
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
-        const del = menu.at(-1).copy
+        const del = menu[0].copy
         del.on_click = () => reactor.removePieceAt(...reactor.LCP)
-        del.move(0, menu.at(-1).height)
-        del.txt = "Delete"
+        //del.move(0, menu.at(-1).height)
+        del.txt = "Delete this"
         menu.push(del)
+        const delAll = menu[0].copy
+        delAll.on_click = () => reactor.pieces.forEach(x => reactor.removePiece(x))
+        delAll.txt = "Delete all"
+        menu.push(delAll)
+        const box = new Rect(
+            this.mouser.x + 10, this.mouser.y + 10,
+            reactor.width * .5 * cols,
+            reactor.height * .5 * Math.ceil(menu.length / cols)
+        )
+        box.fitThisWithinAnotherRect(game.rect)
+        Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
         this.add_drawable(menu)
+        //this.add_drawable(box)
         menu.forEach(x => {
             x.on_click = MM.extendFunction(x.on_click, this.dropDownEnd.bind(this))
             x.isBlocking = true
