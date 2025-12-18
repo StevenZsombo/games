@@ -75,6 +75,11 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
+        if (this.keyboarder.pressed[1]) this.speedButtons?.[1].on_click()
+        if (this.keyboarder.pressed[2]) this.speedButtons?.[2].on_click()
+        if (this.keyboarder.pressed[3]) this.speedButtons?.[3].on_click()
+        if (this.keyboarder.pressed[4]) this.speedButtons?.[4].on_click()
+        if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
 
 
 
@@ -138,7 +143,7 @@ class Game extends GameCore {
 
         lvlButtons.forEach((x, i) => {
             x.txt = Object.keys(stgs.levels)[i]
-            x.fontSize = 48
+            x.fontSize = 40
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
@@ -184,6 +189,7 @@ Some might not be possible.`
         })
         Button.make_radio(speedButtons.slice(1), true)
         speedButtons[3].on_click()
+        //speedButtons[1].on_click()
         this.speedButtons = speedButtons
         this.add_drawable(speedButtons)
         reactor.loadLevel(stgs.levels[stgs.stage])
@@ -194,6 +200,7 @@ Some might not be possible.`
     dropDownEnd() {
         this.remove_drawables_batch(this.menu)
         this.menu = null
+        this.reactor.buttonsMatrix.flat().forEach(x => x.color = "white")
     }
 
     dropDown(cols = 2) {
@@ -202,15 +209,16 @@ Some might not be possible.`
             return
         }
         const reactor = this.reactor
+        reactor.LCB.color = "fuchsia"
         const menu = Object.keys(Reactor.t).map((x, i) => new Button({
             txt: x,
-            color: "pink",
+            color: Reactor.isMovementType(x) ? "plum" : "pink",
             hover_color: "fuchsia",
-            on_click: () => reactor.addPiece(...reactor.LCP, x),
+            on_click: () => x != "TODO" && reactor.addPiece(...reactor.LCP, x),
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
         const del = menu[0].copy
-        del.on_click = () => reactor.removePieceAt(...reactor.LCP)
+        del.on_click = () => reactor.removePiecesAt(...reactor.LCP)
         //del.move(0, menu.at(-1).height)
         del.txt = "Delete this"
         menu.push(del)
@@ -221,7 +229,7 @@ Some might not be possible.`
         const box = new Rect(
             this.mouser.x + 10, this.mouser.y + 10,
             300,//reactor.width * .5 * cols,
-            400 //reactor.height * .5 * Math.ceil(menu.length / cols)
+            500 //reactor.height * .5 * Math.ceil(menu.length / cols)
         )
         box.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)

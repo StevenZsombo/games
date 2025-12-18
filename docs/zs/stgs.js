@@ -7,7 +7,7 @@ class Level {
     constructor(instructions, inputs, rule, genRules = {}) {
         this.instructions = instructions
         if (inputs) {
-            this.inputs = inputs.map(x => new Rational(x))
+            this.inputs = inputs.map(x => Poly.computed(x).arr)
         } else {
             this.inputs = Level.random(genRules)
         }
@@ -33,7 +33,7 @@ const levels = {
         "Find the leading coefficient of the polynomial you received.", null, x => [x.at(-1)]
     ),
     "secondder": new Level(
-        "Find the second derivative.", null, x => x.slice(1).map((u, i) => new Rational(u).multiplyBy(i + 1)).slice(1).map((u, i) => u.multiplyBy(i + 1))
+        "Find the second derivative.", null, x => Poly.computed(x).takeDerivative().takeDerivative().arr
     ),
     "mulxcube": new Level(
         "Multiply the input by x^3.", null, x => Poly.computed(x).raise().raise().raise().arr
@@ -52,6 +52,10 @@ const levels = {
     "four": new Level(
         "Transform each polynomial to the constant 4.", null, x => [new Rational(4)]
     ),
+    "posonly": new Level(
+        "The inputs are constants. Return only the positive ones.", null, x => x[0].numerator > 0 ? x : null,
+        { maxDegree: 0, maxTerms: 1 }
+    ),
     "sumoftwo": new Level(
         "Return the sum of the current and the next input.", null, (x, i, a) => {
             if (i % 2) return
@@ -67,47 +71,89 @@ const levels = {
         x[0].numerator == 0 ? [] : [new Rational(1)],
         { maxDegree: 5 }
     ),
+    "boolflip": new Level(
+        "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
+        { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
+    ),
+    "evenodd": new Level(
+        "Map odd numbers to 1, even numbers to 0", null, x => {
+            const n = x[0].numerator
+            return Poly.computed([n % 2]).arr
+        }, { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
+    ),
+    "sumcoeff": new Level(
+        "Return the sum of all the coefficients.", null, x => Poly.computed(x).takeSubs(new Rational(1)).arr,
+        { maxTerms: 5 }
+
+    ),
+    "sumupto": new Level(
+        "Return the sum of all positive integers from 1 to the input", null, x => {
+            const n = x[0].numerator
+            return [new Rational(n * (n + 1) / 2)]
+        }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
+    ),
     "lindiff": new Level(
         "Your input is ax+b. Return the difference a-b", null, (x) => {
             const [b, a] = x
-            return Poly.computed([Rational.sumOfTwo(new Rational(b).multiplyBy(-1), a)]).arr
+            return Poly.computed([Rational.sumOfTwo(new Rational(b).multiplyByInt(-1), a)]).arr
         }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
     ),
-    "diffoftwo?": new Level(
+    "linprod": new Level(
+        "Your input is ax+b. Return the product (ab).", null, (x) => {
+            const [b, a] = x
+            return Poly.computed([Rational.productOfTwo(a, b)]).arr
+        }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
+    ),
+    "linmax": new Level(
+        "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
+            const [b, a] = x
+            const diff = Rational.differenceOfTwo(a, b)
+            return [diff.numerator > 0 ? a : b]
+        }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2, maxNumer: 20, negativeChance: 0 }
+    ),
+    /*"keepodd": new Level(
+        "Keep only the terms with an odd index.", null, x => {
+            const p = Poly.computed(x).takeNeg()
+            const q = Poly.computed(x).takeSubs(new Rational(-1))
+            return p.sumWith(q).arr
+        },
+        { minTerms: 3, maxTerms: 5, maxDegree: 10 }
+    ),*/
+    /*"diffoftwo?": new Level(
         "Return the current input minus the next input.", null, (x, i, a) => {
             if (i % 2) return
             const [u, w] = [x, a[i + 1]].map(Poly.computed)
             w.takeNeg()
             return u.sumWith(w).arr
         }, { maxTerms: 2 }
-    ),
-    "posneg": new Level(
+    ),*/
+    /*"posneg": new Level(
         "Return 1 if the input is positive, 0 if zero, and -1 if negative.", null, (x, i, a) => { }
-    ),
-    "incordec": new Level(
+    ),*/
+    /*"incordec": new Level(
         "TODO : Return 1 is the polynomial is increasing at 0, and -1 otherwise", null, (x, i, a) => {
             return x
         }
-    ),
-    "sumofthree?": new Level(
+    ),*/
+    /*"sumofthree?": new Level(
         "Return the sum of the current and the next two inputs.", null, (x, i, a) => {
             if (i % 3) return
             const [u, v, w] = a.slice(i, i + 3).map(Poly.computed)
             return u.sumWith(v).sumWith(w).arr
         }, { numberOfInputs: 9, maxTerms: 1 }
-    ),
+    ),*/
     "twoxplusone": new Level(
         "Transform each polynomial to the polynomial 2x+1.", null, x => [1, 2].map(x => new Rational(x))
     ),
     "multhree": new Level(
-        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyBy(3)),
-        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
+        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
+        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
     /*"squareX": new Level(
         "Your input is a constant - square it.", null, x => x.map(u => new Rational(u).multiplyBy(u.numerator).divideBy(u.denominator)),
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
     ),*/
-    "multwoxminusone": new Level(
+    "mult": new Level(
         "Multiply the input by (2x-1).", null, x => {
             const p = Poly.computed(x)
             const px = p.copy.raise()
@@ -123,12 +169,45 @@ const levels = {
             if (d == 2) return x
         }, { maxDegree: 3, minDegree: 1, maxTerms: 2, minTerms: 1 }
     ),
-    "leadingterm?": new Level(
+    "compsqonly": new Level(
+        "Your inputs are quadratics. Return only the complete squares.", null, x => {
+            const [a, b, c] = x
+            const prod = Rational.productOfTwo(a, c).multiplyByInt(4)
+            const sq = Rational.productOfTwo(b, b)
+            return prod.isEqualTo(sq) ? x : null
+        }, {
+        func: () => {
+            let [a, b, c] = Array(3).fill().map(x => new Rational(MM.choice([-1, -2, -3, -4, -5, 1, 2, 3, 4, 5]), MM.randomInt(1, 4)))
+            if (Math.random() < .5) {
+                if (Math.random() < .5) {
+                    a = Rational.ratioOfTwo((Rational.productOfTwo(b, b).divideByInt(4)), c)
+                } else c = Rational.ratioOfTwo((Rational.productOfTwo(b, b).divideByInt(4)), a)
+            }
+            return [a, b, c]
+        }
+    }
+
+    ),
+    "leadingterm": new Level(
         "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0))
     ),
-    "poweroftwo?": new Level(
-        "Your input is a positive constant a. Return 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
-        { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
+    /*"factorial": new Level(
+        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
+    ),*/
+    "poweroftwo": new Level(
+        "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
+        { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
+    ),
+    "powersoftwo": new Level(
+        "Your inputs are all [1]. Generate the higher powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
+        (x, i, a) => [new Rational(2 ** (i + 1))],
+        { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 }
+    ),
+    "e": new Level(
+        "Your inputs are all [1]. Approximate Euler's number.", null,
+        (x, i, a) => MM.range(i + 1).reduce((s, t) => s.takeIntegral(), Poly.computed([1])).takeSubs(new Rational(1)).arr,
+        { func: () => [new Rational(1)] }
     )
 
 }

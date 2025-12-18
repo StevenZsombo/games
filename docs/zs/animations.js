@@ -84,7 +84,7 @@ class Animator {
 		}
 		this.sequences = newSequences
 	}
-
+	/**@param {Anim} anim  */
 	update_kill(anim) {
 		anim.append?.()
 		//append regardless, and first!
@@ -97,7 +97,7 @@ class Animator {
 			return [anim]
 			//breaks out of the function: no chains happen on rep.
 		} else {
-			anim.on_end?.()
+			anim.on_end?.(anim.obj)
 			//on_end only when no repeat
 		}
 		//chain even when repeat
@@ -120,7 +120,7 @@ class Anim {
 	 * @param {Object} [args={}] - Animation configuration
 	 * @param {Anim} [args.chain] - Animation to chain to
 	 * @param {Aray<Anim>} [args.chainMany] - Animations to chain to
-	 * @param {Function} [args.on_end] - Callback when animation completes
+	 * @param {Function} [args.on_end] - Callback when animation completes, receives (obj)
 	 * @param {string|Function} [args.lerp] - Lerp function name or function
 	 * @param {number} [args.repeat] - How many times to repeat
 	 * @param {Function}[args.on_repeat] - What to do on repeat
@@ -158,7 +158,7 @@ class Anim {
 	 * Creates a custom animation
 	 * @param {Object} obj - Target object
 	 * @param {number} time - Duration in ms
-	 * @param {Function} func - Animation function, bounds to object, receives t = 0 -> 1
+	 * @param {Function} func - Animation function, receives (t = 0 -> 1, obj)
 	 * @param {string|Array<string>} origStrOrArr - Space-separated string or array
 	 * @returns {Anim}
 	 */
@@ -551,7 +551,7 @@ class Anim {
 	}
 
 	custom() {
-		//{func: (t)=>{}} bound to object, {orig:string[]} will be restored at the end
+		//func(t,obj), {orig:string[]} will be restored at the end
 		if (!this.init) {
 			MM.require(this, "func")
 			this.init = true
@@ -561,7 +561,7 @@ class Anim {
 			}
 		}
 		const t = this.lerp(1 - this.time / this.totTime) //0 -> 1
-		this.func.call(this.obj, t)
+		this.func(t, this.obj)
 
 	}
 }

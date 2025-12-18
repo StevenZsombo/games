@@ -5,6 +5,7 @@
         ".hintrc": true,
         "final.code-workspace": true,
         "favicon.png": true,
-        "favicon.ico": true
+        "favicon.ico": true,
+        "*.wbk": true
     }
 }
