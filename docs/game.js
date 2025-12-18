@@ -122,16 +122,17 @@ class Game extends GameCore {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+    //#region levelSelector
     levelSelector() {
         const levelList = Object.keys(stgs.levels)
         const numberOfLevels = levelList.length
         const sq = Math.ceil(Math.sqrt(numberOfLevels))
         const infoButton = new Button({ width: this.WIDTH })
         const lvlButtons = this.rect.copy.
-            stretch(.8, .6).
+            stretch(.9, .6).
             topat(200).
             splitGrid(sq, sq).flat().
+            slice(0, numberOfLevels).
             map(x => x.stretch(.8, .8)).
             map(Button.fromRect)
 
@@ -148,10 +149,18 @@ class Game extends GameCore {
         infoButton.txt = "Select level:"
         infoButton.fontSize = 48
 
+        const bottomButton = infoButton.copy
+        bottomButton.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
+        bottomButton.txt =
+            `If you can solve any of the ones with the ? please let me know.
+Some might not be possible.`
+
         this.add_drawable(lvlButtons)
         this.add_drawable(infoButton)
+        this.add_drawable(bottomButton)
     }
-
+    //#endregion
+    //#region makeLevel
     makeLevel() {
         const reactor = new Reactor(this, 6, 6, 210, 150)
         this.add_drawable(reactor)
@@ -180,6 +189,8 @@ class Game extends GameCore {
         reactor.loadLevel(stgs.levels[stgs.stage])
 
     }
+    //#endregion
+    //#region dropDown
     dropDownEnd() {
         this.remove_drawables_batch(this.menu)
         this.menu = null
@@ -194,6 +205,7 @@ class Game extends GameCore {
         const menu = Object.keys(Reactor.t).map((x, i) => new Button({
             txt: x,
             color: "pink",
+            hover_color: "fuchsia",
             on_click: () => reactor.addPiece(...reactor.LCP, x),
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
@@ -208,8 +220,8 @@ class Game extends GameCore {
         menu.push(delAll)
         const box = new Rect(
             this.mouser.x + 10, this.mouser.y + 10,
-            reactor.width * .5 * cols,
-            reactor.height * .5 * Math.ceil(menu.length / cols)
+            300,//reactor.width * .5 * cols,
+            400 //reactor.height * .5 * Math.ceil(menu.length / cols)
         )
         box.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
@@ -221,6 +233,7 @@ class Game extends GameCore {
         })
         this.menu = menu
     }
+    //#endregion
 
 } //this is the last closing brace for class Game
 

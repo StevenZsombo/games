@@ -436,7 +436,7 @@ class Button extends Clickable {
 	}
 
 	get copy() {
-		return new Button(this)
+		return new Button({ ...this })
 	}
 
 	get copyRect() {

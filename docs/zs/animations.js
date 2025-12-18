@@ -13,9 +13,9 @@ class Animator {
 		if (objoranim.ditch) { //ditch all existing animations of the object
 			this.animations.forEach(x => { if (x.obj === objoranim.obj) { x.time = -1 } })
 		} else if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
-			console.error(this); throw "Object is locked"
+			console.error(this); console.error(objoranim.obj); throw "Object is locked"
 		}
-		objoranim.obj && this.locked.add(objoranim.obj)
+		objoranim.obj != null && this.locked.add(objoranim.obj)
 		this.animations.push(objoranim)
 
 
@@ -40,6 +40,9 @@ class Animator {
 	resetAndFlushAll() {
 		this.animations.length = 0
 		this.sequences.length = 0
+		this.locked.clear()
+	}
+	unlockAll() {
 		this.locked.clear()
 	}
 

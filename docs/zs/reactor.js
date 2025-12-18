@@ -1,3 +1,4 @@
+//#region Reactor
 class Reactor {
     /**@param {Game} game  */
     constructor(game, rows, cols, width, height) {
@@ -38,13 +39,15 @@ class Reactor {
         this.nextStepExtras = []
         this.isLogging = false
         this.otherButtons = []
-
     }
+
     /**@param {Level} level */
     loadLevel(level, sheetsCleared = 0) {
-        this.polys.forEach(x => this.removePoly(x))
-        this.otherButtons.forEach(x => this.removeOther(x))
+        this.requestState(Reactor.s.idle)
         this.game.animator.resetAndFlushAll()
+        this.pieces.forEach(x => x.reset?.())
+            ;[...this.polys].forEach(x => this.removePoly(x))
+            ;[...this.otherButtons].forEach(x => this.removeOtherButton(x))
         this.setState(Reactor.s.readyToStep)
         this.level = level //bad practice but whatevs
         this.inputs = level.inputs
@@ -58,7 +61,7 @@ class Reactor {
     }
     init_ui() {
         if (this.levelRelated) {
-            this.levelRelated.forEach(x => this.removeOther(x))
+            this.levelRelated.forEach(x => this.removeOtherButton(x))
         }
         const inputBG = new Button({ width: 300, height: 900, color: "white" })
         inputBG.topat(this.buttonsMatrix[0][0].top)
@@ -73,10 +76,11 @@ class Reactor {
 
         const allRecords = inputRecords.concat(outputRecords)
 
-        allRecords.forEach((record, i) => {
-            Button.make_latex(record)
-            record.color = "white"
-            record.imgScale = 2.0
+        allRecords.forEach((x, i) => {
+            Button.make_latex(x)
+            x.color = "white"
+            x.imgScale = 2.0
+            x.tag = "records"
         })
 
         const inputRecordsLabel = inputRecords[0]
@@ -116,7 +120,7 @@ class Reactor {
         controlButtons[0].on_click = () => (stgs.stage = -1, main())
         controlButtons[0].width -= controlButtons[0].left - instructionButton.right
         controlButtons[1].txt = "Reset"
-        controlButtons[1].on_click = () => this.loadLevel(this.level) //god have mercy
+        controlButtons[1].on_click = () => this.loadLevel(stgs.levels[stgs.stage]) //god have mercy
 
 
 
@@ -132,7 +136,8 @@ class Reactor {
         ]
 
         this.levelRelated = levelRelatedAll
-        levelRelatedAll.forEach(x => this.addOther(x))
+        levelRelatedAll.forEach(x => this.addOtherButton(x))
+        this.start()
 
     }
     serveInput() {
@@ -146,44 +151,67 @@ class Reactor {
         if (inputPieces.length == 0) return
         inputPieces.forEach(p => {
             this.addPoly(p.x, p.y, input)
-            this.inputsServed.push(input)
         })
+        this.inputsServed.push(input)
         this.inputRecords[i + 1].color = "yellow"
 
     }
     /**@param {Poly} poly  */
     receiveOutput(poly) {
-        if (!this.outputs) return
+        const badColor = "crimson"
+        const goodColor = "lightgreen"
+        if (!this.outputs) return "orange"
         const i = this.outputsReceived.length
         const output = this.outputs[i]
         if (!output) {
-            return
+            return badColor
         }
         this.outputsReceived.push(output)
         const correct = poly.isTheSameAsOutput(output)
-        const color = correct ? "lightgreen" : "crimson"
+        const color = correct ? goodColor : badColor
         this.correctCount += correct
         this.outputRecords[i + 1].color = color
-        if (this.correctCount == this.outputs.length) this.checkVictory()
+        if (
+            this.correctCount == this.outputs.length
+            //TODO: early victories are possible when output count is low.
+        ) this.checkVictory()
         return color
     }
     static numberOfRandomSheets = 3
     checkVictory() {
         this.sheetsCleared += 1
         if (this.sheetsCleared > Reactor.numberOfRandomSheets) { //needs to clear 3 random sheets
-            this.game.animator.speedMultiplier = 1
-            this.game.speedButtons.forEach(x => (x.txt = "Victory", x.on_click = null))
-            this.instructionButton.txt = "Victory"
-            this.controlButtons[1].on_click = null
-            GameEffects.fireworksShow()
+            this.nextStepExtras.push(this.celebrate)
         } else {
             //this.game.speedButtons.forEach(x => x.on_click = null)
-            this.game.animator.speedMultiplier = 4 + 4 * this.sheetsCleared
+            this.game.animator.speedMultiplier = 6 + 2 * this.sheetsCleared
             const randomSheet = new Level(`Checking for random inputs ${this.sheetsCleared}/${Reactor.numberOfRandomSheets} ...`,
                 null, this.level.rule, this.level.genRules
             )
-            this.loadLevel(randomSheet, this.sheetsCleared)
+            this.nextStepExtras.push(() =>
+                this.loadLevel(randomSheet, this.sheetsCleared))
         }
+    }
+    celebrate() {
+        this.requestState(Reactor.s.idle)
+        this.game.animator.speedMultiplier = 1
+        //this.game.speedButtons.forEach(x => (x.txt = "Victory", x.on_click = null))
+        this.instructionButton.txt = "Victory"
+        this.controlButtons[1].on_click = null //can't reset after win.
+        //TODO: fix this.
+        this.controlButtons[1].txt = "Congratulations!"
+        this.controlButtons[0].color = "fuchsia"
+        this.game.animator.add_anim(this.controlButtons[0], 1200, Anim.f.scaleThroughFactor,
+            { scaleFactor: 1.1, repeat: 24 }
+        )
+        GameEffects.fireworksShow()
+        this.game.animator.add_staggered(this.pieces.map(x => x.button), 300,
+            Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
+        )
+        /*this.game.animator.add_anim(Anim.delay(600, {
+            repeat: 12,
+            on_repeat: () => this.instructionButton.txt += " :)"
+        }))*/
     }
 
     refreshButtons(...piecesOrPolys) {
@@ -200,20 +228,21 @@ class Reactor {
             }
         })
     }
+    //#region step
     step() {
         this.polysToRemove.forEach(x => this.removePoly(x)) //remove from previous cycle
         this.polysToRemove.length = 0
 
-        if (this.polys.length == 0) this.serveInput()
-
         this.nextStepExtras.forEach(x => x.call(this))
         this.nextStepExtras.length = 0
+
+        if (this.polys.length == 0) this.serveInput()
 
         this.polys.forEach(x => {
             x.button.move(this.width * x.heading[1], this.height * x.heading[0]) //man did I cook
             this.game.animator.add_anim(x.button, this.stepTime, Anim.f.moveFromRel, {
                 dx: -this.width * x.heading[1], dy: -this.height * x.heading[0],
-                //ditch: true, //tho not needed
+                ditch: true, //not sure where this goes wrong bot oaky
                 on_end: () => {
                     x.pos[0] += x.heading[0]
                     x.pos[1] += x.heading[1]
@@ -223,7 +252,8 @@ class Reactor {
                         this.refreshButtons(x)
                     }
                 },
-            }) //why didn't I think of this earlier? dummy.
+            }) //why didn't I think of this earlier? dummy. animator can handle calling the next steps
+            //could even add on_final with staggered delay=0
         })
 
 
@@ -233,14 +263,18 @@ class Reactor {
         const animFinishStep = Anim.delay(this.stepTime, { on_end: () => this.requestState(Reactor.s.readyToStep) })
         this.game.animator.add_anim(animFinishStep)
     }
+    //#endregion
     outOfBounds(x, y) {
         return x < 0 || y < 0 || x >= this.rows || y >= this.cols
     }
-
+    /**@param {Poly} poly  */
     checkContact(poly) {
         const contact = this.pieces.find(p => p.x == poly.pos[0] && p.y == poly.pos[1])
         if (!contact) return
-        contact.on_contact?.(poly)
+        if (contact.on_contact) {
+            contact.on_contact(poly)
+            this.refreshButtons(poly)
+        }
     }
 
 
@@ -270,7 +304,16 @@ class Reactor {
         LEAD: "LEAD",
         CONST: "CONST",
         RAISE: "RAISE",
-        LOWER: "LOWER"
+        LOWER: "LOWER",
+        DEG: "DEG",
+        NEG: "NEG",
+        //ADDI: "ADDI",
+        //SUBI: "SUBI",
+        //POW: "POW",
+        //COPY: "COPY",
+        //"dontClickThis": "",
+        SUM: "SUM",
+        DOOR: "DOOR"
 
     })
 
@@ -279,6 +322,7 @@ class Reactor {
         this.polys.push(poly)
         this.game.add_drawable(poly.button)
         this.refreshButtons(poly)
+        return poly
     }
     removePoly(poly) {
         this.polys = this.polys.filter(x => x !== poly)
@@ -299,7 +343,9 @@ class Reactor {
         const piece = ReactorPiece[type](this, x, y)
         this.pieces.push(piece)
         this.game.add_drawable(piece.button, 4)
+        //if any polys are present, delete them and reset input. //TODO //or not?
         this.refreshButtons(piece)
+        return piece
     }
     removePiece(piece) {
         this.pieces = this.pieces.filter(x => x !== piece)
@@ -309,12 +355,12 @@ class Reactor {
         this.removePiece(this.findPieceAt(x, y))
     }
     /**@param {Button} button  */
-    addOther(button) {
+    addOtherButton(button) {
         this.otherButtons.push(button)//kind of pointless 
         this.game.add_drawable(button)
     }
     /**@param {ReactorPiece | Poly} button  */
-    removeOther(button) {
+    removeOtherButton(button) {
         this.otherButtons = this.otherButtons.filter(x => x !== button)
         this.game.remove_drawable(button)
     }
@@ -331,24 +377,17 @@ class Reactor {
         if (requested === Reactor.s.steppingCurrently) {
             if (
                 this.state === Reactor.s.readyToStep
-                // this.state === Reactor.s.justBeganStepping
             ) return this.setState(requested)
         }
-        /*if (requested == Reactor.s.justBeganStepping) {
-            if (
-                this.state === Reactor.s.readyToStep ||
-                this.state === Reactor.s.idle
-            ) return this.setState(requested)
-        }*/
         if (requested == Reactor.s.readyToStep) {
             if (
                 this.state === Reactor.s.idle ||
                 this.state === Reactor.s.steppingCurrently
             ) return this.setState(requested)
         }
+        if (requested === Reactor.s.idle)
+            return this.setState(requested)
         return false
-        //if (requested === Reactor.s.idle) this.state = requested
-        //if (this.state !== Reactor.s.idle) this.state = requested
     }
     setState(set) {
         this.state = set
@@ -365,15 +404,19 @@ class Reactor {
     }
 
     AnimBank = {
+        /**@param {Button} button */
         shrinkAway: (button) => {
-            this.addOther(button)
-            const { width, height, imgScale } = button
-            this.game.animator.add_anim(Anim.custom(button, this.stepTime, (t) => {
-                button.resize((1 - t) * width, (1 - t) * height)
-                button.imgScale = imgScale * (1 - t)
+            const cp = button.copy
+            cp.interactable = false
+            cp.tag = "shrinkAwayCopy"
+            this.addOtherButton(cp)
+            const { width, height, imgScale } = cp
+            this.game.animator.add_anim(Anim.custom(cp, this.stepTime, (t) => {
+                cp.resize((1 - t) * width, (1 - t) * height)
+                cp.imgScale = imgScale * (1 - t)
             }, "", {
-                on_end: () => this.removeOther(button)
-                //ditch: true
+                on_end: () => this.removeOtherButton(cp)
+                // , ditch: true, noLock: true
             }))
         }
     }
@@ -382,7 +425,8 @@ class Reactor {
     static contentWidthRatio = .6
 
 }
-
+//#endregion
+//#region ReactorPiece
 class ReactorPiece {
     static heightRatio = .6
     static widthRatio = .6
@@ -394,7 +438,8 @@ class ReactorPiece {
         this.button = Button.make_latex(new Button({
             txt: this.type,
             width: this.parent.width * ReactorPiece.widthRatio,
-            height: this.parent.height * ReactorPiece.heightRatio
+            height: this.parent.height * ReactorPiece.heightRatio,
+            tag: "ReactonPieceButton"
         }))
         this.x = options.x
         this.y = options.y
@@ -408,22 +453,24 @@ class ReactorPiece {
         const options = { parent, x, y, type: Reactor.t.IN }
         return new ReactorPiece(options)
     }
-    /**@param {Reactor} parent  */
+    /**@param {Reactor} parent*/
     static OUT(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = (poly) => {
             parent.isLogging && console.log("OUT:", poly.getTex())
             const color = parent.receiveOutput(poly)
-            parent.polysToRemove.push(poly)
+            parent.removePoly(poly)
             poly.button.color = color
-            const after = () => {
+            parent.AnimBank.shrinkAway(poly.button)
+            /*const after = () => {
                 parent.AnimBank.shrinkAway(poly.button)
             }
-            parent.nextStepExtras.push(after)
+            parent.nextStepExtras.push(after)*/
         }
         const options = { parent, x, y, type: Reactor.t.OUT, on_contact }
         return new ReactorPiece(options)
 
+        /**@param {Reactor} parent*/
     }
     static UP(parent, x, y) {
         /**@param {Poly} poly*/
@@ -431,87 +478,213 @@ class ReactorPiece {
         const options = { parent, x, y, type: Reactor.t.UP, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static DOWN(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = function (poly) { poly.heading = [1, 0] }
         const options = { parent, x, y, type: Reactor.t.DOWN, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static LEFT(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = function (poly) { poly.heading = [0, -1] }
         const options = { parent, x, y, type: Reactor.t.LEFT, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static RIGHT(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = function (poly) { poly.heading = [0, 1] }
         const options = { parent, x, y, type: Reactor.t.RIGHT, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static DER(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = function (poly) { poly.takeDerivative() }
         const options = { parent, x, y, type: Reactor.t.DER, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static INT(parent, x, y) {
         /**@param {Poly} poly*/
         const on_contact = function (poly) { poly.takeIntegral() }
         const options = { parent, x, y, type: Reactor.t.INT, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static LEAD(parent, x, y) {
         /**@param {Poly} poly*/
         // const on_contact = function (poly) { poly.arr = [poly.arr.findLast(x => x.numerator != 0)] }
-        const on_contact = function (poly) { poly.arr = [poly.arr.at(-1)] }
+        const on_contact = function (poly) { poly.takeLead() }
         const options = { parent, x, y, type: Reactor.t.LEAD, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static CONST(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) { poly.arr = [poly.arr[0]] }
+        const on_contact = function (poly) { poly.takeConst() }
         const options = { parent, x, y, type: Reactor.t.CONST, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static RAISE(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) {
-            poly.arr = [new Rational(0)].concat(poly.arr)
-            poly.resolveZerosIssue()
-        }
+        const on_contact = function (poly) { poly.raise() }
         const options = { parent, x, y, type: Reactor.t.RAISE, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
     static LOWER(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) { poly.arr = poly.arr.slice(1) }
+        const on_contact = function (poly) { poly.lower() }
         const options = { parent, x, y, type: Reactor.t.LOWER, on_contact }
         return new ReactorPiece(options)
     }
+    /**@param {Reactor} parent*/
+    static DEG(parent, x, y) {
+        /**@param {Poly} poly*/
+        const on_contact = function (poly) {
+            const len = poly.arr.length
+            if (len >= 1) {
+                poly.takeDegree()
+            } else {
+                parent.removePoly(poly)
+                parent.AnimBank.shrinkAway(poly.button)
+            }
+        }
+        const options = { parent, x, y, type: Reactor.t.DEG, on_contact }
+        return new ReactorPiece(options)
+    }
+    /**@param {Reactor} parent*/
+    static ADDIdepr(parent, x, y) {
+        /**@param {Poly} poly */
+        const on_contact = function (poly) {
+            poly.sumWith(Poly.computed([1]))
+        }
+        const options = { parent, x, y, type: Reactor.t.ADDI, on_contact }
+        return new ReactorPiece(options)
+
+    }
+    /**@param {Reactor} parent*/
+    static SUBIdepr(parent, x, y) {
+        /**@param {Poly} poly */
+        const on_contact = function (poly) {
+            poly.sumWith(Poly.computed([-1]))
+        }
+        const options = { parent, x, y, type: Reactor.t.SUBI, on_contact }
+        return new ReactorPiece(options)
+
+    }
+
+    /**@param {Reactor} parent*/
+    static DOOR(parent, x, y) {
+        const piece = new ReactorPiece({ parent, x, y, type: Reactor.t.DOOR })
+        /**@type {Poly|null} */
+        piece.allowPass = false
+        piece.reset = function () {
+            this.allowPass = false
+            this.button.txt = "DOOR"
+            this.button.color = "gray"
+        }
+        /**@param {Poly} poly*/
+        piece.on_contact = function (poly) {
+            if (!this.allowPass) {
+                // poly.heading[0] *= -1
+                // poly.heading[1] *= -1
+                parent.removePoly(poly)
+                parent.AnimBank.shrinkAway(poly.button)
+                if (poly.arr.length == 0) {
+                    this.allowPass = true
+                    parent.removePoly(poly)
+                    parent.AnimBank.shrinkAway(poly.button)
+                    this.button.txt = "DOOR\nOPEN"
+                    this.button.color = "lightgreen"
+                }
+            } else {
+                this.reset()
+            }
+
+        }
+        return piece
+
+    }
+    /**@param {Reactor} parent */
+    static COPY(parent, x, y) {
+        /**@param {Poly} */
+        const on_contact = function (poly) {
+            const newHeadings = poly.heading[0] ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
+            newHeadings.forEach(heading => {
+                const p = parent.addPoly(poly.pos[0], poly.pos[1], poly.arr)
+                p.heading = [...heading]
+            })
+            parent.removePoly(poly)
+        }
+        const options = { parent, x, y, on_contact, type: Reactor.t.COPY }
+        return new ReactorPiece(options)
+    }
+    /**@param {Reactor} parent*/
+    static SUM(parent, x, y) {
+        const piece = new ReactorPiece({ parent, x, y, type: Reactor.t.SUM })
+        /**@type {Poly|null} */
+        piece.stored = null
+        piece.reset = function () {
+            this.stored = null
+            this.button.txt = "SUM"
+            this.button.color = "gray"
+        }
+        /**@param {Poly} poly*/
+        piece.on_contact = function (poly) {
+            if (!this.stored) {
+                this.stored = poly
+                parent.removePoly(poly)
+                parent.AnimBank.shrinkAway(poly.button)
+                this.button.txt = "SUM\nSTORED"
+                this.button.color = "lightgreen"
+            } else {
+                poly.sumWith(this.stored)
+                this.reset()
+            }
+        }
+        return piece
+    }
+    /**@param {Reactor} parent*/
+    static NEG(parent, x, y) {
+        /**@param {Poly} poly*/
+        const on_contact = function (poly) { poly.arr.forEach(x => x.multiplyBy(-1)) }
+        const options = { parent, x, y, type: Reactor.t.NEG, on_contact }
+        return new ReactorPiece(options)
+    }
+
+
+
+
 
 }
-
-
+//#endregion
+//#region Poly
 class Poly {
     static widthRatio = .9
     static heightRatio = .9
     static imgScale = 0
 
     constructor(parent, x, y, arr) {
-        this.pos = [x, y]
         if (!(arr[0] instanceof Rational)) arr = arr.map(x => new Rational(x))
-        if (arr.at(-1)?.numerator == 0) throw "leading coefficient can't be zero"
+        //if (arr.at(-1)?.numerator == 0) throw "leading coefficient can't be zero" //will be trimmed
         /**@type {Array<Rational>} */
-        this.arr = arr
+        this.arr = arr.map(x => new Rational(x))
+        this.trimZeros()
         if (!parent) return
+        this.pos = [x, y]
         /**@type {Reactor} parent*/
         this.parent = parent
         this.heading = [0, 1]
         this.button = Button.make_latex(new Button({
             color: "yellow",
             width: parent.width * Poly.widthRatio,
-            height: parent.height * Poly.heightRatio
+            height: parent.height * Poly.heightRatio,
+            tag: "PolyButton"
         }), undefined, Poly.imgScale)
     }
 
@@ -538,9 +711,6 @@ class Poly {
         if (ret.length <= 6) ret = `\\ ${ret}\\ `
         return ret
     }
-    get copy() {
-        return new Rational(this)
-    }
     takeDerivative() {
         const ret = []
         for (let i = 1; i < this.arr.length; i++) {
@@ -556,13 +726,62 @@ class Poly {
             ret.push(this.arr[i].divideBy(i + 1))
         }
         this.arr = ret
-        return this.resolveZerosIssue()
+        return this.trimZeros()
         // this.parent.refreshButtons(this)
     }
-    resolveZerosIssue() {
+    takeDegree() {
+        this.arr = [new Rational(this.arr.length - 1)]
+        return this.trimZeros()
+    }
+    takePowerDepr() {
+        if (this.arr.length > 1) return this
+        if (this.arr.length == 0) {
+            this.arr = [new Rational(1)]
+            return this
+        }
+        const con = this.arr[0]
+        if (con.denominator != 1) return this
+        if (con.numerator < 0) return this
+        const res = Array(con.numerator + 1).fill(new Rational(0))
+        res.at(-1) = new Rational(1)
+        this.arr = res
+        return this
+    }
+    takeConst() {
+        if (this.arr.length == 0) return this
+        this.arr = [this.arr[0]]
+        return this.trimZeros()
+    }
+    takeLead() {
+        if (this.arr.length == 0) return this
+        this.arr = [this.arr.at(-1)]
+        return this.trimZeros()
+    }
+    raise() {
+        this.arr = [new Rational(0)].concat(this.arr)
+        return this.trimZeros()
+    }
+    lower() {
+        this.arr = this.arr.slice(1)
+        return this
+    }
+    trimZeros() {
         let largestNonzeroPower = this.arr.findLastIndex(x => x.numerator != 0)
         if (largestNonzeroPower == -1) this.arr = [new Rational(0)]
         this.arr = this.arr.slice(0, largestNonzeroPower + 1)
+        return this
+    }
+    /**@param {Poly} other*/
+    sumWith(other) {  //mutating cause I can't be bothered
+        const longer = Math.max(this.arr.length, other.arr.length)
+        for (let i = 0; i < longer; i++) {
+            if (other.arr[i] && this.arr[i]) { this.arr[i] = Rational.sumOfTwo(other.arr[i], this.arr[i]) }
+            else { this.arr[i] ??= other.arr[i] }
+        }
+        return this.trimZeros()
+    }
+    takeNeg() {
+        this.arr.forEach(x => x.multiplyBy(-1))
         return this
     }
 
@@ -593,8 +812,15 @@ class Poly {
     isTheSameAsOutput(output) {
         return output.length == this.arr.length && output.every((x, i) => this.arr[i].isEqualTo(x))
     }
+    get copy() { //constructor creates a copy of arr
+        return new Poly(this.parent, this.x, this.y, this.arr)
+    }
+    static computed(arr) {
+        return new Poly(null, null, null, arr)
+    }
 }
-
+//#endregion
+//#region Rational
 class Rational {
     /**
      * @param {number | Array<number>} numerator - integer, or array [num,denom]
@@ -645,6 +871,13 @@ class Rational {
         this.numerator *= n
         return this.simplify()
     }
+    /**@param {Rational} first @param {Rational} second   */
+    static sumOfTwo(first, second) {
+        return new Rational(
+            first.numerator * second.denominator + first.denominator * second.numerator,
+            first.denominator * second.denominator
+        )
+    }
     get isUnit() {
         return this.denominator == 1 && Math.abs(this.numerator) == 1
     }
@@ -658,4 +891,10 @@ class Rational {
     }
 
 
+    get copy() {
+        return new Rational(this)
+    }
+
+
 }
+//#endregion

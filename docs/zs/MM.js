@@ -339,6 +339,9 @@ class MM {
         while (b !== 0) [a, b] = [b, a % b]
         return Math.abs(a)
     }
+    static lcm(a, b) {
+        return Math.abs(a / this.gcd(a, b) * b)
+    }
 
     static fact(n) {
         //if (n == 0 || n == 1) return 1
