@@ -80,6 +80,7 @@ class Game extends GameCore {
         if (this.keyboarder.pressed[3]) this.speedButtons?.[3].on_click()
         if (this.keyboarder.pressed[4]) this.speedButtons?.[4].on_click()
         if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
+        if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[1].on_click()
 
 
 
@@ -141,13 +142,27 @@ class Game extends GameCore {
             map(x => x.stretch(.8, .8)).
             map(Button.fromRect)
 
+        const wonAlreadyKeys = Game.keylistLocal()
+
         lvlButtons.forEach((x, i) => {
             x.txt = Object.keys(stgs.levels)[i]
+            const wonAlready = wonAlreadyKeys.includes(x.txt)
+            if (wonAlready) x.color = "lightgreen"
+            else x.hover_color = "lightblue"
             x.fontSize = 40
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
+                if (wonAlready) { //not the greatest practice lol
+                    try { game.reactor.fromJSON(Game.loadFromLocal(x.txt)) }
+                    catch (error) {
+                        console.error("could not load from local storage, oopsies.")
+                        console.error(this)
+                        console.error(error)
+                    }
+                }
             }
+
         })
         infoButton.centeratY(lvlButtons[0].top / 2)
         infoButton.transparent = true
@@ -156,10 +171,16 @@ class Game extends GameCore {
 
         const bottomButton = infoButton.copy
         bottomButton.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
-        bottomButton.txt =
-            `If you can solve any of the ones with the ? please let me know.
-Some might not be possible.`
-
+        //bottomButtonBG.txt = `Read the manual, then have fun!`
+        bottomButton.transparent = false
+        bottomButton.txt = "Click here to read the manual, then have fun!"
+        bottomButton.on_click = () => {
+            window.open("Manual.pdf")
+        }
+        bottomButton.leftat(lvlButtons[0].left)
+        bottomButton.rightstretchat(lvlButtons[sq - 1].right)
+        bottomButton.hover_color = "yellow"
+        //bottomButton.hover_color = 
         this.add_drawable(lvlButtons)
         this.add_drawable(infoButton)
         this.add_drawable(bottomButton)
@@ -242,6 +263,38 @@ Some might not be possible.`
         this.menu = menu
     }
     //#endregion
+
+    static keylistLocal() {
+        return JSON.parse(localStorage.getItem(stgs.localKeyName)) ?? []
+    }
+
+    static saveToLocal(key, data) {
+        try {
+            const keysAll = Game.keylistLocal()
+            keysAll.push(key)
+            const keysAllUnique = [...new Set(keysAll)]
+            localStorage.setItem(stgs.localKeyName, JSON.stringify(keysAllUnique))
+            const dataAll = JSON.parse(localStorage.getItem(stgs.localDataName)) ?? {}
+            dataAll[key] = data
+            localStorage.setItem(stgs.localDataName, JSON.stringify(dataAll))
+        } catch (error) {
+            console.error("Something's off with saving to local storage")
+            console.error(error)
+        }
+    }
+
+    static loadFromLocal(key) {
+        try {
+            if (!JSON.parse(localStorage.getItem(stgs.localKeyName))?.includes(key)) {
+                console.error("said key is not available in local storage")
+            }
+            const data = JSON.parse(localStorage.getItem(stgs.localDataName))[key]
+            return data
+        } catch (error) {
+            console.error("something's off with loading from local storage")
+            console.error(key, error)
+        }
+    }
 
 } //this is the last closing brace for class Game
 

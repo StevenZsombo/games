@@ -201,6 +201,7 @@ class Reactor {
         }
     }
     celebrate() {
+        Game.saveToLocal(stgs.stage, this.toJSON())
         this.requestState(Reactor.s.idle)
         this.game.animator.speedMultiplier = 1
         //this.game.speedButtons.forEach(x => (x.txt = "Victory", x.on_click = null))

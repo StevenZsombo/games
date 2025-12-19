@@ -1,21 +1,32 @@
 class Level {
     /**
      * @param {String} instructions
-     * @param {Array<Poly> | Array<Array<number>>} inputs
+     * @param {Array<Poly> | Array<Array<Rational>>} inputs
      * @param {Function} rule inputs.map((x)=>rule(x))
      */
     constructor(instructions, inputs, rule, genRules = {}) {
         this.instructions = instructions
-        if (inputs) {
-            this.inputs = inputs.map(x => Poly.computed(x).arr)
-        } else {
-            this.inputs = Level.random(genRules)
-        }
+        this.inputs = inputs
+            ? inputs.map(x => Poly.computed(x).arr)
+            : Level.random(genRules)
         this.outputs = this.inputs
             .map((x, i, a) => rule(x, i, a))
             .filter(x => x != null)
         this.rule = rule
         this.genRules = genRules
+        if (
+            this.outputs.length == 0
+            ||
+            (genRules.minimumOutput && (genRules.minimumOutput > this.outputs.length))
+            ||
+            (genRules.maximumOutput && (genRules.maximumOutput < this.outputs.length))
+        ) {
+            console.log("Had to generate again:", {
+                outputs: this.outputs, minimumOutput: genRules.minimumOutput, maximumOutput: genRules.maximumOutput
+            })
+            Object.assign(this, new Level(instructions, inputs, rule, genRules))
+        }
+
     }
 
     static random(genRules = {}) {
@@ -54,7 +65,10 @@ const levels = {
     ),
     "posonly": new Level(
         "The inputs are constants. Return only the positive ones.", null, x => x[0].numerator > 0 ? x : null,
-        { maxDegree: 0, maxTerms: 1 }
+        {
+            minDegree: 0, maxDegree: 0, maxTerms: 1,
+            minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
+        }
     ),
     "sumoftwo": new Level(
         "Return the sum of the current and the next input.", null, (x, i, a) => {
@@ -86,12 +100,6 @@ const levels = {
         { maxTerms: 5 }
 
     ),
-    "sumupto": new Level(
-        "Return the sum of all positive integers from 1 to the input", null, x => {
-            const n = x[0].numerator
-            return [new Rational(n * (n + 1) / 2)]
-        }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
-    ),
     "lindiff": new Level(
         "Your input is ax+b. Return the difference a-b", null, (x) => {
             const [b, a] = x
@@ -102,6 +110,12 @@ const levels = {
         "Your input is ax+b. Return the product (ab).", null, (x) => {
             const [b, a] = x
             return Poly.computed([Rational.productOfTwo(a, b)]).arr
+        }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
+    ),
+    "linsolve": new Level(
+        "Your input is ax+b. Solve ax+b=0.", null, x => {
+            const [b, a] = x
+            return Poly.computed([Rational.ratioOfTwo(b.copy.multiplyByInt(-1), a)]).arr
         }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
     ),
     "linmax": new Level(
@@ -149,6 +163,12 @@ const levels = {
         "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
+    "sumupto": new Level(
+        "Return the sum of all positive integers from 1 to the input", null, x => {
+            const n = x[0].numerator
+            return [new Rational(n * (n + 1) / 2)]
+        }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
+    ),
     /*"squareX": new Level(
         "Your input is a constant - square it.", null, x => x.map(u => new Rational(u).multiplyBy(u.numerator).divideBy(u.denominator)),
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
@@ -169,6 +189,41 @@ const levels = {
             if (d == 2) return x
         }, { maxDegree: 3, minDegree: 1, maxTerms: 2, minTerms: 1 }
     ),
+    "invsq": new Level(
+        "Your input is a positive integer a. Return 1/a^2.", null,
+        (x, i, a) => Poly.computed([new Rational(1, x[0].numerator ** 2)]).arr,
+        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
+    ),
+
+    "degfour": new Level(
+        "Only return the polynomials if each term is at least degree 4.", null, (x, i, a) => {
+            const p = Poly.computed(x)
+            if (p.degree < 4) return
+            let q = Poly.computed(p.arr.slice(0, 5))
+            let diff = q.takeNeg().sumWith(p)
+            return diff.isEqualTo(p) ? p.arr : null
+        }, {
+        minDegree: 2, maxDegree: 11, minTerms: 2, maxTerms: 4,
+        minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
+    }
+
+    ),
+    "leadingterm": new Level(
+        "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0))
+    ),
+    /*"factorial?": new Level(
+        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
+    ),*/
+    "poweroftwo": new Level(
+        "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
+        { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
+    ),
+    /*"inv": new Level(
+        "Your inputs is a positive integer a. Return 1/a", null,
+        (x, i, a) => { },
+        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
+    ),*/
     "compsqonly": new Level(
         "Your inputs are quadratics. Return only the complete squares.", null, x => {
             const [a, b, c] = x
@@ -185,25 +240,17 @@ const levels = {
             }
             return [a, b, c]
         }
-    }
-
-    ),
-    "leadingterm": new Level(
-        "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0))
-    ),
-    /*"factorial": new Level(
-        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
-        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
-    ),*/
-    "poweroftwo": new Level(
-        "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
-        { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
-    ),
+    }),
     "powersoftwo": new Level(
         "Your inputs are all [1]. Generate the higher powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
         (x, i, a) => [new Rational(2 ** (i + 1))],
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 }
     ),
+    /*"factorials": new Level(
+        "Your inputs are all [1]. Generate the higher factorials.", null,
+        (x, i, a) => [new Rational(MM.fact(i + 2))],
+        { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 }
+    ),*/
     "e": new Level(
         "Your inputs are all [1]. Approximate Euler's number.", null,
         (x, i, a) => MM.range(i + 1).reduce((s, t) => s.takeIntegral(), Poly.computed([1])).takeSubs(new Rational(1)).arr,
@@ -217,6 +264,8 @@ const levels = {
 var stgs = {
     tolerance: 0.01,
     levels: levels,
-    stage: -1
+    stage: -1,
+    localKeyName: "ZPkeys",
+    localDataName: "ZPdatas"
 
 }/// end of settings
