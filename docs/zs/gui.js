@@ -447,7 +447,7 @@ class LatexManager {
 
 }
 //#endregion
-
+//#region Supabase
 class Supabase {
 	static acquireName() {
 		const nameID = localStorage.getItem('nameID') ||
@@ -486,3 +486,4 @@ class Supabase {
 		}
 	}
 }
+//#endregion

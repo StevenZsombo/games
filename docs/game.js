@@ -288,9 +288,9 @@ class Game extends GameCore {
 
     static loadFromLocal(key) {
         try {
-            if (!JSON.parse(localStorage.getItem(stgs.localKeyName))?.includes(key)) {
+            /*if (!JSON.parse(localStorage.getItem(stgs.localKeyName))?.includes(key)) {
                 console.error("said key is not available in local storage")
-            }
+            }*/
             const data = JSON.parse(localStorage.getItem(stgs.localDataName))[key]
             return data
         } catch (error) {

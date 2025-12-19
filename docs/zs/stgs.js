@@ -112,12 +112,14 @@ const levels = {
             return Poly.computed([Rational.productOfTwo(a, b)]).arr
         }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
     ),
-    "linsolve": new Level(
-        "Your input is ax+b. Solve ax+b=0.", null, x => {
+    /*"linsolve": new Level(
+        "Solve ax+b=0 (a is a positive integer).", null, x => {
             const [b, a] = x
             return Poly.computed([Rational.ratioOfTwo(b.copy.multiplyByInt(-1), a)]).arr
-        }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
-    ),
+        }, {
+        //func: () => Poly.computed([].map(x => new Rational(x))).arr
+    }
+    ),*/
     "linmax": new Level(
         "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
             const [b, a] = x
@@ -164,7 +166,7 @@ const levels = {
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
     "sumupto": new Level(
-        "Return the sum of all positive integers from 1 to the input", null, x => {
+        "Return the sum of all positive integers from 1 to the input.", null, x => {
             const n = x[0].numerator
             return [new Rational(n * (n + 1) / 2)]
         }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
@@ -199,7 +201,7 @@ const levels = {
         "Only return the polynomials if each term is at least degree 4.", null, (x, i, a) => {
             const p = Poly.computed(x)
             if (p.degree < 4) return
-            let q = Poly.computed(p.arr.slice(0, 5))
+            let q = Poly.computed(p.arr.slice(0, 4))
             let diff = q.takeNeg().sumWith(p)
             return diff.isEqualTo(p) ? p.arr : null
         }, {

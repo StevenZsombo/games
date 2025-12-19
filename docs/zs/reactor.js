@@ -949,7 +949,6 @@ class Poly {
 //#region Rational
 class Rational {
     /**
-     * @param {number | Array<number>} numerator - integer, or array [num,denom]
      * @param {number | undefined} denominator - automatically 1 if not given
      */
     constructor(numerator, denominator) {
@@ -962,10 +961,6 @@ class Rational {
         if (denominator < 0) {
             denominator *= -1
             numerator *= -1
-        }
-        if (Array.isArray(numerator)) {
-            if (numerator.length > 2) throw "invalid input for numerator: array too large"
-            [numerator, denominator] = numerator
         }
         if (denominator === undefined || denominator == 0) denominator = 1
         this.numerator = numerator
