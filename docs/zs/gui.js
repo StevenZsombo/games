@@ -126,6 +126,9 @@ class Mouser {
 		this.released = false
 		this.down = false
 
+		this.lastClickedTime = Date.now() - 1000
+		this.lastReleasedTime = Date.now() - 1000
+
 		this.canvas = canvas
 		this.canvasRect = new Rect(0, 0, canvas.width, canvas.height)
 		this.addListeners(canvas)
@@ -166,6 +169,7 @@ class Mouser {
 			this.whereAmI(e)
 			this.clicked = true
 			this.down = true
+			this.lastClickedTime = Date.now()
 			//e.shiftKey, e.ctrlKey //true or false
 			//button = 0 or 2
 			//for some reason clicking both simultaneously does sweet FA
@@ -176,6 +180,7 @@ class Mouser {
 			this.whereAmI(e)
 			this.released = true
 			this.down = false
+			this.lastReleasedTime = Date.now()
 		})
 		/*
 		canvas.addEventListener('pointerleave', (e) => {

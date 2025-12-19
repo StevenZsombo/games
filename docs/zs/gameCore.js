@@ -145,10 +145,10 @@ class GameCore {
         this.drawnAlready ? null : this.draw_reset(screen)
         this.update(dt)
         this.update_more(dt)
-        this.extras_on_update.forEach(x => x.call(this))
+        this.extras_on_update.forEach(x => x.call(this, dt))
         !this.drawnAlready && this.draw(screen)
         !this.drawnAlready && this.draw_more(screen)
-        !this.drawnAlready && this.extras_on_draw.forEach(x => x.call(this))
+        !this.drawnAlready && this.extras_on_draw.forEach(x => x.call(this, screen))
         this.next_loop()
         this.next_loop_more()
         this.extras_temp.forEach(x => x.call(this))
@@ -194,7 +194,7 @@ class GameCore {
                     hit = item.check?.(this.mouser.x, this.mouser.y, clicked, released, held, this.mouser.wheel)
                     if (hit && item.isBlocking) {
                         clicked = false
-                        released = true
+                        released = false
                         held = false
                     }
                 }

@@ -1,0 +1,16 @@
+**************************************************************************************************
+Feature changes:
+
+2025.12.19.
+Increased base step speed 600 => 400 ms
+Incorrect outputs now replace the expected one.
+Reduces the number of randomized input sheets after the first fixed sheet is completed 3=>2
+The randomized input sheets are now progressively faster (8x=>16x then 24x).
+Early victories (for filtering problems) are no longer possible - all inputs must be processed. For inifinite problems this is not necessary.
+
+
+**************************************************************************************************
+Puzzle changes:
+
+2025.12.09
+"linmax" now never has equal coefficients.

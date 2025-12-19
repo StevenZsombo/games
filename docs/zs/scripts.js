@@ -670,10 +670,10 @@ class Button extends Clickable {
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img
 		button.imgScale = imgScale
-		Object.defineProperty(button, "tex", {
+		/*Object.defineProperty(button, "tex", {
 			get() { return button.latex.tex },
 			set(v) { button.latex.tex = v }
-		})
+		})*/
 		return button
 	}
 

@@ -24,26 +24,32 @@ class Reactor {
                 x: this.x + this.width * j,
                 y: this.y + this.height * i,
                 color: "white",
-                on_click: function () {
+                tag: [i, j],
+                on_release: function () {
                     reactor.LCB = this
                     reactor.LCP = [i, j]
-                    game.dropDown?.()
+                    // game.dropDown?.() //handled by overlay
                 }
-
             })
         ))
+
         this.game.add_drawable(this.buttonsMatrix.flat(), 3)
-        this.state = Reactor.s.idle
-        this.stepTime = 600
+        // this.state = Reactor.s.idle
+        this.stepTime = 400
         this.polysToRemove = []
+        this.piecesToRemove = []
         this.nextStepExtras = []
         this.isLogging = false
         this.otherButtons = []
+        this.tasks = 0
     }
     toJSON() {
-        //return this.pieces.map(x => ({ x: x.x, y: x.y, type: x.type }))
         return this.pieces.map(x => [x.x, x.y, x.type])
     }
+    grab() {
+        return JSON.stringify(this.toJSON())
+    }
+
     fromJSON(str) {
         if (typeof str === "string") str = JSON.parse(str)
         str.forEach(x => this.addPiece(...x))
@@ -51,13 +57,12 @@ class Reactor {
 
     /**@param {Level} level */
     loadLevel(level, sheetsCleared = 0) {
-        this.requestState(Reactor.s.idle)
+        this.tasks = 0
         this.game.animator.resetAndFlushAll()
         this.pieces.forEach(x => x.reset?.())
-            ;[...this.polys].forEach(x => this.removePoly(x))
+            ;[...this.polys].forEach(x => this._removePolyInternal(x))
             ;[...this.otherButtons].forEach(x => this.removeOtherButton(x))
         this.levelRelated?.forEach(x => this.removeOtherButton(x))
-        //this.setState(Reactor.s.readyToStep)
         this.level = level //bad practice but whatevs
         this.inputs = level.inputs
         this.outputs = level.outputs
@@ -76,9 +81,9 @@ class Reactor {
 
         const outputBG = inputBG.copy
         outputBG.move(inputBG.width, 0)
-
-        const inputRecords = inputBG.splitGrid(this.inputs.length + 1, 1).flat().map(Button.fromRect)
-        const outputRecords = outputBG.splitGrid(this.inputs.length + 1, 1).flat().map(Button.fromRect)
+        const longer = Math.max(this.inputs.length, this.outputs.length)
+        const inputRecords = inputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
+        const outputRecords = outputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
 
         const allRecords = inputRecords.concat(outputRecords)
 
@@ -98,13 +103,13 @@ class Reactor {
         outputRecordsLabel.color = "lightgray"
 
         this.inputs.forEach((input, i) => {
-            const inputRecord = inputRecords[i + 1]
-            inputRecord.latex.tex = Poly.getTex(input)
+            const inpRecord = inputRecords[i + 1]
+            inpRecord.latex.tex = Poly.getTex(input)
         })
 
         this.outputs.forEach((output, i) => {
-            const outputRecord = outputRecords[i + 1]
-            outputRecord.latex.tex = Poly.getTex(output)
+            const record = outputRecords[i + 1]
+            record.latex.tex = `\\mathbf{\\color{lightgray}{${Poly.getTex(output)}}}`
         })
 
         const instructionButton = new Button({ height: this.y - 80 })
@@ -123,11 +128,20 @@ class Reactor {
         const controlButtons = controlBG.
             splitCol(1, 0, 2).filter((_, i) => !(i % 2)).map(Button.fromRect)
         controlButtons[0].txt = "Level select"
-        controlButtons[0].on_click = () => (stgs.stage = -1, main())
-        controlButtons[0].width -= controlButtons[0].left - instructionButton.right
+        controlButtons[0].on_release = () => {
+            stgs.stage = stgs.latestSelectorType
+            main()
+        }
+        controlButtons[0].leftat(inputRecords[0].left)
+        controlButtons[0].rightstretchat(controlButtons[1].left)
         controlButtons[1].txt = "Reset"
-        controlButtons[1].on_click = () => this.loadLevel(stgs.levels[stgs.stage]) //god have mercy
-
+        controlButtons[1].on_click = () => this.loadLevel(this.level) //god have mercy
+        controlButtons[0].deflate(10, 0)
+        controlButtons[1].deflate(10, 0)
+        controlButtons[0].leftat(inputRecords[0].left)
+        controlButtons[1].rightat(outputRecords[0].right)
+        controlButtons[0].hover_color = "lightblue"
+        controlButtons[1].hover_color = "lightblue"
 
 
         this.inputBG = inputBG
@@ -143,7 +157,11 @@ class Reactor {
 
         this.levelRelated = levelRelatedAll
         levelRelatedAll.forEach(x => this.addOtherButton(x))
-        this.start()
+
+
+        this.level.conditions.on_start?.call(this)
+        this.level.conditions.on_start_more?.call(this)
+        // this.start()
 
     }
     serveInput() {
@@ -161,13 +179,13 @@ class Reactor {
         })
         this.inputsServed.push(input)
         this.inputRecords[i + 1].color = "yellow"
-
+        this.checkVictory()
     }
     /**@param {Poly} poly  */
     receiveOutput(poly) {
-        const badColor = "crimson"
+        const badColor = "lightcoral"
         const goodColor = "lightgreen"
-        if (!this.outputs) return "orange"
+        if (!this.outputs) return badColor
         const i = this.outputsReceived.length
         const output = this.outputs[i]
         if (!output) {
@@ -178,49 +196,50 @@ class Reactor {
         const color = correct ? goodColor : badColor
         this.correctCount += correct
         this.outputRecords[i + 1].color = color
-        if (
-            this.correctCount == this.outputs.length
-            //TODO: early victories are possible when output count is low.
-        ) this.checkVictory()
+        this.outputRecords[i + 1].latex.tex = poly.getTex()
+        if (!correct) {
+        }
+
+        this.checkVictory() //we may never know
         return color
     }
-    static numberOfRandomSheets = 3
+    static numberOfRandomSheets = 2
     checkVictory() {
+        if (this.correctCount !== this.outputs.length ||
+            (!this.level.conditions.allowEarlyWin
+                && (this.inputsServed.length !== this.inputs.length))
+        ) return
         this.sheetsCleared += 1
         if (this.sheetsCleared > Reactor.numberOfRandomSheets) { //needs to clear 3 random sheets
             this.nextStepExtras.push(this.celebrate)
         } else {
-            //this.game.speedButtons.forEach(x => x.on_click = null)
-            this.game.animator.speedMultiplier = 8 //6 + 2 * this.sheetsCleared
+            this.game.animator.speedMultiplier = 8 + 8 * this.sheetsCleared
             const randomSheet = new Level(`Checking for random inputs ${this.sheetsCleared}/${Reactor.numberOfRandomSheets} ...`,
-                null, this.level.rule, this.level.genRules
+                null, this.level.rule, this.level.genRules, this.level.conditions
             )
             this.nextStepExtras.push(() =>
                 this.loadLevel(randomSheet, this.sheetsCleared)
             )
         }
     }
-    celebrate() {
-        Game.saveToLocal(stgs.stage, this.toJSON())
-        this.requestState(Reactor.s.idle)
-        this.game.animator.speedMultiplier = 1
-        //this.game.speedButtons.forEach(x => (x.txt = "Victory", x.on_click = null))
+    celebrateFireworks() {
+        GameEffects.fireworksShow()
         this.instructionButton.txt = "Victory"
-        this.controlButtons[1].on_click = null //can't reset after win.
-        //TODO: fix this.
+        Game.saveToLocal(stgs.stage, this.toJSON())
+        this.game.animator.add_staggered(this.pieces.map(x => x.button),
+            1 / this.pieces.length * 1200,
+            Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
+        )
+    }
+    celebrate() {
+        this.level.conditions.on_win?.(this)
+        this.game.animator.speedMultiplier = 1
         this.controlButtons[1].txt = "Congratulations!"
         this.controlButtons[0].color = "fuchsia"
         this.game.animator.add_anim(this.controlButtons[0], 1200, Anim.f.scaleThroughFactor,
             { scaleFactor: 1.1, repeat: 24 }
         )
-        GameEffects.fireworksShow()
-        this.game.animator.add_staggered(this.pieces.map(x => x.button), 300,
-            Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
-        )
-        /*this.game.animator.add_anim(Anim.delay(600, {
-            repeat: 12,
-            on_repeat: () => this.instructionButton.txt += " :)"
-            }))*/
+        this.celebrateFireworks()
     }
 
     refreshButtons(...piecesOrPolys) {
@@ -239,7 +258,7 @@ class Reactor {
     }
     //#region step
     step() {
-        this.polysToRemove.forEach(x => this.removePoly(x)) //remove from previous cycle
+        this.polysToRemove.forEach(x => this._removePolyInternal(x)) //remove from previous cycle
         this.polysToRemove.length = 0
 
         this.nextStepExtras.forEach(x => x.call(this))
@@ -247,22 +266,9 @@ class Reactor {
 
         if (this.polys.length == 0) this.serveInput()
         this.pieces.forEach(x => x.on_step?.())
-
-        /*const reactor = this
-        const specimen = Anim.custom(null, this.stepTime, function (t, obj) {
-            return null
-        }, "", {
-            on_end: function (obj) {
-                obj.pos[0] += obj.heading[0]
-                obj.pos[1] += obj.heading[1]
-                if (reactor.outOfBounds(...obj.pos)) { reactor.polysToRemove.push(obj) }
-                else { reactor.refreshButtons(obj); reactor.checkContact(obj); }
-            }
-        })
-        this.game.animator.add_staggered(this.polys, 0, specimen, {
-            on_final: () => this.requestState(Reactor.s.readyToStep)
-        })*/
+        const reactor = this
         this.polys.forEach(x => {
+            reactor.tasks += 1
             x.button.move(this.width * x.heading[1], this.height * x.heading[0]) //man did I cook
             this.game.animator.add_anim(x.button, this.stepTime, Anim.f.moveFromRel, {
                 dx: -this.width * x.heading[1], dy: -this.height * x.heading[0],
@@ -275,14 +281,11 @@ class Reactor {
                         this.checkContact(x)
                         this.refreshButtons(x)
                     }
+                    reactor.tasks -= 1
                 },
             }) //why didn't I think of this earlier? dummy. animator can handle calling the next steps
             //could even add on_final with staggered delay=0
         })
-        if (this.state = Reactor.s.steppingCurrently) {
-            const animFinishStep = Anim.delay(this.stepTime, { on_end: () => this.requestState(Reactor.s.readyToStep) })
-            this.game.animator.add_anim(animFinishStep)
-        }
     }
     //#endregion
     outOfBounds(x, y) {
@@ -290,12 +293,6 @@ class Reactor {
     }
     /**@param {Poly} poly  */
     checkContact(poly) {
-        /*    const contact = this.pieces.find(p => p.x == poly.pos[0] && p.y == poly.pos[1])
-            if (!contact) return
-            if (contact.on_contact) {
-                contact.on_contact(poly)
-                this.refreshButtons(poly)
-            }*/
         this.pieces.filter(p => p.x == poly.pos[0] && p.y == poly.pos[1]).forEach(p => {
             if (p.on_contact) {
                 p.on_contact(poly)
@@ -305,18 +302,16 @@ class Reactor {
 
 
     update(dt) {
-        if (this.state === Reactor.s.readyToStep) {
-            if (this.requestState(Reactor.s.steppingCurrently))
-                this.step()
+        if (this.tasks < 0) {
+            console.error(this)
+            throw "Tasks gone wrong"
         }
-
+        if (this.tasks == 0) this.step()
     }
 
     /**@param {CanvasRenderingContext2D} screen  */
     draw(screen) {
-        //this.buttonsMatrix.flat().forEach(x => x.draw(screen))
-        //this.polys.forEach(x => x.button.draw(screen))
-        //this.pieces.forEach(x => x.button.draw(screen))
+
     }
     static t = Object.freeze({
         IN: "IN",
@@ -325,12 +320,12 @@ class Reactor {
         DOWN: "DOWN",
         LEFT: "LEFT",
         RIGHT: "RIGHT",
+        RAISE: "RAISE",
+        LOWER: "LOWER",
         DER: "DER",
         INT: "INT",
         LEAD: "LEAD",
         CONST: "CONST",
-        RAISE: "RAISE",
-        LOWER: "LOWER",
         DEG: "DEG",
         NEG: "NEG",
         //ADDI: "ADDI",
@@ -355,9 +350,13 @@ class Reactor {
         this.refreshButtons(poly)
         return poly
     }
-    removePoly(poly) {
+    _removePolyInternal(poly) {
+
         this.polys = this.polys.filter(x => x !== poly)
         this.game.remove_drawable(poly.button)
+    }
+    removePoly(poly) {
+        this.polysToRemove.push(poly)
     }
     findPiecesAt(x, y) {
         return this.pieces.filter(p => p.x == x & p.y == y)
@@ -386,7 +385,6 @@ class Reactor {
         this.game.remove_drawable(piece?.button)
     }
     removePiecesAt(x, y) {
-        //this.removePiece(this.findPieceAt(x, y))
         this.findPiecesAt(x, y).forEach(p => this.removePiece(p))
     }
     /**@param {Button} button  */
@@ -401,41 +399,17 @@ class Reactor {
     }
 
 
-    static s = Object.freeze({
-        idle: "idle",
-        steppingCurrently: "steppingCurrently",
-        readyToStep: "readyToStep",
-        justBeganStepping: "justBeganStepping",
-        devPause: "devPause"
-    })
-    requestState(requested) {
-        if (requested === Reactor.s.steppingCurrently) {
-            if (
-                this.state === Reactor.s.readyToStep
-            ) return this.setState(requested)
-        }
-        if (requested == Reactor.s.readyToStep) {
-            if (
-                this.state === Reactor.s.idle ||
-                this.state === Reactor.s.steppingCurrently
-            ) return this.setState(requested)
-        }
-        if (requested === Reactor.s.idle)
-            return this.setState(requested)
-        return false
-    }
-    setState(set) {
-        this.state = set
-        this.isLogging && console.log("state:", set)
-        return true
-    }
-
     start() {
-        this.requestState(Reactor.s.readyToStep)
-        //if (this.state === Reactor.s.readyToStep) this.step()//called in update
+
     }
     pause() {
-        this.requestState(Reactor.s.idle)
+
+    }
+    stressTest() {
+        Reactor.numberOfRandomSheets = 30
+        // this.isLogging = true
+        this.stepTime = 5
+        this.game.framerate.isRunning = true
     }
 
     AnimBank = {
@@ -494,12 +468,10 @@ class ReactorPiece {
     /**@param {Reactor} parent  */
     static IN(parent, x, y) {
         const options = { parent, x, y, type: Reactor.t.IN }
-        //parent.addPiece(x, y, Reactor.t.RIGHT)
         return new ReactorPiece(options)
     }
     /**@param {Reactor} parent*/
     static OUT(parent, x, y) {
-        //if (!parent.pieces.find(x => x.type == Reactor.t.OUT)) {            parent.start()        }
         /**@param {Poly} poly*/
         const on_contact = (poly) => {
             parent.isLogging && console.log("OUT:", poly.getTex())
@@ -507,10 +479,6 @@ class ReactorPiece {
             parent.removePoly(poly)
             poly.button.color = color
             parent.AnimBank.shrinkAway(poly.button)
-            /*const after = () => {
-                parent.AnimBank.shrinkAway(poly.button)
-            }
-            parent.nextStepExtras.push(after)*/
         }
         const options = { parent, x, y, type: Reactor.t.OUT, on_contact }
         return new ReactorPiece(options)
@@ -576,14 +544,14 @@ class ReactorPiece {
     /**@param {Reactor} parent*/
     static RAISE(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) { poly.raise() }
+        const on_contact = function (poly) { poly.takeRaise() }
         const options = { parent, x, y, type: Reactor.t.RAISE, on_contact }
         return new ReactorPiece(options)
     }
     /**@param {Reactor} parent*/
     static LOWER(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) { poly.lower() }
+        const on_contact = function (poly) { poly.takeLower() }
         const options = { parent, x, y, type: Reactor.t.LOWER, on_contact }
         return new ReactorPiece(options)
     }
@@ -643,7 +611,7 @@ class ReactorPiece {
                 this.button.color = "lightgreen"
             } else {
                 if (this.stored.arr.length == 0) { }
-                else if (poly.arr.length == 0) { poly.arr = this.stored.arr }
+                else if (poly.arr.length == 0) { poly.arr = this.stored.arr.map(x => new Rational(x)) }
                 else {
                     parent.removePoly(poly)
                     parent.AnimBank.shrinkAwayFaster(poly.button)
@@ -661,7 +629,7 @@ class ReactorPiece {
         const on_contact = function (poly) {
             const newHeadings = poly.heading[0] ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
             newHeadings.forEach(heading => {
-                const p = parent.addPoly(poly.pos[0], poly.pos[1], poly.arr)
+                const p = parent.addPoly(poly.pos[0], poly.pos[1], poly.arr.map(x => new Rational(x)))
                 p.heading = [...heading]
             })
             parent.removePoly(poly)
@@ -737,7 +705,7 @@ class ReactorPiece {
                 this.lastNonConstant = poly
             }
             if (this.lastConstant && this.lastNonConstant) {
-                poly.arr = this.lastNonConstant.takeSubs(this.lastConstant).arr
+                poly.arr = this.lastNonConstant.copy.takeSubs(this.lastConstant).arr
                 this.reset()
             } else {
                 this.button.txt = "SUBS\nREADY"
@@ -771,7 +739,6 @@ class Poly {
 
     constructor(parent, x, y, arr) {
         if (!(arr[0] instanceof Rational)) arr = arr.map(x => new Rational(x))
-        //if (arr.at(-1)?.numerator == 0) throw "leading coefficient can't be zero" //will be trimmed
         /**@type {Array<Rational>} */
         this.arr = arr.map(x => new Rational(x))
         this.trimZeros()
@@ -796,9 +763,6 @@ class Poly {
         let terms = []
         arr.forEach((x, i) => {
             if (x.numerator == 0) return
-            //terms.push(`${x < 0 ? "-" : firstTerm ? "" : "+"}{${Math.abs(x)}}${i >= 1 ? "x" : ""}${i >= 2 ? "^{" + i + "}" : ""}`)
-            //terms.push(`${x > 0 ? "+" : "-"}${Math.abs(x) == 1 && i >= 1 ? "" : Math.abs(x)}${i >= 1 ? "x" : ""}${i >= 2 ? "^{" + i + "}" : ""}`)
-            //terms.push(x.isUnit ? )
             let term = ""
             if (!x.isUnit || i == 0) { term += x.getTex() }
             else { term += x.numerator < 0 ? "-" : "+" }
@@ -818,7 +782,6 @@ class Poly {
         }
         this.arr = ret
         return this
-        // this.parent.refreshButtons(this)
     }
     takeIntegral() {
         const ret = [new Rational(1)]
@@ -827,7 +790,6 @@ class Poly {
         }
         this.arr = ret
         return this.trimZeros()
-        // this.parent.refreshButtons(this)
 
     }
     get degree() {
@@ -864,11 +826,11 @@ class Poly {
         this.arr = [this.arr.at(-1)]
         return this.trimZeros()
     }
-    raise() {
+    takeRaise() {
         this.arr = [new Rational(0)].concat(this.arr)
         return this.trimZeros()
     }
-    lower() {
+    takeLower() {
         this.arr = this.arr.slice(1)
         return this
     }
@@ -929,6 +891,10 @@ class Poly {
     /**@param {Poly} otherPoly  */
     isEqualTo(otherPoly) {
         return otherPoly.arr.length == this.arr.length && otherPoly.arr.every((x, i) => this.arr[i].isEqualTo(x))
+    }
+    toRational() {
+        if (this.degree > 0) throw "invalid request to convert to rational"
+        return this.arr?.[0] ?? new Rational(0)
     }
 
     /**

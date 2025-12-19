@@ -3,7 +3,7 @@ var univ = {
     framerateUnlocked: true,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -53,11 +53,18 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
-        if (stgs.stage !== -1) {
-            this.makeLevel()
-        } else (
-            this.levelSelector()
-        )
+        switch (stgs.stage) {
+            case pageManager.levelSelector:
+                this.levelSelector()
+                break;
+            case pageManager.tutorialSelector:
+                this.tutorialSelector()
+                break;
+
+            default:
+                this.makeLevel()
+                break;
+        }
 
 
 
@@ -129,11 +136,11 @@ class Game extends GameCore {
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //#region levelSelector
-    levelSelector() {
-        const levelList = Object.keys(stgs.levels)
+    makeGridOfLevels(levelList) {
         const numberOfLevels = levelList.length
         const sq = Math.ceil(Math.sqrt(numberOfLevels))
         const infoButton = new Button({ width: this.WIDTH })
+
         const lvlButtons = this.rect.copy.
             stretch(.9, .6).
             topat(200).
@@ -141,11 +148,13 @@ class Game extends GameCore {
             slice(0, numberOfLevels).
             map(x => x.stretch(.8, .8)).
             map(Button.fromRect)
-
+        const lvlButtonsBG = new Rect(lvlButtons[0].left, lvlButtons[0].top, 0, 0)
+        lvlButtonsBG.bottomstretchat(lvlButtons.at(-1).bottom)
+        lvlButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
         const wonAlreadyKeys = Game.keylistLocal()
 
         lvlButtons.forEach((x, i) => {
-            x.txt = Object.keys(stgs.levels)[i]
+            x.txt = levelList[i]
             const wonAlready = wonAlreadyKeys.includes(x.txt)
             if (wonAlready) {
                 x.color = "lightgreen"
@@ -170,28 +179,75 @@ class Game extends GameCore {
         infoButton.centeratY(lvlButtons[0].top / 2)
         infoButton.transparent = true
         infoButton.txt = "Select level:"
-        infoButton.fontSize = 48
-
-        const bottomButton = infoButton.copy
-        bottomButton.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
-        //bottomButtonBG.txt = `Read the manual, then have fun!`
-        bottomButton.transparent = false
-        bottomButton.txt = "Click here to read the manual, then have fun!"
-        bottomButton.on_click = () => {
-            window.open("Manual.pdf")
+        infoButton.leftat(lvlButtons[0].left)
+        infoButton.width = (lvlButtons[sq - 1].right - lvlButtons[0].left) * .6
+        infoButton.fontSize = 40
+        const tutorialsButton = Button.fromRect(infoButton.copyRect)
+        tutorialsButton.width *= .5
+        tutorialsButton.move(tutorialsButton.width * (2 + 1 / 3), 0)
+        tutorialsButton.on_release = () => {
+            stgs.stage = pageManager.tutorialSelector
+            stgs.latestSelectorType = pageManager.tutorialSelector
+            main()
         }
-        bottomButton.leftat(lvlButtons[0].left)
-        bottomButton.rightstretchat(lvlButtons[sq - 1].right)
-        bottomButton.hover_color = "yellow"
-        //bottomButton.hover_color = 
+        tutorialsButton.hover_color = "lightblue"
+        tutorialsButton.txt = "Tutorials"
+        tutorialsButton.fontSize = 40
+        tutorialsButton.resize(tutorialsButton.width, lvlButtons[0].height)
+
+        this.add_drawable(tutorialsButton)
         this.add_drawable(lvlButtons)
         this.add_drawable(infoButton)
-        this.add_drawable(bottomButton)
+        return { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG }
+
+    }
+    levelSelector() {
+        const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } =
+            this.makeGridOfLevels(Object.keys(window.levels))
+
+
+
+        const bottomButtonBG = infoButton.copy
+        bottomButtonBG.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
+        bottomButtonBG.leftat(lvlButtons[0].left)
+        bottomButtonBG.rightstretchat(lvlButtons[sq - 1].right)
+        //bottomButtonBG.txt = `Read the manual, then have fun!`
+        const manualButton = Button.fromRect(bottomButtonBG.splitCol(7, 3)[1])
+        manualButton.leftat(tutorialsButton.left)
+        manualButton.rightstretchat(tutorialsButton.right)
+        manualButton.transparent = false
+        manualButton.fontSize = 40
+        manualButton.txt = "Manual"
+        manualButton.on_click = () => {
+            window.open("Manual.pdf")
+        }
+        manualButton.hover_color = "yellow"
+        //bottomButton.hover_color = 
+        this.add_drawable(manualButton)
+
     }
     //#endregion
+
+    //#tutorialSelector
+    tutorialSelector() {
+        const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } = this.makeGridOfLevels(Object.keys(window.tutorialLevels))
+        tutorialsButton.on_release = () => {
+            stgs.stage = pageManager.levelSelector
+            stgs.latestSelectorType = pageManager.levelSelector
+            main()
+        }
+        tutorialsButton.txt = "Back to puzzles"
+
+
+    }
+
+
     //#region makeLevel
-    makeLevel() {
-        const reactor = new Reactor(this, 6, 6, 210, 150)
+    /**@param {Level} level  */
+    makeLevel(level) {
+        if (!level || typeof level === "string")
+            level = levels[stgs.stage] ?? tutorialLevels[stgs.stage]
+        const reactor = new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
         this.add_drawable(reactor)
         this.reactor = reactor
         window.r = reactor
@@ -216,53 +272,173 @@ class Game extends GameCore {
         //speedButtons[1].on_click()
         this.speedButtons = speedButtons
         this.add_drawable(speedButtons)
-        reactor.loadLevel(stgs.levels[stgs.stage])
+        reactor.loadLevel(level)
+
+
+        this.isDragging = false
+        /**@type {Array<ReactorPiece>} */
+        this.currentDraggingList = []
+        this.dragLastPos = null
+        /**@type {Button} */
+        this.lastHit = {}
+        this.firstHit = null
+        this.targetHit = null
+        const overlay = Button.fromRect(game.rect)
+        overlay.visible = false
+        overlay.clickable = true
+        overlay.isBlocking = false
+        overlay.on_click = () => console.log("hey")
+        this.add_drawable(overlay, 8)
+        this.overlay = overlay
+
+        overlay.on_click = () => {
+            if (this.menu) {
+                this.dropDownEnd()
+            }
+            const hit = this.seekButton()
+            if (!hit) {
+                this.dragLastPos = null
+                return
+            }
+            this.firstHit = hit
+            this.firstHitChanged = false
+            this.lastHit = hit
+            /**@type {Array<Button>} */
+            this.ghosts = []
+            this.currentDraggingList = reactor.findPiecesAt(...hit.tag)
+            this.dragLastPos = this.mouser.pos
+            hit.color = "fuchsia"
+
+        }
+
+        overlay.on_release = () => {
+            /*if (this.currentDraggingList.length) {
+                return
+            }*/
+            this.ghosts && this.remove_drawables_batch(...this.ghosts)
+            this.lastHit.color = "white"
+            if (!this.firstHit) return
+            const hit = this.seekButton()
+            if (!hit) {
+                this.firstHit = null
+                return
+            }
+            const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            this.currentDraggingList.forEach(x => {
+                x.x = this.lastHit.tag[0]
+                x.y = this.lastHit.tag[1]
+                this.reactor.refreshButtons(x)
+            })
+            targetsList.forEach(x => {
+                x.x = this.firstHit.tag[0]
+                x.y = this.firstHit.tag[1]
+                this.reactor.refreshButtons(x)
+            })
+            this.lastHit = {}
+            this.firstHit = null
+            if (this.firstHitChanged && (Date.now() - this.mouser.lastClickedTime > 100)) {
+                return
+            }
+            if (hit) {
+                this.dropDown(hit)
+                this.lastHit = hit
+            } else {
+                this.dropDownEnd()
+            }
+        }
+
+        overlay.on_drag = () => {
+            if (!this.dragLastPos) return
+            const hit = this.seekButton()
+            if (hit !== this.firstHit) this.firstHitChanged = true
+            this.lastHit.color = "white"
+            this.lastHit = hit ?? {}
+            if (!hit) {
+                this.currentDraggingList.forEach(x =>
+                    this.reactor.removePiece(x)
+                )
+                this.currentDraggingList.length = 0
+                this.dragLastPos = null
+                return
+            }
+            const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            this.ghosts && this.remove_drawables_batch(...this.ghosts)
+            if (this.firstHit !== hit) {
+                this.ghosts = targetsList.map(x => x.button.copy)
+                this.ghosts.forEach(x => {
+                    x.opacity = .5
+                    x.centerinRect(this.firstHit)
+                })
+                this.add_drawable(this.ghosts)
+            }
+            hit.color = "fuchsia"
+            this.currentDraggingList.forEach(x => {
+                x.button.move(this.mouser.x - this.dragLastPos.x, this.mouser.y - this.dragLastPos.y)
+
+                //x.x = hit.tag[0]
+                //x.y = hit.tag[1]
+                //this.reactor.refreshButtons(x)
+            })
+            this.dragLastPos = this.mouser.pos
+        }
 
     }
     //#endregion
     //#region dropDown
+    seekButton() {
+        if (!this.reactor) return
+        return this.reactor.buttonsMatrix.flat().find(p => p.collidepoint(this.mouser.pos.x, this.mouser.pos.y))
+    }
+
     dropDownEnd() {
         this.remove_drawables_batch(this.menu)
         this.menu = null
         this.reactor.buttonsMatrix.flat().forEach(x => x.color = "white")
     }
 
-    dropDown(cols = 2) {
+    dropDown(button, cols = 2) {
         if (this.menu) {
             this.dropDownEnd()
-            return
         }
+        if (!button) throw "No button was given for dropDown"
         const reactor = this.reactor
-        reactor.LCB.color = "fuchsia"
-        const menu = Object.keys(Reactor.t).map((x, i) => new Button({
+        //button ??= reactor.LCB
+        button.color = "fuchsia"
+        const availableTools = reactor.level.conditions.toolsRestrictedTo
+            ? Object.keys(Reactor.t).filter(x => reactor.level.conditions.toolsRestrictedTo.includes(x))
+            : Object.keys(Reactor.t)
+        const menu = availableTools.map((x, i) => new Button({
             txt: x,
             color: Reactor.isMovementType(x) ? "plum" : "pink",
-            hover_color: "fuchsia",
-            on_click: () => x != "TODO" && reactor.addPiece(...reactor.LCP, x),
+            on_release: () => {
+                reactor.addPiece(...button.tag, x)
+            },
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
         const del = menu[0].copy
-        del.on_click = () => reactor.removePiecesAt(...reactor.LCP)
+        del.on_release = () => reactor.removePiecesAt(...button.tag)
         //del.move(0, menu.at(-1).height)
         del.txt = "Delete this"
         menu.push(del)
         const delAll = menu[0].copy
-        delAll.on_click = () => reactor.pieces.forEach(x => reactor.removePiece(x))
+        delAll.on_release = () => reactor.pieces.forEach(x => reactor.removePiece(x))
         delAll.txt = "Delete all"
         menu.push(delAll)
+        const boxheight = (2 + availableTools.length / cols) * 40 * (1 + userSettings.biggerButtons)
         const box = new Rect(
             this.mouser.x + 10, this.mouser.y + 10,
             300,//reactor.width * .5 * cols,
-            500 //reactor.height * .5 * Math.ceil(menu.length / cols)
+            boxheight //reactor.height * .5 * Math.ceil(menu.length / cols)
         )
         box.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
-        this.add_drawable(menu)
-        //this.add_drawable(box)
         menu.forEach(x => {
-            x.on_click = MM.extendFunction(x.on_click, this.dropDownEnd.bind(this))
+            x.hover_color = "fuchsia"
             x.isBlocking = true
+            x.on_release = MM.extFunc(x.on_release, this.dropDownEnd.bind(this, button))
         })
+        this.add_drawable(menu, 9)
+        //this.add_drawable(box)
         this.menu = menu
     }
     //#endregion
@@ -298,6 +474,9 @@ class Game extends GameCore {
             console.error(key, error)
         }
     }
+    static allLocal() {
+        return localStorage.getItem(stgs.localDataName)
+    }
 
 } //this is the last closing brace for class Game
 
@@ -307,5 +486,11 @@ const dev = {
     add: (type) => window.r.addPiece(...window.r.LCP, type)
 
 }/// end of dev
+
+const pageManager = Object.freeze({
+    levelSelector: -1,
+    settings: -2,
+    tutorialSelector: -3
+})
 
 

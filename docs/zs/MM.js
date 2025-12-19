@@ -919,7 +919,7 @@ class MM {
 class GameEffects {
     //requires a global "game" to run
     static fireworks(pos, howmany = 200, howlong = 2000, howbig = 5, howfar = 200) {
-        const container = game.layers[9]
+        const container = []
         const { x, y } = pos
         for (let i = 0; i < howmany; i++) {
             const theta = MM.random(-60, 180 + 60) * ONEDEG
@@ -934,20 +934,38 @@ class GameEffects {
                     MM.drawCircle(screen, this.x, this.y, this.size, {
                         color: this.color, opacity: this.opacity
                     })
+                },
+                animate: function (t) {
+                    p.x = x + vX * t ** .5
+                    p.y = y + vY * t ** .5 + t ** 2 * 200
+                    p.opacity = t ** 2
+                    p.size = howbig * (1 - t)
                 }
             }
             container.push(p)
-            game.animator.add_anim(Anim.custom(p, howlong, function (t) {
+            /*game.animator.add_anim(Anim.custom(p, howlong, function (t) {
                 p.x = x + vX * t ** .5 //* ((1 - t) / 2 + .5)
                 p.y = y + vY * t ** .5 + t ** 2 * 200 //* ((1 - t) / 2 + .5)
                 p.opacity = t ** 2
                 p.size = howbig * (1 - t)
-            }, null, {
-                on_end: () => {
-                    game.layers[9] = game.layers[9].filter(x => x !== p)
-                },
-            }))
+            }, null
+                , {
+                    on_end: () => {
+                        //game.layers[9] = game.layers[9].filter(x => x !== p)
+
+                    },
+                }
+            ))*/
         }
+        const drawAll = (screen) => container.forEach(p => p.draw(screen))
+        game.extras_on_draw.push(drawAll)
+        game.animator.add_anim(Anim.custom(container, howlong, function (t) {
+            container.forEach(p => p.animate(t))
+        }, null, {
+            on_end: () => game.extras_on_draw.splice(game.extras_on_draw.indexOf(drawAll), 1)
+        }))
+
+
     }
 
     static fireworksShow(howmanytimes = 5) {
