@@ -147,8 +147,11 @@ class Game extends GameCore {
         lvlButtons.forEach((x, i) => {
             x.txt = Object.keys(stgs.levels)[i]
             const wonAlready = wonAlreadyKeys.includes(x.txt)
-            if (wonAlready) x.color = "lightgreen"
-            else x.hover_color = "lightblue"
+            if (wonAlready) {
+                x.color = "lightgreen"
+                x.hover_color = "green"
+            }
+            else { x.hover_color = "lightblue" }
             x.fontSize = 40
             x.on_release = () => {
                 stgs.stage = levelList[i]
