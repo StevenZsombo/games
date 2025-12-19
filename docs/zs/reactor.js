@@ -732,7 +732,7 @@ class ReactorPiece {
         /**@param {Poly} poly */
         piece.on_contact = function (poly) {
             if (poly.degree == 0) {
-                this.lastConstant = poly.arr[0]
+                this.lastConstant = poly.arr?.[0] ?? new Rational(0)
             } else {
                 this.lastNonConstant = poly
             }
