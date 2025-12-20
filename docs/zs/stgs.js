@@ -163,6 +163,15 @@ var levels = Object.freeze({
         "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
         { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
     ),
+    "exp": new Level(
+        "Your input is positive integer n. Return nx^n.", null,
+        x => {
+            const res = Array(x[0].numerator + 1).fill(new Rational(0))
+            res[res.length - 1] = x[0]
+            return res
+        },
+        { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
+    ),
     "degfour": new Level(
         "Only return the polynomials if each term is at least degree 4.", null, (x, i, a) => {
             const p = Poly.computed(x)
@@ -207,8 +216,18 @@ var levels = Object.freeze({
         }, { numberOfInputs: 9, maxTerms: 1 }
     ),*/
     "leadingterm": new Level(
-        "Your inputs are non-constant. Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0)),
-        { minDegree: 1 }
+        "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0)),
+        undefined, {
+        on_start:/**@this {Reactor} */ function () {
+            if (this.inputs.some(x => x.length == 1)) return
+            const where = MM.randomInt(0, this.level.inputs.length - 1)
+            const what = [new Rational(MM.choice([...MM.range(-10, 10).filter(x => x != 0)]), MM.choice([2, 3, 4, 5, 6, 7]))]
+            this.inputs[where] = what
+            this.outputs[where] = what
+            this.inputRecords[where].latex.tex = Poly.computed(what).getTex()
+            this.outputRecords[where].latex.tex = "\\color{lightgray}{" + Poly.computed(what).getTex() + "}"
+        }
+    }
     ),
     "statattwo": new Level(
         "Return only the polynomials with a stationary point at x=2.",
@@ -245,7 +264,7 @@ var levels = Object.freeze({
         (x, i, a) => Poly.computed(x).takeIntegral().takeSubs(new Rational(3)).sumWith(Poly.computed(x).takeIntegral().takeSubs(new Rational(0)).takeNeg())
     ),
     "accel": new Level(
-        "Initial velocity: 3 m/s. Your input is the acceleration\nafter x seconds. Find the displacement after 2s."
+        "Initial velocity: 3 m/s. Your input is the acceleration\nafter x seconds. Find the displacement after x=2 seconds."
         //        "Starting with initial velocity 3 m/s, an object moves with the given\n acceleration after x seconds. find its displacement after 2 seconds."
         , null, x => {
             const indef = Poly.computed(x).takeIntegral().sumWith(Poly.computed([2])).takeIntegral()
@@ -262,6 +281,11 @@ var levels = Object.freeze({
         (x, i, a) => { },
         { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
     ),*/
+    /*"flip": new Level(
+        "Replace the leading term's coefficient with its reciprocal.", null,
+        x => x.map((u, i, a) => i == a.length - 1 ? new Rational(u.denominator, u.numerator) : u),
+    ),*/
+
     "everyother": new Level(
         "Return only every other input.", null, (x, i, a) => i % 2 ? x : null
     ),
