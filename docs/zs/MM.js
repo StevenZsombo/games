@@ -1111,7 +1111,7 @@ class GameEffects {
                 on_end?.()
             }
         }))
-        game.add_drawable(b)
+        game.add_drawable(b, 7)
         game.animator.add_sequence(...seq)
 
 
@@ -1158,10 +1158,11 @@ class GameEffects {
      * @param {number|null} gridRows 
      * @param {number|null} gridColumns 
      * @param {Button} moreButtonSettings 
+     * @param {Button|Array<Button>} overridenButtons
      * @param {Boolean} addCloseButton 
      */
     static dropDownMenu(textList, on_clickList, backgroundRect = null, gridRows = null, gridColumns = 1,
-        moreButtonSettings = {}, addCloseButton = true
+        moreButtonSettings = {}, overridenButtons = null, addCloseButton = true
     ) {
         const result = {}
         result.close = () => game.remove_drawables_batch(menu)
@@ -1180,6 +1181,16 @@ class GameEffects {
             closeButton.on_click = () => (game.mouser.blockNextRelease(), result.close())
             menu.push(closeButton)
         }
+        [].concat(overridenButtons).forEach(b => {
+            const origOnClick = b.on_click
+            b.on_click = function () {
+                result.close()
+                this.on_click = origOnClick
+                this.on_click?.()
+            }
+        }
+        )
+
         gridRows ||= menu.length
         gridColumns ||= 1
         const where = [game.mouser.x + 5, game.mouser.y + 5]

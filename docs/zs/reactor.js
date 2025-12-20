@@ -41,6 +41,8 @@ class Reactor {
         this.isLogging = false
         this.otherButtons = []
         this.tasks = 0
+        this.game.keyboarder.on_paste = this._interactiveFromJSON.bind(this)
+        this.game.keyboarder.on_copy = this.grab.bind(this)
     }
     toJSON() {
         return this.pieces.map(x => [x.x, x.y, x.type])
@@ -60,6 +62,15 @@ class Reactor {
         return str
     }
     give() {
+        if (!stgs.alreadyTriedAskingForClipboardPermission) {
+            navigator.permissions.query({
+                name: 'clipboard-read',
+                allowWithoutGesture: true
+            }).then(console.log)
+            stgs.alreadyTriedAskingForClipboardPermission = true
+        }
+
+
         navigator.clipboard.readText().then(str => this._interactiveFromJSON(str)).catch(error => {
             this.POPUP("Cannot read the clipboard.\nPlease paste manually.",
                 1000, () => this._interactiveFromJSON(prompt("Please copy save data:")))
@@ -178,7 +189,7 @@ class Reactor {
             x.hover_color = "lightblue"
         })
         controlButtons[1].txt = "Settings"
-        controlButtons[1].on_release = () => {
+        controlButtons[1].on_click = () => {
             const menu = GameEffects.dropDownMenu(["Share", "Load", "Reset level",
                 `Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
                 ...(userSettings.isDeveloper ? ["DEV.framerate", "DEV.stressTest"] : [])
@@ -189,7 +200,8 @@ class Reactor {
                 this.stressTest.bind(this)
                 ],
                 new Rect(0, 0, 2 * controlButtons[1].width, 0), null, null,
-                { height: 50 * (1 + userSettings.biggerButtons) })
+                { height: 50 * (1 + userSettings.biggerButtons) },
+                controlButtons[1])
             menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
         }
 
@@ -207,7 +219,8 @@ class Reactor {
         this.levelRelated = levelRelatedAll
         levelRelatedAll.forEach(x => this.addOtherButton(x))
 
-
+        // if (this.level.conditions.longerInstructions) this.instructionButton.stretch(1, 1.5)
+        if (instructionButton.txt.includes("\n")) instructionButton.stretch(1, 1.5)
         this.level.conditions.on_start?.call(this)
         this.level.conditions.on_start_more?.call(this)
         // this.start()
@@ -392,6 +405,7 @@ class Reactor {
     })
     static m = new Set([Reactor.t.UP, Reactor.t.DOWN, Reactor.t.LEFT, Reactor.t.RIGHT])
     static isMovementType(type) {
+        if (type instanceof ReactorPiece) type = type.type
         return this.m.has(type)
     }
 
@@ -417,12 +431,15 @@ class Reactor {
         if (!Reactor.t[type]) console.error("invalid type")
         if (!ReactorPiece[type]) console.error("type not yet implemented")
         const previous = this.pieces.filter(p => p.x == x && p.y == y)
-        previous.forEach(p => {
+        for (const p of previous) {
             if (Reactor.isMovementType(type) == Reactor.isMovementType(p.type))
                 this.removePiece(p)
-        })
+            if (Reactor.isMovementType(type) && (type === p.type)) {
+                return
+            }
+        }
         if ("".split(" ").includes(type)) {//these are limited to one
-            const other = this.pieces.find(x => x.type == type)
+            const other = this.pieces.find(x => x.type == type)//movement twice = delete
             other && this.removePiece(other)
         }
         const piece = ReactorPiece[type](this, x, y)
@@ -794,7 +811,6 @@ class Poly {
     static imgScale = 0
 
     constructor(parent, x, y, arr) {
-        if (!(arr[0] instanceof Rational)) arr = arr.map(x => new Rational(x))
         /**@type {Array<Rational>} */
         this.arr = arr.map(x => new Rational(x))
         this.trimZeros()
@@ -1070,7 +1086,7 @@ class Rational {
     get copy() {
         return new Rational(this)
     }
-
+    /**@returns {Poly} */
     toPoly() {
         return new Poly.computed([this])
     }

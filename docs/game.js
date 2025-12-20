@@ -142,7 +142,7 @@ class Game extends GameCore {
         const infoButton = new Button({ width: this.WIDTH })
 
         const lvlButtons = this.rect.copy.
-            stretch(.9, .6).
+            stretch(.9, .65).
             topat(200).
             splitGrid(sq, sq).flat().
             slice(0, numberOfLevels).
@@ -243,7 +243,8 @@ class Game extends GameCore {
                 {
                     height: userSettings.biggerButtons ? 140 : 80,
                     width: 300
-                }
+                },
+                optionsButton
             )
         }
 
@@ -315,7 +316,7 @@ class Game extends GameCore {
         overlay.clickable = true
         overlay.isBlocking = false
         overlay.on_click = () => console.log("hey")
-        this.add_drawable(overlay, 8)
+        this.add_drawable(overlay, 7)
         this.overlay = overlay
 
         overlay.on_click = () => {
@@ -332,7 +333,7 @@ class Game extends GameCore {
             this.lastHit = hit
             /**@type {Array<Button>} */
             this.ghosts = []
-            this.currentDraggingList = reactor.findPiecesAt(...hit.tag)
+            this.currentDraggingList = reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
             this.dragLastPos = this.mouser.pos
             hit.color = "fuchsia"
 
@@ -350,7 +351,7 @@ class Game extends GameCore {
                 this.firstHit = null
                 return
             }
-            const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            const targetsList = this.reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
             if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
             this.currentDraggingList.forEach(x => {
                 x.x = this.lastHit.tag[0]
@@ -394,7 +395,7 @@ class Game extends GameCore {
                 this.dragLastPos = null
                 return
             }
-            const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            const targetsList = this.reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
 
             if (hit && this.firstHit !== hit) {
                 this.ghosts = targetsList.map(x => x.button.copy)
@@ -475,7 +476,7 @@ class Game extends GameCore {
             x.isBlocking = true
             x.on_release = MM.extFunc(x.on_release, this.dropDownEnd.bind(this, button))
         })*/
-        this.add_drawable(menu, 9)
+        this.add_drawable(menu, 8)
         //this.add_drawable(box)
         this.menu = menu
     }

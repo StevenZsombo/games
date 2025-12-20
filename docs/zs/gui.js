@@ -1,3 +1,7 @@
+var documentHandlers = {}
+var canvasHandlers = {}
+var windowHandlers = {}
+
 //#region Framerater
 class Framerater {
 	constructor(isRunning = true) {
@@ -65,9 +69,11 @@ class Keyboarder {
 		this.keyBuffer = []
 		const keyBuffer = this.keyBuffer
 		this.bufferedKeys = []
+		this.lastPasted = null
+		this.on_paste = null //(text) => ...
+		this.isLogging = true
 
-
-		document.addEventListener('keydown', (e) => {
+		const keydown = (e) => {
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
@@ -78,19 +84,46 @@ class Keyboarder {
 				this.strokeBuffer.push([Date.now(), e.key])
 				this.keyBuffer.push([Date.now(), e.key])
 			}
-		})
-		document.addEventListener('keyup', (e) => {
+		}
+		document.addEventListener('keydown', keydown)
+		documentHandlers.keydown = keydown
+
+		const keyup = (e) => {
 			this.held[e.key] = false
 			this.pressed[e.key] = false
-			/*if (e.key == "F") {
-				fullscreenToggle()
-			}*/
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
 			}
-		})
-		//there's also a 'blur' event for alt+tab
+		}
+		document.addEventListener('keyup', keyup)
+		documentHandlers.keyup = keyup
+
+		const paste = (e) => {
+			const text = e.clipboardData.getData('text/plain');
+			this.lastPasted = text
+			this.on_paste?.(text)
+			this.isLogging && console.log("Pasted: ", text)
+			e.preventDefault()
+			e.stopPropagation()
+		}
+		document.addEventListener('paste', paste)
+		documentHandlers.paste = paste
+
+		const copy = (e) => {
+			if (this.on_copy) {
+				let data = this.on_copy()
+				if (typeof data !== "string") data = JSON.stringify(data)
+				//e.clipboardData.setData('text/plain', this.on_copy?.())
+				//this is so dumb lol
+				navigator.clipboard.writeText(data)
+				this.isLogging && console.log("Copied: ", data)
+			}
+			e.preventDefault()
+			e.stopPropagation()
+		}
+		document.addEventListener('copy', copy)
+		documentHandlers.copy = copy
 	}
 	get strokes() {
 		return this.strokeBuffer.map(x => x[1]).join("")
@@ -150,21 +183,19 @@ class Mouser {
 		this.x = withinInfo.x
 		this.y = withinInfo.y
 		if (withinInfo.anyOut) {
-			this.released = true
-			//this.x = null
-			//this.y = null
+			this.released = !this._blockNextRelease
 		}
 	}
 
 	addListeners(canvas) {
-		canvas.addEventListener('pointermove', (e) => {
+
+		const pointermove = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
 			//e.pointerType //can be 'mouse', 'pen', 'touch'
-
-		})
-		canvas.addEventListener('pointerdown', (e) => {
+		}
+		const pointerdown = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
@@ -174,8 +205,8 @@ class Mouser {
 			//e.shiftKey, e.ctrlKey //true or false
 			//button = 0 or 2
 			//for some reason clicking both simultaneously does sweet FA
-		})
-		canvas.addEventListener('pointerup', (e) => {
+		}
+		const pointerup = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
@@ -183,7 +214,22 @@ class Mouser {
 			this._blockNextRelease = false
 			this.down = false
 			this.lastReleasedTime = Date.now()
-		})
+		}
+		const pointercancel = (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+			this.released = !this._blockNextRelease
+		}
+		const wheel = (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+			this.wheel = e.deltaY
+		}
+
+
+		canvas.addEventListener('pointermove', pointermove)
+		canvas.addEventListener('pointerdown', pointerdown)
+		canvas.addEventListener('pointerup', pointerup)
 		/*
 		canvas.addEventListener('pointerleave', (e) => {
 			e.preventDefault()
@@ -199,22 +245,27 @@ class Mouser {
 			//this.x = null
 			//this.y = null
 		})*/
-		canvas.addEventListener('pointercancel', (e) => {
+
+		canvas.addEventListener('pointercancel', pointercancel)
+		canvas.addEventListener('wheel', wheel, { passive: false })
+		canvasHandlers.pointermove = pointermove
+		canvasHandlers.pointerdown = pointerdown
+		canvasHandlers.pointerup = pointerup
+		canvasHandlers.pointercancel = pointercancel
+		canvasHandlers.wheel = wheel
+
+		const resize = (e) => { this.whereIsCanvas() }
+		const scroll = (e) => { this.whereIsCanvas() }
+		const contextmenu = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
-			this.released = true
-		})
-		canvas.addEventListener('wheel', (e) => {
-			e.preventDefault()
-			e.stopPropagation()
-			this.wheel = e.deltaY
-		})
-		window.addEventListener("resize", this.whereIsCanvas.bind(this))
-		window.addEventListener("scroll", this.whereIsCanvas.bind(this))
-		window.addEventListener('contextmenu', (e) => {
-			e.preventDefault()
-			e.stopPropagation()
-		})
+		}
+		window.addEventListener("resize", resize)
+		window.addEventListener("scroll", scroll)
+		window.addEventListener('contextmenu', contextmenu)
+		windowHandlers.resize = resize
+		windowHandlers.scroll = scroll
+		windowHandlers.contextmenu = contextmenu
 	}
 	//#endregion
 

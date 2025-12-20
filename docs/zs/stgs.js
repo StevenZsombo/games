@@ -93,33 +93,19 @@ var levels = Object.freeze({
     "four": new Level(
         "Transform each polynomial to the constant 4.", null, x => [new Rational(4)]
     ),
-    "multeight": new Level(
-        "Multiply each input by 8.", null, x => x.map(u => new Rational(u).multiplyByInt(8))
+    "multhree": new Level(
+        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
+        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
+
     "boolflip": new Level(
         "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
         { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
     ),
-    "posonly": new Level(
-        "The inputs are constants. Return only the positive ones.", null, x => x[0].numerator > 0 ? x : null,
-        {
-            minDegree: 0, maxDegree: 0, maxTerms: 1,
-            minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
-        }
-    ),
-    /*"everyother": new Level(
-        "Return only every other input.", null, (x, i, a) => i % 2 ? x : null
-    ),*/
     "hasconst": new Level(
         "Return 1 if the polynomial has a constant term, and 0 otherwise.", null, x =>
         x[0].numerator == 0 ? [] : [new Rational(1)],
         { maxDegree: 5 }
-    ),
-    "evenodd": new Level(
-        "Map odd numbers to 1, even numbers to 0", null, x => {
-            const n = x[0].numerator
-            return Poly.computed([n % 2]).arr
-        }, { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
     ),
     "sumcoeff": new Level(
         "Return the sum of all the coefficients.", null, x => Poly.computed(x).takeSubs(new Rational(1)).arr,
@@ -129,9 +115,8 @@ var levels = Object.freeze({
     "twoxplusone": new Level(
         "Transform each polynomial to the polynomial 2x+1.", null, x => [1, 2].map(x => new Rational(x))
     ),
-    "multhree": new Level(
-        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
-        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
+    "multeight": new Level(
+        "Multiply each input by 8.", null, x => x.map(u => new Rational(u).multiplyByInt(8))
     ),
     "sumupto": new Level(
         "Return the sum of all positive integers from 1 to the input.", null, x => {
@@ -174,12 +159,22 @@ var levels = Object.freeze({
         { minTerms: 2, maxTerms: 2, minDegree: 0, maxDegree: 1 }
 
     ),
-
     "poweroftwo": new Level(
         "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
         { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
     ),
-
+    "degfour": new Level(
+        "Only return the polynomials if each term is at least degree 4.", null, (x, i, a) => {
+            const p = Poly.computed(x)
+            if (p.degree < 4) return
+            let q = Poly.computed(p.arr.slice(0, 4))
+            let diff = q.takeNeg().sumWith(p)
+            return diff.isEqualTo(p) ? p.arr : null
+        }, {
+        minDegree: 2, maxDegree: 11, minTerms: 2, maxTerms: 4,
+        minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
+    }
+    ),
     /*"keepodd": new Level(
         "Keep only the terms with an odd index.", null, x => {
             const p = Poly.computed(x).takeNeg()
@@ -243,25 +238,52 @@ var levels = Object.freeze({
         (x, i, a) => Poly.computed([new Rational(1, x[0].numerator ** 2)]).arr,
         { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
     ),
-
-    "degfour": new Level(
-        "Only return the polynomials if each term is at least degree 4.", null, (x, i, a) => {
-            const p = Poly.computed(x)
-            if (p.degree < 4) return
-            let q = Poly.computed(p.arr.slice(0, 4))
-            let diff = q.takeNeg().sumWith(p)
-            return diff.isEqualTo(p) ? p.arr : null
-        }, {
-        minDegree: 2, maxDegree: 11, minTerms: 2, maxTerms: 4,
-        minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
-    }
-
+    "vel": new Level(
+        `Starting from rest, an object moves with the given velocity` + "\n" +
+        `after x seconds. Find its displacement after 3 seconds.`
+        , null,
+        (x, i, a) => Poly.computed(x).takeIntegral().takeSubs(new Rational(3)).sumWith(Poly.computed(x).takeIntegral().takeSubs(new Rational(0)).takeNeg())
     ),
+    "accel": new Level(
+        "Initial velocity: 3 m/s. Your input is the acceleration\nafter x seconds. Find the displacement after 2s."
+        //        "Starting with initial velocity 3 m/s, an object moves with the given\n acceleration after x seconds. find its displacement after 2 seconds."
+        , null, x => {
+            const indef = Poly.computed(x).takeIntegral().sumWith(Poly.computed([2])).takeIntegral()
+            return indef.copy.takeSubs(new Rational(2)).sumWith(indef.copy.takeSubs(new Rational(0)).takeNeg())
+        }, { minTerms: 2 }
+    ),
+    /*"accel": new Level(
+        `Input is acceleration after x sec. Find displacement after 3 sec.`, null
+    ),*/
+
+
     /*"inv": new Level(
         "Your inputs is a positive integer a. Return 1/a", null,
         (x, i, a) => { },
         { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
     ),*/
+    "everyother": new Level(
+        "Return only every other input.", null, (x, i, a) => i % 2 ? x : null
+    ),
+    "posonly": new Level(
+        "The inputs are constants. Return only the positive ones.", null, x => x[0].numerator > 0 ? x : null,
+        {
+            minDegree: 0, maxDegree: 0, maxTerms: 1,
+            minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
+        }
+    ),
+    "evenodd": new Level(
+        "Map odd numbers to 1, even numbers to 0", null, x => {
+            const n = x[0].numerator
+            return Poly.computed([n % 2]).arr
+        }, { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
+    ),
+    "geometric": new Level(
+        "Your inputs are [1]. Generate the geometric series.", null,
+        (x, i, a) => Array(i + 2).fill(new Rational(1)),
+        { func: () => [new Rational(1)] }, { allowEarlyWin: true }
+    ),
+
     "sixsixsix": new Level(
         "Your inputs are all the same, map them to [666].", null, null,
         {
@@ -304,7 +326,7 @@ var levels = Object.freeze({
     }
     ),
     "powersoftwo": new Level(
-        "Your inputs are all [1]. Generate the higher powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
+        "Your inputs are all [1]. Generate the other powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
         (x, i, a) => [new Rational(2 ** (i + 1))],
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
         { allowEarlyWin: true }
@@ -316,7 +338,7 @@ var levels = Object.freeze({
         { allowEarlyWin: true }
     ),
     "factorials": new Level(
-        "Your inputs are all [1]. Generate the higher factorials.", null,
+        "Your inputs are all [1]. Generate the other factorials.", null,
         (x, i, a) => [new Rational(MM.fact(i + 2))],
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
         { allowEarlyWin: true }
@@ -682,6 +704,7 @@ var stgs = {
     latestSelectorType: -1,
     localKeyName: "ZPkeys",
     localDataName: "ZPdatas",
+    alreadyTriedAskingForClipboardPermission: false
 
 }/// end of settings
 var userSettings = {

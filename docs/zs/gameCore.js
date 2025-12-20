@@ -58,9 +58,16 @@ const beforeMain = function (canvas) {
 
 }
 
+const flushListeners = function (canvas) {
+    Object.entries(documentHandlers).forEach(([str, handler]) => document.removeEventListener(str, handler))
+    Object.entries(canvasHandlers).forEach(([str, handler]) => canvas.removeEventListener(str, handler))
+    Object.entries(windowHandlers).forEach(([str, handler]) => window.removeEventListener(str, handler))
+}
+
 const main = function (canvas) {
     canvas ??= document.getElementById("myCanvas")
-    if (game !== undefined) { game.isRunning = false }
+    if (game) game.isRunning = false
+    flushListeners(canvas)
     game = new Game(canvas)
     game.start()
 }
