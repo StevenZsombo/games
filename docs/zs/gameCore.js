@@ -183,19 +183,19 @@ class GameCore {
 
     }
     update_drawables(dt) {
-        let clicked = this.mouser.clicked
-        let released = this.mouser.released
-        let held = this.mouser.held
+        let { clicked, released, held, x, y, wheel } = this.mouser
         let hit = false
         for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
             for (const item of layer.toReversed()) {//items processed backwards
                 item.update?.(dt)
                 if (this.isAcceptingInputs) {
-                    hit = item.check?.(this.mouser.x, this.mouser.y, clicked, released, held, this.mouser.wheel)
+                    hit = item.check?.(x, y, clicked, released, held, wheel)
                     if (hit && item.isBlocking) {
                         clicked = false
                         released = false
                         held = false
+                        x = -1000
+                        y = -1000
                     }
                 }
             }
@@ -247,8 +247,7 @@ class GameCore {
         this.layers = this.layers.map(x => x.filter(y => y !== item))
     }
     remove_drawables_batch(...items) {
-        items = items.flat()
-        items.forEach(x => this.remove_drawable(x))
+        items.flat().forEach(x => this.remove_drawable(x))
     }
     //#endregion
 

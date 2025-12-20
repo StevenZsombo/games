@@ -87,7 +87,7 @@ class Game extends GameCore {
         if (this.keyboarder.pressed[3]) this.speedButtons?.[3].on_click()
         if (this.keyboarder.pressed[4]) this.speedButtons?.[4].on_click()
         if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
-        if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[1].on_click()
+        if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[2].on_click()
 
 
 
@@ -146,7 +146,7 @@ class Game extends GameCore {
             topat(200).
             splitGrid(sq, sq).flat().
             slice(0, numberOfLevels).
-            map(x => x.stretch(.8, .8)).
+            map(x => x.stretch(.85, .8)).
             map(Button.fromRect)
         const lvlButtonsBG = new Rect(lvlButtons[0].left, lvlButtons[0].top, 0, 0)
         lvlButtonsBG.bottomstretchat(lvlButtons.at(-1).bottom)
@@ -162,6 +162,7 @@ class Game extends GameCore {
             }
             else { x.hover_color = "lightblue" }
             x.fontSize = 40
+            x.font_font = "consolas"
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
@@ -180,6 +181,7 @@ class Game extends GameCore {
         infoButton.transparent = true
         infoButton.txt = "Select level:"
         infoButton.leftat(lvlButtons[0].left)
+        infoButton.textSettings = { textAlign: "left" }
         infoButton.width = (lvlButtons[sq - 1].right - lvlButtons[0].left) * .6
         infoButton.fontSize = 40
         const tutorialsButton = Button.fromRect(infoButton.copyRect)
@@ -222,8 +224,32 @@ class Game extends GameCore {
             window.open("Manual.pdf")
         }
         manualButton.hover_color = "yellow"
+
+        const optionsButton = manualButton.copy
+        optionsButton.leftat(lvlButtonsBG.left)
+        optionsButton.hover_color = "pink"
+        optionsButton.txt = "Options"
+        optionsButton.on_click = () => {
+            const menu = GameEffects.dropDownMenu(
+                [
+                    `Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
+                    `Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`,
+                    "Read changelog"],
+                [
+                    () => userSettings.biggerButtons ^= 1,
+                    () => userSettings.isDeveloper ^= 1,
+                    () => window.open("Changelog.txt")],
+                null, null, null,
+                {
+                    height: userSettings.biggerButtons ? 140 : 80,
+                    width: 300
+                }
+            )
+        }
+
         //bottomButton.hover_color = 
         this.add_drawable(manualButton)
+        this.add_drawable(optionsButton)
 
     }
     //#endregion
@@ -237,6 +263,7 @@ class Game extends GameCore {
             main()
         }
         tutorialsButton.txt = "Back to puzzles"
+        infoButton.txt = "Select tutorial:"
 
 
     }
@@ -258,7 +285,7 @@ class Game extends GameCore {
         speedButtonsBG.rightat(this.WIDTH - 20)
         const speedButtons = speedButtonsBG.splitCol(15, 10, 10, 10, 10, 10).map(Button.fromRect)
         speedButtons.forEach((b, i) => {
-            b.txt = ["Speed:", "STOP", ".25x", "1x", "2x", "8x"][i]
+            b.txt = ["Speed:", "PAUSE", ".25x", "1x", "2x", "8x"][i]
             if (i == 0) {
                 b.transparent = true
                 return
@@ -280,7 +307,7 @@ class Game extends GameCore {
         this.currentDraggingList = []
         this.dragLastPos = null
         /**@type {Button} */
-        this.lastHit = {}
+        this.lastHit = null
         this.firstHit = null
         this.targetHit = null
         const overlay = Button.fromRect(game.rect)
@@ -316,7 +343,7 @@ class Game extends GameCore {
                 return
             }*/
             this.ghosts && this.remove_drawables_batch(...this.ghosts)
-            this.lastHit.color = "white"
+            if (this.lastHit) this.lastHit.color = "white"
             if (!this.firstHit) return
             const hit = this.seekButton()
             if (!hit) {
@@ -324,17 +351,19 @@ class Game extends GameCore {
                 return
             }
             const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
             this.currentDraggingList.forEach(x => {
                 x.x = this.lastHit.tag[0]
                 x.y = this.lastHit.tag[1]
                 this.reactor.refreshButtons(x)
             })
+            this.currentDraggingList.length = 0
             targetsList.forEach(x => {
                 x.x = this.firstHit.tag[0]
                 x.y = this.firstHit.tag[1]
                 this.reactor.refreshButtons(x)
             })
-            this.lastHit = {}
+            this.lastHit = null
             this.firstHit = null
             if (this.firstHitChanged && (Date.now() - this.mouser.lastClickedTime > 100)) {
                 return
@@ -351,19 +380,23 @@ class Game extends GameCore {
             if (!this.dragLastPos) return
             const hit = this.seekButton()
             if (hit !== this.firstHit) this.firstHitChanged = true
-            this.lastHit.color = "white"
-            this.lastHit = hit ?? {}
+            if (this.lastHit) this.lastHit.color = "white"
+            this.lastHit = hit
+            this.ghosts && this.remove_drawables_batch(...this.ghosts)
             if (!hit) {
                 this.currentDraggingList.forEach(x =>
                     this.reactor.removePiece(x)
                 )
                 this.currentDraggingList.length = 0
+                this.lastHit = null
+                this.firstHit = null
+                this.firstHitChanged = true
                 this.dragLastPos = null
                 return
             }
             const targetsList = this.reactor.findPiecesAt(...hit.tag)
-            this.ghosts && this.remove_drawables_batch(...this.ghosts)
-            if (this.firstHit !== hit) {
+
+            if (hit && this.firstHit !== hit) {
                 this.ghosts = targetsList.map(x => x.button.copy)
                 this.ghosts.forEach(x => {
                     x.opacity = .5
@@ -410,12 +443,16 @@ class Game extends GameCore {
         const menu = availableTools.map((x, i) => new Button({
             txt: x,
             color: Reactor.isMovementType(x) ? "plum" : "pink",
-            on_release: () => {
+            on_click: () => {
                 reactor.addPiece(...button.tag, x)
+                this.mouser.blockNextRelease()
+                this.dropDownEnd()
             },
+            hover_color: "fuchsia",
+            isBlocking: true
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
-        const del = menu[0].copy
+        /*const del = menu[0].copy
         del.on_release = () => reactor.removePiecesAt(...button.tag)
         //del.move(0, menu.at(-1).height)
         del.txt = "Delete this"
@@ -423,8 +460,9 @@ class Game extends GameCore {
         const delAll = menu[0].copy
         delAll.on_release = () => reactor.pieces.forEach(x => reactor.removePiece(x))
         delAll.txt = "Delete all"
-        menu.push(delAll)
-        const boxheight = (2 + availableTools.length / cols) * 40 * (1 + userSettings.biggerButtons)
+        menu.push(delAll)*/
+        //for del + delAll replace the zero below
+        const boxheight = (0 + availableTools.length / cols) * 40 * (1 + userSettings.biggerButtons)
         const box = new Rect(
             this.mouser.x + 10, this.mouser.y + 10,
             300,//reactor.width * .5 * cols,
@@ -432,11 +470,11 @@ class Game extends GameCore {
         )
         box.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
-        menu.forEach(x => {
+        /*menu.forEach(x => {
             x.hover_color = "fuchsia"
             x.isBlocking = true
             x.on_release = MM.extFunc(x.on_release, this.dropDownEnd.bind(this, button))
-        })
+        })*/
         this.add_drawable(menu, 9)
         //this.add_drawable(box)
         this.menu = menu

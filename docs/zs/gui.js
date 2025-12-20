@@ -128,6 +128,7 @@ class Mouser {
 
 		this.lastClickedTime = Date.now() - 1000
 		this.lastReleasedTime = Date.now() - 1000
+		this._blockNextRelease = false
 
 		this.canvas = canvas
 		this.canvasRect = new Rect(0, 0, canvas.width, canvas.height)
@@ -136,7 +137,7 @@ class Mouser {
 
 		this.wheel = 0
 	}
-
+	//#region Listeners
 	whereIsCanvas() {
 		this.boundingRect = this.canvas.getBoundingClientRect()
 		this.scaleX = this.canvasRect.width / this.boundingRect.width
@@ -178,7 +179,8 @@ class Mouser {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
-			this.released = true
+			this.released = !this._blockNextRelease
+			this._blockNextRelease = false
 			this.down = false
 			this.lastReleasedTime = Date.now()
 		})
@@ -214,6 +216,8 @@ class Mouser {
 			e.stopPropagation()
 		})
 	}
+	//#endregion
+
 	get held() {
 		return this.down && !this.released
 	}
@@ -233,6 +237,10 @@ class Mouser {
 
 	changeCursor(type) {
 		game.canvas.style.cursor = type
+	}
+
+	blockNextRelease() {
+		this._blockNextRelease = true
 	}
 
 }

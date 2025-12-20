@@ -9,7 +9,7 @@ class Level {
             minTerms: undefined, maxTerms: undefined, minDegree: undefined, maxDegree: undefined,
             minNumer: undefined, maxNumer: undefined, minDenom: undefined, maxDenom: undefined,
             negativeChance: undefined,
-            func: undefined, funcOut: undefined
+            func: undefined, funcOut: undefined, numberOfInputs: undefined
         },
         conditions = {
             on_start: null, on_start_more: null, on_win: null, toolsRestrictedTo: null, toolsHighlighted: null,
@@ -24,6 +24,7 @@ class Level {
             ? genRules.funcOut(this.inputs)
             : this.inputs
                 .map((x, i, a) => rule(x, i, a))
+                .map(x => x instanceof Poly ? x.arr : x)
                 .filter(x => x != null)
         this.rule = rule
         this.genRules = genRules
@@ -49,24 +50,29 @@ class Level {
     }
     /**@this {Reactor} */
     static tutorial = function () {
+        //this.x += 300
+        //this.buttonsMatrix.flat().forEach(b => b.move(300, 0))
+        const label = this.instructionButton.copy
+        label.txt = `Tutorial: ${stgs.stage}`
+        label.transparent = true
+        this.game.add_drawable(label)
         this.instructionButton.rightstretchat(this.game.speedButtons.at(-1).right)
         this.instructionButton.topat(this.game.speedButtons.at(-1).bottom + 30)
         this.instructionButton.bottomstretchat(this.game.HEIGHT - 30)
         this.instructionButton.fontSize = 36
+        this.instructionButton.color = "lightgray"
+        this.instructionButton.font_font = "Consolas"
         this.sheetsCleared = Reactor.numberOfRandomSheets
-        this.celebrateFireworks = () => { }
+        this.stepTime = 800
+        this.celebrateComplete = () => {
+            Game.saveToLocal(stgs.stage, [])
+        }
     }
 
 }
 
 /**@type {Object<Level>} */
 var levels = Object.freeze({
-    "same": new Level(
-        "Simply output the polynomial you received.", null, x => x
-    ),
-    "lead": new Level(
-        "Find the leading coefficient of the polynomial you received.", null, x => [x.at(-1)]
-    ),
     "secondder": new Level(
         "Find the second derivative.", null, x => Poly.computed(x).takeDerivative().takeDerivative().arr
     ),
@@ -84,11 +90,15 @@ var levels = Object.freeze({
         "Return only the degree 2 term (if there is any).", null, x => x[2].numerator ? [new Rational(0), new Rational(0), x[2]] : [],
         { minTerms: 3, minDegree: 1, maxDegree: 4 }
     ),
-    "one": new Level(
-        "Transform each polynomial to the constant 1.", null, x => [new Rational(1)]
-    ),
     "four": new Level(
         "Transform each polynomial to the constant 4.", null, x => [new Rational(4)]
+    ),
+    "multeight": new Level(
+        "Multiply each input by 8.", null, x => x.map(u => new Rational(u).multiplyByInt(8))
+    ),
+    "boolflip": new Level(
+        "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
+        { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
     ),
     "posonly": new Level(
         "The inputs are constants. Return only the positive ones.", null, x => x[0].numerator > 0 ? x : null,
@@ -97,12 +107,6 @@ var levels = Object.freeze({
             minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
         }
     ),
-    "sumoftwo": new Level(
-        "Return the sum of the current and the next input.", null, (x, i, a) => {
-            if (i % 2) return
-            return Poly.computed(x).sumWith(Poly.computed(a[i + 1])).arr
-        }, { maxTerms: 2 }
-    ),
     /*"everyother": new Level(
         "Return only every other input.", null, (x, i, a) => i % 2 ? x : null
     ),*/
@@ -110,10 +114,6 @@ var levels = Object.freeze({
         "Return 1 if the polynomial has a constant term, and 0 otherwise.", null, x =>
         x[0].numerator == 0 ? [] : [new Rational(1)],
         { maxDegree: 5 }
-    ),
-    "boolflip": new Level(
-        "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
-        { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
     ),
     "evenodd": new Level(
         "Map odd numbers to 1, even numbers to 0", null, x => {
@@ -126,8 +126,36 @@ var levels = Object.freeze({
         { maxTerms: 5 }
 
     ),
+    "twoxplusone": new Level(
+        "Transform each polynomial to the polynomial 2x+1.", null, x => [1, 2].map(x => new Rational(x))
+    ),
+    "multhree": new Level(
+        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
+        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
+    ),
+    "sumupto": new Level(
+        "Return the sum of all positive integers from 1 to the input.", null, x => {
+            const n = x[0].numerator
+            return [new Rational(n * (n + 1) / 2)]
+        }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
+    ),
+    /*"squareX": new Level(
+        "Your input is a constant - square it.", null, x => x.map(u => new Rational(u).multiplyBy(u.numerator).divideBy(u.denominator)),
+        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
+    ),*/
+    "mult": new Level(
+        "Multiply the input by (2x-1).", null, x => {
+            const p = Poly.computed(x)
+            const px = p.copy.takeRaise()
+            p.takeNeg()
+            p.sumWith(px)
+            p.sumWith(px)
+            return p.arr
+        }
+    ),
+
     "lindiff": new Level(
-        "Your input is ax+b. Return the difference a-b", null, (x) => {
+        "Your input is ax+b. Return the difference a-b.", null, (x) => {
             const [b, a] = x
             return Poly.computed([Rational.sumOfTwo(new Rational(b).multiplyByInt(-1), a)]).arr
         }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
@@ -138,29 +166,20 @@ var levels = Object.freeze({
             return Poly.computed([Rational.productOfTwo(a, b)]).arr
         }, { minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2 }
     ),
-    /*"linsolve": new Level(
-        "Solve ax+b=0 (a is a positive integer).", null, x => {
+    "linsolve": new Level(
+        "Your input is ax+b. Solve ax+b=0.", null, x => {
             const [b, a] = x
             return Poly.computed([Rational.ratioOfTwo(b.copy.multiplyByInt(-1), a)]).arr
-        }, {
-        //func: () => Poly.computed([].map(x => new Rational(x))).arr
-    }
-    ),*/
-    "linmax": new Level(
-        "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
-            const [b, a] = x
-            const diff = Rational.differenceOfTwo(a, b)
-            return [diff.numerator > 0 ? a : b]
-        }, {
-        func: () => {
-            const range = [...MM.range(-20, 20)].filter(x => x !== 0)
-            const a = new Rational(MM.choice(range), MM.choice(range))
-            let b = new Rational(MM.choice(range), MM.choice(range))
-            if (a.isEqualTo(b)) b.multiplyByInt(2)
-            return [b, a]
-        }
-    }
+        },
+        { minTerms: 2, maxTerms: 2, minDegree: 0, maxDegree: 1 }
+
     ),
+
+    "poweroftwo": new Level(
+        "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
+        { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
+    ),
+
     /*"keepodd": new Level(
         "Keep only the terms with an odd index.", null, x => {
             const p = Poly.computed(x).takeNeg()
@@ -192,35 +211,12 @@ var levels = Object.freeze({
             return u.sumWith(v).sumWith(w).arr
         }, { numberOfInputs: 9, maxTerms: 1 }
     ),*/
-    "twoxplusone": new Level(
-        "Transform each polynomial to the polynomial 2x+1.", null, x => [1, 2].map(x => new Rational(x))
-    ),
-    "multhree": new Level(
-        "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
-        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
-    ),
-    "sumupto": new Level(
-        "Return the sum of all positive integers from 1 to the input.", null, x => {
-            const n = x[0].numerator
-            return [new Rational(n * (n + 1) / 2)]
-        }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
-    ),
-    /*"squareX": new Level(
-        "Your input is a constant - square it.", null, x => x.map(u => new Rational(u).multiplyBy(u.numerator).divideBy(u.denominator)),
-        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
-    ),*/
-    "mult": new Level(
-        "Multiply the input by (2x-1).", null, x => {
-            const p = Poly.computed(x)
-            const px = p.copy.takeRaise()
-            p.takeNeg()
-            p.sumWith(px)
-            p.sumWith(px)
-            return p.arr
-        }
+    "leadingterm": new Level(
+        "Your inputs are non-constant. Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0)),
+        { minDegree: 1 }
     ),
     "statattwo": new Level(
-        "Return those that have a stationary point at x=2.",
+        "Return only the polynomials with a stationary point at x=2.",
         null, (x, i, a) => {
             if (Poly.computed(x).takeDerivative().takeSubs(new Rational(2)).toRational().isEqualTo(new Rational(0)))
                 return x
@@ -261,22 +257,20 @@ var levels = Object.freeze({
     }
 
     ),
-    "leadingterm": new Level(
-        "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0))
-    ),
-    /*"factorial?": new Level(
-        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
-        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
-    ),*/
-    "poweroftwo": new Level(
-        "Given positive integer a, find 2^a.", null, x => [new Rational(2 ** x[0].numerator)],
-        { maxDenom: 1, maxNumer: 11, maxDegree: 0, negativeChance: 0 }
-    ),
     /*"inv": new Level(
         "Your inputs is a positive integer a. Return 1/a", null,
         (x, i, a) => { },
         { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
     ),*/
+    "sixsixsix": new Level(
+        "Your inputs are all the same, map them to [666].", null, null,
+        {
+            func: () => [2, 0, 0, 5, 0, 0, 0, -1, 0, 3].map(x => new Rational(x)),
+            funcOut: () => Array(10).fill([new Rational(666)]),
+            numberOfInputs: 10
+        }, { allowEarlyWin: true }
+    ),
+
     "compsqonly": new Level(
         "Your inputs are quadratics. Return only the complete squares.", null, x => {
             const [a, b, c] = x
@@ -294,42 +288,66 @@ var levels = Object.freeze({
             return [a, b, c]
         }
     }),
+    "linmax": new Level(
+        "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
+            const [b, a] = x
+            const diff = Rational.differenceOfTwo(a, b)
+            return [diff.numerator > 0 ? a : b]
+        }, {
+        func: () => {
+            const range = [...MM.range(-20, 20)].filter(x => x !== 0)
+            const a = new Rational(MM.choice(range), MM.choice(range))
+            let b = new Rational(MM.choice(range), MM.choice(range))
+            if (a.isEqualTo(b)) b.multiplyByInt(2)
+            return [b, a]
+        }
+    }
+    ),
     "powersoftwo": new Level(
         "Your inputs are all [1]. Generate the higher powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
         (x, i, a) => [new Rational(2 ** (i + 1))],
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
         { allowEarlyWin: true }
     ),
-    /*"factorials": new Level(
-        "Your inputs are all [1]. Generate the higher factorials.", null,
-        (x, i, a) => [new Rational(MM.fact(i + 2))],
-        { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 }
-    ),*/
     "e": new Level(
         "Your inputs are all [1]. Approximate Euler's number.", null,
         (x, i, a) => MM.range(i + 1).reduce((s, t) => s.takeIntegral(), Poly.computed([1])).takeSubs(new Rational(1)).arr,
         { func: () => [new Rational(1)] },
         { allowEarlyWin: true }
-    )
+    ),
+    "factorials": new Level(
+        "Your inputs are all [1]. Generate the higher factorials.", null,
+        (x, i, a) => [new Rational(MM.fact(i + 2))],
+        { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
+        { allowEarlyWin: true }
+    ),
+
+    /*"factorial": new Level(
+        //"Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        //{ maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
+    ),*/
 
 })
 
 /**@type {Object<Level>} */
 var tutorialLevels = Object.freeze({
     "IN_OUT1": new Level(
-        `Move inputs from IN to OUT.
-        Click a cell to select modules to place.
+        `
+Move inputs from IN to OUT.
+Click a cell to select modules to place.
 
-        You can see the inputs and expected outputs listed on the right.`
+You can see the inputs and expected outputs listed on the right.
+        `
         , null, x => x, { numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
     "Reset": new Level(
-        `When something goes wrong, click "Reset" in the right-upper corner.
-        Wrong submissions will be indicated by a red-ish color on the right.
-        
-        You can add and delete modules like IN our OUT at your leisure.
-        You can drag and drop, or click a cell then select from the menu.`
+        `When something goes wrong, click "Reset inputs" in the right-upper corner.
+This  will only reset inputs and outputs, not your modules configuration.
+To reset the entire puzzle, use the "Settings" menu.
+
+Wrong submissions will be indicated by a red color on the right.
+`
         , null, x => x, { numberOfInputs: 4 },
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
@@ -343,10 +361,10 @@ var tutorialLevels = Object.freeze({
     ),
     "U_D_L_R1": new Level(
         `
-        Instead of deleting, move the polynomial from IN to OUT
-        using UP, DOWN, LEFT, RIGHT.
-        
-        These modules can be placed over others.
+Instead of deleting, move the polynomial from IN to OUT
+using UP, DOWN, LEFT, RIGHT.
+
+These modules can be placed over others.
         `
         , null, x => x, { numberOfInputs: 4 },
         {
@@ -359,7 +377,15 @@ var tutorialLevels = Object.freeze({
         }
     ),
     "U_D_L_R2": new Level(
-        `Clean up this mess.`
+        `
+Observe how putting DOWN on IN lets you change the direction of the incoming polynomial.
+UP DOWN LEFT RIGHT lets you push polynomials around at your leisure.
+Now clean up this mess.
+
+You can drag&drop to move modules,
+move them over an existing module to swap them,
+or drag them outside the calculator field to remove them.
+`
         , null, x => x, { numberOfInputs: 4 },
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
@@ -370,10 +396,12 @@ var tutorialLevels = Object.freeze({
         }
     ),
     "IN_OUT2": new Level(
-        `Return two copies of each input.
-        Multiple IN modules will each send their own copy of an input.
-        
-        Fun fact: inputs are sent when there are no polynomials present in the system.`,
+        `
+Return two copies of each input.
+Multiple IN modules will each send their own copy of an input.
+
+Fun fact: inputs are sent when there are no polynomials present in the system.
+        `,
         [[4], [5], [1]], null,
         {
             funcOut: x => {
@@ -389,17 +417,25 @@ var tutorialLevels = Object.freeze({
 
     ),
     "RAISE1": new Level(
-        `Raise the degree of each term by 1 using RAISE.
-        Constants increase in degree too, except for [0].
-        This effectively multiplies the polynomial by x.`,
+        `
+
+        Raise the degree of each term by 1 using RAISE.
+Constants increase in degree too, except for [0].
+This effectively multiplies the polynomial by x.
+
+`,
         [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeRaise().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT RAISE LOWER".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
     "LOWER": new Level(
-        `Lower the degree of the given term by 1 using LOWER.
-        Note that the constant is discarded.
-        The other terms are effectively divided by x.`
+        `
+        
+Lower the degree of the given term by 1 using LOWER.
+Note that the constant is discarded.
+The other terms are effectively divided by x.
+
+        `
         , [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeLower().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT RAISE LOWER".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
@@ -407,18 +443,36 @@ var tutorialLevels = Object.freeze({
     "DER": new Level(
         `
         
-        Take derivative using INT.
-        How is this different from LOWER?
-        
+Take derivative using DER.
+How is this different from LOWER?
+
+You can click the Speed buttons to increase/decrease game speed or to pause completely.
+(Tutorials run at half the speed of real puzzles.)
+
         `
         , [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeDerivative().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
-        { toolsRestrictedTo: "IN OUT DER INT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
+        {
+            toolsRestrictedTo: "IN OUT DER INT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            /**@this {Reactor}*/on_start_more: function () {
+                console.log("asd")
+                this.game.animator.add_anim(Anim.custom(this.game.speedButtons.at(-1), 600,
+                    function (t, obj) {
+                        obj.color = t < .5 ? "blue" : "gray"
+                        //obj.resize(this.orig.width * (1 + t / 2 * .1), this.orig.height * (1 + t / 2 * .1))
+                    }, "x y width height color", { repeat: 12 }))
+            }
+        }
     ),
     "INT": new Level(
-        `You can integrate using INT.
-        The constant of integration is always set to C = 1.
-        This means that INT maps [0] to [1].`
+        `
+        
+You can integrate using INT.
+
+The constant of integration is always set to C = 1.
+This means that INT maps [0] to [1].
+
+        `
         , [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeIntegral().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT DER INT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
@@ -437,21 +491,25 @@ var tutorialLevels = Object.freeze({
         { toolsRestrictedTo: "IN OUT LEAD CONST".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
     "CONST2": new Level(
-        `Recall that INT always sets the constant of integration to C=1.
-        So INT then CONST always returns [1].
-        Map each input to [1].
-        
-        Similarly, RAISE then CONST would always return [2].`,
+        `
+Recall that INT always sets the constant of integration to C=1.
+So INT then CONST always returns [1].
+Map each input to [1].
+
+Similarly, RAISE then CONST would always return [2].
+`,
         null, x => [new Rational(1)], { numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT DER INT LEAD CONST RAISE LOWER".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
     "DEG1": new Level(
-        `DEG returns the degree of the polynomial.
-        The polynomial [0] is instead consumed.
-        
-        This could be useful for programming:
-        so far this is the only module capable of consuming polynomials 
-        instead of letting them pass through unconditionally.`
+        `
+        DEG returns the degree of the polynomial.
+The polynomial [0] is instead consumed.
+
+This could be useful for programming:
+so far this is the only module capable of consuming certain polynomials 
+instead of letting them pass through unconditionally.
+`
         , [[0, 0, 1], [1, 0, 3, 4], [0], [-2, 1, 0, 5], [2]],
         x => x.length ? Poly.computed(x).takeDegree().arr : null,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
@@ -459,7 +517,7 @@ var tutorialLevels = Object.freeze({
     ),
     "DEG2": new Level(
         `Map each input to [2].
-        Hint: you know how to create x^2, don't you?`
+        Hint: you know how to create [x^2], don't you?`
         , [[0, 0, 1], [1, 0, 3, 4], [0], [-2, 1, 0, 5], [2]],
         x => [new Rational(2)],
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
@@ -473,23 +531,34 @@ var tutorialLevels = Object.freeze({
         { toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT DEG NEG".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
     "TAKE": new Level(
-        `TAKE discards the leading term and returns what remains.`
-        , [[0, 0, 1], [1, 0, 3, 4], [-2, 1, 0, 5], [0], [2]], x => Poly.computed(x).takeTake().arr,
-        { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
-        { toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT TAKE COPY".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
-    ),
-    "COPY1": new Level(
         `
-        COPY shoots out two copies of the incoming polynomial
-        in the perpendicular directions.
         
-        Horizontal movement is transformed to vertical, and vice versa.
+TAKE discards the leading term and returns what remains.
+
+If the polynomial is constant, TAKE instead takes reciprocal.
+
+TAKE [0] is consumed.
+
         `
-        , [[0, 0, 1], [1, 0, 3, 4], [-2, 1, 0, 5], [0], [2]], x => x,
+        , [[1, 0, 3, 4], [0, 0, 1], [-2, 1, 0, 5], [2], [0], [new Rational(-2, 5)]], x => Poly.computed(x).takeTake(),
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT TAKE COPY".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[1,0,"IN"],[1,2,"OUT"],[1,1,"COPY"]]`) }
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[2,2,"LEFT"],[2,0,"OUT"],[0,2,"DOWN"],[1,2,"TAKE"]]`) }
+        }
+    ),
+    "COPY1": new Level(
+        `
+COPY shoots out two copies of the incoming polynomial
+in the perpendicular directions.
+
+Horizontal movement is transformed to vertical, and vice versa.
+        `
+        , [[0, 0, 1], [1, 0, 3, 4], [-2, 1, 0, 5], [2], [0]], x => x,
+        { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT TAKE COPY".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[1,0,"IN"],[1,2,"COPY"],[1,0,"RIGHT"],[0,0,"OUT"]]`) }
         }
     ),
     "COPY2": new Level(
@@ -504,10 +573,106 @@ var tutorialLevels = Object.freeze({
             on_start_more: function () { this.fromJSON(`[[0,1,"IN"],[2,0,"OUT"],[0,2,"LEFT"],[0,1,"DOWN"],[1,1,"COPY"],[1,2,"UP"],[1,0,"DOWN"]]`) }
         }
     ),
-    "POWtodo": null,
-    "SUBStodo": null,
-    "SUMtodo": null,
-    "DOORtodo": null
+    "POW1": new Level(
+        `
+When a positive integer [a] passes through POW it is transformed to [x^a].
+Negative constants pass through freely. Everything else is consumed.
+        `
+        , [[7], [2], [0], [new Rational(-1, 2)], [new Rational(1, 2)], [2, -4, 1]], x => Poly.computed(x).takePower(), {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT POW SUBS".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[2, 0, "IN"], [2, 0, "UP"], [0, 0, "POW"], [0, 0, "RIGHT"], [0, 2, "DOWN"], [2, 2, "OUT"]]`) }
+        }
+    ),
+    "POW2": new Level(
+        `
+For positive integers, POW and DEG are inverses.
+
+
+
+Negative constant remain unchanged by POW,
+positive integers are changed to non-constants.
+A combination of POW and CONST could therefore be used to detect negative numbers, right?
+
+You may find these useful in some puzzles${' (e.g. in "evenodd" and "posonly".)'}.
+        `
+        , [[7], [3], [0], [-4], [-2]], x => Poly.computed(x).takePower()?.takeDegree(), {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT DEG TAKE POW SUBS".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[2,0,"IN"],[2,0,"UP"],[0,0,"POW"],[0,0,"RIGHT"],[0,2,"DOWN"],[2,2,"OUT"],[0,2,"DEG"]]`) }
+        }
+    ),
+    "SUBS": new Level(
+        `
+SUBS consumes everything.
+Once it has consumed both a constant and non-constant,
+it returns the value obtained by substituting the constant into the other.
+
+It then resets to its original behaviour.
+
+You can feed it inputs in either order.
+        `, [[2, 6], [1], [-2, 1], [5], Array(11).fill().map((x, i) => i == 10 ? 1 : 0), [2]],
+        (x, i, a) => {
+            if (i % 2) return
+            return Poly.computed(x).takeSubs(a[i + 1][0])
+        }
+        , {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT POW SUBS".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[1,0,"IN"],[1,2,"SUBS"],[1,2,"DOWN"],[1,0,"RIGHT"],[2,0,"OUT"],[2,2,"LEFT"]]`) }
+        }
+    ),
+    "SUM1": new Level(
+        `
+        
+        
+Sum consumes two consecutive polynomials,
+then returns their sum.
+
+
+
+        `, [[3], [5], [0, 0, 1], [0, 0, 0, 0, 0, 1], [-1, 2, 0, 3], [3, -2, 1, -2, 1]],
+        (x, i, a) => {
+            if (i % 2) return
+            return Poly.computed(x).sumWith(Poly.computed(a[i + 1])).arr
+        }, {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () {
+                this.fromJSON(
+                    `[[0,0,"IN"],[0,0,"DOWN"],[2,2,"UP"],[0,2,"OUT"],[2,1,"SUM"],[2,0,"RIGHT"]]`
+                )
+            }
+        }
+    ),
+    "SUM2": new Level(
+        `Double each input.`, [[7], [12], [0, 0, -3], [1, 0, -8, 0, 0, 4]],
+        x => Poly.computed(x).sumWith(Poly.computed(x)), {},
+        { toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial, }
+    ),
+    "DOOR1": new Level(
+        `
+
+The door consumes two consecutive polynomials, a key and a visitor (in either order).
+The visitor is only allowed to pass through if the key is [0].
+
+        `, [[0], [0, 0, 3], [0, 1, 4, -2, 1], [0], [0, 1, -2, 3], [2]],
+        (x, i, a) => [1, 2].includes(i) ? x : null
+        , {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[1,2,"DOOR"],[2,0,"OUT"],[0,2,"DOWN"],[2,2,"LEFT"]]`) }
+        }
+    ),
+    "DOOR2": new Level(
+        `Use CONST and DOOR to keep only the inputs that do not have a constant term.`,
+        [[1, 0, 2], [2, 0, 1], [0, 2, 0, 4, 1], [1, 0, 2, 1, -3], [0, 1, 2, 0, 7]], (x, i, a) => Poly.computed(x).takeConst().toRational().isEqualTo(new Rational(0)) ? x : null
+        , {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT LEAD CONST SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[2,0,"IN"]]`) }
+        }
+    )
 
 })
 
@@ -520,5 +685,6 @@ var stgs = {
 
 }/// end of settings
 var userSettings = {
-    biggerButtons: false
+    biggerButtons: false,
+    isDeveloper: false
 }

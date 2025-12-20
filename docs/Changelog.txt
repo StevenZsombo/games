@@ -4,13 +4,27 @@ Feature changes:
 2025.12.19.
 Increased base step speed 600 => 400 ms
 Incorrect outputs now replace the expected one.
-Reduces the number of randomized input sheets after the first fixed sheet is completed 3=>2
-The randomized input sheets are now progressively faster (8x=>16x then 24x).
-Early victories (for filtering problems) are no longer possible - all inputs must be processed. For inifinite problems this is not necessary.
+Reduced the number of randomized input sheets required to win 3=>2, and they are now progressively faster (8x=>16x,24x)
 
 
 **************************************************************************************************
 Puzzle changes:
 
-2025.12.09
-"linmax" now never has equal coefficients.
+2025.12.19
+POW [0] is now consumed (instead of returning [1] like before). 0^0 shall remain undefined.
+TAKE now also has double functionality:
+-TAKE [non-constant] still removes ("takes") the leading term and returns what remains.
+-TAKE [constant] now takes reciprocal.
+-TAKE [0] is of course consumed.
+
+Early victories (for filtering problems) are no longer possible - all inputs must be processed. For infinite problems this is not necessary.
+
+
+
+**************************************************************************************************
+Quality of life changes:
+
+2025.12.20.
+Drag and drop features added.
+Share and load features added.
+Options menu added. Can increase button sizes for small screens.

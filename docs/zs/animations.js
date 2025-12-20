@@ -539,10 +539,15 @@ class Anim {
 			this.len = obj.txt.length
 			this.append = () => { this.obj.txt = this.origTxt }
 			this.fillChar ??= "_"
+			this.txtAsArray = (obj.txt ?? "").split("")
 		}
 		const t = this.lerp(1 - this.time / this.totTime)//0 -> 1
 		const progress = Math.floor(t * this.len)
-		this.obj.txt = [...this.origTxt.slice(0, progress), ...Array(this.len - progress).fill(this.fillChar)].join("")
+
+		const result = this.txtAsArray.map((x, i, a) =>
+			i <= progress ? x : x == "\n" ? "\n" : this.fillChar
+		).join("")
+		this.obj.txt = result
 	}
 
 

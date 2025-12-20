@@ -1074,14 +1074,15 @@ class GameEffects {
         preset
     ) {
         if (preset) {
+            preset = typeof preset === "string" ? GameEffects.popupPRESETS[preset] : preset;
             ({
                 posFrac = posFrac,
                 sizeFrac = sizeFrac,
                 direction = direction,
                 travelTime = travelTime,
                 floatTime = floatTime,
-                moreButtonSettings = moreButtonSettings
-            } = GameEffects.popupPRESETS[preset])
+            } = preset)
+            moreButtonSettings = { ...preset.moreButtonSettings, ...moreButtonSettings }
         }
         const b = new Button()
         const { width: W, height: H } = game.rect
@@ -1150,19 +1151,49 @@ class GameEffects {
         //setTimeout(() => game.remove_drawable(b), (seconds + .5) * 1000)
         //on_end && setTimeout(on_end, seconds * 1000)
     }
+    /**
+     * @param {string[]} textList 
+     * @param {function[]} on_clickList 
+     * @param {Rect|null} backgroundRect 
+     * @param {number|null} gridRows 
+     * @param {number|null} gridColumns 
+     * @param {Button} moreButtonSettings 
+     * @param {Boolean} addCloseButton 
+     */
+    static dropDownMenu(textList, on_clickList, backgroundRect = null, gridRows = null, gridColumns = 1,
+        moreButtonSettings = {}, addCloseButton = true
+    ) {
+        const result = {}
+        result.close = () => game.remove_drawables_batch(menu)
+        //add logic here: if menu already exists then delete it
+        const menu = textList.map((x, i) => new Button({
+            color: "pink",
+            hover_color: "fuchsia",
+            ...moreButtonSettings,
+            txt: x,
+            on_click: () => (on_clickList?.[i]?.(), game.mouser.blockNextRelease(), result.close()),
+            isBlocking: true,
+        }))
+        if (addCloseButton) {
+            const closeButton = menu[0].copy
+            closeButton.txt = "Close"
+            closeButton.on_click = () => (game.mouser.blockNextRelease(), result.close())
+            menu.push(closeButton)
+        }
+        gridRows ||= menu.length
+        gridColumns ||= 1
+        const where = [game.mouser.x + 5, game.mouser.y + 5]
+        backgroundRect ??= new Rect(...where, 0, 0)
+        backgroundRect.width ||= gridColumns * menu[0].width
+        backgroundRect.height ||= gridRows * menu[0].height
+        backgroundRect.topleftat(...where)
+        backgroundRect.fitThisWithinAnotherRect(game.rect)
+        Rect.packArray(menu, backgroundRect.splitGrid(gridRows, gridColumns).flat(), true)
 
-    /*static TODOkillfeed(txt, font_color = "black", moreButtonSettings = {}) {
-        game.killfeed ??= []
-        const y = game.killfeed.length * .075 + .05
-        game.killfeed.push(
-            GameEffects.popup(txt, {
-                sizeFrac: [.15, .05], posFrac: [.9, y], direction: "right",
-                moreButtonSettings: { font_color: font_color, ...moreButtonSettings },
-                travelTime: 200, floatTime: 500,
-                on_end: () => { game.killfeed?.shift() }
-            })
-        )
-    }*/
+        game.add_drawable(menu, 9)
+        result.menu = menu
+        return result
+    }
 
 }
 //#endregion

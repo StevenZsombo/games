@@ -28,7 +28,6 @@ class Reactor {
                 on_release: function () {
                     reactor.LCB = this
                     reactor.LCP = [i, j]
-                    // game.dropDown?.() //handled by overlay
                 }
             })
         ))
@@ -47,10 +46,48 @@ class Reactor {
         return this.pieces.map(x => [x.x, x.y, x.type])
     }
     grab() {
-        return JSON.stringify(this.toJSON())
+        const str = JSON.stringify(this.toJSON())
+        try {
+            navigator.clipboard.writeText(str)
+            this.POPUP("Modules copied to the clipboard.\nUse to load later or share with a friend.")
+        } catch (error) {
+            this.POPUP(
+                `Failed to copy to clipboard.\nPlease copy by hand.`, 1000,
+                () => alert(str)
+            )
+            console.error(error)
+        }
+        return str
+    }
+    give() {
+        navigator.clipboard.readText().then(str => this._interactiveFromJSON(str)).catch(error => {
+            this.POPUP("Cannot read the clipboard.\nPlease paste manually.",
+                1000, () => this._interactiveFromJSON(prompt("Please copy save data:")))
+        })
+
+    }
+    _interactiveFromJSON(str) {
+        try {
+            if (typeof str === "string") str = JSON.parse(str);
+            [...this.pieces].forEach(x => this.removePiece(x))
+            str.forEach(x => this.addPiece(...x))
+            this.POPUP("Loaded successfully.", 1000)
+        } catch (error) {
+            this.POPUP(
+                `Failed to load level.\n` +
+                `Save data ${!str || str == "" ? "is missing from the clipboard." : "on the clipboard is corrupted"}.`)
+            console.error("Failed to load level", error)
+        }
+    }
+    POPUP(str, time = 2000, on_end = null) {
+        GameEffects.popup(
+            str,
+            { floatTime: time, moreButtonSettings: { fontSize: 24 }, on_end: on_end },
+            GameEffects.popupPRESETS.topleftPink)
     }
 
     fromJSON(str) {
+        if (this.pieces.length) return
         if (typeof str === "string") str = JSON.parse(str)
         str.forEach(x => this.addPiece(...x))
     }
@@ -117,32 +154,44 @@ class Reactor {
         instructionButton.rightstretchat(this.buttonsMatrix[0].at(-1).right)
         instructionButton.centerat(instructionButton.centerX, this.buttonsMatrix[0][0].top / 2)
         instructionButton.txt = this.instructions
-        instructionButton.fontSize = 48
+        // instructionButton.fontSize = 48
+        instructionButton.fontSize = 36
+        instructionButton.font_font = "Consolas"
         if (!this.levelRelated)
-            this.game.animator.add_anim(instructionButton, 2000, Anim.f.typingCentered)
+            this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
 
         const controlBG = inputBG.copy
+        controlBG.leftat(inputBG.left)
         controlBG.rightstretchat(outputBG.right)
         controlBG.topat(instructionButton.top)
         controlBG.bottomstretchat(instructionButton.bottom)
         const controlButtons = controlBG.
-            splitCol(1, 0, 2).filter((_, i) => !(i % 2)).map(Button.fromRect)
+            splitCol(1, .1, .5, .1, 2).filter((_, i) => !(i % 2)).map(Button.fromRect)
         controlButtons[0].txt = "Level select"
         controlButtons[0].on_release = () => {
             stgs.stage = stgs.latestSelectorType
             main()
         }
-        controlButtons[0].leftat(inputRecords[0].left)
-        controlButtons[0].rightstretchat(controlButtons[1].left)
-        controlButtons[1].txt = "Reset"
-        controlButtons[1].on_click = () => this.loadLevel(this.level) //god have mercy
-        controlButtons[0].deflate(10, 0)
-        controlButtons[1].deflate(10, 0)
-        controlButtons[0].leftat(inputRecords[0].left)
-        controlButtons[1].rightat(outputRecords[0].right)
-        controlButtons[0].hover_color = "lightblue"
-        controlButtons[1].hover_color = "lightblue"
-
+        controlButtons[2].txt = "Reset inputs"
+        controlButtons[2].on_click = () => this.loadLevel(this.level) //god have mercy
+        controlButtons.forEach(x => {
+            x.hover_color = "lightblue"
+        })
+        controlButtons[1].txt = "Settings"
+        controlButtons[1].on_release = () => {
+            const menu = GameEffects.dropDownMenu(["Share", "Load", "Reset level",
+                `Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
+                ...(userSettings.isDeveloper ? ["DEV.framerate", "DEV.stressTest"] : [])
+            ],
+                [this.grab.bind(this), this.give.bind(this), main,
+                () => userSettings.biggerButtons ^= 1,
+                () => { this.game.framerate.isRunning ^= 1; univ.showFramerate ^= 1 },
+                this.stressTest.bind(this)
+                ],
+                new Rect(0, 0, 2 * controlButtons[1].width, 0), null, null,
+                { height: 50 * (1 + userSettings.biggerButtons) })
+            menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
+        }
 
         this.inputBG = inputBG
         this.outputBG = outputBG
@@ -222,24 +271,24 @@ class Reactor {
             )
         }
     }
-    celebrateFireworks() {
-        GameEffects.fireworksShow()
+    celebrateComplete() {
         this.instructionButton.txt = "Victory"
         Game.saveToLocal(stgs.stage, this.toJSON())
         this.game.animator.add_staggered(this.pieces.map(x => x.button),
             1 / this.pieces.length * 1200,
             Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
         )
+        this.controlButtons[2].txt = "Congratulations!"
     }
     celebrate() {
+        GameEffects.fireworksShow()
         this.level.conditions.on_win?.(this)
         this.game.animator.speedMultiplier = 1
-        this.controlButtons[1].txt = "Congratulations!"
         this.controlButtons[0].color = "fuchsia"
         this.game.animator.add_anim(this.controlButtons[0], 1200, Anim.f.scaleThroughFactor,
             { scaleFactor: 1.1, repeat: 24 }
         )
-        this.celebrateFireworks()
+        this.celebrateComplete()
     }
 
     refreshButtons(...piecesOrPolys) {
@@ -276,7 +325,10 @@ class Reactor {
                 on_end: () => {
                     x.pos[0] += x.heading[0]
                     x.pos[1] += x.heading[1]
-                    if (this.outOfBounds(...x.pos)) { this.polysToRemove.push(x) }
+                    if (this.outOfBounds(...x.pos)) {
+                        this.polysToRemove.push(x)
+                        this.AnimBank.shrinkAway(x.button)
+                    }
                     else {
                         this.checkContact(x)
                         this.refreshButtons(x)
@@ -406,10 +458,11 @@ class Reactor {
 
     }
     stressTest() {
-        Reactor.numberOfRandomSheets = 30
+        Reactor.numberOfRandomSheets = 10
         // this.isLogging = true
         this.stepTime = 5
-        this.game.framerate.isRunning = true
+        //this.game.animator.speedMultiplier = 1000
+        //this.game.framerate.isRunning = true
     }
 
     AnimBank = {
@@ -719,7 +772,10 @@ class ReactorPiece {
     /**@param {Reactor} parent*/
     static TAKE(parent, x, y) {
         /**@param {Poly} poly*/
-        const on_contact = function (poly) { poly.takeTake() }
+        const on_contact = function (poly) {
+            const result = poly.takeTake()
+            if (!result) parent.removePoly(poly)
+        }
         const options = { parent, x, y, type: Reactor.t.TAKE, on_contact }
         return new ReactorPiece(options)
 
@@ -802,10 +858,11 @@ class Poly {
     }
     takePower() {
         if (this.arr.length > 1) return null //non-constants consumed
-        if (this.arr.length == 0) {//POW [0] is [1]
+        if (this.arr.length == 0) return null //[0]
+        /*if (this.arr.length == 0) {//POW [0] used to return [1]. now it shall be consumed
             this.arr = [new Rational(1)]
             return this
-        }
+        }*/
         const con = this.arr[0]
         if (con.numerator < 0) {
             return this //negative passes
@@ -865,7 +922,9 @@ class Poly {
         return this.trimZeros()
     }
     takeTake() {
-        this.arr = this.arr.slice(0, -1)
+        if (this.arr.length == 0) return null //TAKE [0] in consumed
+        if (this.degree == 0) this.arr = [Rational.reciprocal(this.arr[0])]
+        else this.arr = this.arr.slice(0, -1)
         return this.trimZeros()
     }
 
@@ -970,6 +1029,11 @@ class Rational {
             first.numerator * second.denominator, first.denominator * second.numerator
         )
     }
+    /**@param {Rational} rat */
+    static reciprocal(rat) {
+        if (rat.numerator == 0) throw "cannot take reciprocal of zero"
+        return new Rational(rat.denominator, rat.numerator)
+    }
     /**@param {Rational} base @param {number} exponent   */
     static exponentiate(base, exponent) {
         if (!Number.isInteger(exponent) || exponent < 0) throw "can't raise to that power"
@@ -1005,6 +1069,10 @@ class Rational {
 
     get copy() {
         return new Rational(this)
+    }
+
+    toPoly() {
+        return new Poly.computed([this])
     }
 
 
