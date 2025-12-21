@@ -16,6 +16,7 @@ TAKE now also has double functionality:
 -TAKE [non-constant] still removes ("takes") the leading term and returns what remains.
 -TAKE [constant] now takes reciprocal.
 -TAKE [0] is of course consumed.
+IN can now push inputs even if OUT is not present (can be disabled in options menu).
 
 Early victories (for filtering problems) are no longer possible - all inputs must be processed. For infinite problems this is not necessary.
 
@@ -26,5 +27,6 @@ Quality of life changes:
 
 2025.12.20.
 Drag and drop features added.
-Share and load features added.
+Save and load features added. Export and import features added.
 Options menu added. Can increase button sizes for small screens.
+Keyboard shorcuts added. 1-5 for speed, R to restart, WASD to move all modules, Esc to go back in menus.

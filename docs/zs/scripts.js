@@ -266,6 +266,8 @@ class Rect {
 	}
 	/**@param {Rect} other  */
 	fitThisWithinAnotherRect(other) {
+		if (this.width > other.width) this.width = other.width
+		if (this.height > other.height) this.height = other.height
 		if (this.left < other.left) this.leftat(other.left)
 		if (this.top < other.top) this.topat(other.top)
 		if (this.right > other.right) this.rightat(other.right)

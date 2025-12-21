@@ -1152,8 +1152,7 @@ class GameEffects {
         //on_end && setTimeout(on_end, seconds * 1000)
     }
     /**
-     * @param {string[]} textList 
-     * @param {function[]} on_clickList 
+     * @param {Object<string,function>} objTextAndOnClick
      * @param {Rect|null} backgroundRect 
      * @param {number|null} gridRows 
      * @param {number|null} gridColumns 
@@ -1161,9 +1160,12 @@ class GameEffects {
      * @param {Button|Array<Button>} overridenButtons
      * @param {Boolean} addCloseButton 
      */
-    static dropDownMenu(textList, on_clickList, backgroundRect = null, gridRows = null, gridColumns = 1,
+    static dropDownMenu(objTextAndOnClick, backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = {}, overridenButtons = null, addCloseButton = true
     ) {
+        const textList = Object.keys(objTextAndOnClick)
+        const on_clickList = Object.values(objTextAndOnClick)
+
         const result = {}
         result.close = () => game.remove_drawables_batch(menu)
         //add logic here: if menu already exists then delete it

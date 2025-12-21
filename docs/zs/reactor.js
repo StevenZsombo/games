@@ -41,13 +41,38 @@ class Reactor {
         this.isLogging = false
         this.otherButtons = []
         this.tasks = 0
-        this.game.keyboarder.on_paste = this._interactiveFromJSON.bind(this)
+        this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
         this.game.keyboarder.on_copy = this.grab.bind(this)
         this.hasWonAlready = false
     }
     toJSON() {
-        return [stgs.stage, this.pieces.map(x => [x.x, x.y, x.type])]
+        return this.pieces.map(x => [x.x, x.y, x.type]) //should add stgs.stage, would be neat
     }
+    saveTemp() {
+        if (Game.checkIsVictoryFromLocal(stgs.stage)) {
+            GameEffects.popup(
+                `You have completed this level once already.
+You need to win to overwrite that save.
+Use the Export/Import features instead.`
+            )
+            return
+        }
+        Game.saveToLocal(stgs.stage, this.toJSON(), false)
+        this.POPUP("Saved successfully.")
+
+    }
+    deleteTempOrPerm() {
+        const data = Game.checkSaveData(stgs.stage)
+        if (!data) return
+        if (Game.checkIsVictoryFromLocal(stgs.stage)) {
+            if (!confirm("Really delete your save for this level? This is irreversible.")) return
+            if (!confirm("Are you sure?")) return
+        }
+        Game.deleteFromLocal(stgs.stage)
+        this.POPUP("Save deleted.")
+
+    }
+
     grab() {
         const str = JSON.stringify(this.toJSON())
         try {
@@ -72,21 +97,21 @@ class Reactor {
         }
 
 
-        navigator.clipboard.readText().then(str => this._interactiveFromJSON(str)).catch(error => {
+        navigator.clipboard.readText().then(str => this._interactiveImportFromJSON(str)).catch(error => {
             this.POPUP("Cannot read the clipboard.\nPlease paste manually.",
-                1000, () => this._interactiveFromJSON(prompt("Please copy save data:")))
+                1000, () => this._interactiveImportFromJSON(prompt("Please copy import data:")))
         })
 
     }
-    _interactiveFromJSON(str) {
+    _interactiveImportFromJSON(str) {
         try {
             this.fromJSON(str, false, true)
-            this.POPUP("Loaded successfully.", 1000)
+            this.POPUP("Imported successfully.", 1000)
         } catch (error) {
             this.POPUP(
-                `Failed to load level.\n` +
-                `Save data ${!str || str == "" ? "is missing from the clipboard." : "on the clipboard is corrupted"}.`)
-            console.error("Failed to load level", error)
+                `Failed to import.\n` +
+                `Import data ${!str || str == "" ? "is missing from the clipboard." : "on the clipboard is corrupted"}.`)
+            console.error("Failed to import", error)
         }
     }
     POPUP(str, time = 2000, on_end = null) {
@@ -191,22 +216,26 @@ class Reactor {
             x.hover_color = "lightblue"
         })
         controlButtons[1].txt = "Settings"
+        const obj = {
+            "Export": this.grab.bind(this),
+            "Import": this.give.bind(this),
+            "Restart level": main,
+            "Save": this.saveTemp.bind(this),
+            "Delete save": this.deleteTempOrPerm.bind(this)
+        }
+        obj[`Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`] = () => userSettings.biggerButtons ^= 1
+        if (userSettings.isDeveloper) {
+            obj["DEV.framerate"] = () => this.game.framerate.isRunning ^= 1
+            obj["DEV.stressTest"] = this.stressTest.bind(this)
+        }
         controlButtons[1].on_click = () => {
-            const menu = GameEffects.dropDownMenu(["Share", "Load", "Reset level",
-                `Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
-                ...(userSettings.isDeveloper ? ["DEV.framerate", "DEV.stressTest"] : [])
-            ],
-                [this.grab.bind(this), this.give.bind(this), main,
-                () => userSettings.biggerButtons ^= 1,
-                () => { this.game.framerate.isRunning ^= 1; univ.showFramerate ^= 1 },
-                this.stressTest.bind(this)
-                ],
+            const menu = GameEffects.dropDownMenu(
+                obj,
                 new Rect(0, 0, 2 * controlButtons[1].width, 0), null, null,
-                { height: 50 * (1 + userSettings.biggerButtons) },
+                { height: 60 * (1 + userSettings.biggerButtons) },
                 controlButtons[1])
             menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
         }
-
         this.inputBG = inputBG
         this.outputBG = outputBG
         this.inputRecords = inputRecords
@@ -232,7 +261,7 @@ class Reactor {
         if (!this.inputs) return
         const i = this.inputsServed.length
         if (i > 0) this.inputRecords[i].color = "lightblue"
-        if (!this.pieces.find(x => x.type === Reactor.t.OUT)) return //will serve input anyways
+        if (!Reactor.SERVE_IN_EVEN_IF_NO_OUT && !this.pieces.find(x => x.type === Reactor.t.OUT)) return
         const input = this.inputs[i]?.map(x => new Rational(x))
         if (!input) return
         const inputPieces = this.pieces.filter(x => x.type === Reactor.t.IN)
@@ -293,7 +322,6 @@ class Reactor {
     }
     celebrateComplete() {
         this.instructionButton.txt = "Victory"
-        if (this.level.conditions.saveOnCompletion) Game.saveToLocal(stgs.stage, this.toJSON())
         this.game.animator.add_staggered(this.pieces.map(x => x.button),
             1 / this.pieces.length * 1200,
             Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
@@ -311,6 +339,7 @@ class Reactor {
             { scaleFactor: 1.1, repeat: 24 }
         )
         this.celebrateComplete()
+        if (this.level.conditions.saveOnCompletion) Game.saveToLocal(stgs.stage, this.toJSON())
     }
 
     refreshButtons(...piecesOrPolys) {
@@ -485,6 +514,17 @@ class Reactor {
     pause() {
 
     }
+
+    moveAllPieces(x, y) {
+        const toRemove = []
+        this.pieces.forEach(p => {
+            p.x += x
+            p.y += y
+            if (this.outOfBounds(p.x, p.y)) toRemove.push(p)
+        })
+        toRemove.forEach(p => this.removePiece(p))
+        this.refreshButtons(...this.pieces)
+    }
     stressTest() {
         this.numberOfRandomSheets = 10
         // this.isLogging = true
@@ -515,6 +555,7 @@ class Reactor {
 
     static contentHeightRatio = .6
     static contentWidthRatio = .6
+    static SERVE_IN_EVEN_IF_NO_OUT = true
 
 }
 //#endregion

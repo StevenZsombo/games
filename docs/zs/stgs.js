@@ -1,3 +1,4 @@
+//#region Level
 class Level {
     /**
      * @param {String} instructions
@@ -13,10 +14,12 @@ class Level {
             minimumOutput: 1, maximumOutput: undefined //watch out for minimumOutput
         },
         conditions = {
-            on_start: null, on_start_more: null, on_win: null, toolsRestrictedTo: null, toolsHighlighted: null,
-            allowEarlyWin: false, rows: null, cols: null, saveOnCompletion: true, isFreePlay: false
+            on_start: null, on_start_more: null, on_win: null, rows: null, cols: null,
+            toolsRestrictedTo: null, toolsHighlighted: null, toolsDisabled: null,
+            allowEarlyWin: false, saveOnCompletion: true, isFreePlay: false
         }
     ) {
+        conditions = { allowEarlyWin: false, saveOnCompletion: true, isFreePlay: false, ...conditions }
         this.instructions = instructions
         this.inputs = inputs
             ? inputs.map(x => Poly.computed(x).arr)
@@ -61,7 +64,7 @@ class Level {
         this.instructionButton.fontSize = 36
         this.instructionButton.color = "lightgray"
         this.instructionButton.font_font = "Consolas"
-        this.sheetsCleared = Reactor.numberOfRandomSheets
+        this.numberOfRandomSheets = 0
         this.stepTime = 800
         this.celebrateComplete = () => {
             Game.saveToLocal(stgs.stage, [])
@@ -69,7 +72,8 @@ class Level {
     }
 
 }
-
+//#endregion
+//#region levels
 /**@type {Object<Level>} */
 var levels = Object.freeze({
     "secondder": new Level(
@@ -96,7 +100,10 @@ var levels = Object.freeze({
         "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
-
+    "divthree": new Level(
+        "Your input is a contant - divide it by 3.", null,
+        x => [x[0].copy.divideByInt(3)], { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
+    ),
     "boolflip": new Level(
         "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
         { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
@@ -259,12 +266,36 @@ var levels = Object.freeze({
         { func: () => [new Rational(1)] }, { allowEarlyWin: true }
     ),
 
-    "sixsixsix": new Level(
-        "Your inputs are all the same, map them to [666].", null, null,
+    "golden": new Level(
+        "Approximate the Golden ratio via continued fractions.", null, null,
         {
-            func: () => [2, 0, 0, 5, 0, 0, 0, -1, 0, 3].map(x => new Rational(x)),
-            funcOut: () => Array(10).fill([new Rational(666)]),
-            numberOfInputs: 10
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                const out = []
+                let sofar = new Rational(1)
+                for (let i = 0; i < 10; i++) {
+                    sofar = Rational.sumOfTwo(Rational.reciprocal(sofar), new Rational(1))
+                    out.push([sofar])
+                }
+                return out
+            }
+        }, { allowEarlyWin: true }
+    ),
+    "sqrttwo": new Level(
+        "Approximate sqrt(2) via the recursion\nx_1=1, x_{n+1}= x_n/2 + 1/(x_n).", null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                let approx = new Rational(1)
+                let out = []
+                for (let i = 0; i < 10; i++) {
+                    approx = Rational.sumOfTwo(approx.copy.divideByInt(2), Rational.reciprocal(approx))
+                    out.push([approx])
+                }
+                return out
+            }
         }, { allowEarlyWin: true }
     ),
     "last": new Level(
@@ -289,21 +320,12 @@ var levels = Object.freeze({
             return [a, b, c]
         }
     }),
-    "linmax": new Level(
-        "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
-            const [b, a] = x
-            const diff = Rational.differenceOfTwo(a, b)
-            return [diff.numerator > 0 ? a : b]
-        }, {
-        func: () => {
-            const range = [...MM.range(-20, 20)].filter(x => x !== 0)
-            const a = new Rational(MM.choice(range), MM.choice(range))
-            let b = new Rational(MM.choice(range), MM.choice(range))
-            if (a.isEqualTo(b)) b.multiplyByInt(2)
-            return [b, a]
-        }
-    }
+    "abs": new Level(
+        "Return the absolute value of the given constant.", null,
+        /**@param {Rational[]} x */(x, i, a) => [new Rational(x[0].isPositive ? x[0] : x[0].copy.multiplyByInt(-1))],
+        { maxDegree: 0, maxTerms: 1, minTerms: 1, maxNumer: 20, maxDenom: 7 }
     ),
+
     "powersoftwo": new Level(
         "Your inputs are all [1]. Generate the other powers of two.", null,// x => [new Rational(2 ** x[0].numerator)],
         (x, i, a) => [new Rational(2 ** (i + 1))],
@@ -322,10 +344,40 @@ var levels = Object.freeze({
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
         { allowEarlyWin: true }
     ),
+    "linmax": new Level(
+        "Your input is ax+b. Return the larger of positive a and b.", null, (x) => {
+            const [b, a] = x
+            const diff = Rational.differenceOfTwo(a, b)
+            return [diff.numerator > 0 ? a : b]
+        }, {
+        func: () => {
+            const range = [...MM.range(-20, 20)].filter(x => x !== 0)
+            const a = new Rational(MM.choice(range), MM.choice(range))
+            let b = new Rational(MM.choice(range), MM.choice(range))
+            if (a.isEqualTo(b)) b.multiplyByInt(2)
+            return [b, a]
+        }
+    }
+    ),
+    "sixsixsix": new Level(
+        "Your inputs are all the same, map them to [666].", null, null,
+        {
+            func: () => [2, 0, 0, 5, 0, 0, 0, -1, 0, 3].map(x => new Rational(x)),
+            funcOut: () => Array(10).fill([new Rational(666)]),
+            numberOfInputs: 10
+        }, { allowEarlyWin: true }
+    ),
+
+
+    "factorial": new Level(
+        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
+    )
+
 
 
 })
-
+//#region tutorialLevels
 /**@type {Object<Level>} */
 var tutorialLevels = Object.freeze({
     "IN_OUT1": new Level(
@@ -672,7 +724,8 @@ The visitor is only allowed to pass through if the key is [0].
     )
 
 })
-
+//#endregion
+//#region freeLevels
 var freeLevels = {
     "random inputs": new Level(null, null, x => null, { minimumOutput: 0 }, { saveOnCompletion: false, isFreePlay: true }),
     "quadratic inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 2, minTerms: 3 }, { saveOnCompletion: false, isFreePlay: true }),
@@ -683,12 +736,9 @@ var freeLevels = {
     "many terms inputs": new Level(null, null, x => null, { minimumOutput: 0, minTerms: 2, maxTerms: 4 }, { saveOnCompletion: false, isFreePlay: true }),
     "all [1] input": new Level(null, null, x => null, { minimumOutput: 0, func: () => [new Rational(1)] }, { saveOnCompletion: false, isFreePlay: true })
 }
-
+//#endregion
+//#region prototypeLevels
 var prototypeLevels = {
-    "factorial": new Level(
-        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
-        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
-    ),
     "fliplead": new Level(
         "Replace the leading term's coefficient with its reciprocal.", null,
         x => x.map((u, i, a) => i == a.length - 1 ? new Rational(u.denominator, u.numerator) : u),
@@ -705,17 +755,18 @@ var prototypeLevels = {
         }, { numberOfInputs: 9, maxTerms: 1 }
     ),
     "inconly": new Level(
-        "Return only the polynomials that are increasing at 0.", null, (x, i, a) => {
+        "Return only the polynomials that are increasing at x=1.", null, (x, i, a) => {
             const p = Poly.computed(x)
-            const val = p.takeDerivative().takeSubs(new Rational(0)).toRational()
+            const val = p.takeDerivative().takeSubs(new Rational(1)).toRational()
             if (val.isPositive) return x
         }, { minimumOutput: 2, maximumOutput: 8 }
     ),
     "sign": new Level(
         "Return the sign of the constant term. (So 1 if positive, \n 0 if zero, and -1 if negative.)", null,
         /**@param {Rational[]} x */(x, i, a) => [new Rational(x[0].isPositive ? 1 : x[0].isZero ? 0 : -1)],
-
+        { maxDegree: 1, maxTerms: 2, minTerms: 2 }
     ),
+
     "diffoftwo": new Level(
         "Return the current input minus the next input.", null, (x, i, a) => {
             if (i % 2) return
@@ -750,22 +801,6 @@ var prototypeLevels = {
             return [new Rational(a.slice(0, i + 1).reduce((s, t) => Rational.sumOfTwo(s, t[0]), new Rational(0)))]
         }, { maxTerms: 1, maxDegree: 0, maxDenom: 0, negativeChance: 0, maxNumer: 12 }
     ),
-    "golden": new Level(
-        "Approximate the Golden ratio via continued fractions.", null, null,
-        {
-            numberOfInputs: 10,
-            func: x => [new Rational(1)],
-            funcOut: x => {
-                const out = []
-                let sofar = new Rational(1)
-                for (let i = 0; i < 10; i++) {
-                    sofar = Rational.sumOfTwo(Rational.reciprocal(sofar), new Rational(1))
-                    out.push([sofar])
-                }
-                return out
-            }
-        }, { allowEarlyWin: true }
-    ),
     "fibonacci": new Level(
         "Generate the Fibonacci sequence", null, null,
         {
@@ -780,42 +815,33 @@ var prototypeLevels = {
             }
         }
     ),
-    "sqrttwo": new Level(
-        "Approximate sqrt(2) via the recursion\nx_1=1, x_{n+1}= x_n/2 + 1/(x_n).", null, null,
-        {
-            numberOfInputs: 10,
-            func: x => [new Rational(1)],
-            funcOut: x => {
-                let approx = new Rational(1)
-                let out = []
-                for (let i = 0; i < 10; i++) {
-                    approx = Rational.sumOfTwo(approx.copy.divideByInt(2), Rational.reciprocal(approx))
-                    out.push([approx])
-                }
-                return out
-            }
-        }
-    )
-}
 
+}
+//#endregion
+
+
+//#region stgs
 /// settings
 var stgs = {
     stage: -1,
     latestSelectorType: -1,
-    localKeyName: "ZPkeys",
+    localVictoriesName: "ZPkeys",
     localDataName: "ZPdatas",
     alreadyTriedAskingForClipboardPermission: false
 
 }/// end of settings
-
+//#endregion
+//#region pageManager
 const pageManager = Object.freeze({
     levelSelector: -1,
     settings: -2,
     tutorialSelector: -3,
     freeSelector: -4,
 })
-
+//#endregion
+//#region userSettings
 var userSettings = {
     biggerButtons: false,
     isDeveloper: false
 }
+//#endregion

@@ -91,6 +91,15 @@ class Game extends GameCore {
         if (this.keyboarder.pressed[4]) this.speedButtons?.[4].on_click()
         if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
         if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[2].on_click()
+        if (this.keyboarder.pressed["w"]) this.reactor?.moveAllPieces(-1, 0)
+        if (this.keyboarder.pressed["a"]) this.reactor?.moveAllPieces(0, -1)
+        if (this.keyboarder.pressed["s"]) this.reactor?.moveAllPieces(1, 0)
+        if (this.keyboarder.pressed["d"]) this.reactor?.moveAllPieces(0, 1)
+        if (this.keyboarder.pressed["Escape"]) {
+            if (this.reactor) this.reactor.controlButtons[0].on_release()
+            if (this.tutorialsButton) this.tutorialsButton.on_release()
+
+        }
 
 
 
@@ -138,7 +147,7 @@ class Game extends GameCore {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //#region levelSelector
+    //#region makeGridOfLevels
     makeGridOfLevels(levelList) {
         const numberOfLevels = levelList.length
         const sq = Math.ceil(Math.sqrt(numberOfLevels))
@@ -169,13 +178,14 @@ class Game extends GameCore {
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
-                if (wonAlready) { //not the greatest practice lol
-                    try { game.reactor.fromJSON(Game.loadFromLocal(x.txt)) }
-                    catch (error) {
-                        console.error("could not load from local storage, oopsies.")
-                        console.error(this)
-                        console.error(error)
-                    }
+                try {
+                    const data = Game.loadFromLocal(stgs.stage)
+                    data && game.reactor.fromJSON(data)
+                }
+                catch (error) {
+                    console.error("could not load from local storage, oopsies.")
+                    console.error(this)
+                    console.error(error)
                 }
             }
 
@@ -206,11 +216,21 @@ class Game extends GameCore {
         return { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG }
 
     }
+    //#endregion
+    //#region levelSelector
     levelSelector() {
         const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } =
             this.makeGridOfLevels(Object.keys(window.levels))
 
-
+        lvlButtons.forEach(x => {
+            x.spread(this.rect.centerX, this.rect.centerY, 1.1, 1.1)
+            x.stretch(1.1, 1.1)
+            x.fontSize = 36
+        })
+        lvlButtonsBG.leftat(lvlButtons[0].left)
+        lvlButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
+        tutorialsButton.rightat(lvlButtonsBG.right)
+        infoButton.leftat(lvlButtons[0].left)
 
         const bottomButtonBG = infoButton.copy
         bottomButtonBG.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
@@ -233,15 +253,16 @@ class Game extends GameCore {
         optionsButton.hover_color = "pink"
         optionsButton.txt = "Options"
         optionsButton.on_release = () => {
+            const obj = {}
+            obj[`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`] = () => userSettings.biggerButtons ^= 1
+            obj[`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`] = () => userSettings.isDeveloper ^= 1
+            obj[`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`] = () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1
+            obj["Statistics"] = Game.statistics
+            obj["Read changelog"] = () => window.open("Changelog.txt")
+
+
             const menu = GameEffects.dropDownMenu(
-                [
-                    `Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
-                    `Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`,
-                    "Read changelog"],
-                [
-                    () => userSettings.biggerButtons ^= 1,
-                    () => userSettings.isDeveloper ^= 1,
-                    () => window.open("Changelog.txt")],
+                obj,
                 null, null, null,
                 {
                     height: userSettings.biggerButtons ? 140 : 80,
@@ -263,7 +284,6 @@ class Game extends GameCore {
         this.add_drawable(manualButton)
         this.add_drawable(optionsButton)
         this.add_drawable(freeButton)
-
     }
     //#endregion
     //#region tutorialSelector
@@ -278,6 +298,7 @@ class Game extends GameCore {
         tutorialsButton.txt = "Back to puzzles"
         tutorialsButton.resize(500, 100)
         infoButton.txt = "Select tutorial:"
+        this.tutorialsButton = tutorialsButton
     }
     //#endregion
     //#region freeSelector
@@ -306,12 +327,12 @@ class Game extends GameCore {
             x.spread(this.WIDTH / 2, 0, 1.1, .6)
             x.stretch(1, .5)
             x.move(0, 500)
-            x.color = "lightgray"
+            x.color = x.color.includes("green") ? x.color : "lightgray"
         })
         lowerInfoButton.bottomat(proButtons[0].top)
         lowerInfoButton.leftat(proButtons[0].left)
         this.add_drawable(lowerInfoButton)
-
+        this.tutorialsButton = tutorialsButton
     }
     //#endregion
 
@@ -536,35 +557,81 @@ class Game extends GameCore {
     }
     //#endregion
 
-    static keylistLocal() {
-        return JSON.parse(localStorage.getItem(stgs.localKeyName)) ?? []
+
+
+    static statistics() {
+        const victories = Game.keylistLocal()
+        const res =
+            `Tutorials completed: ${Object.keys(tutorialLevels).length
+            }/${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
+            }\nPuzzles completed: ${Object.keys(levels).filter(x => victories.includes(x)).length
+            }/${Object.keys(levels).length
+            }`
+
+        GameEffects.popup(res, {
+            posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 3000,
+            moreButtonSettings: { color: "yellow", fontSize: 32 }
+        })
+        return res
     }
 
-    static saveToLocal(key, data) {
+
+    static keylistLocal() {
+        return JSON.parse(localStorage.getItem(stgs.localVictoriesName)) ?? []
+    }
+
+    static saveToLocal(key, data, addKeyToVictories = true) {
         try {
-            const keysAll = Game.keylistLocal()
-            keysAll.push(key)
-            const keysAllUnique = [...new Set(keysAll)]
-            localStorage.setItem(stgs.localKeyName, JSON.stringify(keysAllUnique))
+            if (addKeyToVictories) {
+                const keysAll = Game.keylistLocal()
+                keysAll.push(key)
+                const keysAllUnique = [...new Set(keysAll)]
+                localStorage.setItem(stgs.localVictoriesName, JSON.stringify(keysAllUnique))
+            }
             const dataAll = JSON.parse(localStorage.getItem(stgs.localDataName)) ?? {}
-            dataAll[key] = data
+            dataAll[key] = typeof data === "string" ? JSON.parse(data) : data
             localStorage.setItem(stgs.localDataName, JSON.stringify(dataAll))
+            if (addKeyToVictories) {
+                GameEffects.popup(`Solution of "${stgs.stage}" saved.`, {
+                    posFrac: [.5, .9],
+                    moreButtonSettings: { font_font: "Consolas", color: "pink" }
+                })
+            }
+            console.log("Solution saved to", key)
         } catch (error) {
             console.error("Something's off with saving to local storage")
             console.error(error)
         }
     }
 
+    static checkIsVictoryFromLocal(key) {
+        return JSON.parse(localStorage.getItem(stgs.localVictoriesName))?.includes(key)
+    }
+    static checkSaveData(key) {
+        return JSON.parse(localStorage.getItem(stgs.localDataName))[key]
+    }
     static loadFromLocal(key) {
         try {
-            /*if (!JSON.parse(localStorage.getItem(stgs.localKeyName))?.includes(key)) {
-                console.error("said key is not available in local storage")
-            }*/
             const data = JSON.parse(localStorage.getItem(stgs.localDataName))[key]
             return data
         } catch (error) {
             console.error("something's off with loading from local storage")
             console.error(key, error)
+        }
+    }
+    static deleteFromLocal(key) {
+        try {
+            const wins = JSON.parse(localStorage.getItem(stgs.localVictoriesName))
+            localStorage.setItem(stgs.localVictoriesName, JSON.stringify(wins.filter(x => x !== key)))
+            const dataAll = JSON.parse(localStorage.getItem(stgs.localDataName))
+            delete dataAll[key]
+            localStorage.setItem(stgs.localDataName, JSON.stringify(dataAll))
+            return true
+        }
+        catch (error) {
+            console.error("something's off with deleting from local storage")
+            console.error(key, error)
+            return false
         }
     }
     static allLocal() {

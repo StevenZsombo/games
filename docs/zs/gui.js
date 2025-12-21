@@ -70,25 +70,29 @@ class Keyboarder {
 		const keyBuffer = this.keyBuffer
 		this.bufferedKeys = []
 		this.lastPasted = null
+		this.on_keydown = null
+		this.on_keyup = null
 		this.on_paste = null //(text) => ...
-		this.isLogging = true
+		this.on_copy = null
+		this.on_undo = null
+		this.on_redo = null
+		this.isLogging = true //for copy paste undo redo
 
 		const keydown = (e) => {
-			if (denybuttons) {
-				e.preventDefault()
-				e.stopPropagation()
-			}
+			this.on_keydown?.(e)
 			if (!held[e.key]) {
 				held[e.key] = true
 				pressed[e.key] = true
 				this.strokeBuffer.push([Date.now(), e.key])
 				this.keyBuffer.push([Date.now(), e.key])
 			}
+			if (denybuttons) {
+				e.preventDefault()
+				e.stopPropagation()
+			}
 		}
-		document.addEventListener('keydown', keydown)
-		documentHandlers.keydown = keydown
-
 		const keyup = (e) => {
+			this.on_keyup?.()
 			this.held[e.key] = false
 			this.pressed[e.key] = false
 			if (denybuttons) {
@@ -96,9 +100,6 @@ class Keyboarder {
 				e.stopPropagation()
 			}
 		}
-		document.addEventListener('keyup', keyup)
-		documentHandlers.keyup = keyup
-
 		const paste = (e) => {
 			const text = e.clipboardData.getData('text/plain');
 			this.lastPasted = text
@@ -107,9 +108,6 @@ class Keyboarder {
 			e.preventDefault()
 			e.stopPropagation()
 		}
-		document.addEventListener('paste', paste)
-		documentHandlers.paste = paste
-
 		const copy = (e) => {
 			if (this.on_copy) {
 				let data = this.on_copy()
@@ -122,8 +120,30 @@ class Keyboarder {
 			e.preventDefault()
 			e.stopPropagation()
 		}
+		const beforeinput = (e) => {
+			if (this.on_undo && e.inputType === 'historyUndo') {
+				e.preventDefault()
+				e.stopPropagation()
+				this.on_undo?.()
+
+			}
+			if (this.on_redo && e.inputType === 'historyRedo') {
+				e.preventDefault()
+				e.stopPropagation()
+				this.on_redo?.()
+			}
+		}
+
+		document.addEventListener('keydown', keydown)
+		document.addEventListener('keyup', keyup)
 		document.addEventListener('copy', copy)
+		document.addEventListener('paste', paste)
+		documentHandlers.keydown = keydown
+		documentHandlers.keyup = keyup
 		documentHandlers.copy = copy
+		documentHandlers.paste = paste
+		window.addEventListener('beforeinput', beforeinput) //{capture:true} omitted for now - removing it would require the same call...
+		windowHandlers.beforeinput = beforeinput
 	}
 	get strokes() {
 		return this.strokeBuffer.map(x => x[1]).join("")
@@ -226,10 +246,6 @@ class Mouser {
 			this.wheel = e.deltaY
 		}
 
-
-		canvas.addEventListener('pointermove', pointermove)
-		canvas.addEventListener('pointerdown', pointerdown)
-		canvas.addEventListener('pointerup', pointerup)
 		/*
 		canvas.addEventListener('pointerleave', (e) => {
 			e.preventDefault()
@@ -246,8 +262,11 @@ class Mouser {
 			//this.y = null
 		})*/
 
+		canvas.addEventListener('pointermove', pointermove)
+		canvas.addEventListener('pointerdown', pointerdown)
+		canvas.addEventListener('pointerup', pointerup)
 		canvas.addEventListener('pointercancel', pointercancel)
-		canvas.addEventListener('wheel', wheel, { passive: false })
+		canvas.addEventListener('wheel', wheel) //{passive:false} omitted for now as I do not want to deal with it
 		canvasHandlers.pointermove = pointermove
 		canvasHandlers.pointerdown = pointerdown
 		canvasHandlers.pointerup = pointerup
