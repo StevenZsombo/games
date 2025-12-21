@@ -43,6 +43,7 @@ class Reactor {
         this.tasks = 0
         this.game.keyboarder.on_paste = this._interactiveFromJSON.bind(this)
         this.game.keyboarder.on_copy = this.grab.bind(this)
+        this.hasWonAlready = false
     }
     toJSON() {
         return [stgs.stage, this.pieces.map(x => [x.x, x.y, x.type])]
@@ -111,6 +112,7 @@ class Reactor {
             ;[...this.polys].forEach(x => this._removePolyInternal(x))
             ;[...this.otherButtons].forEach(x => this.removeOtherButton(x))
         this.levelRelated?.forEach(x => this.removeOtherButton(x))
+        this.hasWonAlready = false
         this.level = level //bad practice but whatevs
         this.inputs = level.inputs
         this.outputs = level.outputs
@@ -258,11 +260,8 @@ class Reactor {
         if (i + 1 < this.outputRecords.length) {
             this.outputRecords[i + 1].color = color
             this.outputRecords[i + 1].latex.tex = poly.getTex()
+            this.checkVictory() //we may never know
         }
-        if (!correct) { //lmao
-        }
-
-        this.checkVictory() //we may never know
         return color
     }
 
@@ -302,6 +301,8 @@ class Reactor {
         this.controlButtons[2].txt = "Congratulations!"
     }
     celebrate() {
+        if (this.hasWonAlready) return
+        this.hasWonAlready = true
         GameEffects.fireworksShow()
         this.level.conditions.on_win?.(this)
         this.game.animator.speedMultiplier = 1
