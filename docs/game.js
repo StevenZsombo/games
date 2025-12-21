@@ -60,6 +60,9 @@ class Game extends GameCore {
             case pageManager.tutorialSelector:
                 this.tutorialSelector()
                 break;
+            case pageManager.freeSelector:
+                this.freeSelector()
+                break;
 
             default:
                 this.makeLevel()
@@ -220,7 +223,7 @@ class Game extends GameCore {
         manualButton.transparent = false
         manualButton.fontSize = 40
         manualButton.txt = "Manual"
-        manualButton.on_click = () => {
+        manualButton.on_release = () => {
             window.open("Manual.pdf")
         }
         manualButton.hover_color = "yellow"
@@ -229,7 +232,7 @@ class Game extends GameCore {
         optionsButton.leftat(lvlButtonsBG.left)
         optionsButton.hover_color = "pink"
         optionsButton.txt = "Options"
-        optionsButton.on_click = () => {
+        optionsButton.on_release = () => {
             const menu = GameEffects.dropDownMenu(
                 [
                     `Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`,
@@ -247,14 +250,23 @@ class Game extends GameCore {
                 optionsButton
             )
         }
+        const freeButton = optionsButton.copy
+        freeButton.centeratX((optionsButton.left + manualButton.right) / 2)
+        freeButton.on_release = () => {
+            stgs.stage = pageManager.freeSelector
+            stgs.latestSelectorType = pageManager.freeSelector
+            main()
+        }
+        freeButton.txt = "Free play & prototypes"
 
         //bottomButton.hover_color = 
         this.add_drawable(manualButton)
         this.add_drawable(optionsButton)
+        this.add_drawable(freeButton)
 
     }
     //#endregion
-
+    //#region tutorialSelector
     //#tutorialSelector
     tutorialSelector() {
         const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } = this.makeGridOfLevels(Object.keys(window.tutorialLevels))
@@ -264,17 +276,54 @@ class Game extends GameCore {
             main()
         }
         tutorialsButton.txt = "Back to puzzles"
+        tutorialsButton.resize(500, 100)
         infoButton.txt = "Select tutorial:"
-
+    }
+    //#endregion
+    //#region freeSelector
+    freeSelector() {
+        const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } =
+            this.makeGridOfLevels(Object.keys(window.freeLevels))
+        tutorialsButton.on_release = () => {
+            stgs.stage = pageManager.levelSelector
+            stgs.latestSelectorType = pageManager.levelSelector
+            main()
+        }
+        tutorialsButton.txt = "Back to puzzles"
+        tutorialsButton.resize(500, 100)
+        infoButton.txt = "Free play:"
+        lvlButtons.forEach(x => {
+            x.spread(this.WIDTH / 2, this.HEIGHT, 1, 0.5)
+            x.move(0, -450)
+            x.stretch(1, .5)
+        })
+        const lowerInfoButton = infoButton.copy
+        lowerInfoButton.txt = "Untested prototypes:"
+        const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
+        game.remove_drawable(tut2)
+        game.remove_drawable(inf2)
+        proButtons.forEach(x => {
+            x.spread(this.WIDTH / 2, 0, 1.1, .6)
+            x.stretch(1, .5)
+            x.move(0, 500)
+            x.color = "lightgray"
+        })
+        lowerInfoButton.bottomat(proButtons[0].top)
+        lowerInfoButton.leftat(proButtons[0].left)
+        this.add_drawable(lowerInfoButton)
 
     }
+    //#endregion
 
 
     //#region makeLevel
     /**@param {Level} level  */
     makeLevel(level) {
         if (!level || typeof level === "string")
-            level = levels[stgs.stage] ?? tutorialLevels[stgs.stage]
+            level =
+                levels[stgs.stage] ?? tutorialLevels[stgs.stage] ?? freeLevels[stgs.stage] ?? prototypeLevels[stgs.stage]
+        if (!level) throw "Requested level does not exist."
+
         const reactor = new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
         this.add_drawable(reactor)
         this.reactor = reactor
@@ -315,9 +364,10 @@ class Game extends GameCore {
         overlay.visible = false
         overlay.clickable = true
         overlay.isBlocking = false
-        overlay.on_click = () => console.log("hey")
         this.add_drawable(overlay, 7)
         this.overlay = overlay
+
+        this.ALLOW_DRAGGING_MOVINGPIECES = true
 
         overlay.on_click = () => {
             if (this.menu) {
@@ -333,7 +383,8 @@ class Game extends GameCore {
             this.lastHit = hit
             /**@type {Array<Button>} */
             this.ghosts = []
-            this.currentDraggingList = reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
+            this.currentDraggingList = reactor.findPiecesAt(...hit.tag)
+            if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
             this.dragLastPos = this.mouser.pos
             hit.color = "fuchsia"
 
@@ -351,7 +402,8 @@ class Game extends GameCore {
                 this.firstHit = null
                 return
             }
-            const targetsList = this.reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
+            const targetsList = this.reactor.findPiecesAt(...hit.tag)
+            if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
             if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
             this.currentDraggingList.forEach(x => {
                 x.x = this.lastHit.tag[0]
@@ -395,7 +447,8 @@ class Game extends GameCore {
                 this.dragLastPos = null
                 return
             }
-            const targetsList = this.reactor.findPiecesAt(...hit.tag).filter(x => !Reactor.isMovementType(x))
+            let targetsList = this.reactor.findPiecesAt(...hit.tag)
+            if (!this.ALLOW_DRAGGING_MOVINGPIECES) targetsList = targetsList.filter(x => !Reactor.isMovementType(x))
 
             if (hit && this.firstHit !== hit) {
                 this.ghosts = targetsList.map(x => x.button.copy)
@@ -407,7 +460,8 @@ class Game extends GameCore {
             }
             hit.color = "fuchsia"
             this.currentDraggingList.forEach(x => {
-                x.button.move(this.mouser.x - this.dragLastPos.x, this.mouser.y - this.dragLastPos.y)
+                x.button.centeratV(this.mouser.pos)
+                //x.button.move(this.mouser.x - this.dragLastPos.x, this.mouser.y - this.dragLastPos.y)
 
                 //x.x = hit.tag[0]
                 //x.y = hit.tag[1]
@@ -525,11 +579,4 @@ const dev = {
     add: (type) => window.r.addPiece(...window.r.LCP, type)
 
 }/// end of dev
-
-const pageManager = Object.freeze({
-    levelSelector: -1,
-    settings: -2,
-    tutorialSelector: -3
-})
-
 

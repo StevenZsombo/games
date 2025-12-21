@@ -31,7 +31,7 @@ class Reactor {
                 }
             })
         ))
-
+        this.numberOfRandomSheets = 2
         this.game.add_drawable(this.buttonsMatrix.flat(), 3)
         // this.state = Reactor.s.idle
         this.stepTime = 400
@@ -45,7 +45,7 @@ class Reactor {
         this.game.keyboarder.on_copy = this.grab.bind(this)
     }
     toJSON() {
-        return this.pieces.map(x => [x.x, x.y, x.type])
+        return [stgs.stage, this.pieces.map(x => [x.x, x.y, x.type])]
     }
     grab() {
         const str = JSON.stringify(this.toJSON())
@@ -79,9 +79,7 @@ class Reactor {
     }
     _interactiveFromJSON(str) {
         try {
-            if (typeof str === "string") str = JSON.parse(str);
-            [...this.pieces].forEach(x => this.removePiece(x))
-            str.forEach(x => this.addPiece(...x))
+            this.fromJSON(str, false, true)
             this.POPUP("Loaded successfully.", 1000)
         } catch (error) {
             this.POPUP(
@@ -97,11 +95,13 @@ class Reactor {
             GameEffects.popupPRESETS.topleftPink)
     }
 
-    fromJSON(str) {
-        if (this.pieces.length) return
+    fromJSON(str, onlyIfEmpty = true, clearFirst = false) {
+        if (onlyIfEmpty && this.pieces.length) return
+        if (clearFirst) [...this.pieces].forEach(x => this.removePiece(x))
         if (typeof str === "string") str = JSON.parse(str)
         str.forEach(x => this.addPiece(...x))
     }
+
 
     /**@param {Level} level */
     loadLevel(level, sheetsCleared = 0) {
@@ -114,7 +114,7 @@ class Reactor {
         this.level = level //bad practice but whatevs
         this.inputs = level.inputs
         this.outputs = level.outputs
-        this.instructions = level.instructions
+        this.instructions = level.instructions ?? stgs.stage
         this.inputsServed = []
         this.outputsReceived = []
         this.correctCount = 0
@@ -247,36 +247,44 @@ class Reactor {
     receiveOutput(poly) {
         const badColor = "lightcoral"
         const goodColor = "lightgreen"
-        if (!this.outputs) return badColor
+        //if (!this.outputs) return badColor
         const i = this.outputsReceived.length
         const output = this.outputs[i]
-        if (!output) {
-            return badColor
-        }
         this.outputsReceived.push(output)
-        const correct = poly.isTheSameAsOutput(output)
+        let correct = false
+        output && (correct = poly.isTheSameAsOutput(output))
         const color = correct ? goodColor : badColor
         this.correctCount += correct
-        this.outputRecords[i + 1].color = color
-        this.outputRecords[i + 1].latex.tex = poly.getTex()
-        if (!correct) {
+        if (i + 1 < this.outputRecords.length) {
+            this.outputRecords[i + 1].color = color
+            this.outputRecords[i + 1].latex.tex = poly.getTex()
+        }
+        if (!correct) { //lmao
         }
 
         this.checkVictory() //we may never know
         return color
     }
-    static numberOfRandomSheets = 2
+
     checkVictory() {
+        if (this.level.conditions.isFreePlay) {
+            if (this.inputsServed.length == this.inputs.length) {
+                //const cp = new Level(null, null, null, this.level.genRules, this.level.conditions)
+                //this.loadLevel(cp)
+                this.loadLevel(this.level)
+                return
+            }
+        }
         if (this.correctCount !== this.outputs.length ||
             (!this.level.conditions.allowEarlyWin
                 && (this.inputsServed.length !== this.inputs.length))
         ) return
         this.sheetsCleared += 1
-        if (this.sheetsCleared > Reactor.numberOfRandomSheets) { //needs to clear 3 random sheets
+        if (this.sheetsCleared > this.numberOfRandomSheets) { //needs to clear 3 random sheets
             this.nextStepExtras.push(this.celebrate)
         } else {
             this.game.animator.speedMultiplier = 8 + 8 * this.sheetsCleared
-            const randomSheet = new Level(`Checking for random inputs ${this.sheetsCleared}/${Reactor.numberOfRandomSheets} ...`,
+            const randomSheet = new Level(`Checking for random inputs ${this.sheetsCleared}/${this.numberOfRandomSheets} ...`,
                 null, this.level.rule, this.level.genRules, this.level.conditions
             )
             this.nextStepExtras.push(() =>
@@ -286,7 +294,7 @@ class Reactor {
     }
     celebrateComplete() {
         this.instructionButton.txt = "Victory"
-        Game.saveToLocal(stgs.stage, this.toJSON())
+        if (this.level.conditions.saveOnCompletion) Game.saveToLocal(stgs.stage, this.toJSON())
         this.game.animator.add_staggered(this.pieces.map(x => x.button),
             1 / this.pieces.length * 1200,
             Anim.stepper(null, 1200, "rad", "0", TWOPI, { repeat: 6 })
@@ -431,13 +439,15 @@ class Reactor {
         if (!Reactor.t[type]) console.error("invalid type")
         if (!ReactorPiece[type]) console.error("type not yet implemented")
         const previous = this.pieces.filter(p => p.x == x && p.y == y)
+        let earlyReturn = false
         for (const p of previous) {
             if (Reactor.isMovementType(type) == Reactor.isMovementType(p.type))
                 this.removePiece(p)
-            if (Reactor.isMovementType(type) && (type === p.type)) {
-                return
+            if (Reactor.isMovementType(type) && (type == p.type | p.type == Reactor.t.COPY)) {
+                earlyReturn = true
             }
         }
+        if (earlyReturn) return
         if ("".split(" ").includes(type)) {//these are limited to one
             const other = this.pieces.find(x => x.type == type)//movement twice = delete
             other && this.removePiece(other)
@@ -475,7 +485,7 @@ class Reactor {
 
     }
     stressTest() {
-        Reactor.numberOfRandomSheets = 10
+        this.numberOfRandomSheets = 10
         // this.isLogging = true
         this.stepTime = 5
         //this.game.animator.speedMultiplier = 1000
@@ -695,6 +705,7 @@ class ReactorPiece {
 
     /**@param {Reactor} parent */
     static COPY(parent, x, y) {
+        parent.removePiecesAt(x, y)
         /**@param {Poly} */
         const on_contact = function (poly) {
             const newHeadings = poly.heading[0] ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]
@@ -1073,6 +1084,12 @@ class Rational {
     get isUnit() {
         return this.denominator == 1 && Math.abs(this.numerator) == 1
     }
+    get isZero() { return this.numerator == 0 }
+    get isPositive() { return this.numerator > 0 }
+    get isNegative() { return this.numerator < 0 }
+    get isInteger() { return this.denominator == 1 }
+
+
     /**@param {Rational} other - return is this is equal to the other */
     isEqualTo(other) {
         return this.numerator == other.numerator && this.denominator == other.denominator
@@ -1089,6 +1106,10 @@ class Rational {
     /**@returns {Poly} */
     toPoly() {
         return new Poly.computed([this])
+    }
+
+    toFloat() {
+        return this.numerator / this.denominator
     }
 
 

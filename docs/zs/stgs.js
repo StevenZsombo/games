@@ -9,11 +9,12 @@ class Level {
             minTerms: undefined, maxTerms: undefined, minDegree: undefined, maxDegree: undefined,
             minNumer: undefined, maxNumer: undefined, minDenom: undefined, maxDenom: undefined,
             negativeChance: undefined,
-            func: undefined, funcOut: undefined, numberOfInputs: undefined
+            func: undefined, funcOut: undefined, numberOfInputs: undefined,
+            minimumOutput: 1, maximumOutput: undefined //watch out for minimumOutput
         },
         conditions = {
             on_start: null, on_start_more: null, on_win: null, toolsRestrictedTo: null, toolsHighlighted: null,
-            allowEarlyWin: false, rows: null, cols: null
+            allowEarlyWin: false, rows: null, cols: null, saveOnCompletion: true, isFreePlay: false
         }
     ) {
         this.instructions = instructions
@@ -24,14 +25,12 @@ class Level {
             ? genRules.funcOut(this.inputs)
             : this.inputs
                 .map((x, i, a) => rule(x, i, a))
-                .map(x => x instanceof Poly ? x.arr : x)
                 .filter(x => x != null)
+                .map(x => x instanceof Poly ? x.arr : Poly.computed(x).arr)
         this.rule = rule
         this.genRules = genRules
         this.conditions = conditions
         if (
-            this.outputs.length == 0
-            ||
             (genRules.minimumOutput && (genRules.minimumOutput > this.outputs.length))
             ||
             (genRules.maximumOutput && (genRules.maximumOutput < this.outputs.length))
@@ -74,10 +73,10 @@ class Level {
 /**@type {Object<Level>} */
 var levels = Object.freeze({
     "secondder": new Level(
-        "Find the second derivative.", null, x => Poly.computed(x).takeDerivative().takeDerivative().arr
+        "Find the second derivative.", null, x => Poly.computed(x).takeDerivative().takeDerivative()
     ),
     "mulxcube": new Level(
-        "Multiply the input by x^3.", null, x => Poly.computed(x).takeRaise().takeRaise().takeRaise().arr
+        "Multiply the input by x^3.", null, x => Poly.computed(x).takeRaise().takeRaise().takeRaise()
     ),
     "noconst": new Level(
         "Remove the constant term if there is any.", null, x => {
@@ -124,10 +123,6 @@ var levels = Object.freeze({
             return [new Rational(n * (n + 1) / 2)]
         }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
     ),
-    /*"squareX": new Level(
-        "Your input is a constant - square it.", null, x => x.map(u => new Rational(u).multiplyBy(u.numerator).divideBy(u.denominator)),
-        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
-    ),*/
     "mult": new Level(
         "Multiply the input by (2x-1).", null, x => {
             const p = Poly.computed(x)
@@ -184,37 +179,7 @@ var levels = Object.freeze({
         minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
     }
     ),
-    /*"keepodd": new Level(
-        "Keep only the terms with an odd index.", null, x => {
-            const p = Poly.computed(x).takeNeg()
-            const q = Poly.computed(x).takeSubs(new Rational(-1))
-            return p.sumWith(q).arr
-        },
-        { minTerms: 3, maxTerms: 5, maxDegree: 10 }
-    ),*/
-    /*"diffoftwo?": new Level(
-        "Return the current input minus the next input.", null, (x, i, a) => {
-            if (i % 2) return
-            const [u, w] = [x, a[i + 1]].map(Poly.computed)
-            w.takeNeg()
-            return u.sumWith(w).arr
-        }, { maxTerms: 2 }
-    ),*/
-    /*"posneg": new Level(
-        "Return 1 if the input is positive, 0 if zero, and -1 if negative.", null, (x, i, a) => { }
-    ),*/
-    /*"incordec": new Level(
-        "TODO : Return 1 is the polynomial is increasing at 0, and -1 otherwise", null, (x, i, a) => {
-            return x
-        }
-    ),*/
-    /*"sumofthree?": new Level(
-        "Return the sum of the current and the next two inputs.", null, (x, i, a) => {
-            if (i % 3) return
-            const [u, v, w] = a.slice(i, i + 3).map(Poly.computed)
-            return u.sumWith(v).sumWith(w).arr
-        }, { numberOfInputs: 9, maxTerms: 1 }
-    ),*/
+
     "leadingterm": new Level(
         "Return the leading term.", null, x => x.map((u, i, a) => i == a.length - 1 ? u : new Rational(0)),
         undefined, {
@@ -271,20 +236,6 @@ var levels = Object.freeze({
             return indef.copy.takeSubs(new Rational(2)).sumWith(indef.copy.takeSubs(new Rational(0)).takeNeg())
         }, { minTerms: 2 }
     ),
-    /*"accel": new Level(
-        `Input is acceleration after x sec. Find displacement after 3 sec.`, null
-    ),*/
-
-
-    /*"inv": new Level(
-        "Your inputs is a positive integer a. Return 1/a", null,
-        (x, i, a) => { },
-        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 20 }
-    ),*/
-    /*"flip": new Level(
-        "Replace the leading term's coefficient with its reciprocal.", null,
-        x => x.map((u, i, a) => i == a.length - 1 ? new Rational(u.denominator, u.numerator) : u),
-    ),*/
 
     "everyother": new Level(
         "Return only every other input.", null, (x, i, a) => i % 2 ? x : null
@@ -316,7 +267,11 @@ var levels = Object.freeze({
             numberOfInputs: 10
         }, { allowEarlyWin: true }
     ),
-
+    "last": new Level(
+        "Return the last term only.", null,
+        /**@param {Rational[]} x */(x, i, a) => x.slice(0, x.findIndex(x => !x.isZero) + 1),
+        { minTems: 2, maxTerms: 4 }
+    ),
     "compsqonly": new Level(
         "Your inputs are quadratics. Return only the complete squares.", null, x => {
             const [a, b, c] = x
@@ -368,10 +323,6 @@ var levels = Object.freeze({
         { allowEarlyWin: true }
     ),
 
-    /*"factorial": new Level(
-        //"Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
-        //{ maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
-    ),*/
 
 })
 
@@ -722,6 +673,131 @@ The visitor is only allowed to pass through if the key is [0].
 
 })
 
+var freeLevels = {
+    "random inputs": new Level(null, null, x => null, { minimumOutput: 0 }, { saveOnCompletion: false, isFreePlay: true }),
+    "quadratic inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 2, minTerms: 3 }, { saveOnCompletion: false, isFreePlay: true }),
+    "linear inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 1, maxTerms: 2, minTerms: 2 }, { saveOnCompletion: false, isFreePlay: true }),
+    "constant inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 0, maxTerms: 1 }, { saveOnCompletion: false, isFreePlay: true }),
+    "integer inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 0, maxTerms: 1, maxDenom: 1, maxNumer: 12 }, { saveOnCompletion: false, isFreePlay: true }),
+    "pos. integer inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 0, maxTerms: 1, maxDenom: 1, maxNumer: 20, negativeChance: 0 }, { saveOnCompletion: false, isFreePlay: true }),
+    "many terms inputs": new Level(null, null, x => null, { minimumOutput: 0, minTerms: 2, maxTerms: 4 }, { saveOnCompletion: false, isFreePlay: true }),
+    "all [1] input": new Level(null, null, x => null, { minimumOutput: 0, func: () => [new Rational(1)] }, { saveOnCompletion: false, isFreePlay: true })
+}
+
+var prototypeLevels = {
+    "factorial": new Level(
+        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        { maxDenom: 1, maxNumer: 12, maxDegree: 0, negativeChance: 0 }
+    ),
+    "fliplead": new Level(
+        "Replace the leading term's coefficient with its reciprocal.", null,
+        x => x.map((u, i, a) => i == a.length - 1 ? new Rational(u.denominator, u.numerator) : u),
+    ),
+    "flipall": new Level(
+        "Replace each coefficient with its reciprocal.", null,
+        x => x.map((u, i, a) => !u.isZero ? new Rational(u.denominator, u.numerator) : u),
+    ),
+    "sumofthree": new Level(
+        "Return the sum of the current and the next two inputs.", null, (x, i, a) => {
+            if (i % 3) return
+            const [u, v, w] = a.slice(i, i + 3).map(Poly.computed)
+            return u.sumWith(v).sumWith(w).arr
+        }, { numberOfInputs: 9, maxTerms: 1 }
+    ),
+    "inconly": new Level(
+        "Return only the polynomials that are increasing at 0.", null, (x, i, a) => {
+            const p = Poly.computed(x)
+            const val = p.takeDerivative().takeSubs(new Rational(0)).toRational()
+            if (val.isPositive) return x
+        }, { minimumOutput: 2, maximumOutput: 8 }
+    ),
+    "sign": new Level(
+        "Return the sign of the constant term. (So 1 if positive, \n 0 if zero, and -1 if negative.)", null,
+        /**@param {Rational[]} x */(x, i, a) => [new Rational(x[0].isPositive ? 1 : x[0].isZero ? 0 : -1)],
+
+    ),
+    "diffoftwo": new Level(
+        "Return the current input minus the next input.", null, (x, i, a) => {
+            if (i % 2) return
+            const [u, w] = [x, a[i + 1]].map(Poly.computed)
+            w.takeNeg()
+            return u.sumWith(w).arr
+        }, { maxTerms: 2 }
+    ),
+    "count": new Level(
+        "Count the number of (nonzero) terms.", null, x => [new Rational(x.filter(u => !u.isZero).length)],
+        { maxTerms: 5 }
+    ),
+    "sumdeg": new Level(
+        "Return the sum of the indices. (Input has no constant.)", null,
+        x => [new Rational(x.reduce((s, t, i) => s + (!t.isZero * i), 0))],
+        { minDegree: 1, maxTerms: 4 }
+    ),
+    "binom": new Level(
+        "Input is nx+k. Return the binomial coefficient (n choose k).", null,
+        x => [new Rational(MM.binom(x[1].numerator, x[0].numerator))],
+        {
+            func: () => {
+                const n = MM.randomInt(2, 20)
+                const k = MM.randomInt(1, n - 1)
+                return [k, n].map(x => new Rational(x))
+            }
+        }
+    ),
+    "accum": new Level(
+        "Accumulate the sum of all inputs so far", null,
+        /**@param {Rational[]} x @param {Rational[][]} a  */(x, i, a) => {
+            return [new Rational(a.slice(0, i + 1).reduce((s, t) => Rational.sumOfTwo(s, t[0]), new Rational(0)))]
+        }, { maxTerms: 1, maxDegree: 0, maxDenom: 0, negativeChance: 0, maxNumer: 12 }
+    ),
+    "golden": new Level(
+        "Approximate the Golden ratio via continued fractions.", null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                const out = []
+                let sofar = new Rational(1)
+                for (let i = 0; i < 10; i++) {
+                    sofar = Rational.sumOfTwo(Rational.reciprocal(sofar), new Rational(1))
+                    out.push([sofar])
+                }
+                return out
+            }
+        }, { allowEarlyWin: true }
+    ),
+    "fibonacci": new Level(
+        "Generate the Fibonacci sequence", null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                let fib = [1, 2]
+                for (let i = 2; i < 10; i++) {
+                    fib.push(fib.at(-1) + fib.at(-2))
+                }
+                return fib.map(x => [new Rational(x)])
+            }
+        }
+    ),
+    "sqrttwo": new Level(
+        "Approximate sqrt(2) via the recursion\nx_1=1, x_{n+1}= x_n/2 + 1/(x_n).", null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                let approx = new Rational(1)
+                let out = []
+                for (let i = 0; i < 10; i++) {
+                    approx = Rational.sumOfTwo(approx.copy.divideByInt(2), Rational.reciprocal(approx))
+                    out.push([approx])
+                }
+                return out
+            }
+        }
+    )
+}
+
 /// settings
 var stgs = {
     stage: -1,
@@ -731,6 +807,14 @@ var stgs = {
     alreadyTriedAskingForClipboardPermission: false
 
 }/// end of settings
+
+const pageManager = Object.freeze({
+    levelSelector: -1,
+    settings: -2,
+    tutorialSelector: -3,
+    freeSelector: -4,
+})
+
 var userSettings = {
     biggerButtons: false,
     isDeveloper: false
