@@ -10,7 +10,10 @@ var univ = {
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
     on_each_start: null,
-    on_first_run: null,
+    on_first_run: () => {
+        const existing = localStorage.getItem(stgs.localUserSettingsName)
+        if (existing) userSettings = JSON.parse(existing)
+    },
     on_next_game_once: null,
     allowQuietReload: true
 }
@@ -53,6 +56,15 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
+        this.inspector?.reset()
+        this.inspector = new Inspector(new Button({
+            width: 650,
+            height: 120,
+            color: "yellow",
+            outline: 0,
+            fontSize: 30,
+            //textSettings: { textBaseline: "top" }
+        }), game)
         switch (stgs.stage) {
             case pageManager.levelSelector:
                 this.levelSelector()
@@ -253,23 +265,29 @@ class Game extends GameCore {
         optionsButton.hover_color = "pink"
         optionsButton.txt = "Options"
         optionsButton.on_release = () => {
-            const obj = {}
-            obj[`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`] = () => userSettings.biggerButtons ^= 1
-            obj[`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`] = () => userSettings.isDeveloper ^= 1
-            obj[`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`] = () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1
-            obj["Statistics"] = Game.statistics
-            obj["Read changelog"] = () => window.open("Changelog.txt")
+            const arr = [
+                [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
+                [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
+                [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these yellow boxes should pop\nwhen hovering over modules."],
+                [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
+                ["Statistics", Game.statistics],
+                ["Read changelog", () => window.open("Changelog.txt")]
+            ]
 
-
-            const menu = GameEffects.dropDownMenu(
+            const obj = Object.fromEntries(arr.map(x => [x[0], x[1]]))
+            const optionsMenu = GameEffects.dropDownMenu(
                 obj,
                 null, null, null,
                 {
                     height: userSettings.biggerButtons ? 140 : 80,
-                    width: 300
+                    width: 400
                 },
-                optionsButton
+                optionsButton, true, () => this.inspector.reset()
             )
+
+            arr.forEach(([a, b, c], i) => {
+                if (c) this.inspector.addChild(optionsMenu.menu[i], c)
+            })
         }
         const freeButton = optionsButton.copy
         freeButton.centeratX((optionsButton.left + manualButton.right) / 2)
@@ -511,13 +529,13 @@ class Game extends GameCore {
         }
         if (!button) throw "No button was given for dropDown"
         const reactor = this.reactor
-        //button ??= reactor.LCB
         button.color = "fuchsia"
         const availableTools = reactor.level.conditions.toolsRestrictedTo
             ? Object.keys(Reactor.t).filter(x => reactor.level.conditions.toolsRestrictedTo.includes(x))
             : Object.keys(Reactor.t)
         const menu = availableTools.map((x, i) => new Button({
             txt: x,
+            type: x,
             color: Reactor.isMovementType(x) ? "plum" : "pink",
             on_click: () => {
                 reactor.addPiece(...button.tag, x)
@@ -546,11 +564,9 @@ class Game extends GameCore {
         )
         box.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
-        /*menu.forEach(x => {
-            x.hover_color = "fuchsia"
-            x.isBlocking = true
-            x.on_release = MM.extFunc(x.on_release, this.dropDownEnd.bind(this, button))
-        })*/
+        menu.forEach(x => this.inspector.addChild(x, Reactor.description[x.type]))
+
+
         this.add_drawable(menu, 8)
         //this.add_drawable(box)
         this.menu = menu

@@ -679,9 +679,62 @@ class Button extends Clickable {
 		return button
 	}
 
+
+
 }
 //#endregion
+//#region Inspector
+class Inspector extends Button {
+	constructor(button, game) {
+		super(button)
+		game ??= game //hacky
+		this.game = game
+		this.game.add_drawable(this, 9)
+		this.children = new Set()
+		this._subjects = new Set()
+		this.hoverStartTime = Date.now()
+		this.HOVER_AFTER_TIME = 0 //can set to larger to demand to wait
+	}
+	activate(child) {
+		this._subjects.add(child)
+		this.hoverStartTime = Date.now()
+	}
+	deactivate(child) {
+		this._subjects.delete(child)
+	}
+	get subject() {
+		return this._subjects.values().next().value
+	}
+	update() {
+		if (this.subject && (Date.now() - this.hoverStartTime > this.HOVER_AFTER_TIME)) {
+			this.visible = true
+			this.topat(this.game.mouser.y + 20)
+			this.rightat(this.game.mouser.x - 10)
+			this.fitThisWithinAnotherRect(this.game.rect)
+			this.txt = this.subject.hoverText
+		} else {
+			this.visible = false
+		}
+	}
 
+	addChild(child, text) {
+		child.on_enter = () => this.activate(child)
+		child.on_leave = () => this.deactivate(child)
+		child.hoverText ??= text ?? child.txt
+		this.children.add(child)
+	}
+	removeChild(child) {
+		child.on_enter = null
+		child.on_leave = null
+		child.hoverText = undefined
+		this.children.delete(child)
+	}
+	reset() {
+		this._subjects.clear()
+		this.children.clear()
+	}
+}
+//#endregion
 //#region MouseHelper
 class MouseHelper extends Button {
 	constructor(execute = true) {

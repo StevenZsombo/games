@@ -1159,19 +1159,24 @@ class GameEffects {
      * @param {Button} moreButtonSettings 
      * @param {Button|Array<Button>} overridenButtons
      * @param {Boolean} addCloseButton 
+     * @param {function} on_close
      */
     static dropDownMenu(objTextAndOnClick, backgroundRect = null, gridRows = null, gridColumns = 1,
-        moreButtonSettings = {}, overridenButtons = null, addCloseButton = true
+        moreButtonSettings = {}, overridenButtons = null, addCloseButton = true, on_close = null
     ) {
         const textList = Object.keys(objTextAndOnClick)
         const on_clickList = Object.values(objTextAndOnClick)
 
         const result = {}
-        result.close = () => game.remove_drawables_batch(menu)
+        result.close = () => {
+            game.remove_drawables_batch(menu)
+            on_close?.()
+        }
         //add logic here: if menu already exists then delete it
         const menu = textList.map((x, i) => new Button({
             color: "pink",
             hover_color: "fuchsia",
+            fontSize: 30,
             ...moreButtonSettings,
             txt: x,
             on_click: () => (on_clickList?.[i]?.(), game.mouser.blockNextRelease(), result.close()),
@@ -1203,7 +1208,7 @@ class GameEffects {
         backgroundRect.fitThisWithinAnotherRect(game.rect)
         Rect.packArray(menu, backgroundRect.splitGrid(gridRows, gridColumns).flat(), true)
 
-        game.add_drawable(menu, 9)
+        game.add_drawable(menu, 8)
         result.menu = menu
         return result
     }

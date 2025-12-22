@@ -827,6 +827,7 @@ var stgs = {
     latestSelectorType: -1,
     localVictoriesName: "ZPkeys",
     localDataName: "ZPdatas",
+    localUserSettingsName: "ZPsettings",
     alreadyTriedAskingForClipboardPermission: false
 
 }/// end of settings
@@ -842,6 +843,7 @@ const pageManager = Object.freeze({
 //#region userSettings
 var userSettings = {
     biggerButtons: false,
-    isDeveloper: false
+    isDeveloper: false,
+    hoverTooltips: true
 }
 //#endregion

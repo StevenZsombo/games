@@ -225,13 +225,14 @@ Use the Export/Import features instead.`
         }
         obj[`Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`] = () => userSettings.biggerButtons ^= 1
         if (userSettings.isDeveloper) {
-            obj["DEV.framerate"] = () => this.game.framerate.isRunning ^= 1
-            obj["DEV.stressTest"] = this.stressTest.bind(this)
+            obj["DEV.showFramerate"] = () => this.game.framerate.isRunning ^= 1
+            obj["DEV.unlockSpeed"] = () => this.stepTime = 5
+            obj["DEV.addSheets"] = this.stressTest.bind(this)
         }
         controlButtons[1].on_click = () => {
             const menu = GameEffects.dropDownMenu(
                 obj,
-                new Rect(0, 0, 2 * controlButtons[1].width, 0), null, null,
+                new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
                 { height: 60 * (1 + userSettings.biggerButtons) },
                 controlButtons[1])
             menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
@@ -441,6 +442,31 @@ Use the Export/Import features instead.`
         DOOR: "DOOR"
 
     })
+    static description = Object.freeze({
+        IN: "Returns the next INput if there are no polys present",
+        OUT: "Submit OUTputs",
+        UP: "Moves polys",
+        DOWN: "Moves polys",
+        LEFT: "Moves polys",
+        RIGHT: "Moves polys",
+        RAISE: "RAISE each index, multiplying the poly by x.",
+        LOWER: "\nDiscard the constant, then LOWER each index,\ndividing the poly by x.\n",
+        DER: "Returns the DERivative.",
+        INT: "\nReturns the INTegral,\n with constant of integration set to C=1.\n",
+        LEAD: "Returns the LEADing coefficient.",
+        CONST: "Returns the CONSTant term.",
+        DEG: "\nReturns the DEGree of the poly.\n[0] is consumed.\n",
+        NEG: "Multiplies by NEGative 1.",
+        //ADDI: "ADDI",
+        //SUBI: "SUBI",
+        TAKE: "For non-constants: TAKEs away the leading term,\n returning what remains afterwards.\nFor constants: TAKEs reciprocal.\n[0] is consumed.",
+        COPY: "COPY shoots out two copies perpendicularly.",
+        POW: "POW [n] = [x^n] for positive integers n.\nNegative numbers pass through freely.\nEverything else is consumed.",
+        SUBS: "Consumes everything.\n After consuming both a constant and a non-constant,\nreturn the result of SUBStituting the constant as x.",
+        SUM: "Consumes two polys, then returns their SUM.",
+        DOOR: "DOOR consumes two polys.\nIf either are [0], the other one is returned."
+
+    })
     static m = new Set([Reactor.t.UP, Reactor.t.DOWN, Reactor.t.LEFT, Reactor.t.RIGHT])
     static isMovementType(type) {
         if (type instanceof ReactorPiece) type = type.type
@@ -574,6 +600,9 @@ class ReactorPiece {
             height: this.parent.height * ReactorPiece.heightRatio,
             tag: "ReactonPieceButton"
         }))
+        if (userSettings.hoverTooltips) {
+            this.parent.game.inspector.addChild(this.button, Reactor.description[this.type])
+        }
         if (Reactor.isMovementType(this.type)) {
             const b = this.button
             b.resize(this.parent.width, this.parent.height)

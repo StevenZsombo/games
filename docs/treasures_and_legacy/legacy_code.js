@@ -1,3 +1,52 @@
+/*
+make_hoverParent: original purpose: inspector prototype
+*/
+/**
+	 * @typedef {Button & {
+	 * subject: Button|null,
+	 * hoverStartTime
+	 * activate: function,
+	 * deactivate: function,
+	 * update: function
+	 * children: Set<Button>
+	 * addChild : function(Button, child)
+	 * removeChild: function(Button)
+	 * }} hoverParent
+	 * */
+static make_hoverParent(button) {
+    /** @param {Button} button @returns {hoverParent}*/
+    /**@type {hoverParent} */
+    const parent = button
+    parent.activate = function (child) {
+        this.subject = child
+        this.hoverStartTime = Date.now()
+    }
+    parent.deactivate = function (child) {
+        this.subject = null
+    }
+    /**@this {hoverParent} */
+    parent.update = function () {
+        this.visible = Boolean(this.subject)
+        if (!this.subject) return
+        this.topat(game.mouser.y + 10)
+        this.rightat(game.mouser.x)
+        this.txt = this.subject.hoverText
+    }
+    parent.children = new Set()
+    parent.addChild = function (child, text) {
+        child.on_enter = () => parent.activate(child)
+        child.on_leave = () => parent.deactivate(child)
+        child.hoverText = text ?? child.txt
+        parent.children.add(child)
+    }
+    parent.removeChild = function (child) {
+        child.on_enter = null
+        child.on_leave = null
+        child.hoverText = undefined
+        parent.children.delete(child)
+    }
+    return parent
+}
 
 /*Particle: original purpose: particle effects.
 Deprecated now, due to custom object + animation being FAR superior.
