@@ -1091,6 +1091,7 @@ class GameEffects {
         b.width = sizeFrac[0] * W
         b.height = sizeFrac[1] * H
         b.centerat(posFrac[0] * W, posFrac[1] * H)
+        b.tag = "popup"
         Object.assign(b, moreButtonSettings)
         const movement = {
             bottom: [0, (1 - posFrac[1] + sizeFrac[1]) * H],

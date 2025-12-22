@@ -400,11 +400,11 @@ class Game extends GameCore {
         reactor.loadLevel(level)
 
 
+        //THIS IS NOT GREAT IM AFRAID
+
         this.isDragging = false
-        /**@type {Array<ReactorPiece>} */
         this.currentDraggingList = []
         this.dragLastPos = null
-        /**@type {Button} */
         this.lastHit = null
         this.firstHit = null
         this.targetHit = null
@@ -429,7 +429,6 @@ class Game extends GameCore {
             this.firstHit = hit
             this.firstHitChanged = false
             this.lastHit = hit
-            /**@type {Array<Button>} */
             this.ghosts = []
             this.currentDraggingList = reactor.findPiecesAt(...hit.tag)
             if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
@@ -509,8 +508,6 @@ class Game extends GameCore {
             })
             this.dragLastPos = this.mouser.pos
         }
-
-
 
     }
     //#endregion

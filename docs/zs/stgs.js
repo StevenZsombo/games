@@ -212,7 +212,7 @@ var levels = Object.freeze({
                 const polys = [[4, -4, 1], [16, -32, 24, -8, 1], [4, 0, -3, 1], [7, -4, 1], [4, -4, 5, -4, 1],
                 [-4, 4, -1], [-4, 0, 3, -1], [-16, 32, -24, 8, -1], [1, 4, -1], [-8, 8, -6, 4, -1]]
                 return function () {
-                    if (Math.random() < .55) return Poly.randomArrForPoly()
+                    if (Math.random() < .55) return Poly.randomArrForPoly({ minDegree: 1 })
                     return MM.choice(polys).map(x => new Rational(x))
                 }
             })()
@@ -267,7 +267,7 @@ var levels = Object.freeze({
             const y0 = p.copy.takeSubs(new Rational(1)).toRational()
             const ans = Poly.computed([Rational.differenceOfTwo(y0, m), m])
             return ans
-        }
+        }, { minDegree: 2 }
     ),
     "geometric": new Level(
         "Your inputs are [1]. Generate the geometric series.", null,

@@ -137,6 +137,8 @@ Use the Export/Import features instead.`
         this.pieces.forEach(x => x.reset?.())
             ;[...this.polys].forEach(x => this._removePolyInternal(x))
             ;[...this.otherButtons].forEach(x => this.removeOtherButton(x))
+        //BAD PRACTICE
+        this.game.remove_drawables_batch(...this.game.layersFlat.filter(x => x.tag == "popup"))
         this.levelRelated?.forEach(x => this.removeOtherButton(x))
         this.hasWonAlready = false
         this.level = level //bad practice but whatevs
@@ -599,9 +601,18 @@ class ReactorPiece {
             txt: this.type,
             width: this.parent.width * ReactorPiece.widthRatio,
             height: this.parent.height * ReactorPiece.heightRatio,
-            tag: "ReactonPieceButton"
+            tag: "ReactonPieceButton",
         }))
         const isMovement = Reactor.isMovementType(this.type)
+        /*this.button.on_click = function () { }
+        this.button.on_drag = () => {
+            this.button.centeratV(this.parent.game.mouser.pos())
+            const targetsList = this.parent.game.seekButton().filt
+
+        }
+        this.button.on_release = function () {
+
+        }*/
         if (userSettings.hoverTooltips && !isMovement) {
             this.parent.game.inspector.addChild(this.button, Reactor.description[this.type])
         }
