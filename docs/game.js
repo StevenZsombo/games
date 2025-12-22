@@ -439,9 +439,6 @@ class Game extends GameCore {
         }
 
         overlay.on_release = () => {
-            /*if (this.currentDraggingList.length) {
-                return
-            }*/
             this.ghosts && this.remove_drawables_batch(...this.ghosts)
             if (this.lastHit) this.lastHit.color = "white"
             if (!this.firstHit) return
@@ -509,14 +506,11 @@ class Game extends GameCore {
             hit.color = "fuchsia"
             this.currentDraggingList.forEach(x => {
                 x.button.centeratV(this.mouser.pos)
-                //x.button.move(this.mouser.x - this.dragLastPos.x, this.mouser.y - this.dragLastPos.y)
-
-                //x.x = hit.tag[0]
-                //x.y = hit.tag[1]
-                //this.reactor.refreshButtons(x)
             })
             this.dragLastPos = this.mouser.pos
         }
+
+
 
     }
     //#endregion

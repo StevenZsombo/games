@@ -17,7 +17,7 @@ window.onload = function () {
     }
     )
     window.addEventListener('beforeunload', (e) => {
-        univ.on_beforeunload()
+        univ.on_beforeunload?.()
         if (univ.allowQuietReload) return
         e.preventDefault()
         e.stopPropagation()

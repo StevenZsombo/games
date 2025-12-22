@@ -373,7 +373,7 @@ class Clickable extends Rect {
 			this.on_hover?.(pos)
 		}
 		if (within && !this.just_entered) {
-			this.just_entered = true
+			this.just_entered = true //could add a flag for hover over time effects
 			this.on_enter?.(pos)
 		}
 		if (!within && this.just_entered) {
@@ -399,6 +399,11 @@ class Clickable extends Rect {
 		}
 		if (wheel && within) {
 			this.on_wheel?.(wheel, pos)
+		}
+		//NOT SURE IF THIS IS OKAY, BEEN A LONG TIME
+		if (!within) {
+			this.last_clicked = null
+			this.just_entered = false
 		}
 		return within
 	}

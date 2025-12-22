@@ -255,10 +255,19 @@ var levels = Object.freeze({
         }
     ),
     "evenodd": new Level(
-        "Map odd numbers to 1, even numbers to 0", null, x => {
+        "Map odd numbers to 1, even numbers to 0.", null, x => {
             const n = x[0].numerator
             return Poly.computed([n % 2]).arr
         }, { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
+    ),
+    "tangent": new Level(
+        `Find the tangent to the given curve at x=1.`, null, x => {
+            const p = Poly.computed(x)
+            const m = p.copy.takeDerivative().takeSubs(new Rational(1)).toRational()
+            const y0 = p.copy.takeSubs(new Rational(1)).toRational()
+            const ans = Poly.computed([Rational.differenceOfTwo(y0, m), m])
+            return ans
+        }
     ),
     "geometric": new Level(
         "Your inputs are [1]. Generate the geometric series.", null,

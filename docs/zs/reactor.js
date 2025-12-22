@@ -601,10 +601,11 @@ class ReactorPiece {
             height: this.parent.height * ReactorPiece.heightRatio,
             tag: "ReactonPieceButton"
         }))
-        if (userSettings.hoverTooltips) {
+        const isMovement = Reactor.isMovementType(this.type)
+        if (userSettings.hoverTooltips && !isMovement) {
             this.parent.game.inspector.addChild(this.button, Reactor.description[this.type])
         }
-        if (Reactor.isMovementType(this.type)) {
+        if (isMovement) {
             const b = this.button
             b.resize(this.parent.width, this.parent.height)
             b.transparent = true
