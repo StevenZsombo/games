@@ -681,6 +681,7 @@ class Button extends Clickable {
 			get() { return button.latex.tex },
 			set(v) { button.latex.tex = v }
 		})*/
+		button.setTex = function (str) { this.latex.tex = str }
 		return button
 	}
 

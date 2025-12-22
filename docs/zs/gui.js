@@ -70,8 +70,12 @@ class Keyboarder {
 		const keyBuffer = this.keyBuffer
 		this.bufferedKeys = []
 		this.lastPasted = null
-		this.on_keydown = null
-		this.on_keyup = null
+		/*These might be a terrible idea, as they do not conform to gameloop.*/
+		/*Calling explicitly in game.update seems more sensible. */
+		this.on_keydown = null //takes event
+		this.on_keydownDict = {} //takes event.key
+		this.on_keyup = null //takes event
+		this.on_keyupDict = {} //takes event.key
 		this.on_paste = null //(text) => ...
 		this.on_copy = null
 		this.on_undo = null
@@ -79,22 +83,24 @@ class Keyboarder {
 		this.isLogging = true //for copy paste undo redo
 
 		const keydown = (e) => {
-			this.on_keydown?.(e)
 			if (!held[e.key]) {
 				held[e.key] = true
 				pressed[e.key] = true
 				this.strokeBuffer.push([Date.now(), e.key])
 				this.keyBuffer.push([Date.now(), e.key])
 			}
+			this.on_keydown?.(e)
+			this.on_keydownDict[e.key]?.()
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
 			}
 		}
 		const keyup = (e) => {
-			this.on_keyup?.()
 			this.held[e.key] = false
 			this.pressed[e.key] = false
+			this.on_keyup?.()
+			this.on_keydownDict[e.key]?.()
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
@@ -181,6 +187,7 @@ class Mouser {
 
 		this.lastClickedTime = Date.now() - 1000
 		this.lastReleasedTime = Date.now() - 1000
+		this._blockNextClick = false
 		this._blockNextRelease = false
 
 		this.canvas = canvas
@@ -219,8 +226,9 @@ class Mouser {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
-			this.clicked = true
-			this.down = true
+			this.clicked = !this._blockNextClick
+			this.blockNextClick = false
+			this.down = true //updates nevertheless? might be an issue
 			this.lastClickedTime = Date.now()
 			//e.shiftKey, e.ctrlKey //true or false
 			//button = 0 or 2
@@ -311,6 +319,9 @@ class Mouser {
 
 	blockNextRelease() {
 		this._blockNextRelease = true
+	}
+	blockNextClick() {
+		this._blockNextClick = true
 	}
 
 }

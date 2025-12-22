@@ -878,6 +878,18 @@ class MM {
         }
     }
 
+    static toggleFullscreen(whatToDo) {
+        if ((whatToDo === true || whatToDo === undefined) && !document.fullscreenElement) {
+            document.documentElement.requestFullscreen()
+            return true
+        }
+        if ((whatToDo === false || whatToDo === undefined) && document.fullscreenElement) {
+            document.exitFullscreen()
+            return false
+        }
+    }
+
+
     static loadScript(scriptName, callback) {
         const oldGlobals = Object.keys(window)
         const script = document.createElement("script")

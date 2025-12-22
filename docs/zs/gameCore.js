@@ -115,6 +115,8 @@ class GameCore {
 
         this.lastCycleTime = Date.now()
 
+        this.lastClicked = new Set()
+        this.lastHovered = new Set()
 
 
 
@@ -193,17 +195,25 @@ class GameCore {
     update_drawables(dt) {
         let { clicked, released, held, x, y, wheel } = this.mouser
         let hit = false
+        let blocked = false //inefficient but reliable.
+        clicked && this.lastClicked.clear()
+        this.lastHovered.clear()
         for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
             for (const item of layer.toReversed()) {//items processed backwards
                 item.update?.(dt)
                 if (this.isAcceptingInputs) {
                     hit = item.check?.(x, y, clicked, released, held, wheel)
+                    if (hit && !blocked) {
+                        this.lastHovered.add(item) //discrepancy with visible & iteractable
+                        clicked && this.lastClicked.add(item)
+                    }
                     if (hit && item.isBlocking) {
+                        blocked = true
                         clicked = false
                         released = false
                         held = false
-                        x = -1000
-                        y = -1000
+                        //x = null //problematic: prevent escaping the underlying button's hover.
+                        //y = null
                     }
                 }
             }
@@ -250,6 +260,7 @@ class GameCore {
         for (const item of items) {
             this.layers[layer].push(item)
         }
+        return items
     }
     remove_drawable(item) {
         this.layers = this.layers.map(x => x.filter(y => y !== item))
