@@ -685,6 +685,10 @@ class Button extends Clickable {
 //#endregion
 //#region Inspector
 class Inspector extends Button {
+	/**
+	 * @param {Button} button 
+	 * @param {Game} game 
+	 */
 	constructor(button, game) {
 		super(button)
 		game ??= game //hacky
@@ -706,7 +710,11 @@ class Inspector extends Button {
 		return this._subjects.values().next().value
 	}
 	update() {
-		if (this.subject && (Date.now() - this.hoverStartTime > this.HOVER_AFTER_TIME)) {
+		if (
+			!this.game.mouser.held
+			&&
+			this.subject && (Date.now() - this.hoverStartTime > this.HOVER_AFTER_TIME)
+		) {
 			this.visible = true
 			this.topat(this.game.mouser.y + 20)
 			this.rightat(this.game.mouser.x - 10)

@@ -30,3 +30,4 @@ Drag and drop features added.
 Save and load features added. Export and import features added.
 Options menu added. Can increase button sizes for small screens.
 Keyboard shorcuts added. 1-5 for speed, R to restart, WASD to move all modules, Esc to go back in menus.
+Tooltips added.

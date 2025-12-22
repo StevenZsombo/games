@@ -1,6 +1,6 @@
 var univ = {
     isOnline: false,
-    framerateUnlocked: true,
+    framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
     showFramerate: false,
@@ -12,9 +12,10 @@ var univ = {
     on_each_start: null,
     on_first_run: () => {
         const existing = localStorage.getItem(stgs.localUserSettingsName)
-        if (existing) userSettings = JSON.parse(existing)
+        if (existing) Object.assign(userSettings, JSON.parse(existing))
     },
     on_next_game_once: null,
+    on_beforeunload: () => localStorage.setItem(stgs.localUserSettingsName, JSON.stringify(userSettings)),
     allowQuietReload: true
 }
 
@@ -60,8 +61,8 @@ class Game extends GameCore {
         this.inspector = new Inspector(new Button({
             width: 650,
             height: 120,
-            color: "yellow",
-            outline: 0,
+            color: "moccasin",
+            outline: 3,
             fontSize: 30,
             //textSettings: { textBaseline: "top" }
         }), game)
@@ -108,9 +109,17 @@ class Game extends GameCore {
         if (this.keyboarder.pressed["s"]) this.reactor?.moveAllPieces(1, 0)
         if (this.keyboarder.pressed["d"]) this.reactor?.moveAllPieces(0, 1)
         if (this.keyboarder.pressed["Escape"]) {
+            const closeButtons = this.layersFlat.filter(x => x.txt == "Close")
+            if (closeButtons.length) {
+                closeButtons.forEach(x => (x.on_click?.(), x.on_release?.()))
+                return
+            }
+            if (this.menu) {
+                this.dropDownEnd()
+                return
+            }
             if (this.reactor) this.reactor.controlButtons[0].on_release()
             if (this.tutorialsButton) this.tutorialsButton.on_release()
-
         }
 
 
@@ -268,7 +277,7 @@ class Game extends GameCore {
             const arr = [
                 [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
                 [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
-                [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these yellow boxes should pop\nwhen hovering over modules."],
+                [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
                 [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
                 ["Statistics", Game.statistics],
                 ["Read changelog", () => window.open("Changelog.txt")]
@@ -521,6 +530,7 @@ class Game extends GameCore {
         this.remove_drawables_batch(this.menu)
         this.menu = null
         this.reactor.buttonsMatrix.flat().forEach(x => x.color = "white")
+        this.inspector.reset()
     }
 
     dropDown(button, cols = 2) {

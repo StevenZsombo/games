@@ -115,10 +115,11 @@ Use the Export/Import features instead.`
         }
     }
     POPUP(str, time = 2000, on_end = null) {
-        GameEffects.popup(
+        const p = GameEffects.popup(
             str,
             { floatTime: time, moreButtonSettings: { fontSize: 24 }, on_end: on_end },
             GameEffects.popupPRESETS.topleftPink)
+        p.stretch(1.2, 1)
     }
 
     fromJSON(str, onlyIfEmpty = true, clearFirst = false) {
@@ -443,12 +444,12 @@ Use the Export/Import features instead.`
 
     })
     static description = Object.freeze({
-        IN: "Returns the next INput if there are no polys present",
-        OUT: "Submit OUTputs",
-        UP: "Moves polys",
-        DOWN: "Moves polys",
-        LEFT: "Moves polys",
-        RIGHT: "Moves polys",
+        IN: "Returns the next INput if there are no polys present.",
+        OUT: "Submit OUTputs.",
+        UP: "Moves polys.",
+        DOWN: "Moves polys.",
+        LEFT: "Moves polys.",
+        RIGHT: "Moves polys.",
         RAISE: "RAISE each index, multiplying the poly by x.",
         LOWER: "\nDiscard the constant, then LOWER each index,\ndividing the poly by x.\n",
         DER: "Returns the DERivative.",
@@ -459,7 +460,7 @@ Use the Export/Import features instead.`
         NEG: "Multiplies by NEGative 1.",
         //ADDI: "ADDI",
         //SUBI: "SUBI",
-        TAKE: "For non-constants: TAKEs away the leading term,\n returning what remains afterwards.\nFor constants: TAKEs reciprocal.\n[0] is consumed.",
+        TAKE: "For non-constants: TAKEs away the leading term,\n returning what remains afterwards.\nFor constants: TAKEs reciprocal. [0] is consumed.",
         COPY: "COPY shoots out two copies perpendicularly.",
         POW: "POW [n] = [x^n] for positive integers n.\nNegative numbers pass through freely.\nEverything else is consumed.",
         SUBS: "Consumes everything.\n After consuming both a constant and a non-constant,\nreturn the result of SUBStituting the constant as x.",

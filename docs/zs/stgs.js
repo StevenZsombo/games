@@ -388,7 +388,10 @@ Click a cell to select modules to place.
 You can see the inputs and expected outputs listed on the right.
         `
         , null, x => x, { numberOfInputs: 4 },
-        { toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
+        {
+            toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: () => Reactor.SERVE_IN_EVEN_IF_NO_OUT = false
+        }
     ),
     "Reset": new Level(
         `When something goes wrong, click "Reset inputs" in the right-upper corner.
