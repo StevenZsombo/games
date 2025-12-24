@@ -558,9 +558,10 @@ class Supabase {
 			})()
 		return { name, nameID }
 	}
+	static SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
+	static SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
 	static async addRow(event, data, callback) {
-		const SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
-		const SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
+		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
 		try {
 			await fetch(`${SUPABASE_URL}/rest/v1/gameEvents`, {
 				method: 'POST',
@@ -575,10 +576,25 @@ class Supabase {
 				})
 			})
 			console.log("Sent to server", event, data)
-			callback?.()
+			callback?.(event, data)
 		} catch (e) {
 			console.error("Failed to write", event, data)
 		}
 	}
+
+	static async readAll(callback) {
+		const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameEvents?select=name,stage_text`, {
+			headers: {
+				apikey: Supabase.SUPABASE_KEY,
+				Authorization: `Bearer ${Supabase.SUPABASE_KEY}`,
+				//Accept: 'text/csv'
+			}
+		})
+		const table = JSON.parse(await response.text())
+		callback?.(table)
+		return table
+	}
+
+
 }
 //#endregion

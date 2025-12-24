@@ -213,7 +213,7 @@ var levels = Object.freeze({
                 const polys = [[4, -4, 1], [16, -32, 24, -8, 1], [4, 0, -3, 1], [7, -4, 1], [4, -4, 5, -4, 1],
                 [-4, 4, -1], [-4, 0, 3, -1], [-16, 32, -24, 8, -1], [1, 4, -1], [-8, 8, -6, 4, -1]]
                 return function () {
-                    if (Math.random() < .55) return Poly.randomArrForPoly({ minDegree: 1 })
+                    if (Math.random() < .55) return Poly.randomArrForPoly({ minDegree: 1, minTerms: 2 })
                     return MM.choice(polys).map(x => new Rational(x))
                 }
             })()
@@ -860,7 +860,8 @@ const pageManager = Object.freeze({
     settings: -2,
     tutorialSelector: -3,
     freeSelector: -4,
-    askForOnlinePermission: -5
+    askForOnlinePermission: -5,
+    leaderboardsPage: -6
 })
 //#endregion
 //#region userSettings

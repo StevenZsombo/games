@@ -85,6 +85,9 @@ class Game extends GameCore {
             case pageManager.askForOnlinePermission:
                 this.askForOnlinePermissionsOnce()
                 break;
+            case pageManager.leaderboardsPage:
+                this.leaderboardsShow()
+                break;
             case "blank":
                 break;
 
@@ -131,6 +134,7 @@ class Game extends GameCore {
             }
             if (this.reactor) this.reactor.controlButtons[0].on_release()
             if (this.tutorialsButton) this.tutorialsButton.on_release()
+            if (this.backToMenuButton) this.backToMenuButton.on_release()
         }
 
 
@@ -262,19 +266,10 @@ class Game extends GameCore {
             x.stretch(1.1, 1.1)
             x.fontSize = 36
         })
-        lvlButtonsBG.leftat(lvlButtons[0].left)
-        lvlButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
-        tutorialsButton.rightat(lvlButtonsBG.right)
-        infoButton.leftat(lvlButtons[0].left)
 
-        const bottomButtonBG = infoButton.copy
-        bottomButtonBG.centeratY((lvlButtons.at(-1).bottom + this.HEIGHT) / 2)
-        bottomButtonBG.leftat(lvlButtons[0].left)
-        bottomButtonBG.rightstretchat(lvlButtons[sq - 1].right)
-        //bottomButtonBG.txt = `Read the manual, then have fun!`
-        const manualButton = Button.fromRect(bottomButtonBG.splitCol(7, 3)[1])
-        manualButton.leftat(tutorialsButton.left)
-        manualButton.rightstretchat(tutorialsButton.right)
+
+        const manualButton = infoButton.copy
+        manualButton.textSettings = {}
         manualButton.transparent = false
         manualButton.fontSize = 40
         manualButton.txt = "Manual"
@@ -284,7 +279,6 @@ class Game extends GameCore {
         manualButton.hover_color = "yellow"
 
         const optionsButton = manualButton.copy
-        optionsButton.leftat(lvlButtonsBG.left)
         optionsButton.hover_color = "pink"
         optionsButton.txt = "Options"
         optionsButton.on_release = () => {
@@ -313,8 +307,7 @@ class Game extends GameCore {
                 if (c) this.inspector.addChild(optionsMenu.menu[i], c)
             })
         }
-        const freeButton = optionsButton.copy
-        freeButton.centeratX((optionsButton.left + manualButton.right) / 2)
+        const freeButton = tutorialsButton.copy
         freeButton.on_release = () => {
             stgs.stage = pageManager.freeSelector
             stgs.latestSelectorType = pageManager.freeSelector
@@ -322,14 +315,29 @@ class Game extends GameCore {
         }
         freeButton.txt = "Free play & prototypes"
 
-        //bottomButton.hover_color = 
-        this.add_drawable(manualButton)
-        this.add_drawable(optionsButton)
-        this.add_drawable(freeButton)
+        const leaderboardsButton = tutorialsButton.copy
+        leaderboardsButton.txt = "Leaderboards"
+        leaderboardsButton.on_release = () => {
+            stgs.stage = pageManager.leaderboardsPage
+            stgs.latestSelectorType = pageManager.levelSelector
+            main()
+        }
+
+        const bottomButtonsBG = infoButton.copy
+        bottomButtonsBG.leftat(lvlButtons[0].left)
+        bottomButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
+        bottomButtonsBG.centeratY((lvlButtonsBG.bottom + this.HEIGHT) / 2)
+        Rect.packArray(
+            [optionsButton, freeButton, leaderboardsButton, manualButton],
+            bottomButtonsBG.splitCol(.6, .1, 1, .1, .7, .1, .4)
+                .filter((_, i) => [0, 2, 4, 6].includes(i)), true
+        )
+        this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])
+
+
     }
     //#endregion
     //#region tutorialSelector
-    //#tutorialSelector
     tutorialSelector() {
         const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } = this.makeGridOfLevels(Object.keys(window.tutorialLevels))
         tutorialsButton.on_release = () => {
@@ -686,20 +694,15 @@ class Game extends GameCore {
         welcome.fitThisWithinAnotherRect(upper)
         welcome.txt = `Welcome to my game! (No title yet - suggestions are welcome.)
         
-Before you proceed, I would like to ask if you would like to join
-an (experimental) online game records collection test.
+Before you proceed, I would like to ask if you would like to join the online leaderboards!
 
-If you agree: every victory you achieve will be recorded on a public server.
-The shared data is: your in-game name, a randomized (but persistent) ID number,
-victory time, full solution. These will be available PUBLICLY.
-You do not have to use your real or full name.
-
-I might add public leaderboards later.
+If you agree: every victory you achieve will be recorded on a public server,
+then added to the leaderboards. You do not have to use your real or full name.
+This data could help me further develop and refine the game as well.
 
 If you disagree: none of your data will be shared.
 
-Either way, have fun.
-`
+Either way, have fun. Best, Steven.`
         welcome.fontSize = 36
         welcome.transparent = true
         const [no, details, yes] = lower.splitCol(1, 1, 1)
@@ -708,7 +711,7 @@ Either way, have fun.
             }))
             .map(x => x.stretch(.85, .5))
 
-        yes.txt = "I agree to share my victories."
+        yes.txt = "I agree to share my victories\nand join the leaderboards."
         details.txt = "Clarify what data will be sent."
         no.txt = "I do not want to share my victories."
 
@@ -763,6 +766,67 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
 
 
     }
+
+    leaderboardsShow() {
+        const big = Button.fromRect(this.rect.copy)
+            .stretch(.9, .9)
+        big.transparent = true
+        big.fontSize = 36
+        big.textSettings = { textAlign: "left", textBaseline: "top" }
+        big.txt = "Initializing..."
+        this.add_drawable(big)
+        const doAttempt = () => {
+            big.txt = "Loading..."
+            Supabase.readAll()
+                .catch((e) => {
+                    console.log(error, this)
+                    big.txt = "Failed to load the leaderboards."
+                }).then((table) => {
+                    const completions = table.reduce((s, t, i, a) => {
+                        if (s[t.name]) { (s[t.name]).add(t.stage_text) }
+                        else { s[t.name] = new Set([t.stage_text]) }
+                        return s
+                    }, {})
+                    const scores = Object.entries(completions).map(
+                        ([player, wins]) =>
+                            [player, [...wins.values().filter(x => levels[x])].length]
+                    )
+                    scores.sort((x, y) => y[1] - x[1])
+                    const board = scores.slice(0, 20).map(
+                        ([player, wins]) =>
+                            `${player}: ${wins}`
+                    ).join("\n")
+                    console.log(board)
+                    big.txt = "Puzzles solved\n----------------------\n" + board
+                })
+        }
+        doAttempt()
+
+        const refreshB = new Button()
+        refreshB.resize(300, 100)
+        refreshB.bottomat(this.HEIGHT - 50)
+        refreshB.rightat(this.WIDTH - 50)
+        refreshB.txt = "Refresh"
+        refreshB.fontSize = 36
+        refreshB.on_release = doAttempt.bind(this)
+        this.add_drawable(refreshB)
+        const back = refreshB.copy
+        back.topat(50)
+        back.txt = "Back to puzzles"
+        this.add_drawable(back)
+        back.on_release = () => {
+            stgs.stage = pageManager.levelSelector
+            main()
+        }
+        this.backToMenuButton = back
+
+    }
+
+
+
+
+
+
     //#endregion
 } //this is the last closing brace for class Game
 

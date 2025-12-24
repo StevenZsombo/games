@@ -40,4 +40,7 @@ Tooltips added.
 Known bugs:
 
 2025.12.22.
-"statattwo" sometimes generates inpossible inputs.
+"statattwo" sometimes generates inpossible inputs. - FIXED
+
+2025.12.24.
+Fireworks drop framerate considerably.
