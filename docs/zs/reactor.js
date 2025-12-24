@@ -44,6 +44,7 @@ class Reactor {
         this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
         this.game.keyboarder.on_copy = this.grab.bind(this)
         this.hasWonAlready = false
+        this.loadedFromSaveData = null
     }
     toJSON() {
         return this.pieces.map(x => [x.x, x.y, x.type]) //should add stgs.stage, would be neat
@@ -143,7 +144,12 @@ Use the Export/Import features instead.`
         this.hasWonAlready = false
         this.level = level //bad practice but whatevs
         this.inputs = level.inputs
-        this.outputs = level.outputs
+        this.outputsUnfiltered = level.outputs
+        this.outputsFiltered = level.outputs.filter(x => x)
+        //check no duplicates for safety
+        if (this.outputsFiltered.length != new Set(this.outputsFiltered).size) {
+            console.error(this); throw "somehow there are repeated outputs.";
+        }
         this.instructions = level.instructions ?? stgs.stage
         this.inputsServed = []
         this.outputsReceived = []
@@ -159,7 +165,7 @@ Use the Export/Import features instead.`
 
         const outputBG = inputBG.copy
         outputBG.move(inputBG.width, 0)
-        const longer = Math.max(this.inputs.length, this.outputs.length)
+        const longer = Math.max(this.inputs.length, this.outputsUnfiltered.length)
         const inputRecords = inputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
         const outputRecords = outputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
 
@@ -185,7 +191,7 @@ Use the Export/Import features instead.`
             inpRecord.latex.tex = Poly.getTex(input)
         })
 
-        this.outputs.forEach((output, i) => {
+        this.outputsUnfiltered.forEach((output, i) => {
             const record = outputRecords[i + 1]
             record.latex.tex = `\\mathbf{\\color{lightgray}{${Poly.getTex(output)}}}`
         })
@@ -237,7 +243,7 @@ Use the Export/Import features instead.`
                 obj,
                 new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
                 { height: 60 * (1 + userSettings.biggerButtons) },
-                controlButtons[1])
+                [controlButtons[1], this.game.overlay])
             menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
         }
         this.inputBG = inputBG
@@ -282,17 +288,20 @@ Use the Export/Import features instead.`
     receiveOutput(poly) {
         const badColor = "lightcoral"
         const goodColor = "lightgreen"
+
         //if (!this.outputs) return badColor
         const i = this.outputsReceived.length
-        const output = this.outputs[i]
+        const output = this.outputsFiltered[i]
+        const j = this.outputsUnfiltered.indexOf(output)
         this.outputsReceived.push(output)
+
         let correct = false
         output && (correct = poly.isTheSameAsOutput(output))
         const color = correct ? goodColor : badColor
         this.correctCount += correct
-        if (i + 1 < this.outputRecords.length) {
-            this.outputRecords[i + 1].color = color
-            this.outputRecords[i + 1].latex.tex = poly.getTex()
+        if (output && (j + 1 < this.outputRecords.length)) {
+            this.outputRecords[j + 1].color = color
+            this.outputRecords[j + 1].latex.tex = poly.getTex()
             this.checkVictory() //we may never know
         }
         return color
@@ -307,7 +316,7 @@ Use the Export/Import features instead.`
                 return
             }
         }
-        if (this.correctCount !== this.outputs.length ||
+        if (this.correctCount !== this.outputsFiltered.length ||
             (!this.level.conditions.allowEarlyWin
                 && (this.inputsServed.length !== this.inputs.length))
         ) return
@@ -343,9 +352,41 @@ Use the Export/Import features instead.`
             { scaleFactor: 1.1, repeat: 24 }
         )
         this.celebrateComplete()
-        if (this.level.conditions.saveOnCompletion) Game.saveToLocal(stgs.stage, this.toJSON())
-    }
+        this.celebrateAnnounce()//announce first, save second
+        this.celebrateSave()
 
+    }
+    celebrateSave() {
+        if (this.level.conditions.saveOnCompletion) {
+            Game.saveToLocal(stgs.stage, this.toJSON())
+
+        }
+    }
+    celebrateAnnounce() {
+        if (!userSettings.ALLOW_ONLINE_COLLECTION) {
+            return
+        }
+        //does not execute without permission
+        const data = this.toJSON()
+        const alreadyWon = Game.checkIsVictoryFromLocal(stgs.stage)
+        //only first ever solution is recorded.
+        if (!alreadyWon) {
+            //announce
+            const { name, nameID } = Supabase.acquireName()
+            const toBeSent = {
+                time: MM.dateAndTime(),
+                stage: stgs.stage,
+                data: data
+            }
+            const popupWhenDone = () => GameEffects.popup("Data sent to server.",
+                {
+                    posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
+                    moreButtonSettings: { color: "pink", fontSize: 24 }
+                }
+            )
+            Supabase.addRow("poly", toBeSent, popupWhenDone)
+        }
+    }
     refreshButtons(...piecesOrPolys) {
         piecesOrPolys ??= this.polys.concat(this.pieces)
         piecesOrPolys.forEach(x => {
@@ -927,6 +968,7 @@ class Poly {
     }
 
     static getTex(arr) {
+        if (!arr) return ""
         let terms = []
         arr.forEach((x, i) => {
             if (x.numerator == 0) return

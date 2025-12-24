@@ -868,6 +868,12 @@ class MM {
         return new Date().toTimeString().slice(0, 8)
     }
 
+    static dateAndTime() {
+        const d = new Date()
+        const pad = n => n.toString().padStart(2, '0')
+        return `${pad(d.getFullYear())}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}. ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+    }
+
     static timestampToTime(timestamp) {
         new Date(timestamp).toTimeString().slice(0, 8)
     }

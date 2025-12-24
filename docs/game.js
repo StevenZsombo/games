@@ -1,3 +1,4 @@
+var version = "2025.12.24. 13:09"
 var univ = {
     isOnline: false,
     framerateUnlocked: false,
@@ -66,6 +67,11 @@ class Game extends GameCore {
             fontSize: 30,
             //textSettings: { textBaseline: "top" }
         }), game)
+
+        if (!userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION)
+            stgs.stage = pageManager.askForOnlinePermission
+
+
         switch (stgs.stage) {
             case pageManager.levelSelector:
                 this.levelSelector()
@@ -75,6 +81,11 @@ class Game extends GameCore {
                 break;
             case pageManager.freeSelector:
                 this.freeSelector()
+                break;
+            case pageManager.askForOnlinePermission:
+                this.askForOnlinePermissionsOnce()
+                break;
+            case "blank":
                 break;
 
             default:
@@ -201,7 +212,10 @@ class Game extends GameCore {
                 main()
                 try {
                     const data = Game.loadFromLocal(stgs.stage)
-                    data && game.reactor.fromJSON(data)
+                    if (data) {
+                        game.reactor.fromJSON(data, false, true)
+                        game.reactor.loadedFromSaveData = data
+                    }
                 }
                 catch (error) {
                     console.error("could not load from local storage, oopsies.")
@@ -279,6 +293,7 @@ class Game extends GameCore {
                 [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
                 [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
                 [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
+                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"}`, () => { userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = false; main(); }, "Click here to reset."],
                 ["Statistics", Game.statistics],
                 ["Read changelog", () => window.open("Changelog.txt")]
             ]
@@ -291,7 +306,7 @@ class Game extends GameCore {
                     height: userSettings.biggerButtons ? 140 : 80,
                     width: 400
                 },
-                optionsButton, true, () => this.inspector.reset()
+                [optionsButton], true, () => this.inspector.reset()
             )
 
             arr.forEach(([a, b, c], i) => {
@@ -339,11 +354,12 @@ class Game extends GameCore {
         }
         tutorialsButton.txt = "Back to puzzles"
         tutorialsButton.resize(500, 100)
-        infoButton.txt = "Free play:"
+        infoButton.txt = "Free play (choose input type):"
         lvlButtons.forEach(x => {
             x.spread(this.WIDTH / 2, this.HEIGHT, 1, 0.5)
             x.move(0, -450)
             x.stretch(1, .5)
+            x.color = "lightgray"
         })
         const lowerInfoButton = infoButton.copy
         lowerInfoButton.txt = "Untested prototypes:"
@@ -365,11 +381,19 @@ class Game extends GameCore {
 
 
     //#region makeLevel
+    testLevel(level) {
+        stgs.stage = "blank"
+        main()
+        game.makeLevel(level)
+    }
     /**@param {Level} level  */
     makeLevel(level) {
         if (!level || typeof level === "string")
             level =
-                levels[stgs.stage] ?? tutorialLevels[stgs.stage] ?? freeLevels[stgs.stage] ?? prototypeLevels[stgs.stage]
+                levels[stgs.stage]
+                ?? tutorialLevels[stgs.stage]
+                ?? freeLevels[stgs.stage]
+                ?? prototypeLevels[stgs.stage]
         if (!level) throw "Requested level does not exist."
 
         const reactor = new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
@@ -579,8 +603,8 @@ class Game extends GameCore {
     static statistics() {
         const victories = Game.keylistLocal()
         const res =
-            `Tutorials completed: ${Object.keys(tutorialLevels).length
-            }/${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
+            `Tutorials completed: ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
+            }/${Object.keys(tutorialLevels).length
             }\nPuzzles completed: ${Object.keys(levels).filter(x => victories.includes(x)).length
             }/${Object.keys(levels).length
             }`
@@ -654,7 +678,92 @@ class Game extends GameCore {
     static allLocal() {
         return localStorage.getItem(stgs.localDataName)
     }
+    //#region askForOnlinePermissionsOnce
+    askForOnlinePermissionsOnce(firstTime = true) {
+        const [upper, lower] = this.rect.copy.splitRow(5, 3)
+        const welcome = new Button()
+        welcome.textSettings = { textAlign: "left", textBaseline: "top" }
+        welcome.fitThisWithinAnotherRect(upper)
+        welcome.txt = `Welcome to my game! (No title yet - suggestions are welcome.)
+        
+Before you proceed, I would like to ask if you would like to join
+an (experimental) online game records collection test.
 
+If you agree: every victory you achieve will be recorded on a public server.
+The shared data is: your in-game name, a randomized (but persistent) ID number,
+victory time, full solution. These will be available PUBLICLY.
+You do not have to use your real or full name.
+
+I might add public leaderboards later.
+
+If you disagree: none of your data will be shared.
+
+Either way, have fun.
+`
+        welcome.fontSize = 36
+        welcome.transparent = true
+        const [no, details, yes] = lower.splitCol(1, 1, 1)
+            .map(x => Button.fromRect(x, {
+                fontSize: 36
+            }))
+            .map(x => x.stretch(.85, .5))
+
+        yes.txt = "I agree to share my victories."
+        details.txt = "Clarify what data will be sent."
+        no.txt = "I do not want to share my victories."
+
+        yes.on_release = () => {
+            userSettings.ALLOW_ONLINE_COLLECTION = true
+            userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
+            stgs.stage = pageManager.levelSelector
+            main()
+        }
+        yes.hover_color = "green"
+        no.on_release = () => {
+            userSettings.ALLOW_ONLINE_COLLECTION = false
+            userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
+            stgs.stage = pageManager.levelSelector
+            main()
+        }
+        no.hover_color = "orange"
+        details.hover_color = "lightblue"
+        details.on_release = () => {
+            alert(
+                `Data shared is:
+Name (of your choice, you will be asked later).
+A unique ID to your name (randomly generated, persistent per browser).
+Time of completion.
+Name of the puzzle.
+Your solution to the puzzle.
+
+The data will be stored on a public server, 
+anyone with the know-how might be able to read it.
+
+I may publish this data later (e.g. for leaderboards or highlighting unique solutions).
+
+The game will notify you with a small in-game popup each time data is sent.`
+            )
+        }
+        const example = details.copy
+        example.txt = "Example data."
+        example.on_release = () => {
+            alert(
+                `Name: Steven Zsombo
+Unique ID: gf5xh2g7
+Time: 2025.12.24. 16:52:05
+Level name: secondder
+Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
+            )
+        }
+
+        game.add_drawable([welcome, yes, details, example, no])
+        example.fitThisWithinAnotherRect(details.splitCell(4, 1, 5, 1, 1, 2))
+        details.fitThisWithinAnotherRect(details.splitCell(1, 1, 5, 1, 1, 2))
+
+
+
+    }
+    //#endregion
 } //this is the last closing brace for class Game
 
 //#region dev options

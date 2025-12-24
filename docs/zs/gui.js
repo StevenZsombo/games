@@ -558,7 +558,7 @@ class Supabase {
 			})()
 		return { name, nameID }
 	}
-	static async addRow(event, data) {
+	static async addRow(event, data, callback) {
 		const SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
 		const SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
 		try {
@@ -575,6 +575,7 @@ class Supabase {
 				})
 			})
 			console.log("Sent to server", event, data)
+			callback?.()
 		} catch (e) {
 			console.error("Failed to write", event, data)
 		}
