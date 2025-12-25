@@ -67,7 +67,6 @@ Use the Export/Import features instead.`
         if (!data) return
         if (Game.checkIsVictoryFromLocal(stgs.stage)) {
             if (!confirm("Really delete your save for this level? This is irreversible.")) return
-            if (!confirm("Are you sure?")) return
         }
         Game.deleteFromLocal(stgs.stage)
         this.POPUP("Save deleted.")
@@ -146,9 +145,12 @@ Use the Export/Import features instead.`
         this.inputs = level.inputs
         this.outputsUnfiltered = level.outputs
         this.outputsFiltered = level.outputs.filter(x => x)
+        //this.outputsSlots = level.outputs.map(x => Boolean(x))
+
         //check no duplicates for safety
         if (this.outputsFiltered.length != new Set(this.outputsFiltered).size) {
-            console.error(this); throw "somehow there are repeated outputs.";
+            //console.error(this); throw "somehow there are repeated outputs.";
+            console.error("somehow there are repeated outputs. not much of a concern tho")
         }
         this.instructions = level.instructions ?? stgs.stage
         this.inputsServed = []
@@ -165,7 +167,7 @@ Use the Export/Import features instead.`
 
         const outputBG = inputBG.copy
         outputBG.move(inputBG.width, 0)
-        const longer = Math.max(this.inputs.length, this.outputsUnfiltered.length)
+        const longer = Math.max(this.inputs.length, this.outputsFiltered.length) //unfiltered for blank rows
         const inputRecords = inputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
         const outputRecords = outputBG.splitGrid(longer + 1, 1).flat().map(Button.fromRect)
 
@@ -191,7 +193,7 @@ Use the Export/Import features instead.`
             inpRecord.latex.tex = Poly.getTex(input)
         })
 
-        this.outputsUnfiltered.forEach((output, i) => {
+        this.outputsFiltered.forEach((output, i) => {//unfiltered for blank rows
             const record = outputRecords[i + 1]
             record.latex.tex = `\\mathbf{\\color{lightgray}{${Poly.getTex(output)}}}`
         })
@@ -291,15 +293,17 @@ Use the Export/Import features instead.`
 
         //if (!this.outputs) return badColor
         const i = this.outputsReceived.length
+        const j = i
         const output = this.outputsFiltered[i]
-        const j = this.outputsUnfiltered.indexOf(output)
+        //const j = this.outputsSlots.indexOf(true)
+        //this.outputsSlots[j] = false
         this.outputsReceived.push(output)
 
         let correct = false
         output && (correct = poly.isTheSameAsOutput(output))
         const color = correct ? goodColor : badColor
         this.correctCount += correct
-        if (output && (j + 1 < this.outputRecords.length)) {
+        if ((j + 1 < this.outputRecords.length)) {
             this.outputRecords[j + 1].color = color
             this.outputRecords[j + 1].latex.tex = poly.getTex()
             this.checkVictory() //we may never know
@@ -968,7 +972,7 @@ class Poly {
     }
 
     static getTex(arr) {
-        if (!arr) return ""
+        if (!arr) throw "trying to getTex of null poly"
         let terms = []
         arr.forEach((x, i) => {
             if (x.numerator == 0) return

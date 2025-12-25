@@ -543,7 +543,7 @@ class LatexManager {
 //#endregion
 //#region Supabase
 class Supabase {
-	static acquireName() {
+	static acquireName() {//consistent with Chat
 		const nameID = localStorage.getItem('nameID') ||
 			(() => {
 				const nameID = MM.randomID()
@@ -552,12 +552,19 @@ class Supabase {
 			})()
 		const name = localStorage.getItem('name') ||
 			(() => {
-				const name = prompt("Please tell me your name");
-				localStorage.setItem("name", name)
+				let name
+				while (!name || name.length <= 3 || name.length > 30) {
+					name = prompt("Please tell me your name");
+					localStorage.setItem("name", name)
+				}
 				return name
 			})()
 		return { name, nameID }
 	}
+	static resetName() {
+		localStorage.removeItem('name')
+	}
+
 	static SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
 	static SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
 	static async addRow(event, data, callback) {
@@ -582,17 +589,21 @@ class Supabase {
 		}
 	}
 
-	static async readAll(callback) {
-		const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameEvents?select=name,stage_text`, {
-			headers: {
-				apikey: Supabase.SUPABASE_KEY,
-				Authorization: `Bearer ${Supabase.SUPABASE_KEY}`,
-				//Accept: 'text/csv'
-			}
-		})
-		const table = JSON.parse(await response.text())
-		callback?.(table)
-		return table
+	static async readAllWins(callback) {
+		try {
+			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameEvents?select=name,stage_text`, {
+				headers: {
+					apikey: Supabase.SUPABASE_KEY,
+					Authorization: `Bearer ${Supabase.SUPABASE_KEY}`
+				}
+			})
+			const text = await response.text()
+			const table = JSON.parse(text)
+			callback?.(table)
+			return table
+		} catch (error) {
+			throw error // Re-throw for outer .catch()
+		}
 	}
 
 

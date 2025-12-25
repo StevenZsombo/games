@@ -196,7 +196,7 @@ var levels = Object.freeze({
             const where = MM.randomInt(0, this.level.inputs.length - 1)
             const what = [new Rational(MM.choice([...MM.range(-10, 10).filter(x => x != 0)]), MM.choice([2, 3, 4, 5, 6, 7]))]
             this.inputs[where] = what
-            this.outputsUnfiltered[where] = what
+            this.outputsFiltered[where] = what//unfiltered for blank rows
             this.inputRecords[where].latex.tex = Poly.computed(what).getTex()
             this.outputRecords[where].latex.tex = "\\color{lightgray}{" + Poly.computed(what).getTex() + "}"
         }
@@ -416,7 +416,7 @@ If something goes wrong, press the Reset inputs button in the right-upper corner
 `
         , null, x => x, { numberOfInputs: 4 },
         {
-            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
             /**@this {Reactor} */
             on_start_more: function () {
                 this.addPiece(0, 0, Reactor.t.IN)
@@ -434,11 +434,23 @@ These modules can be placed over others.
         `
         , null, x => x, { numberOfInputs: 4 },
         {
-            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            toolsRestrictedTo: "UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
             /**@this {Reactor} */
             on_start_more: function () {
-                this.addPiece(0, 0, Reactor.t.IN),
-                    this.addPiece(2, 0, Reactor.t.OUT)
+                this.fromJSON(`[[2,0,"OUT"],[0,1,"IN"]]`)
+                //bad practice incoming
+                this.game.extras_temp.push(() => {
+                    this.game.overlay.on_click = null
+                    this.game.overlay.on_drag = null
+                    this.game.overlay.on_release = () => {
+                        const button = this.game.seekButton()
+                        if (this.game.menu) {
+                            this.game.dropDownEnd()
+                            return
+                        }
+                        if (button) this.game.dropDown(button)
+                    }
+                })
             }
         }
     ),
@@ -592,7 +604,7 @@ That is because the input [0] was consumed.
     "DEG2": new Level(
         `Map each input to [2].
         Hint: you know how to create [x^2], don't you?`
-        , [[0, 0, 1], [1, 0, 3, 4], [0], [-2, 1, 0, 5], [2]],
+        , [[0, 0, 1], [1, 0, 3, 4], [0], [-2, 1, 0, 5], [2, 5]],
         x => [new Rational(2)],
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "DEG NEG IN OUT UP DOWN LEFT RIGHT DER INT LEAD CONST RAISE LOWER".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }

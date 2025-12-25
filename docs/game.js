@@ -481,10 +481,12 @@ class Game extends GameCore {
             const targetsList = this.reactor.findPiecesAt(...hit.tag)
             if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
             if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
+            let didNotDrag = true
             this.currentDraggingList.forEach(x => {
                 x.x = this.lastHit.tag[0]
                 x.y = this.lastHit.tag[1]
                 this.reactor.refreshButtons(x)
+                didNotDrag = false
             })
             this.currentDraggingList.length = 0
             targetsList.forEach(x => {
@@ -742,7 +744,7 @@ Your solution to the puzzle.
 The data will be stored on a public server, 
 anyone with the know-how might be able to read it.
 
-I may publish this data later (e.g. for leaderboards or highlighting unique solutions).
+This data will also get published on the leaderboards, or to highlight unique solutions.
 
 The game will notify you with a small in-game popup each time data is sent.`
             )
@@ -755,7 +757,7 @@ The game will notify you with a small in-game popup each time data is sent.`
 Unique ID: gf5xh2g7
 Time: 2025.12.24. 16:52:05
 Level name: secondder
-Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
+Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
             )
         }
 
@@ -777,8 +779,8 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
         this.add_drawable(big)
         const doAttempt = () => {
             big.txt = "Loading..."
-            Supabase.readAll()
-                .catch((e) => {
+            Supabase.readAllWins()
+                .catch((error) => {
                     console.log(error, this)
                     big.txt = "Failed to load the leaderboards."
                 }).then((table) => {
@@ -797,7 +799,9 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
                             `${player}: ${wins}`
                     ).join("\n")
                     console.log(board)
-                    big.txt = "Puzzles solved\n----------------------\n" + board
+                    big.txt = `Puzzles solved (out of ${Object.keys(levels).length})`
+                        + "\n----------------------------\n"
+                        + board
                 })
         }
         doAttempt()
@@ -809,6 +813,7 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
         refreshB.txt = "Refresh"
         refreshB.fontSize = 36
         refreshB.on_release = doAttempt.bind(this)
+        refreshB.hover_color = "lightblue"
         this.add_drawable(refreshB)
         const back = refreshB.copy
         back.topat(50)
@@ -818,6 +823,7 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,3,"OUT"],[1,2,"DER"]]`
             stgs.stage = pageManager.levelSelector
             main()
         }
+        back.hover_color = "lightblue"
         this.backToMenuButton = back
 
     }
