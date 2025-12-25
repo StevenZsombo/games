@@ -17,7 +17,8 @@ var univ = {
     },
     on_next_game_once: null,
     on_beforeunload: () => localStorage.setItem(stgs.localUserSettingsName, JSON.stringify(userSettings)),
-    allowQuietReload: true
+    allowQuietReload: true,
+    acquireNameMoreStr: "(full name + homeroom would be ideal)"
 }
 
 
@@ -718,6 +719,7 @@ Either way, have fun. Best, Steven.`
         no.txt = "I do not want to share my victories."
 
         yes.on_release = () => {
+            Supabase.acquireName()
             userSettings.ALLOW_ONLINE_COLLECTION = true
             userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
             stgs.stage = pageManager.levelSelector

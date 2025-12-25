@@ -554,7 +554,7 @@ class Supabase {
 			(() => {
 				let name
 				while (!name || name.length <= 3 || name.length > 30) {
-					name = prompt("Please tell me your name");
+					name = prompt("Please tell me your name" + univ.acquireNameMoreStr);
 					localStorage.setItem("name", name)
 				}
 				return name
