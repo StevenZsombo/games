@@ -287,6 +287,27 @@ class Rect {
 		})
 	}
 
+	static packRow(rectsToMove, destinationRect, gapSize = 30, alignTMB = "t", alsoResize = false) {
+		rectsToMove.forEach((x, i) => {
+			x.leftat(i == 0 ? destinationRect.left : rectsToMove[i - 1].right + gapSize)
+			if (alsoResize) x.height = destinationRect.height
+			if (alignTMB == "t") x.topat(destinationRect.top)
+			if (alignTMB == "m") x.centeratY(destinationRect.centerY)
+			if (alignTMB == "b") x.bottomat(destinationRect.bottom)
+		})
+	}
+
+	static packCol(rectsToMove, destinationRect, gapSize = 30, alignLCR = "l", alsoResize = false) {
+		rectsToMove.forEach((x, i) => {
+			x.topat(i == 0 ? destinationRect.top : rectsToMove[i - 1].bottom + gapSize)
+			if (alsoResize) x.width = destinationRect.width
+			if (alignLCR == "l") x.leftat(destinationRect.left)
+			if (alignLCR == "c") x.centeratX(destinationRect.centerX)
+			if (alignLCR == "r") x.rightat(destinationRect.right)
+		})
+	}
+
+
 	splitCell(i, j, toti, totj, jspan = 1, ispan = 1) {
 		if (i > 0) { i-- } else { i += toti }
 		if (j > 0) { j-- } else { j += totj }
@@ -712,8 +733,9 @@ class Inspector extends Button {
 	deactivate(child) {
 		this._subjects.delete(child)
 	}
-	get subject() {
-		return this._subjects.values().next().value
+	get subject() { //first blocking, or first added. iffy, but it will do.
+		const subjects = [...this._subjects]
+		return subjects.find(x => x.isBlocking) || subjects[0]
 	}
 	update() {
 		if (
@@ -738,7 +760,7 @@ class Inspector extends Button {
 		this.children.add(child)
 	}
 	removeChild(child) {
-		child.on_enter = null
+		//child.on_enter = null
 		child.on_leave = null
 		child.hoverText = undefined
 		this.children.delete(child)

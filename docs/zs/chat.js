@@ -142,7 +142,7 @@ class Chat {
             this.nameID = "GM"
             return
         }
-        if (!this.nameID) {
+        if (!this.nameID) { //consistent with Supabase
             const stored = localStorage.getItem("nameID")
             if (stored) {
                 this.nameID = stored
@@ -156,7 +156,7 @@ class Chat {
             if (name) {
                 this.name = name
             } else {
-                while (!name || name.length <= 3) {
+                while (!name || name.length <= 3 || name.length > 30) {
                     name = prompt("Please tell me your name.")
                 }
                 localStorage.setItem("name", name)
