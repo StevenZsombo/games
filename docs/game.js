@@ -122,6 +122,17 @@ class Game extends GameCore {
             if (this.tutorialsButton) this.tutorialsButton.on_release()
         }
 
+        /**@param {KeyboardEvent} e */
+        this.keyboarder.on_keydown = (e) => {
+            if (!e.altKey && !e.shiftKey && e.ctrlKey) {
+                if (e.key == 'z') this.reactor?.undo()
+                if (e.key == 'y') this.reactor?.redo()
+            }
+
+        }
+
+
+
 
 
 

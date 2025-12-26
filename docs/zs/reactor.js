@@ -44,6 +44,11 @@ class Reactor {
         this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
         this.game.keyboarder.on_copy = this.grab.bind(this)
         this.hasWonAlready = false
+        /**@type {Array<UndoAction>} */
+        this.undoHistory = []
+        this.undoHistoryMAX_LENGTH = 10 //not yet implemented
+        /**@type {Array<UndoAction>} */
+        this.redoHistory = []
     }
     toJSON() {
         return this.pieces.map(x => [x.x, x.y, x.type]) //should add stgs.stage, would be neat
@@ -126,7 +131,21 @@ Use the Export/Import features instead.`
         if (onlyIfEmpty && this.pieces.length) return
         if (clearFirst) [...this.pieces].forEach(x => this.removePiece(x))
         if (typeof str === "string") str = JSON.parse(str)
-        str.forEach(x => this.addPiece(...x))
+        str.forEach(x => this.addPiece(...x, false))
+    }
+
+    undo() {
+        const lastAction = this.undoHistory.pop()
+        if (!lastAction) return
+        lastAction.undo()
+        this.redoHistory.push(lastAction)
+    }
+
+    redo() {
+        const latestAction = this.redoHistory.pop()
+        if (!latestAction) return
+        latestAction.redo()
+        this.undoHistory.push(latestAction)
     }
 
 
@@ -494,7 +513,7 @@ Use the Export/Import features instead.`
     findPiecesAt(x, y) {
         return this.pieces.filter(p => p.x == x & p.y == y)
     }
-    addPiece(x, y, type) {
+    addPiece(x, y, type, addToUndoHistory = true) {
         if (!Reactor.t[type]) console.error("invalid type")
         if (!ReactorPiece[type]) console.error("type not yet implemented")
         const previous = this.pieces.filter(p => p.x == x && p.y == y)
@@ -516,11 +535,15 @@ Use the Export/Import features instead.`
         this.game.add_drawable(piece.button, 4)
         //if any polys are present, delete them and reset input. //TODO //or not?
         this.refreshButtons(piece)
+        if (addToUndoHistory)
+            this.undoHistory.push(new UndoAction(this, UndoAction.t.soloAdd, piece))
         return piece
     }
-    removePiece(piece) {
+    removePiece(piece, addToUndoHistory = true) {
         this.pieces = this.pieces.filter(x => x !== piece)
         this.game.remove_drawable(piece?.button)
+        if (piece && addToUndoHistory)
+            this.undoHistory.push(new UndoAction(this, UndoAction.t.soloRemove, piece))
     }
     removePiecesAt(x, y) {
         this.findPiecesAt(x, y).forEach(p => this.removePiece(p))
@@ -585,6 +608,46 @@ Use the Export/Import features instead.`
     static contentHeightRatio = .6
     static contentWidthRatio = .6
     static SERVE_IN_EVEN_IF_NO_OUT = true
+
+}
+//#endregion
+//#region UndoAction
+class UndoAction {
+    static t = Object.freeze({
+        soloAdd: "soloAdd",
+        soloRemove: "soloRemove",
+    })
+    constructor(reactor, actionType, piece) {
+        /**@type {Reactor} */
+        this.reactor = reactor
+        this.actionType = actionType
+        this.piece = piece
+    }
+    undo() {
+        switch (this.actionType) {
+            case UndoAction.t.soloAdd:
+                this.reactor.removePiece(this.piece, false)
+                break;
+            case UndoAction.t.soloRemove:
+                this.reactor.addPiece(this.piece.x, this.piece.y, this.piece.type, false)
+                break;
+            default:
+                throw "invalid undo action"
+        }
+    }
+    redo() {
+        switch (this.actionType) {
+            case UndoAction.t.soloAdd:
+                this.reactor.addPiece(this.piece.x, this.piece.y, this.piece.type, false)
+                break;
+            case UndoAction.t.soloRemove:
+                this.reactor.removePiece(this.piece, false)
+                break;
+            default:
+                throw "invalid redo action"
+        }
+    }
+
 
 }
 //#endregion

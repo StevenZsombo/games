@@ -64,7 +64,7 @@ class MM {
         return Math.hypot(pos1.x - pos2.y, pos1.y - pos2.y)
     }
 
-    static drawTextSingle(screen, txt, x, y, {
+    static drawTextSingleDepr(screen, txt, x, y, {
         font = "12px Times", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle" }) {
         screen.save()
@@ -244,6 +244,7 @@ class MM {
         //"center left", "middle top" defined only
     } = {}) {
         screen.save()
+        fontSize *= window.devicePixelRatio || 1
         screen.textAlign = textAlign
         const drawTextStartX = textAlign == "left" ? rect.x : rect.centerX
         screen.textBaseline = textBaseline

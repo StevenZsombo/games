@@ -128,15 +128,17 @@ class Keyboarder {
 		}
 		const beforeinput = (e) => {
 			if (this.on_undo && e.inputType === 'historyUndo') {
+				this.on_undo?.()
+				this.isLogging && console.log("Undo triggered.")
 				e.preventDefault()
 				e.stopPropagation()
-				this.on_undo?.()
 
 			}
 			if (this.on_redo && e.inputType === 'historyRedo') {
+				this.on_redo?.()
+				this.isLogging && console.log("Redo triggered.")
 				e.preventDefault()
 				e.stopPropagation()
-				this.on_redo?.()
 			}
 		}
 

@@ -96,7 +96,7 @@ class GameCore {
             x: this.SIZE.x / 2,
             y: this.SIZE.y / 2
         }
-        this.mouser = new Mouser(canvas)
+        this.mouser = new Mouser(canvas, this.screen)
         this.keyboarder = new Keyboarder(univ.denybuttons)
         this.framerate = new Framerater(univ.showFramerate)
         this.framerateUnlocked = univ.framerateUnlocked //redundant unless reused
