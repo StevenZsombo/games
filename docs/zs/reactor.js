@@ -40,7 +40,7 @@ class Reactor {
         this.nextStepExtras = []
         this.isLogging = false
         this.otherButtons = []
-        this.tasks = 0
+        this.tasks = 999
         this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
         this.game.keyboarder.on_copy = this.grab.bind(this)
         this.hasWonAlready = false
@@ -50,6 +50,7 @@ class Reactor {
         this.undoHistoryMAX_LENGTH = 10 //not yet implemented
         /**@type {Array<UndoAction>} */
         this.redoHistory = []
+        this.historyIsBeingWritten = true
     }
     toJSON() {
         return this.pieces.map(x => [x.x, x.y, x.type]) //should add stgs.stage, would be neat
@@ -129,30 +130,36 @@ Use the Export/Import features instead.`
 
     fromJSON(str, onlyIfEmpty = true, clearFirst = false) {
         if (onlyIfEmpty && this.pieces.length) return
+        this.historyIsBeingWritten = false
         if (clearFirst) [...this.pieces].forEach(x => this.removePiece(x))
         if (typeof str === "string") str = JSON.parse(str)
-        str.forEach(x => this.addPiece(...x, false))
+        str.forEach(x => this.addPiece(...x))
+        this.historyIsBeingWritten = true
     }
 
     undo() {
         const lastAction = this.undoHistory.pop()
         if (!lastAction) return
+        this.historyIsBeingWritten = false
         lastAction.undo()
         this.redoHistory.push(lastAction)
+        this.historyIsBeingWritten = true
     }
 
     redo() {
         const latestAction = this.redoHistory.pop()
         if (!latestAction) return
+        this.historyIsBeingWritten = false
         latestAction.redo()
         this.undoHistory.push(latestAction)
+        this.historyIsBeingWritten = true
     }
 
 
     /**@param {Level} level */
-    loadLevel(level, sheetsCleared = 0) {
-        this.tasks = 0
+    loadLevel(level, sheetsCleared = 0, levelData) {
         this.game.animator.resetAndFlushAll()
+        this.game.extras_on_draw.length = 0
         this.pieces.forEach(x => x.reset?.())
             ;[...this.polys].forEach(x => this._removePolyInternal(x))
             ;[...this.otherButtons].forEach(x => this.removeOtherButton(x))
@@ -177,6 +184,10 @@ Use the Export/Import features instead.`
         this.correctCount = 0
         this.sheetsCleared = sheetsCleared
         this.init_ui()
+        if (levelData) {
+            this.fromJSON(levelData, false, true)
+            this.loadedFromSaveData = levelData
+        }
     }
     init_ui() {
         const inputBG = new Button({ width: 300, height: 900, color: "white" })
@@ -222,8 +233,7 @@ Use the Export/Import features instead.`
         instructionButton.rightstretchat(this.buttonsMatrix[0].at(-1).right)
         instructionButton.centerat(instructionButton.centerX, this.buttonsMatrix[0][0].top / 2)
         instructionButton.txt = this.instructions
-        // instructionButton.fontSize = 48
-        instructionButton.fontSize = 36
+        instructionButton.fontSize = 28
         instructionButton.font_font = "monospace"
         if (!this.levelRelated)
             this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
@@ -234,7 +244,7 @@ Use the Export/Import features instead.`
         controlBG.topat(instructionButton.top)
         controlBG.bottomstretchat(instructionButton.bottom)
         const controlButtons = controlBG.
-            splitCol(1, .1, .5, .1, 2).filter((_, i) => !(i % 2)).map(Button.fromRect)
+            splitCol(1, .1, .7, .1, 2).filter((_, i) => !(i % 2)).map(Button.fromRect)
         controlButtons[0].txt = "Level select"
         controlButtons[0].on_release = () => {
             stgs.stage = stgs.latestSelectorType
@@ -286,6 +296,11 @@ Use the Export/Import features instead.`
         this.level.conditions.on_start?.call(this)
         this.level.conditions.on_start_more?.call(this)
         // this.start()
+
+
+
+        //level fully loaded!
+        this.tasks = 0
 
     }
     serveInput() {
@@ -391,9 +406,8 @@ Use the Export/Import features instead.`
         }
         //does not execute without permission
         const data = this.toJSON()
-        const alreadyWon = Game.checkIsVictoryFromLocal(stgs.stage)
-        //only first ever solution is recorded.
-        if (!alreadyWon) {
+        // const alreadyWon = Game.checkIsVictoryFromLocal(stgs.stage)
+        if (this.level.conditions.sendToServerOnCompletion) { //tutorials will not be sent
             //announce
             const { name, nameID } = Supabase.acquireName()
             const toBeSent = {
@@ -558,7 +572,14 @@ Use the Export/Import features instead.`
     findPiecesAt(x, y) {
         return this.pieces.filter(p => p.x == x & p.y == y)
     }
-    addPiece(x, y, type, addToUndoHistory = true) {
+    addPiece(x, y, type) {
+        let alreadyPiece = null
+        if (x instanceof ReactorPiece) {
+            alreadyPiece = x
+            type = x.type
+            y = x.y
+            x = x.x
+        }
         if (!Reactor.t[type]) console.error("invalid type")
         if (!ReactorPiece[type]) console.error("type not yet implemented")
         const previous = this.pieces.filter(p => p.x == x && p.y == y)
@@ -575,23 +596,37 @@ Use the Export/Import features instead.`
             const other = this.pieces.find(x => x.type == type)//movement twice = delete
             other && this.removePiece(other)
         }
-        const piece = ReactorPiece[type](this, x, y)
+        const piece = alreadyPiece ?? ReactorPiece[type](this, x, y)
         this.pieces.push(piece)
         this.game.add_drawable(piece.button, 4)
         //if any polys are present, delete them and reset input. //TODO //or not?
         this.refreshButtons(piece)
-        if (addToUndoHistory)
+        if (this.historyIsBeingWritten)
             this.undoHistory.push(new UndoAction(this, UndoAction.t.soloAdd, piece))
         return piece
     }
-    removePiece(piece, addToUndoHistory = true) {
+    removePiece(piece) {
         this.pieces = this.pieces.filter(x => x !== piece)
         this.game.remove_drawable(piece?.button)
-        if (piece && addToUndoHistory)
+        if (piece && this.historyIsBeingWritten)
             this.undoHistory.push(new UndoAction(this, UndoAction.t.soloRemove, piece))
     }
     removePiecesAt(x, y) {
         this.findPiecesAt(x, y).forEach(p => this.removePiece(p))
+    }
+    swapPiecesAt(x, y, u, w) {
+        if (x == u && y == w) {
+            this.refreshButtons(...this.findPiecesAt(x, y))
+            return []
+        } //that's a no-op
+        const one = this.findPiecesAt(x, y)
+        const two = this.findPiecesAt(u, w)
+        one.forEach(p => { p.x = u; p.y = w; })
+        two.forEach(p => { p.x = x, p.y = y; })
+        this.refreshButtons(...one, ...two)
+        if (this.historyIsBeingWritten)
+            this.undoHistory.push(new UndoAction(this, UndoAction.t.swapCoords, [x, y, u, w]))
+        return [].concat(one, two)
     }
     /**@param {Button} button  */
     addOtherButton(button) {
@@ -661,20 +696,24 @@ class UndoAction {
     static t = Object.freeze({
         soloAdd: "soloAdd",
         soloRemove: "soloRemove",
+        swapCoords: "soloSwap"
     })
     constructor(reactor, actionType, piece) {
         /**@type {Reactor} */
         this.reactor = reactor
         this.actionType = actionType
-        this.piece = piece
+        this.piece = piece //or coordinates
     }
     undo() {
         switch (this.actionType) {
             case UndoAction.t.soloAdd:
-                this.reactor.removePiece(this.piece, false)
+                this.reactor.removePiece(this.piece)
                 break;
             case UndoAction.t.soloRemove:
-                this.reactor.addPiece(this.piece.x, this.piece.y, this.piece.type, false)
+                this.reactor.addPiece(this.piece)
+                break;
+            case UndoAction.t.swapCoords:
+                this.reactor.swapPiecesAt(...this.piece)
                 break;
             default:
                 throw "invalid undo action"
@@ -683,10 +722,13 @@ class UndoAction {
     redo() {
         switch (this.actionType) {
             case UndoAction.t.soloAdd:
-                this.reactor.addPiece(this.piece.x, this.piece.y, this.piece.type, false)
+                this.reactor.addPiece(this.piece)
                 break;
             case UndoAction.t.soloRemove:
                 this.reactor.removePiece(this.piece, false)
+                break;
+            case UndoAction.t.swapCoords:
+                this.reactor.swapPiecesAt(...this.piece)
                 break;
             default:
                 throw "invalid redo action"
@@ -1298,7 +1340,7 @@ class Rational {
     }
     /**@returns {Poly} */
     toPoly() {
-        return new Poly.computed([this])
+        return Poly.computed([this])
     }
 
     toFloat() {

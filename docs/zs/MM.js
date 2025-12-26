@@ -1106,7 +1106,7 @@ class GameEffects {
         const b = new Button()
         const { width: W, height: H } = game.rect
         b.txt = txt
-        b.fontSize = 40
+        b.fontSize = 30
         b.width = sizeFrac[0] * W
         b.height = sizeFrac[1] * H
         b.centerat(posFrac[0] * W, posFrac[1] * H)
@@ -1196,7 +1196,7 @@ class GameEffects {
         const menu = textList.map((x, i) => new Button({
             color: "pink",
             hover_color: "fuchsia",
-            fontSize: 30,
+            fontSize: 24,
             ...moreButtonSettings,
             txt: x,
             on_click: () => (on_clickList?.[i]?.(), game.mouser.blockNextRelease(), result.close()),

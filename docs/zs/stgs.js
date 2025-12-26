@@ -16,10 +16,14 @@ class Level {
         conditions = {
             on_start: null, on_start_more: null, on_win: null, rows: null, cols: null,
             toolsRestrictedTo: null, toolsHighlighted: null, toolsDisabled: null,
-            allowEarlyWin: false, saveOnCompletion: true, isFreePlay: false
+            allowEarlyWin: false, saveOnCompletion: true, isFreePlay: false,
+            sendToServerOnCompletion: true
         }
     ) {
-        conditions = { allowEarlyWin: false, saveOnCompletion: true, isFreePlay: false, ...conditions }
+        conditions = {
+            allowEarlyWin: false, saveOnCompletion: true,
+            isFreePlay: false, sendToServerOnCompletion: true, ...conditions
+        }
         this.instructions = instructions
         this.inputs = inputs
             ? inputs.map(x => Poly.computed(x).arr)
@@ -61,12 +65,13 @@ class Level {
         this.instructionButton.rightstretchat(this.game.speedButtons.at(-1).right)
         this.instructionButton.topat(this.game.speedButtons.at(-1).bottom + 30)
         this.instructionButton.bottomstretchat(this.game.HEIGHT - 30)
-        this.instructionButton.fontSize = 36
+        this.instructionButton.fontSize = 30
         this.instructionButton.color = "lightgray"
         this.instructionButton.font_font = "Consolas"
         this.numberOfRandomSheets = 0
         this.stepTime = 800
         this.level.conditions.saveOnCompletion = true //for consistency
+        this.level.conditions.sendToServerOnCompletion = false //to avoid spam
         this.celebrateComplete = () => {
             //Game.saveToLocal(stgs.stage, [])
         }
@@ -224,6 +229,19 @@ var levels = Object.freeze({
             })()
         }
     ),
+    "twoonly": new Level(
+        "Keep only the input 2", null, (x, i, a) => {
+            if (Poly.computed(x).sumWith(Poly.computed([new Rational(-2)])).arr.length == 0) return x
+        }, {
+        func: () => Math.random() < .5 ? [new Rational(2)] : Poly.randomArrForPoly()
+
+    }
+    ),
+    "sqrt": new Level(
+        "Your input is [x^n] for even n. Return its square root.", null,
+        x => Poly.computed(x).takeDegree().toRational().divideByInt(2).toPoly().takePower(),
+        { func: () => new Rational(2 * MM.randomInt(1, 20)).toPoly().takePower().arr }
+    ),
     "quadonly": new Level(
         "Keep only the quadratics (degree exactly two).", null, (x, i, a) => {
             const d = Poly.computed(x).takeDegree().arr?.[0]?.numerator
@@ -280,6 +298,16 @@ var levels = Object.freeze({
         (x, i, a) => Array(i + 2).fill(new Rational(1)),
         { func: () => [new Rational(1)] }, { allowEarlyWin: true }
     ),
+    "allint": new Level(
+        "Your inputs are [1]. Generate the higher positive integers.", null,
+        (x, i, a) => [new Rational(i + 2)],
+        { func: () => [new Rational(1)] }, { allowEarlyWin: true }
+    ),
+    "allodd": new Level(
+        "Your inputs are [1]. Generate the higher positive odd numbers.", null,
+        (x, i, a) => [new Rational(2 * i + 3)],
+        { func: () => [new Rational(1)] }, { allowEarlyWin: true }
+    ),
 
     "golden": new Level(
         "Approximate the Golden ratio via continued fractions.", null, null,
@@ -312,6 +340,34 @@ var levels = Object.freeze({
                 return out
             }
         }, { allowEarlyWin: true }
+    ),
+    "pi": new Level(
+        null, null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                let approx = new Rational(4)
+                let out = [[approx]]
+                for (let i = 1; i < 10; i++) {
+                    approx = Rational.sumOfTwo(approx, new Rational((-1) ** i * 4, 2 * i + 1))
+                    out.push([approx])
+                }
+                return out
+            }
+        }, {
+        allowEarlyWin: true, on_start: function () {
+            const inst = Button.make_latex(this.instructionButton)
+            inst.txt = " \n "
+            inst.latex.tex = String.raw`\quad
+            \text{Approximate } \pi \text{ using the Leibniz formula:}
+            \ 
+            \frac{\pi}{4}=1-\frac{1}{3}+\frac{1}{5}-\frac{1}{7}+\frac{1}{9} - \dots
+            \quad`
+            inst.stretch(1, 1.5) //stretch after latex = nice margins
+
+        }
+    }
     ),
     "last": new Level(
         "Return the last term only.", null,
@@ -429,12 +485,13 @@ If something goes wrong, press the Reset inputs button in the right-upper corner
         }
 
     ),
-    "U_D_L_R1": new Level(
+    "UDLR1": new Level(
         `
-Instead of deleting, move the polynomial from IN to OUT
-using UP, DOWN, LEFT, RIGHT.
+In this tutorial, you cannot add, remove, or move the IN and OUT modules.
+Use instead UP, DOWN, LEFT, RIGHT modules
+to push the polynomials from in to OUT.
 
-These modules can be placed over others.
+These four modules can be placed over others.
         `
         , null, x => x, { numberOfInputs: 4 },
         {
@@ -458,7 +515,7 @@ These modules can be placed over others.
             }
         }
     ),
-    "U_D_L_R2": new Level(
+    "UDLR2": new Level(
         `
 Observe how putting DOWN on IN lets you change the direction of the incoming polynomial.
 UP DOWN LEFT RIGHT lets you push polynomials around at your leisure.
@@ -488,7 +545,7 @@ Fun fact: inputs are sent when there are no polynomials present in the system.
         {
             funcOut: x => {
                 const res = []
-                x.forEach(p => (res.push(p), res.push(p)))
+                x.forEach(p => (res.push(Poly.computed(p).arr), res.push(Poly.computed(p).arr)))
                 return res
             }, numberOfInputs: 3
         },

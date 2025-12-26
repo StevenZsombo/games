@@ -1,7 +1,10 @@
 class Animator {
 	constructor() {
+		/**@type {Anim[]} */
 		this.animations = [] //non-sequences lock by default unless {noLock:true}
+		/**@type {Array<Anim[]>} */
 		this.sequences = [] //sequences don't use lock
+		/**@type {Set<Object>} */
 		this.locked = new Set()
 		this.speedMultiplier = 1
 	}

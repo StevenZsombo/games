@@ -33,6 +33,8 @@ Save and load features added. Export and import features added.
 Options menu added. Can increase button sizes for small screens. (It is now the default.)
 Keyboard shorcuts added. 1-5 for speed, R to restart, WASD to move all modules, Esc to go back in menus.
 Tooltips added.
+2025.12.26.
+Undo + redo (Ctrl+Z, Ctrl+Y) added.
 
 
 

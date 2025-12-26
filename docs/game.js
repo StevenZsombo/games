@@ -18,7 +18,7 @@ var univ = {
     on_next_game_once: null,
     on_beforeunload: () => localStorage.setItem(stgs.localUserSettingsName, JSON.stringify(userSettings)),
     allowQuietReload: true,
-    acquireNameMoreStr: "(full name + homeroom would be ideal)"
+    acquireNameMoreStr: "(English name + homeroom)"
 }
 
 
@@ -65,7 +65,7 @@ class Game extends GameCore {
             height: 120,
             color: "moccasin",
             outline: 3,
-            fontSize: 30,
+            fontSize: 24,
             //textSettings: { textBaseline: "top" }
         }), game)
 
@@ -191,7 +191,6 @@ class Game extends GameCore {
 
 
 
-
     }//#endregion
     ///end next_loop_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                          ^^^^NEXT_LOOP^^^^                                                   ///
@@ -214,7 +213,7 @@ class Game extends GameCore {
         const lvlButtonsBG = new Rect(lvlButtons[0].left, lvlButtons[0].top, 0, 0)
         lvlButtonsBG.bottomstretchat(lvlButtons.at(-1).bottom)
         lvlButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
-        const wonAlreadyKeys = Game.keylistLocal()
+        const wonAlreadyKeys = Game.victoryListLocal()
 
         lvlButtons.forEach((x, i) => {
             x.txt = levelList[i]
@@ -224,23 +223,12 @@ class Game extends GameCore {
                 x.hover_color = "green"
             }
             else { x.hover_color = "lightblue" }
-            x.fontSize = 40
+            x.fontSize = 36
             x.font_font = "monospace"
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
-                try {
-                    const data = Game.loadFromLocal(stgs.stage)
-                    if (data) {
-                        game.reactor.fromJSON(data, false, true)
-                        game.reactor.loadedFromSaveData = data
-                    }
-                }
-                catch (error) {
-                    console.error("could not load from local storage, oopsies.")
-                    console.error(this)
-                    console.error(error)
-                }
+
             }
 
         })
@@ -250,7 +238,7 @@ class Game extends GameCore {
         infoButton.leftat(lvlButtons[0].left)
         infoButton.textSettings = { textAlign: "left" }
         infoButton.width = (lvlButtons[sq - 1].right - lvlButtons[0].left) * .6
-        infoButton.fontSize = 40
+        infoButton.fontSize = 36
         const tutorialsButton = Button.fromRect(infoButton.copyRect)
         tutorialsButton.width *= .5
         tutorialsButton.move(tutorialsButton.width * (2 + 1 / 3), 0)
@@ -261,7 +249,7 @@ class Game extends GameCore {
         }
         tutorialsButton.hover_color = "lightblue"
         tutorialsButton.txt = "Tutorials"
-        tutorialsButton.fontSize = 40
+        tutorialsButton.fontSize = 36
         tutorialsButton.resize(tutorialsButton.width, lvlButtons[0].height)
 
         this.add_drawable(tutorialsButton)
@@ -279,14 +267,14 @@ class Game extends GameCore {
         lvlButtons.forEach(x => {
             x.spread(this.rect.centerX, this.rect.centerY, 1.1, 1.1)
             x.stretch(1.1, 1.1)
-            x.fontSize = 36
+            x.fontSize = 32
         })
 
 
         const manualButton = infoButton.copy
         manualButton.textSettings = {}
         manualButton.transparent = false
-        manualButton.fontSize = 40
+        manualButton.fontSize = 36
         manualButton.txt = "Manual"
         manualButton.on_release = () => {
             window.open("Manual.pdf")
@@ -439,7 +427,7 @@ class Game extends GameCore {
         game.makeLevel(level)
     }
     /**@param {Level} level  */
-    makeLevel(level) {
+    makeLevel(level, before_start = null, after_start = null) {
         if (!level || typeof level === "string")
             level =
                 levels[stgs.stage]
@@ -452,7 +440,6 @@ class Game extends GameCore {
         this.add_drawable(reactor)
         this.reactor = reactor
         window.r = reactor
-        reactor.start()//remove later
 
         const speedButtonsBG = new Rect(0, 0, 600, 60)
         speedButtonsBG.bottomat(reactor.buttonsMatrix.at(-1).at(-1).bottom)
@@ -467,13 +454,14 @@ class Game extends GameCore {
             b.on_click = () => {
                 this.animator.speedMultiplier = [null, 0, .25, 1, 2, 8][i]
             }
+            b.fontSize = 18
         })
         Button.make_radio(speedButtons.slice(1), true)
         speedButtons[3].on_click()
         //speedButtons[1].on_click()
         this.speedButtons = speedButtons
         this.add_drawable(speedButtons)
-        reactor.loadLevel(level)
+        reactor.loadLevel(level, 0, Game.loadFromLocal(stgs.stage))
 
 
         //THIS IS NOT GREAT IM AFRAID
@@ -492,6 +480,7 @@ class Game extends GameCore {
         this.overlay = overlay
 
         this.ALLOW_DRAGGING_MOVINGPIECES = true
+        this.destroyedMenuAlready = false
 
         overlay.on_click = () => {
             if (this.menu) {
@@ -525,30 +514,34 @@ class Game extends GameCore {
             const targetsList = this.reactor.findPiecesAt(...hit.tag)
             if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
             if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
-            let didNotDrag = true
-            this.currentDraggingList.forEach(x => {
+
+            /*this.currentDraggingList.forEach(x => {
                 x.x = this.lastHit.tag[0]
                 x.y = this.lastHit.tag[1]
                 this.reactor.refreshButtons(x)
                 didNotDrag = false
-            })
+            })*/
+            const swappedList =
+                this.reactor.swapPiecesAt(...this.firstHit.tag, ...this.lastHit.tag)
             this.currentDraggingList.length = 0
-            targetsList.forEach(x => {
+            /*targetsList.forEach(x => {
                 x.x = this.firstHit.tag[0]
                 x.y = this.firstHit.tag[1]
                 this.reactor.refreshButtons(x)
-            })
+            })*/
             this.lastHit = null
             this.firstHit = null
-            if (this.firstHitChanged && (Date.now() - this.mouser.lastClickedTime > 100)) {
+            /*if (this.firstHitChanged || (Date.now() - this.mouser.lastClickedTime > 100)) {
                 return
-            }
-            if (hit) {
+            }*/
+            if (hit && !swappedList.length && !this.firstHitChanged) {
                 this.dropDown(hit)
                 this.lastHit = hit
             } else {
                 this.dropDownEnd()
             }
+            this.destroyedMenuAlready = false
+
         }
 
         overlay.on_drag = () => {
@@ -586,6 +579,9 @@ class Game extends GameCore {
             })
             this.dragLastPos = this.mouser.pos
         }
+        before_start?.()
+        reactor.start()//remove later
+        after_start?.()
 
     }
     //#endregion
@@ -596,6 +592,7 @@ class Game extends GameCore {
     }
 
     dropDownEnd() {
+        // this.destroyedMenuAlready = true//awkward: make me click twice
         this.remove_drawables_batch(this.menu)
         this.menu = null
         this.reactor.buttonsMatrix.flat().forEach(x => x.color = "white")
@@ -606,6 +603,7 @@ class Game extends GameCore {
         if (this.menu) {
             this.dropDownEnd()
         }
+        if (this.destroyedMenuAlready) return
         if (!button) throw "No button was given for dropDown"
         const reactor = this.reactor
         button.color = "fuchsia"
@@ -656,7 +654,7 @@ class Game extends GameCore {
 
 
     static statistics() {
-        const victories = Game.keylistLocal()
+        const victories = Game.victoryListLocal()
         const res =
             `Tutorials completed: ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
             }/${Object.keys(tutorialLevels).length
@@ -666,20 +664,29 @@ class Game extends GameCore {
 
         GameEffects.popup(res, {
             posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 3000,
-            moreButtonSettings: { color: "yellow", fontSize: 32 }
+            moreButtonSettings: { color: "yellow", fontSize: 28 }
         })
+        return res
+    }
+    static statisticsSelfLeaderboard(name) {
+        const victories = Game.victoryListLocal()
+        const res =
+            `You: ` +
+            `${name}: ` +
+            `${Object.keys(levels).filter(x => victories.includes(x)).length}` +
+            ` (+ ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length} tutorials)`
         return res
     }
 
 
-    static keylistLocal() {
+    static victoryListLocal() {
         return JSON.parse(localStorage.getItem(stgs.localVictoriesName)) ?? []
     }
 
     static saveToLocal(key, data, addKeyToVictories = true) {
         try {
             if (addKeyToVictories) {
-                const keysAll = Game.keylistLocal()
+                const keysAll = Game.victoryListLocal()
                 keysAll.push(key)
                 const keysAllUnique = [...new Set(keysAll)]
                 localStorage.setItem(stgs.localVictoriesName, JSON.stringify(keysAllUnique))
@@ -739,7 +746,7 @@ class Game extends GameCore {
         //welcome.textSettings = { textAlign: "left", textBaseline: "top" }
         welcome.txt =
             `This game saves and sends each of your victories to a public server,
-and automatically adds your name and results to a public leaderboard.
+    and automatically adds your name and results to a public leaderboard.
 If you wish to turn this feature off, you may do so in the Options menu.`
         welcome.transparent = true
         welcome.stretch(.8, .4)
@@ -755,7 +762,7 @@ If you wish to turn this feature off, you may do so in the Options menu.`
         }
             ;
         [welcome, okay].forEach((x) => {
-            x.fontSize = 40
+            x.fontSize = 36
             this.add_drawable(x)
         })
 
@@ -768,13 +775,13 @@ If you wish to turn this feature off, you may do so in the Options menu.`
         welcome.fitThisWithinAnotherRect(upper)
         welcome.txt = `Welcome to my game!
         
-Would you like to join the online leaderboards?
+Would you like to join the online leaderboards ?
 
-If you agree: your victories will be recorded on a public server,
-and your name will be added to the leaderboards.
+    If you agree: your victories will be recorded on a public server,
+        and your name will be added to the leaderboards.
 
-Have fun. 
-Best, Steven`
+Have fun.
+    Best, Steven`
         welcome.fontSize = 36
         welcome.transparent = true
         const [no, details, yes] = lower.splitCol(1, 1, 1)
@@ -806,18 +813,18 @@ Best, Steven`
         details.on_release = () => {
             alert(
                 `Data shared is:
-Name (of your choice, you will be asked later).
-A unique ID to your browser (randomly generated, persistent).
+Name(of your choice, you will be asked later).
+A unique ID to your browser(randomly generated, persistent).
 Time of completion.
 Name of the puzzle.
 Your solution to the puzzle.
 
-The data will be stored on a public server, 
-anyone with the know-how might be able to read it.
+The data will be stored on a public server,
+    anyone with the know - how might be able to read it.
 
 This data will also get published on the leaderboards, or to highlight unique solutions.
 
-The game will notify you with a small in-game popup each time data is sent successfully.`
+The game will notify you with a small in -game popup each time data is sent successfully.`
             )
         }
         const example = details.copy
@@ -826,9 +833,9 @@ The game will notify you with a small in-game popup each time data is sent succe
             alert(
                 `Name: Steven Zsombo
 Unique ID: gf5xh2g7
-Time: 2025.12.24. 16:52:05
+Time: 2025.12.24. 16: 52:05
 Level name: secondder
-Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
+Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
             )
         }
 
@@ -840,14 +847,33 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
 
     }
     //#region leaderboardsShow
-    leaderboardsShow() {
+    leaderboardsShow(topNr = 20) {
         const big = Button.fromRect(this.rect.copy)
             .stretch(.9, .9)
         big.transparent = true
-        big.fontSize = 36
+        big.fontSize = 24
         big.textSettings = { textAlign: "left", textBaseline: "top" }
         big.txt = "Initializing..."
         this.add_drawable(big)
+        const myName = Supabase.acquireName().name
+        const checkMyWins = (completions) => {
+            const serverWins = completions[myName]
+            const myWins = Game.victoryListLocal().filter(x => levels[x])
+            const missing = myWins.filter(x => !serverWins.has(x))
+            if (missing.length) {
+                GameEffects.popup(
+                    `The following victories have not been recorded on the server:
+${MM.reshape(missing, 5).map(x => x.join(", ")).join("\n")}.
+Please run them again to send your data.`
+                    , {
+                        posFrac: [.5, .8], sizeFrac: [.9, .2], floatTime: 5000,
+                        moreButtonSettings: { color: "red", fontSize: 40, font_font: "monospace" }
+                    })
+                console.log("Missing:", missing)
+            } else {
+                console.log("Your victories are fully synced.")
+            }
+        }
         const doAttempt = () => {
             big.txt = "Loading..."
             Supabase.readAllWins()
@@ -860,19 +886,23 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
                         else { s[t.name] = new Set([t.stage_text]) }
                         return s
                     }, {})
+                    checkMyWins(completions)
                     const scores = Object.entries(completions).map(
                         ([player, wins]) =>
                             [player, [...wins.values().filter(x => levels[x])].length]
                     )
                     scores.sort((x, y) => y[1] - x[1])
-                    const board = scores.slice(0, 20).map(
+                    const board = scores.slice(0, topNr).map(
                         ([player, wins]) =>
-                            `${player}: ${wins}`
+                            `${player}: ${wins} `
                     ).join("\n")
                     console.log(board)
-                    big.txt = `Puzzles solved (out of ${Object.keys(levels).length})`
+                    big.txt = `Puzzles solved (out of ${Object.keys(levels).length}) `
                         + "\n----------------------------\n"
                         + board
+                        + "\n\n"
+                        + Game.statisticsSelfLeaderboard(myName)
+
                 })
         }
         doAttempt()
@@ -922,19 +952,19 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
         }
 
         const levelList =
-            `IN_OUT1 REMOVE U_D_L_R1 U_D_L_R2 IN_OUT2
+            `IN_OUT1 REMOVE UDLR1 UDLR2 IN_OUT2
             RAISE LOWER mulxcube noconst
             DER INT secondder multhree divthree constone
             LEAD CONST1 CONST2 CONST3 degreetwo hasconst
             DEG1 DEG2 four twoxplusone
-            NEG TAKE POW1 POW2
-            SUBS SUM1 SUM2 COPY1 multeight sumcoeff mult poweroftwo
-            exp leadingterm sumupto boolflip lindiff linprod linsolve
-            DOOR1 DOOR2 statattwo quadonly posonly degfour
-            invsq vel accel everyother evenodd tangent compsqonly
-            COPY2 geometric golden sqrttwo
+            NEG TAKE POW1 POW2 sqrt exp
+            SUM1 SUM2 COPY1 multeight mult sumupto leadingterm
+            SUBS poweroftwo sumcoeff invsq boolflip lindiff linprod linsolve
+            DOOR1 DOOR2 twoonly quadonly statattwo posonly degfour
+            vel accel everyother evenodd tangent compsqonly
+            COPY2 allint allodd geometric golden sqrttwo pi
             last abs powersoftwo e factorials linmax sixsixsix factorial`
-                .split("\n").map(x => x.trim().split(" ").map(x => x.trim()))
+                .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
 
         const getLevelButton = (str) => {
             let tutorial = false
@@ -956,20 +986,13 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
             }
             b.tag = str
             b.txt = str
-            b.width = 200
+            b.width = tutorial ? 125 : 200
             b.outline = 3
             b.font_font = "monospace"
-            b.fontSize = 32
+            b.fontSize = 26
             b.on_release = () => {
                 stgs.stage = str
                 main()
-                try {
-                    const data = Game.loadFromLocal(stgs.stage)
-                    if (data) {
-                        game.reactor.fromJSON(data, false, true)
-                        game.reactor.loadedFromSaveData = data
-                    }
-                } catch (e) { console.error("Failed to load level from storage", this) }
 
             }
             return b
@@ -1003,14 +1026,25 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
             width: 500,
             height: 100,
             transparent: true,
-            txt: "Select level:",
+            txt: "Select level (the short buttons are tutorials):",
             fontSize: 32,
             x: 50,
             y: 0,
             textSettings: { textAlign: "left" }
         })
+        if (Game.victoryListLocal().length == 0) {
+            const firstbg = rows?.[0]?.children?.[0]
+
+            this.animator.add_anim(firstbg, 500, Anim.f.scaleThroughFactor,
+                { scaleFactor: 1.2, repeat: 10 }
+            )
+            rows[0].children[0].color = "purple"
+
+        }
+
         this.add_drawable(label)
         this.addBottomButtons()
+        this.checkServerSync()
     }
     //#region 
     //#region addBottomButtons
@@ -1032,36 +1066,40 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
         optionsButton.txt = "Options"
         optionsButton.on_release = () => {
             const arr = [
-                [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
-                [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
+                [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"} `, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
+                [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"} `, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
                 [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
-                [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
-                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"}`, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, "Click here to reset."],
+                [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"} `, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
+                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"} `, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, "Click here to reset."],
                 ["Statistics", Game.statistics, "How many puzzles did you solvet yet?"],
             ]
             if (userSettings.isDeveloper) {
                 const devArr =
-                    [
-                        ["DEV.resetAllProgress", () => {
-                            if (!confirm("This will reset all your progress and erase all your saves.\nDoing so is irreversible.\nAre you sure you want to reset ALL progress?"))
-                                return
-                            if (!confirm("Are you sure?"))
-                                return
-                            localStorage.removeItem(stgs.localDataName)
-                            localStorage.removeItem(stgs.localVictoriesName)
-                            main()
-
-                        }, "Resets ALL progress",],
-                        ["DEV.changeName", () => {
-                            const name = localStorage.getItem("name")
-                            if (!name)
-                                return
-                            if (!confirm(`Your current name is: \n${name}\nwould you like to change it?`))
-                                return
-                            Supabase.resetName()
-                            Supabase.acquireName()
-                        }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")}`],
-                        ["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
+                    [["DEV.resetTutorials", () => {
+                        Object.keys(tutorialLevels).forEach(x => {
+                            Game.deleteFromLocal(x)
+                        })
+                        main()
+                    }, "Resets the tutorials."],
+                    ["DEV.resetAllProgress", () => {
+                        if (!confirm("This will reset all your progress and erase all your saves.\nDoing so is irreversible.\nAre you sure you want to reset ALL progress?"))
+                            return
+                        if (!confirm("Are you sure?"))
+                            return
+                        localStorage.removeItem(stgs.localDataName)
+                        localStorage.removeItem(stgs.localVictoriesName)
+                        main()
+                    }, "Resets ALL progress",],
+                    ["DEV.changeName", () => {
+                        const name = localStorage.getItem("name")
+                        if (!name)
+                            return
+                        if (!confirm(`Your current name is: \n${name} \nwould you like to change it ? `))
+                            return
+                        Supabase.resetName()
+                        Supabase.acquireName()
+                    }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")} `],
+                    ["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
                     ]
                 arr.push(...devArr)
             }
@@ -1114,7 +1152,11 @@ Solution: [[1,0,"IN"],[1,1,"DER"],[1,2,"DER"],[1,3,"OUT"]]`
 
     //#endregion
     levelSelector = this.levelSelectorFancy
+    //#region checkServerSync
+    checkServerSync() {
+    }
 
+    //#endregion
 
 
     //#endregion
