@@ -205,7 +205,7 @@ Use the Export/Import features instead.`
         instructionButton.txt = this.instructions
         // instructionButton.fontSize = 48
         instructionButton.fontSize = 36
-        instructionButton.font_font = "Consolas"
+        instructionButton.font_font = "monospace"
         if (!this.levelRelated)
             this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
 
@@ -246,7 +246,7 @@ Use the Export/Import features instead.`
                 new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
                 { height: 60 * (1 + userSettings.biggerButtons) },
                 [controlButtons[1], this.game.overlay])
-            menu.menu.filter(x => x.txt.includes("DEV")).forEach(x => x.color = "lightorange")
+            menu.menu.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "lightorange")
         }
         this.inputBG = inputBG
         this.outputBG = outputBG

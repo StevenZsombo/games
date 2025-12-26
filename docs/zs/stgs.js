@@ -105,8 +105,13 @@ var levels = Object.freeze({
         "Your input is a contant - divide it by 3.", null,
         x => [x[0].copy.divideByInt(3)], { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
     ),
+    "constone": new Level(
+        "Change the constant to 1.", null,
+        x => { const p = Poly.computed(x); p.arr[0] = new Rational(1); return p },
+        { minTerms: 1, maxTerms: 3 }
+    ),
     "boolflip": new Level(
-        "If the input is 0 return 1, if it is 1 return 0.", null, x => x.length ? [] : [new Rational(1)],
+        "Map 0 to 1, and 1 to 0.", null, x => x.length ? [] : [new Rational(1)],
         { func: () => [].concat(Math.random() < .5 ? [] : [new Rational(1)]) }
     ),
     "hasconst": new Level(
@@ -406,7 +411,7 @@ If something goes wrong, press the "Reset inputs" button in the right-upper corn
             on_start_more: () => Reactor.SERVE_IN_EVEN_IF_NO_OUT = false
         }
     ),
-    "Remove": new Level(
+    "REMOVE": new Level(
         `
 You can drag and move around modules. Click and then drag either module to solve the puzzle.
 
@@ -419,8 +424,7 @@ If something goes wrong, press the Reset inputs button in the right-upper corner
             toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
             /**@this {Reactor} */
             on_start_more: function () {
-                this.addPiece(0, 0, Reactor.t.IN)
-                this.addPiece(1, 2, Reactor.t.OUT)
+                this.fromJSON(`[[0,0,"IN"],[1,2,"OUT"]]`)
             }
         }
 
@@ -494,10 +498,10 @@ Fun fact: inputs are sent when there are no polynomials present in the system.
         }
 
     ),
-    "RAISE1": new Level(
+    "RAISE": new Level(
         `
 
-        Raise the degree of each term by 1 using RAISE.
+Raise the degree of each term by 1 using RAISE.
 Constants increase in degree too, except for [0].
 This effectively multiplies the polynomial by x.
 
@@ -872,8 +876,9 @@ const pageManager = Object.freeze({
     settings: -2,
     tutorialSelector: -3,
     freeSelector: -4,
-    askForOnlinePermission: -5,
-    leaderboardsPage: -6
+    askForOnlinePermissionOnce: -5,
+    leaderboardsPage: -6,
+    //levelSelectorFancy: -11
 })
 //#endregion
 //#region userSettings

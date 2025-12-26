@@ -41,6 +41,7 @@ Known bugs:
 
 2025.12.22.
 "statattwo" sometimes generates impossible inputs. - FIXED
-
 2025.12.24.
 Fireworks drop framerate considerably.
+2025.12.26.
+Hover tooltips do not prioritize buttons on the top. - FIXED
