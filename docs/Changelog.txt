@@ -47,3 +47,6 @@ Known bugs:
 Fireworks drop framerate considerably.
 2025.12.26.
 Hover tooltips do not prioritize buttons on the top. - FIXED
+2025.12.28.
+"manyones" input 7 freezes notably. (8 would freeze for several seconds, 9 would crash). - TBD (might crash weaker devices?)
+Tooltips may cover the cursor when near the bottom.

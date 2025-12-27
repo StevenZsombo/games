@@ -306,6 +306,11 @@ var levels = Object.freeze({
             return Poly.computed([n % 2]).arr
         }, { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
     ),
+    "evenonly": new Level(
+        "Your inputs are positive integers. Return only the even ones.", null,
+        x => x[0].numerator % 2 ? null : x,
+        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
+    ),
     "tangent": new Level(
         `Find the tangent to the given curve at x=1.`, null, x => {
             const p = Poly.computed(x)
@@ -461,6 +466,31 @@ var levels = Object.freeze({
             numberOfInputs: 10
         }, { allowEarlyWin: true }
     ),
+    "manyones": new Level(
+        `Your input is positive integer n.\nReturn the number with that many digits of 1.`, null,
+        x => [(n => (10 ** n - 1) / 9)(x[0].numerator)],
+        { maxDegree: 0, maxNumer: 7, negativeChance: 0, maxTerms: 1, maxDenom: 1 }
+    ),
+    "inconly": new Level(
+        "Return only the polynomials that are increasing at x=1.", null, null, {
+        minTerms: 2, minDegree: 1,
+        funcOut: function (inputs) {
+            const rule = (x) => Poly.computed(x).takeDerivative().takeSubs(new Rational(1)).toRational().isPositive ? x : null
+            return inputs.map((x, i) => {
+                if (i != 3) return rule(x)
+                const p = (Math.random() < .5 ? [0, -2, 1] : [0, 3, -3, 1]).map(x => new Rational(x))
+                inputs[3] = p.map(x => new Rational(x))
+                return rule(p)
+            })
+        }
+    },
+    ),
+    "sign": new Level(
+        "Return the sign of the given constant.\n(So 1 if positive, 0 if zero, and -1 if negative.)", null,
+        x => x.length ? x[0].isPositive ? [new Rational(1)] : [new Rational(-1)] : []
+        , { func: () => Math.random() < .3 ? Poly.randomArrForPoly({ maxTerms: 1, maxDegree: 0 }) : [] }
+    ),
+
     "factorial": new Level(
         "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
         { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
@@ -785,6 +815,27 @@ For example: [7] -> [x^7] -> [x^8] -> [8].
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT RAISE LOWER POW SUBS DEG NEG".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
         }
     ),
+    "POW3": new Level(
+        `Your input is a constant.
+Use POW, CONST, DEG to map negative inputs to [0] and consume everything else.
+
+Think about why this works. Why are positive fractions consumed?
+Why are positive integers consumed? Why is [0] consumed?
+Why do negative constants get mapped to [0]?`
+        /*`Examples:
+        [1/2] -> POW is consumed. [0] -> POW is consumed.
+        [-3/2] -> POW is [-3/2] -> CONST is [-3/2] -> DEG is [0].
+        [7] -> POW is [x^7] -> CONST is [0] -> DEG is consumed.
+        
+        So this process indeed only allows negative constant to pass through.`*/
+        , [new Rational(1, 2), null, new Rational(-3 / 2), new Rational(7), new Rational(-5)].map(x => x ? [x] : []),
+        x => x?.[0]?.isNegative ? [] : null,
+        {},
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT LEAD CONST POW SUBS DEG NEG".split(" "),
+            rows: 3, cols: 3, on_start: Level.tutorial
+        }
+    ),
     "SUBS": new Level(
         `
 SUBS consumes everything.
@@ -941,18 +992,6 @@ var prototypeLevels = {
             return u.sumWith(v).sumWith(w).arr
         }, { numberOfInputs: 9, maxTerms: 1 }
     ),
-    "inconly": new Level(
-        "Return only the polynomials that are increasing at x=1.", null, (x, i, a) => {
-            const p = Poly.computed(x)
-            const val = p.takeDerivative().takeSubs(new Rational(1)).toRational()
-            if (val.isPositive) return x
-        }, { minimumOutput: 2, maximumOutput: 8 }
-    ),
-    "sign": new Level(
-        "Return the sign of the given constant.\n(So 1 if positive, 0 if zero, and -1 if negative.)", null,
-        /**@param {Rational[]} x */(x, i, a) => [new Rational(x[0].isPositive ? 1 : x[0].isZero ? 0 : -1)],
-        { maxDegree: 0, maxTerms: 1, minTerms: 1 }
-    ),
 
     "diffoftwo": new Level(
         "Return the current input minus the next input.", null, (x, i, a) => {
@@ -994,13 +1033,18 @@ var prototypeLevels = {
             numberOfInputs: 10,
             func: x => [new Rational(1)],
             funcOut: x => {
-                let fib = [1, 2]
+                let fib = [2, 3]
                 for (let i = 2; i < 10; i++) {
                     fib.push(fib.at(-1) + fib.at(-2))
                 }
                 return fib.map(x => [new Rational(x)])
             }
         }
+    ),
+    "onesdigit": new Level(
+        `Your input is a positive integer. Return the ones digit.`,
+        null, x => [x[0].numerator % 10].map(x => new Rational(x)),
+        { maxNumer: 200, maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0 }
     ),
     "floor": new Level(
         `Your input is positive constant a. Return floor(a), \nthe greatest integer not greater than a.`,

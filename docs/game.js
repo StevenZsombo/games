@@ -973,13 +973,13 @@ Please run them again to send your data.`
             LEAD CONST1 degreetwo DER1 secondder DER2 multhree multt
             INT1 INT2 divthree constone CONST2 CONST3 twoxplusone twothirds
             DEG1 DEG2 four hasconst NEG TAKE perp nzconst
-            POW1 POW2 exp sqrt ntothen sumupto divtwelve
-            SUM1 SUM2 COPY1 multeight mult tail leadingterm
-            SUBS poweroftwo sumcoeff invsq boolflip lindiff linprod linsolve
-            penta vel accel tangent evenodd sixsixsix
-            DOOR1 DOOR2 twoonly quadonly statattwo posonly degfour compsqonly
-            COPY2 COPY3 allint allodd geometric golden sqrttwo pi
-            last abs powersoftwo e factorials linmax everyother factorial`
+            POW1 POW2 exp sqrt sumupto evenonly divtwelve evenodd
+            SUM1 SUM2 COPY1 multeight mult tail leadingterm lindiff manyones
+            SUBS ntothen poweroftwo sumcoeff invsq boolflip linprod linsolve
+            penta vel accel tangent sixsixsix DOOR1 DOOR2 twoonly POW3
+            posonly quadonly statattwo degfour compsqonly sign inconly 
+            COPY2 COPY3 allint allodd geometric golden sqrttwo powersoftwo
+            pi last abs e factorials linmax everyother factorial`
                 .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
 
         const getLevelButton = (str) => {
