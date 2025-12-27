@@ -90,7 +90,7 @@ class GameCore {
         }
         /**@type {Rect}*/
         this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
-        this.BGCOLOR = stgs.BGCOLOR ?? "linen"
+        this.BGCOLOR = "linen"
         //null for transparent
         this.CENTER = {
             x: this.SIZE.x / 2,

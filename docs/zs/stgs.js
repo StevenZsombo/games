@@ -104,6 +104,11 @@ var levels = Object.freeze({
         "The input is a constant  -  multiply it by 3.", null, x => x.map(u => new Rational(u).multiplyByInt(3)),
         { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
     ),
+    "multt": new Level(
+        "The input is a constant  -  multiply it by 32.", null, x => x.map(u => new Rational(u).multiplyByInt(32)),
+        { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 7 }
+
+    ),
     "divthree": new Level(
         "Your input is a contant - divide it by 3.", null,
         x => [x[0].copy.divideByInt(3)], { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
@@ -461,13 +466,27 @@ var levels = Object.freeze({
         { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
     ),
     "divtwelve": new Level(
-        "Your input is [n]. Return it only if it is a multiple of 12.", null,
+        "Your input is a positive integer.\nReturn it only if it is a multiple of 12.", null,
         x => x[0].numerator % 12 ? null : x,
         {
             func: () => [new Rational(Math.random() > .45 ? 12 * MM.randomInt(1, 60) : MM.randomInt(1, 800))],
             minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
         }
 
+    ),
+    "perp": new Level(
+        "You input is an equation of a line. Return the \ngradient of the lines perpendicular to it."
+        , null, x => Poly.computed(x).takeLower().takeTake().takeNeg(),
+        { maxDegree: 1, minTerms: 2, maxDenom: 9, maxNumer: 20 }
+
+    ),
+    "nzconst": new Level(
+        "Your inputs are constant. Return only those that are not zero."
+        , null, x => x.length ? x : null,
+        {
+            func: () => Poly.computed(Math.random() < .3 ? [] : [new Rational(MM.randomInt(-15, 15))]).arr,
+            numberOfInputs: 10, minimumOutput: 2, maximumOutput: 8
+        }
     )
 
 
@@ -476,7 +495,7 @@ var levels = Object.freeze({
 //#region tutorialLevels
 /**@type {Object<Level>} */
 var tutorialLevels = Object.freeze({
-    "IN_OUT1": new Level(
+    "INOUT1": new Level(
         `
 Move inputs from IN to OUT.
 Click a cell to select modules to place.
@@ -557,7 +576,7 @@ or drag them outside the calculator field to remove them.
             }
         }
     ),
-    "IN_OUT2": new Level(
+    "INOUT2": new Level(
         `
 Return two copies of each input.
 Multiple IN modules will each send their own copy of an input.
@@ -602,7 +621,7 @@ The other terms are effectively divided by x.
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT RAISE LOWER".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
-    "DER": new Level(
+    "DER1": new Level(
         `
         
 Take derivative using DER.
@@ -625,6 +644,15 @@ You can click the Speed buttons to increase/decrease game speed or to pause comp
                     }, "x y width height color", { repeat: 12 }))
             }
         }
+    ),
+    "DER2": new Level(
+        `
+        Your inputs are [x^n] for some n.
+        
+        Use DER and LEAD to find n.
+
+        `, [4, 11, 18, 738, 2].map(x => Poly.computed([x]).takePower().arr), x => Poly.computed(x).takeDegree().arr, {},
+        { on_start: Level.tutorial, cols: 3, rows: 3, toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT DER INT LEAD CONST".split(" ") }
     ),
     "INT1": new Level(
         `
@@ -660,7 +688,7 @@ Divide it by 2 using RAISE, INT, and LEAD.
     ),
     "CONST1": new Level(
         `CONST returns the constant term, discarding everything else.`
-        , [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeConst().arr,
+        , [[7, 0, 1], [-8, 0, 3], [0, 0, 2, 1], [17], [0]], x => Poly.computed(x).takeConst().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT LEAD CONST".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
     ),
@@ -867,9 +895,10 @@ Create an infinite loop with COPY.
 Make each loop RAISE the input to
 generate the geometric sequence [x], [x^2], [x^3], ... .
         `
-        , [[1], [999999], [999999], [999999]], null,
+        , null, null,
         {
-            minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4,
+            minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 8,
+            func: () => [new Rational(1)],
             funcOut: x => Array(8).fill().map((x, i) => Poly.computed([new Rational(i + 1)]).takePower().arr)
         },
         {

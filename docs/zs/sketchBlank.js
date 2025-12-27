@@ -1,9 +1,9 @@
 var univ = {
     isOnline: false,
-    framerateUnlocked: true,
+    framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -12,8 +12,11 @@ var univ = {
     on_each_start: null,
     on_first_run: null,
     on_next_game_once: null,
-    allowQuietReload: true
+    on_beforeunload: null,
+    allowQuietReload: true,
+    acquireNameMoreStr: "(English name + homeroom)"
 }
+
 
 
 

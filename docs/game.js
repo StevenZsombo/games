@@ -1,9 +1,7 @@
-var version = "2025.12.24. 13:09"
 var univ = {
     isOnline: false,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
-    denybuttons: false,
     showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
@@ -17,8 +15,9 @@ var univ = {
     },
     on_next_game_once: null,
     on_beforeunload: () => localStorage.setItem(stgs.localUserSettingsName, JSON.stringify(userSettings)),
+    acquireNameMoreStr: "(English name + homeroom)",
+    denybuttons: false,
     allowQuietReload: true,
-    acquireNameMoreStr: "(English name + homeroom)"
 }
 
 
@@ -146,7 +145,9 @@ class Game extends GameCore {
             if (!e.altKey && !e.shiftKey && e.ctrlKey) {
                 if (e.key == 'z') this.reactor?.undo()
                 if (e.key == 'y') this.reactor?.redo()
+                // if (e.key == 's') this.reactor?.saveTemp() //Did not fancy this.
             }
+
 
         }
 
@@ -403,7 +404,7 @@ class Game extends GameCore {
         })
         const lowerInfoButton = infoButton.copy
         lowerInfoButton.txt = `Untested prototypes (might be impossible). 
-If you solve any, you'll be rewarded with some chocolate (come to Room 203).`
+If you solve any of these, you'll be rewarded with some chocolate (come to Room 203).`
         const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
         game.remove_drawable(tut2)
         game.remove_drawable(inf2)
@@ -732,6 +733,12 @@ If you solve any, you'll be rewarded with some chocolate (come to Room 203).`
             console.error(key, error)
         }
     }
+    static loadFromLocalModuleList(key) {
+        const data = this.loadFromLocal(key)
+        if (!data) return ""
+        const ignored = "UP DOWN LEFT RIGHT IN OUT".split(" ")
+        return [...new Set(data.map(x => x[2]).filter(x => !ignored.includes(x)))].join(" ")
+    }
     static deleteFromLocal(key) {
         try {
             const wins = JSON.parse(localStorage.getItem(stgs.localVictoriesName))
@@ -962,11 +969,11 @@ Please run them again to send your data.`
         }
 
         const levelList =
-            `IN_OUT1 REMOVE UDLR1 UDLR2 IN_OUT2 RAISE LOWER mulxcube noconst
-            DER secondder multhree INT1 INT2 divthree constone twothirds
-            LEAD CONST1 CONST2 CONST3 degreetwo 
-            DEG1 DEG2 four twoxplusone hasconst
-            NEG TAKE POW1 POW2 exp sqrt ntothen sumupto divtwelve
+            `INOUT1 REMOVE UDLR1 UDLR2 INOUT2 RAISE LOWER mulxcube noconst
+            LEAD CONST1 degreetwo DER1 secondder DER2 multhree multt
+            INT1 INT2 divthree constone CONST2 CONST3 twoxplusone twothirds
+            DEG1 DEG2 four hasconst NEG TAKE perp nzconst
+            POW1 POW2 exp sqrt ntothen sumupto divtwelve
             SUM1 SUM2 COPY1 multeight mult tail leadingterm
             SUBS poweroftwo sumcoeff invsq boolflip lindiff linprod linsolve
             penta vel accel tangent evenodd sixsixsix
@@ -995,7 +1002,7 @@ Please run them again to send your data.`
             }
             b.tag = str
             b.txt = str
-            b.width = tutorial ? 125 : 200
+            b.width = tutorial ? 120 : 200
             b.outline = 3
             b.font_font = "monospace"
             b.fontSize = 26
@@ -1013,9 +1020,10 @@ Please run them again to send your data.`
             x.bg.on_leave()
         })
         const bigBackground = this.rect.copy.deflate(100, 200)
+        bigBackground.bottomstretchat(this.HEIGHT - 150)
         rows.forEach(x => x.bg.fitThisWithinAnotherRect(bigBackground))
         refreshAll = () => {
-            Rect.packCol(rows.map(x => x.bg), bigBackground, 15)
+            Rect.packCol(rows.map(x => x.bg), bigBackground, "justify")
             rows.forEach(x => Rect.packRow(x.children, x.bg, 30))
         }
         refreshAll()
@@ -1024,7 +1032,7 @@ Please run them again to send your data.`
                 rows.reduce((s, t) => (s.push(...t.children.map(x => x.tag)), s), [])
             if (levelsSoFar.length != new Set(levelsSoFar).size)
                 console.error("There are duplicate levels.")
-            if (rows.map(x => x.children.right).some(x => x > bigBackground.right))
+            if (rows.flatMap(x => x.children).some(x => x.right > bigBackground.right))
                 console.error("too many items in a row")
             const levelsMissing = [].concat(...[levels, tutorialLevels].map(Object.keys)).filter(x => !levelsSoFar.includes(x))
             if (levelsMissing.length)
@@ -1044,12 +1052,14 @@ Please run them again to send your data.`
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
-            this.animator.add_anim(firstbg, 500, Anim.f.scaleThroughFactor,
-                { scaleFactor: 1.2, repeat: 10 }
-            )
+            this.animator.add_anim(Anim.custom(firstbg, 500, (t, obj) => {
+                obj.rad = (t - .5) * .6
+            }, "rad",
+                { repeat: 10 }))
             rows[0].children[0].color = "purple"
 
         }
+        this.levelButtons = rows.flatMap(x => x.children)
 
         this.add_drawable(label)
         this.addBottomButtons()
@@ -1190,7 +1200,9 @@ Please run them again to send your data.`
 //#region dev options
 /// dev options
 const dev = {
-    add: (type) => window.r.addPiece(...window.r.LCP, type)
-
+    showModules: () => {
+        if (stgs.stage !== pageManager.levelSelector) return
+        game.levelButtons.forEach(x => game.inspector.addChild(x, Game.loadFromLocalModuleList(x.tag)))
+    }
 }/// end of dev
 

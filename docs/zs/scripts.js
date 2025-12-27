@@ -287,9 +287,13 @@ class Rect {
 		})
 	}
 
-	static packRow(rectsToMove, destinationRect, gapSize = 30, alignTMB = "t", alsoResize = false) {
+	static packRow(rectsToMove, destinationRect, gapSizeOrJustify = 30, alignTMB = "t", alsoResize = false) {
+		if (gapSizeOrJustify === "justify" && rectsToMove.length >= 1)
+			gapSizeOrJustify =
+				(destinationRect.width - rectsToMove.reduce((s, t) => s + t.width, 0)) / (rectsToMove.length - 1)
+
 		rectsToMove.forEach((x, i) => {
-			x.leftat(i == 0 ? destinationRect.left : rectsToMove[i - 1].right + gapSize)
+			x.leftat(i == 0 ? destinationRect.left : rectsToMove[i - 1].right + gapSizeOrJustify)
 			if (alsoResize) x.height = destinationRect.height
 			if (alignTMB == "t") x.topat(destinationRect.top)
 			if (alignTMB == "m") x.centeratY(destinationRect.centerY)
@@ -297,9 +301,12 @@ class Rect {
 		})
 	}
 
-	static packCol(rectsToMove, destinationRect, gapSize = 30, alignLCR = "l", alsoResize = false) {
+	static packCol(rectsToMove, destinationRect, gapSizeOrJustify = 30, alignLCR = "l", alsoResize = false) {
+		if (gapSizeOrJustify === "justify" && rectsToMove.length >= 1)
+			gapSizeOrJustify =
+				(destinationRect.height - rectsToMove.reduce((s, t) => s + t.height, 0)) / (rectsToMove.length - 1)
 		rectsToMove.forEach((x, i) => {
-			x.topat(i == 0 ? destinationRect.top : rectsToMove[i - 1].bottom + gapSize)
+			x.topat(i == 0 ? destinationRect.top : rectsToMove[i - 1].bottom + gapSizeOrJustify)
 			if (alsoResize) x.width = destinationRect.width
 			if (alignLCR == "l") x.leftat(destinationRect.left)
 			if (alignLCR == "c") x.centeratX(destinationRect.centerX)
