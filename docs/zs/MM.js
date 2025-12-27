@@ -1199,6 +1199,7 @@ class GameEffects {
             fontSize: 24,
             ...moreButtonSettings,
             txt: x,
+            tag: "dropDown",
             on_click: () => (on_clickList?.[i]?.(), game.mouser.blockNextRelease(), result.close()),
             isBlocking: true,
         }))

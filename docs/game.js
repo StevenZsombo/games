@@ -396,13 +396,14 @@ class Game extends GameCore {
         tutorialsButton.resize(500, 100)
         infoButton.txt = "Free play (choose input type):"
         lvlButtons.forEach(x => {
-            x.spread(this.WIDTH / 2, this.HEIGHT, 1, 0.5)
-            x.move(0, -450)
-            x.stretch(1, .5)
+            x.spread(this.WIDTH / 2, this.HEIGHT, 1, 0.4)
+            x.move(0, -550)
+            x.stretch(1, .4)
             x.color = "lightgray"
         })
         const lowerInfoButton = infoButton.copy
-        lowerInfoButton.txt = "Untested prototypes:"
+        lowerInfoButton.txt = `Untested prototypes (might be impossible). 
+If you solve any, you'll be rewarded with some chocolate (come to Room 203).`
         const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
         game.remove_drawable(tut2)
         game.remove_drawable(inf2)
@@ -412,10 +413,19 @@ class Game extends GameCore {
             x.move(0, 500)
             x.color = x.color.includes("green") ? x.color : "lightgray"
         })
-        lowerInfoButton.bottomat(proButtons[0].top)
+        lowerInfoButton.bottomat(proButtons[0].top - 50)
         lowerInfoButton.leftat(proButtons[0].left)
         this.add_drawable(lowerInfoButton)
         this.tutorialsButton = tutorialsButton
+        const lowerBg = new Button()
+        lowerBg.outline = 0
+        lowerBg.topat(lowerInfoButton.top - 20)
+        lowerBg.bottomstretchat(proButtons.at(-1).bottom + 20)
+        lowerBg.width = this.WIDTH - 60
+        lowerBg.centeratX(this.WIDTH / 2)
+        lowerBg.color = "lightpink"
+
+        this.add_drawable(lowerBg, 4)
     }
     //#endregion
 
@@ -952,18 +962,17 @@ Please run them again to send your data.`
         }
 
         const levelList =
-            `IN_OUT1 REMOVE UDLR1 UDLR2 IN_OUT2
-            RAISE LOWER mulxcube noconst
-            DER INT secondder multhree divthree constone
-            LEAD CONST1 CONST2 CONST3 degreetwo hasconst
-            DEG1 DEG2 four twoxplusone
-            NEG TAKE POW1 POW2 sqrt exp
-            SUM1 SUM2 COPY1 multeight mult sumupto leadingterm
+            `IN_OUT1 REMOVE UDLR1 UDLR2 IN_OUT2 RAISE LOWER mulxcube noconst
+            DER secondder multhree INT1 INT2 divthree constone twothirds
+            LEAD CONST1 CONST2 CONST3 degreetwo 
+            DEG1 DEG2 four twoxplusone hasconst
+            NEG TAKE POW1 POW2 exp sqrt ntothen sumupto divtwelve
+            SUM1 SUM2 COPY1 multeight mult tail leadingterm
             SUBS poweroftwo sumcoeff invsq boolflip lindiff linprod linsolve
-            DOOR1 DOOR2 twoonly quadonly statattwo posonly degfour
-            vel accel everyother evenodd tangent compsqonly
-            COPY2 allint allodd geometric golden sqrttwo pi
-            last abs powersoftwo e factorials linmax sixsixsix factorial`
+            penta vel accel tangent evenodd sixsixsix
+            DOOR1 DOOR2 twoonly quadonly statattwo posonly degfour compsqonly
+            COPY2 COPY3 allint allodd geometric golden sqrttwo pi
+            last abs powersoftwo e factorials linmax everyother factorial`
                 .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
 
         const getLevelButton = (str) => {
@@ -1015,8 +1024,8 @@ Please run them again to send your data.`
                 rows.reduce((s, t) => (s.push(...t.children.map(x => x.tag)), s), [])
             if (levelsSoFar.length != new Set(levelsSoFar).size)
                 console.error("There are duplicate levels.")
-            if (rows.map(x => x.children.length).some(x => x > 8))
-                console.error("Too many items in a row")
+            if (rows.map(x => x.children.right).some(x => x > bigBackground.right))
+                console.error("too many items in a row")
             const levelsMissing = [].concat(...[levels, tutorialLevels].map(Object.keys)).filter(x => !levelsSoFar.includes(x))
             if (levelsMissing.length)
                 console.error("Levels missing:", levelsMissing)
@@ -1045,6 +1054,19 @@ Please run them again to send your data.`
         this.add_drawable(label)
         this.addBottomButtons()
         this.checkServerSync()
+
+        rows.flatMap(x => x.children).forEach(x => (x.visible = false, x.interactable = false))
+        this.animator.add_staggered(rows, 100,
+            Anim.custom(null, 100, function (t, obj) {
+                obj.children.forEach(x => (x.height = t * 55, x.visible = true, x.fontSize = 26 * t))
+            }, [], {
+                on_end: (obj) => obj.children.forEach(x => {
+                    x.visible = true
+                    x.height = 55
+                    x.fontSize = 26
+                    x.interactable = true
+                })
+            }), { initialDelay: 100 })
     }
     //#region 
     //#region addBottomButtons
@@ -1067,7 +1089,7 @@ Please run them again to send your data.`
         optionsButton.on_release = () => {
             const arr = [
                 [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"} `, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
-                [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"} `, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
+                //[`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"} `, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
                 [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
                 [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"} `, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
                 [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"} `, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, "Click here to reset."],
@@ -1076,6 +1098,7 @@ Please run them again to send your data.`
             if (userSettings.isDeveloper) {
                 const devArr =
                     [["DEV.resetTutorials", () => {
+                        if (!confirm("This will reset all tutorials. Are you sure?")) return
                         Object.keys(tutorialLevels).forEach(x => {
                             Game.deleteFromLocal(x)
                         })
@@ -1112,7 +1135,8 @@ Please run them again to send your data.`
                     height: userSettings.biggerButtons ? 140 : 80,
                     width: 400
                 },
-                [optionsButton], true, () => this.inspector.reset()
+                [optionsButton], true,
+                () => this.inspector.reset()
             )
             optionsMenu.menu.forEach(x => {
                 if (x.txt.includes("DEV.")) x.color = "lightorange"
@@ -1147,6 +1171,7 @@ Please run them again to send your data.`
             bottomButtonsBG.splitCol(.6, .1, 1, .1, .7, .1, .4)
                 .filter((_, i) => [0, 2, 4, 6].includes(i)), true
         )
+
         this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])
     }
 

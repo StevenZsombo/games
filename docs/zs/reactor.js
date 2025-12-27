@@ -309,7 +309,7 @@ Use the Export/Import features instead.`
         if (i > 0) this.inputRecords[i].color = "lightblue"
         if (!Reactor.SERVE_IN_EVEN_IF_NO_OUT && !this.pieces.find(x => x.type === Reactor.t.OUT)) return
         const input = this.inputs[i]?.map(x => new Rational(x))
-        if (!input) return
+        if (!input) return this.checkVictory()
         const inputPieces = this.pieces.filter(x => x.type === Reactor.t.IN)
         if (inputPieces.length == 0) return
         inputPieces.forEach(p => {
@@ -318,7 +318,6 @@ Use the Export/Import features instead.`
         })
         this.inputsServed.push(input)
         this.inputRecords[i + 1].color = "yellow"
-        this.checkVictory()
     }
     /**@param {Poly} poly  */
     receiveOutput(poly) {
@@ -421,7 +420,9 @@ Use the Export/Import features instead.`
                     moreButtonSettings: { color: "pink", fontSize: 24 }
                 }
             )
-            Supabase.addRow("poly", toBeSent, popupWhenDone)
+            let eventType = "poly"
+            if (Object.keys(prototypeLevels).includes(stgs.stage)) eventType = "proto"
+            Supabase.addRow(eventType, toBeSent, popupWhenDone)
         }
     }
     refreshButtons(...piecesOrPolys) {
@@ -687,7 +688,7 @@ Use the Export/Import features instead.`
 
     static contentHeightRatio = .6
     static contentWidthRatio = .6
-    static SERVE_IN_EVEN_IF_NO_OUT = true
+    static SERVE_IN_EVEN_IF_NO_OUT = true //best remain fixed.
 
 }
 //#endregion

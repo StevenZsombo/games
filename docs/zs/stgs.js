@@ -72,9 +72,7 @@ class Level {
         this.stepTime = 800
         this.level.conditions.saveOnCompletion = true //for consistency
         this.level.conditions.sendToServerOnCompletion = false //to avoid spam
-        this.celebrateComplete = () => {
-            //Game.saveToLocal(stgs.stage, [])
-        }
+        this.celebrateComplete = () => { }
     }
 
 }
@@ -93,11 +91,11 @@ var levels = Object.freeze({
             let y = x.map((u, i) => i ? u : new Rational(0))
             if (y.length == 1 && y[0].numerator == 0) y = []
             return y
-        }
+        }, { maxDegree: 4 }
     ),
     "degreetwo": new Level(
         "Return only the degree 2 term (if there is any).", null, x => x[2].numerator ? [new Rational(0), new Rational(0), x[2]] : [],
-        { minTerms: 3, minDegree: 1, maxDegree: 4 }
+        { minTerms: 3, minDegree: 1, maxDegree: 5 }
     ),
     "four": new Level(
         "Transform each polynomial to the constant 4.", null, x => [new Rational(4)]
@@ -109,6 +107,10 @@ var levels = Object.freeze({
     "divthree": new Level(
         "Your input is a contant - divide it by 3.", null,
         x => [x[0].copy.divideByInt(3)], { maxTerms: 1, maxDegree: 0, maxNumer: 20, maxDenom: 20 }
+    ),
+    "twothirds": new Level(
+        `Map each input to [2/3].`, null,
+        x => [new Rational(2, 3)]
     ),
     "constone": new Level(
         "Change the constant to 1.", null,
@@ -140,6 +142,11 @@ var levels = Object.freeze({
             const n = x[0].numerator
             return [new Rational(n * (n + 1) / 2)]
         }, { maxTerms: 1, maxNumer: 100, maxDegree: 0, maxDenom: 1, negativeChance: 0 }
+    ),
+    "ntothen": new Level(
+        "Your input is positive integer [n]. Return [n^n].", null,
+        x => [(n => n ** n)(x[0].toFloat())].map(x => new Rational(x)),
+        { maxTerms: 1, maxDegree: 0, maxDenom: 1, negativeChance: 0, maxNumer: 10 }
     ),
     "mult": new Level(
         "Multiply the input by (2x-1).", null, x => {
@@ -212,6 +219,16 @@ var levels = Object.freeze({
         }
     }
     ),
+    "tail": new Level(
+        "Discard all but the linear and constant terms.", null,
+        x => x.slice(0, 2),
+        { maxDegree: 4, minTerms: 2, maxTerms: 4 }
+    ),
+    "penta": new Level(
+        "Your input is [n]. Return the n-th pentagonal number,\nwhich is (3n^2-n)/2.", null,
+        x => [new Rational((n => 3 * n ** 2 - n)(x[0].numerator), 2)],
+        { maxDegree: 0, negativeChance: 0, maxNumer: 30, maxDenom: 1 }
+    ),
     "statattwo": new Level(
         "Return only the polynomials with a stationary point at x=2.",
         null, (x, i, a) => {
@@ -230,7 +247,7 @@ var levels = Object.freeze({
         }
     ),
     "twoonly": new Level(
-        "Keep only the input 2", null, (x, i, a) => {
+        "Keep only the input [2].", null, (x, i, a) => {
             if (Poly.computed(x).sumWith(Poly.computed([new Rational(-2)])).arr.length == 0) return x
         }, {
         func: () => Math.random() < .5 ? [new Rational(2)] : Poly.randomArrForPoly()
@@ -347,9 +364,9 @@ var levels = Object.freeze({
             numberOfInputs: 10,
             func: x => [new Rational(1)],
             funcOut: x => {
-                let approx = new Rational(4)
+                let approx = new Rational(8, 3)
                 let out = [[approx]]
-                for (let i = 1; i < 10; i++) {
+                for (let i = 2; i < 2 + 10 - 1; i++) {
                     approx = Rational.sumOfTwo(approx, new Rational((-1) ** i * 4, 2 * i + 1))
                     out.push([approx])
                 }
@@ -439,11 +456,18 @@ var levels = Object.freeze({
             numberOfInputs: 10
         }, { allowEarlyWin: true }
     ),
-
-
     "factorial": new Level(
         "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
         { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
+    ),
+    "divtwelve": new Level(
+        "Your input is [n]. Return it only if it is a multiple of 12.", null,
+        x => x[0].numerator % 12 ? null : x,
+        {
+            func: () => [new Rational(Math.random() > .45 ? 12 * MM.randomInt(1, 60) : MM.randomInt(1, 800))],
+            minimumOutput: 2, maximumOutput: 8, numberOfInputs: 10
+        }
+
     )
 
 
@@ -464,7 +488,6 @@ If something goes wrong, press the "Reset inputs" button in the right-upper corn
         , null, x => x, { numberOfInputs: 4 },
         {
             toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: () => Reactor.SERVE_IN_EVEN_IF_NO_OUT = false
         }
     ),
     "REMOVE": new Level(
@@ -603,7 +626,7 @@ You can click the Speed buttons to increase/decrease game speed or to pause comp
             }
         }
     ),
-    "INT": new Level(
+    "INT1": new Level(
         `
         
 You can integrate using INT.
@@ -615,6 +638,18 @@ This means that INT maps [0] to [1].
         , [[0, 0, 1], [1, 0, 3], [-2, 1], [2], [0]], x => Poly.computed(x).takeIntegral().arr,
         { minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4 },
         { toolsRestrictedTo: "IN OUT DER INT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial }
+    ),
+    "INT2": new Level(
+        `
+Your input is a constant.
+
+Divide it by 2 using RAISE, INT, and LEAD.
+`
+        , [[2], [8], [11], [-7], [new Rational(5, 3)]], x => [new Rational(x[0]).divideByInt(2)],
+        { numberOfInputs: 5 }, {
+        toolsRestrictedTo: "IN OUT RAISE LOWER LEAD CONST DER INT UP DOWN LEFT RIGHT".split(" "),
+        rows: 3, cols: 3, on_start: Level.tutorial
+    }
     ),
     "LEAD": new Level(
         `LEAD returns the leading coefficient.
@@ -704,7 +739,7 @@ Negative constants pass through freely. Everything else is consumed.
         , [[7], [2], [0], [new Rational(-1, 2)], [new Rational(1, 2)], [2, -4, 1]], x => Poly.computed(x).takePower(), {},
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT POW SUBS".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[2, 0, "IN"], [2, 0, "UP"], [0, 0, "POW"], [0, 0, "RIGHT"], [0, 2, "DOWN"], [2, 2, "OUT"]]`) }
+            on_start_more: function () { this.fromJSON(`[[2,0,"IN"],[2,0,"UP"],[0,0,"POW"],[0,0,"RIGHT"],[0,2,"DOWN"]]`) }
         }
     ),
     "POW2": new Level(
@@ -739,7 +774,7 @@ You can feed it inputs in either order.
         , {},
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT POW SUBS".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[1,0,"IN"],[1,2,"SUBS"],[1,2,"DOWN"],[1,0,"RIGHT"],[2,0,"OUT"],[2,2,"LEFT"]]`) }
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[0,2,"SUBS"],[0,2,"DOWN"],[0,0,"RIGHT"]]`) }
         }
     ),
     "SUM1": new Level(
@@ -766,7 +801,10 @@ Use SUM to output the sum of each pair of inputs.
     "SUM2": new Level(
         `Double each input.`, [[7], [12], [0, 0, -3], [1, 0, -8, 0, 0, 4]],
         x => Poly.computed(x).sumWith(Poly.computed(x)), {},
-        { toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial, }
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: function () { this.fromJSON(`[[2,0,"IN"],[1,1,"IN"],[0,0,"SUM"]]`) }
+        }
     ),
     "DOOR1": new Level(
         `
@@ -779,7 +817,7 @@ The visitor is only allowed to pass through if the key is [0].
         , {},
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[1,2,"DOOR"],[2,0,"OUT"],[0,2,"DOWN"],[2,2,"LEFT"]]`) }
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[0,2,"DOOR"],[0,2,"DOWN"]]`) }
         }
     ),
     "DOOR2": new Level(
@@ -806,15 +844,39 @@ Horizontal movement is transformed to vertical, and vice versa.
         }
     ),
     "COPY2": new Level(
-        `You can easily make infinite loops with COPY.`
-        , [[1]], null,
+        `
+You can easily make infinite loops with COPY.
+
+Notice how I only used the first input.
+If you always keep at least one polynomial active, then IN will not send the next one.
+For infinite problems, it is up to you how many inputs you use.
+        `
+        , [[1], [999999], [999999], [999999]], null,
         {
             minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4,
             funcOut: x => Array(8).fill().map(x => [new Rational(1)])
         },
         {
-            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT TAKE COPY".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            rows: 3, cols: 3, on_start: Level.tutorial,
             on_start_more: function () { this.fromJSON(`[[0,1,"IN"],[2,0,"OUT"],[0,2,"LEFT"],[0,1,"DOWN"],[1,1,"COPY"],[1,2,"UP"],[1,0,"DOWN"]]`) }
+        }
+    ),
+    "COPY3": new Level(
+        `
+Create an infinite loop with COPY.
+Make each loop RAISE the input to
+generate the geometric sequence [x], [x^2], [x^3], ... .
+        `
+        , [[1], [999999], [999999], [999999]], null,
+        {
+            minTerms: 3, maxTerms: 3, minDegree: 0, maxDegree: 2, numberOfInputs: 4,
+            funcOut: x => Array(8).fill().map((x, i) => Poly.computed([new Rational(i + 1)]).takePower().arr)
+        },
+        {
+            toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT RAISE LOWER COPY TAKE".split(" "),
+            rows: 3, cols: 3, on_start: Level.tutorial, on_start_more: function () {
+                this.level.conditions.allowEarlyWin = true
+            }
         }
     )
 
@@ -837,6 +899,7 @@ var prototypeLevels = {
     "fliplead": new Level(
         "Replace the leading term's coefficient with its reciprocal.", null,
         x => x.map((u, i, a) => i == a.length - 1 ? new Rational(u.denominator, u.numerator) : u),
+        { minTerms: 2 }
     ),
     "flipall": new Level(
         "Replace each coefficient with its reciprocal.", null,
@@ -857,9 +920,9 @@ var prototypeLevels = {
         }, { minimumOutput: 2, maximumOutput: 8 }
     ),
     "sign": new Level(
-        "Return the sign of the constant term. (So 1 if positive, \n 0 if zero, and -1 if negative.)", null,
+        "Return the sign of the given constant.\n(So 1 if positive, 0 if zero, and -1 if negative.)", null,
         /**@param {Rational[]} x */(x, i, a) => [new Rational(x[0].isPositive ? 1 : x[0].isZero ? 0 : -1)],
-        { maxDegree: 1, maxTerms: 2, minTerms: 2 }
+        { maxDegree: 0, maxTerms: 1, minTerms: 1 }
     ),
 
     "diffoftwo": new Level(
@@ -891,13 +954,13 @@ var prototypeLevels = {
         }
     ),
     "accum": new Level(
-        "Accumulate the sum of all inputs so far", null,
+        "Accumulate the sum of all inputs so far.", null,
         /**@param {Rational[]} x @param {Rational[][]} a  */(x, i, a) => {
             return [new Rational(a.slice(0, i + 1).reduce((s, t) => Rational.sumOfTwo(s, t[0]), new Rational(0)))]
         }, { maxTerms: 1, maxDegree: 0, maxDenom: 0, negativeChance: 0, maxNumer: 12 }
     ),
     "fibonacci": new Level(
-        "Generate the Fibonacci sequence", null, null,
+        "Your inputs are all [1]. Generate the Fibonacci sequence.", null, null,
         {
             numberOfInputs: 10,
             func: x => [new Rational(1)],
@@ -910,6 +973,11 @@ var prototypeLevels = {
             }
         }
     ),
+    "floor": new Level(
+        `Your input is positive constant a. Return floor(a), \nthe greatest integer not greater than a.`,
+        null, x => [Math.floor(x[0].toFloat())].map(x => new Rational(x)),
+        { maxTerms: 1, maxDegree: 0, negativeChance: 0, maxNumer: 300, minDenom: 2, maxDenom: 10 }
+    )
 
 }
 //#endregion

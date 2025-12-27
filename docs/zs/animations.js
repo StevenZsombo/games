@@ -95,7 +95,7 @@ class Animator {
 			anim.repeat -= 1
 			anim.init = false //for true repetition
 			anim.time = anim.totTime
-			anim.on_repeat?.()
+			anim.on_repeat?.(anim.obj)
 			anim.animate() //no lost frame
 			return [anim]
 			//breaks out of the function: no chains happen on rep.
