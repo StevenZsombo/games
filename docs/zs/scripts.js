@@ -751,9 +751,14 @@ class Inspector extends Button {
 			this.subject && (Date.now() - this.hoverStartTime > this.HOVER_AFTER_TIME)
 		) {
 			this.visible = true
-			this.topat(this.game.mouser.y + 20)
-			this.rightat(this.game.mouser.x - 10)
+			const { x, y } = this.game.mouser.pos
+			this.topat(y + 15)
+			this.rightat(x - 10)
 			this.fitThisWithinAnotherRect(this.game.rect)
+			if (this.collidepoint(x, y)) {
+				this.bottomat(y - 15)
+				this.fitThisWithinAnotherRect(this.game.rect)
+			}
 			this.txt = this.subject.hoverText
 		} else {
 			this.visible = false

@@ -1053,7 +1053,7 @@ Please run them again to send your data.`
             const firstbg = rows?.[0]?.children?.[0]
 
             this.animator.add_anim(Anim.custom(firstbg, 500, (t, obj) => {
-                obj.rad = (t - .5) * .6
+                obj.rad = Math.sin(t * TWOPI) * .4
             }, "rad",
                 { repeat: 10 }))
             rows[0].children[0].color = "purple"

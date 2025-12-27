@@ -349,7 +349,7 @@ Use the Export/Import features instead.`
             if (this.inputsServed.length == this.inputs.length) {
                 //const cp = new Level(null, null, null, this.level.genRules, this.level.conditions)
                 //this.loadLevel(cp)
-                this.loadLevel(this.level)
+                if (this.polys.length == 0) this.loadLevel(this.level)
                 return
             }
         }

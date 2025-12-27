@@ -5,8 +5,6 @@ Feature changes:
 Increased base step speed 600 => 400 ms
 Incorrect outputs now replace the expected one.
 Reduced the number of randomized input sheets required to win 3=>2, and they are now progressively faster (8x=>16x,24x)
-2025.12.24.
-Outputs now have empty rows when appropriate. - REVERTED. Broke too many puzzles.
 
 
 **************************************************************************************************
@@ -49,4 +47,4 @@ Fireworks drop framerate considerably.
 Hover tooltips do not prioritize buttons on the top. - FIXED
 2025.12.28.
 "manyones" input 7 freezes notably. (8 would freeze for several seconds, 9 would crash). - TBD (might crash weaker devices?)
-Tooltips may cover the cursor when near the bottom.
+Tooltips may cover the cursor when near the bottom. - FIXED
