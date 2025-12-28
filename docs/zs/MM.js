@@ -113,6 +113,7 @@ class MM {
         }
         screen.globalAlpha = 1
     }
+    //#endregion
     //#region MM.drawEllipse
     static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
         screen.globalAlpha = 1 - opacity
@@ -131,7 +132,7 @@ class MM {
         }
         screen.globalAlpha = 1
     }
-
+    //#endregion
     //#region MM.drawLine
     static drawLine(ctx, x, y, u, w, { color = "black", width = 5 } = {}) {
         //ctx.save()
@@ -143,7 +144,7 @@ class MM {
         ctx.stroke()
         //ctx.restore()
     }
-
+    //#endregion
     static drawLinePos(ctx, pt1, pt2, { color = "black", width = 5 } = {}) {
         MM.drawLine(ctx, pt1.x, pt1.y, pt2.x, pt2.y, { color, width })
     }
@@ -162,7 +163,7 @@ class MM {
         screen.stroke()
         screen.restore()
     }
-
+    //#endregion
     static coordToPlotScreenInternalPos(x, y, minX, maxX, minY, maxY, rect) {
         const drawX = (x - minX) / (maxX - minX) * rect.width
         const drawY = (1 - (y - minY) / (maxY - minY)) * rect.height
@@ -235,8 +236,9 @@ class MM {
             screen.restore()
         }
     }
+    //#endregion
 
-
+    //#region MM.drawText
     static drawText(screen, txtorarr, rect, {
         fontSize = 12, font = "Times", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle", fontEmphasis = "",
@@ -263,7 +265,9 @@ class MM {
         }
         screen.restore()
     }
+    //#endregion
 
+    //#region MM.drawImage
     /*drawImage(image, dx, dy)
     drawImage(image, dx, dy, dWidth, dHeight)
     drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)*/
@@ -288,6 +292,7 @@ class MM {
         )
         opacity && screen.restore()
     }
+    //#endregion
 
     static drawRotated(screen, obj, rad, drawFunc, drawFuncArgs = []) {
         //obj needs to have a center
@@ -667,6 +672,20 @@ class MM {
         }
     }
 
+    static scan(arrayOrGenerator, predicate, defaultValue) {
+        const generator = arrayOrGenerator[Symbol.iterator]()
+        const acc = []
+        let i = 0
+        let latest = null
+        for (let item of generator) {
+            if (i === 0 && defaultValue !== undefined) latest = defaultValue
+            latest = predicate(latest, item, i, arrayOrGenerator)
+            acc.push(latest)
+            i++
+        }
+        return acc
+    }
+
     static * permutations(arr, nrWanted, c = [], u = new Set()) {
         if (nrWanted === 0) yield c;
         else for (const [i, v] of arr.entries())
@@ -929,7 +948,31 @@ class MM {
             ? `rgb(255,${Math.floor(255 * (1 + v))},${Math.floor(255 * (1 + v))})`
             : `rgb(${Math.floor(255 * (1 - v))},${Math.floor(255 * (1 - v))},255)`
     }
-    //#endregion
+
+    /**@param {Array<Array<string>>} strArrArr  */
+    static table(strArrArr, labels, spacing = 2) {
+        if (!strArrArr || strArrArr.length == 0 || strArrArr[0].length == 0) return ""
+        const strings = strArrArr.map(row => row.map(String))
+        const connector = Array(spacing).fill(" ").join("")
+        const longestLengths = (labels ?? strings[0]).map(x => x.length)
+        strings.forEach(row => row.forEach((x, i) => {
+            if (x.length > longestLengths[i]) longestLengths[i] = x.length
+        }))
+        let res = strings.map(row =>
+            row.map((x, i) => String(x).padEnd(longestLengths[i])).join(connector)
+        ).join("\n")
+        if (labels) {
+            const divisorLine = Array((longestLengths.length - 1) * spacing + longestLengths.reduce((s, t) => s + t)).fill("-").join("")
+            res =
+                labels.map((x, i) => String(x).padEnd(longestLengths[i])).join(connector)
+                + "\n" + divisorLine
+                + "\n" + res
+        }
+        return res
+
+    }
+
+
 
 }
 //#endregion
@@ -1111,6 +1154,7 @@ class GameEffects {
         b.width = sizeFrac[0] * W
         b.height = sizeFrac[1] * H
         b.centerat(posFrac[0] * W, posFrac[1] * H)
+        b.isBlocking = true
         b.tag = "popup"
         Object.assign(b, moreButtonSettings)
         const movement = {
@@ -1119,21 +1163,23 @@ class GameEffects {
             left: [-(posFrac[0] + sizeFrac[0]) * W, 0],
             right: [(1 - posFrac[0] + sizeFrac[0]) * W, 0]
         }[direction]
-        /**@type {Array<Anim>} */
-        const seq = []
-        seq.push(new Anim(b, travelTime, Anim.f.moveFromRel, {
+        const floatIn = new Anim(b, travelTime, Anim.f.moveFromRel, {
             dx: movement[0], dy: movement[1]
-        }))
-        seq.push(Anim.delay(floatTime))
-        seq.push(new Anim(b, travelTime, Anim.f.moveToRel, {
+        })
+        const floatDelay = Anim.delay(floatTime)
+        let notYetClosed = true
+        const floatOut = new Anim(b, travelTime, Anim.f.moveToRel, {
             dx: movement[0], dy: movement[1],
+            ditch: true,
             on_end: () => {
-                game.remove_drawable(b)
-                on_end?.()
+                notYetClosed && game.remove_drawable(b)
+                notYetClosed && on_end?.()
+                notYetClosed = false
             }
-        }))
+        })
+        b.close = () => game.animator.add_anim(floatOut)
         game.add_drawable(b, 7)
-        game.animator.add_sequence(...seq)
+        game.animator.add_sequence(floatIn, floatDelay, floatOut)
 
 
 

@@ -594,7 +594,7 @@ class Supabase {
 
 	static async readAllWins(callback) {
 		try {
-			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameEvents?select=name,stage_text`, {
+			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_public_view?select=name,stage_text`, {
 				headers: {
 					apikey: Supabase.SUPABASE_KEY,
 					Authorization: `Bearer ${Supabase.SUPABASE_KEY}`

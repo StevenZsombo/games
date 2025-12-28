@@ -707,15 +707,21 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
     static statistics() {
         const victories = Game.victoryListLocal()
         const res =
-            `Tutorials completed: ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
-            }/${Object.keys(tutorialLevels).length
-            }\nPuzzles completed: ${Object.keys(levels).filter(x => victories.includes(x)).length
+            `Puzzles completed: ${Object.keys(levels).filter(x => victories.includes(x)).length
             }/${Object.keys(levels).length
-            }`
+            }\nTutorials completed: ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
+            }/${Object.keys(tutorialLevels).length
+            }\nPrototypes completed: ${Object.keys(prototypeLevels).filter(x => victories.includes(x)).length
+            }/${Object.keys(prototypeLevels).length
+            }\nBroken module challenges completed: ${Object.keys(brokenLevels).filter(x => victories.includes(x)).length
+            }/${Object.keys(brokenLevels).length}`
 
-        GameEffects.popup(res, {
-            posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 3000,
-            moreButtonSettings: { color: "yellow", fontSize: 30 }
+        const pop = GameEffects.popup(res, {
+            posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 6000,
+            moreButtonSettings: {
+                color: "yellow", fontSize: 30, isBlocking: true,
+                on_release: () => pop.close()
+            }
         })
         return res
     }
@@ -723,9 +729,11 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         const victories = Game.victoryListLocal()
         const res =
             `You: ` +
-            `${name}: ` +
+            `${name.padEnd(32)} ` +
             `${Object.keys(levels).filter(x => victories.includes(x)).length}` +
-            ` (+ ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length} tutorials)`
+            `\n\n     (+ ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length} tutorials,` +
+            ` ${Object.keys(prototypeLevels).filter(x => victories.includes(x)).length} prototypes,` +
+            ` ${Object.keys(brokenLevels).filter(x => victories.includes(x)).length} broken module challenges)`
         return res
     }
 
@@ -911,12 +919,15 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
             .stretch(.9, .9)
         big.transparent = true
         big.fontSize = 32
+        big.font_font = 'monospace'
         big.textSettings = { textAlign: "left", textBaseline: "top" }
         big.txt = "Initializing..."
         this.add_drawable(big)
+        this.bigLBB = big
         const myName = Supabase.acquireName().name
         const checkMyWins = (completions) => {
             const serverWins = completions[myName]
+            if (!serverWins) return
             const myWins = Game.victoryListLocal().filter(x => levels[x])
             const missing = myWins.filter(x => !serverWins.has(x))
             if (missing.length) {
@@ -925,7 +936,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
 ${MM.reshape(missing, 5).map(x => x.join(", ")).join("\n")}.
 Please run them again to send your data.`
                     , {
-                        posFrac: [.5, .8], sizeFrac: [.9, .2], floatTime: 5000,
+                        posFrac: [.5, .8], sizeFrac: [.9, .2], floatTime: 8000,
                         moreButtonSettings: { color: "red", fontSize: 40, font_font: "monospace" }
                     })
                 console.log("Missing:", missing)
@@ -933,12 +944,29 @@ Please run them again to send your data.`
                 console.log("Your victories are fully synced.")
             }
         }
+        let board = []
+        let currentDisplayStart = 0
+        const display = (start) => {
+            start ??= currentDisplayStart
+            start = start < 0 ? 0 : start > board.length ? board.length - (board.length % topNr) : start
+            currentDisplayStart = start
+            console.log("displaying", currentDisplayStart + 1, "to", currentDisplayStart + topNr)
+            const slice = board.slice(start, start + topNr)
+            while (slice.length < topNr) slice.push(null)
+            big.txt = //`Puzzles solved (out of ${Object.keys(levels).length}) `
+                `Rank ` + `Name`.padEnd(32) + ` Levels completed`
+                + "\n" + Array(54).fill("-").join("") + "\n"
+                + slice.join("\n")
+                + "\n\n"
+                + Game.statisticsSelfLeaderboard(myName)
+
+        }
         const doAttempt = () => {
             big.txt = "Loading..."
             Supabase.readAllWins()
                 .catch((error) => {
                     console.log(error, this)
-                    big.txt = "Failed to load the leaderboards."
+                    big.txt = "Failed to load the leaderboards.\nCheck your internet connection then try to refresh."
                 }).then((table) => {
                     const completions = table.reduce((s, t, i, a) => {
                         if (s[t.name]) { (s[t.name]).add(t.stage_text) }
@@ -951,17 +979,14 @@ Please run them again to send your data.`
                             [player, [...wins.values().filter(x => levels[x])].length]
                     )
                     scores.sort((x, y) => y[1] - x[1])
-                    const board = scores.slice(0, topNr).map(
-                        ([player, wins]) =>
-                            `${player}: ${wins} `
-                    ).join("\n")
-                    console.log(board)
-                    big.txt = `Puzzles solved (out of ${Object.keys(levels).length}) `
-                        + "\n----------------------------\n"
-                        + board
-                        + "\n\n"
-                        + Game.statisticsSelfLeaderboard(myName)
-
+                    const places = []
+                    scores.map(x => x[1]).forEach((x, i, a) => places.push(i === 0 ? 1 : places.at(-1) + (x != a[i - 1])))
+                    console.table(scores.map((x, i) => ({ name: x[0], score: x[1], place: places[i] })))
+                    board = scores.map(
+                        ([player, wins], i) =>
+                            `${("#" + places[i]).padEnd(4, " ")} ${player.padEnd(32)} ${wins} `
+                    )
+                    display()
                 })
         }
         doAttempt()
@@ -985,6 +1010,20 @@ Please run them again to send your data.`
         }
         back.hover_color = "lightblue"
         this.backToMenuButton = back
+
+        const pageUp = refreshB.copy
+        pageUp.width *= .7
+        pageUp.height *= .8
+        pageUp.rightat(refreshB.right)
+        pageUp.move(0, -pageUp.height * 5.2)
+        const pageDown = pageUp.copy
+        pageDown.move(0, pageDown.height * 1.2)
+        pageUp.txt = "Page up"
+        pageDown.txt = "Page down"
+        pageUp.on_release = () => (currentDisplayStart -= topNr, display())
+        pageDown.on_release = () => (currentDisplayStart += topNr, display())
+
+        this.add_drawable([pageDown, pageUp])
 
     }
     //#endregion
@@ -1086,7 +1125,7 @@ Please run them again to send your data.`
             height: 100,
             transparent: true,
             txt: "Select level (the short buttons are tutorials):",
-            //dynamicText: () => `${game.mouser.x}, ${game.mouser.y}`,
+            //dynamicText: () => `${ game.mouser.x }, ${ game.mouser.y } `,
             fontSize: 36,
             x: 50,
             y: 0,
