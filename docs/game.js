@@ -241,7 +241,7 @@ class Game extends GameCore {
         infoButton.leftat(lvlButtons[0].left)
         infoButton.textSettings = { textAlign: "left" }
         infoButton.width = (lvlButtons[sq - 1].right - lvlButtons[0].left) * .6
-        infoButton.fontSize = 48
+        infoButton.fontSize = 36
         const tutorialsButton = Button.fromRect(infoButton.copyRect)
         tutorialsButton.width *= .5
         tutorialsButton.move(tutorialsButton.width * (2 + 1 / 3), 0)
@@ -252,7 +252,7 @@ class Game extends GameCore {
         }
         tutorialsButton.hover_color = "lightblue"
         tutorialsButton.txt = "Tutorials"
-        tutorialsButton.fontSize = 48
+        tutorialsButton.fontSize = 36
         tutorialsButton.resize(tutorialsButton.width, lvlButtons[0].height)
 
         this.add_drawable(tutorialsButton)
@@ -395,7 +395,7 @@ class Game extends GameCore {
             stgs.latestSelectorType = pageManager.levelSelector
             main()
         }
-        backButton.fontSize = 40
+        backButton.fontSize = 36
         backButton.txt = "Back to puzzles"
         backButton.resize(500, 100)
         infoButton.txt = "Free play (choose input type):"
@@ -1095,7 +1095,7 @@ Please run them again to send your data.`
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
-            this.animator.add_anim(Anim.stepper(firstbg, 500, "rad", 0, 1, { lerp: Anim.l.wave, repeat: 10 }))
+            this.animator.add_anim(Anim.stepper(firstbg, 500, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 10 }))
             rows[0].children[0].color = "purple"
 
         }
@@ -1126,7 +1126,7 @@ Please run them again to send your data.`
         })
         manualButton.textSettings = {}
         manualButton.transparent = false
-        manualButton.fontSize = 40
+        manualButton.fontSize = 36
         manualButton.txt = "Manual"
         manualButton.on_release = () => {
             window.open("Manual.pdf")
