@@ -926,8 +926,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         this.bigLBB = big
         const myName = Supabase.acquireName().name
         const checkMyWins = (completions) => {
-            const serverWins = completions[myName]
-            if (!serverWins) return
+            const serverWins = completions[myName] ?? new Set()
             const myWins = Game.victoryListLocal().filter(x => levels[x])
             const missing = myWins.filter(x => !serverWins.has(x))
             if (missing.length) {
