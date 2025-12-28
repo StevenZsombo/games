@@ -244,7 +244,7 @@ class MM {
         //"center left", "middle top" defined only
     } = {}) {
         screen.save()
-        fontSize *= window.devicePixelRatio || 1
+        fontSize /= window.devicePixelRatio || 1
         screen.textAlign = textAlign
         const drawTextStartX = textAlign == "left" ? rect.x : rect.centerX
         screen.textBaseline = textBaseline
@@ -1196,7 +1196,7 @@ class GameEffects {
         const menu = textList.map((x, i) => new Button({
             color: "pink",
             hover_color: "fuchsia",
-            fontSize: 24,
+            fontSize: 36,
             ...moreButtonSettings,
             txt: x,
             tag: "dropDown",

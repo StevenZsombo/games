@@ -64,7 +64,7 @@ class Game extends GameCore {
             height: 120,
             color: "moccasin",
             outline: 3,
-            fontSize: 24,
+            fontSize: 30,
             //textSettings: { textBaseline: "top" }
         }), game)
 
@@ -224,7 +224,7 @@ class Game extends GameCore {
                 x.hover_color = "green"
             }
             else { x.hover_color = "lightblue" }
-            x.fontSize = 36
+            x.fontSize = 48
             x.font_font = "monospace"
             x.on_release = () => {
                 stgs.stage = levelList[i]
@@ -239,7 +239,7 @@ class Game extends GameCore {
         infoButton.leftat(lvlButtons[0].left)
         infoButton.textSettings = { textAlign: "left" }
         infoButton.width = (lvlButtons[sq - 1].right - lvlButtons[0].left) * .6
-        infoButton.fontSize = 36
+        infoButton.fontSize = 48
         const tutorialsButton = Button.fromRect(infoButton.copyRect)
         tutorialsButton.width *= .5
         tutorialsButton.move(tutorialsButton.width * (2 + 1 / 3), 0)
@@ -250,7 +250,7 @@ class Game extends GameCore {
         }
         tutorialsButton.hover_color = "lightblue"
         tutorialsButton.txt = "Tutorials"
-        tutorialsButton.fontSize = 36
+        tutorialsButton.fontSize = 48
         tutorialsButton.resize(tutorialsButton.width, lvlButtons[0].height)
 
         this.add_drawable(tutorialsButton)
@@ -465,7 +465,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             b.on_click = () => {
                 this.animator.speedMultiplier = [null, 0, .25, 1, 2, 8][i]
             }
-            b.fontSize = 18
+            b.fontSize = 24
         })
         Button.make_radio(speedButtons.slice(1), true)
         speedButtons[3].on_click()
@@ -675,7 +675,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
 
         GameEffects.popup(res, {
             posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 3000,
-            moreButtonSettings: { color: "yellow", fontSize: 28 }
+            moreButtonSettings: { color: "yellow", fontSize: 30 }
         })
         return res
     }
@@ -779,7 +779,7 @@ If you wish to turn this feature off, you may do so in the Options menu.`
         }
             ;
         [welcome, okay].forEach((x) => {
-            x.fontSize = 36
+            x.fontSize = 40
             this.add_drawable(x)
         })
 
@@ -799,11 +799,11 @@ Would you like to join the online leaderboards ?
 
 Have fun.
     Best, Steven`
-        welcome.fontSize = 36
+        welcome.fontSize = 40
         welcome.transparent = true
         const [no, details, yes] = lower.splitCol(1, 1, 1)
             .map(x => Button.fromRect(x, {
-                fontSize: 36
+                fontSize: 40
             }))
             .map(x => x.stretch(.85, .5))
 
@@ -837,7 +837,7 @@ Name of the puzzle.
 Your solution to the puzzle.
 
 The data will be stored on a public server,
-    anyone with the know - how might be able to read it.
+anyone with the know-how might be able to read it.
 
 This data will also get published on the leaderboards, or to highlight unique solutions.
 
@@ -868,7 +868,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         const big = Button.fromRect(this.rect.copy)
             .stretch(.9, .9)
         big.transparent = true
-        big.fontSize = 24
+        big.fontSize = 40
         big.textSettings = { textAlign: "left", textBaseline: "top" }
         big.txt = "Initializing..."
         this.add_drawable(big)
@@ -929,7 +929,7 @@ Please run them again to send your data.`
         refreshB.bottomat(this.HEIGHT - 50)
         refreshB.rightat(this.WIDTH - 50)
         refreshB.txt = "Refresh"
-        refreshB.fontSize = 36
+        refreshB.fontSize = 40
         refreshB.on_release = doAttempt.bind(this)
         refreshB.hover_color = "lightblue"
         this.add_drawable(refreshB)
@@ -1005,7 +1005,7 @@ Please run them again to send your data.`
             b.width = tutorial ? 120 : 200
             b.outline = 3
             b.font_font = "monospace"
-            b.fontSize = 26
+            b.fontSize = 40
             b.on_release = () => {
                 stgs.stage = str
                 main()
@@ -1044,7 +1044,7 @@ Please run them again to send your data.`
             height: 100,
             transparent: true,
             txt: "Select level (the short buttons are tutorials):",
-            fontSize: 32,
+            fontSize: 40,
             x: 50,
             y: 0,
             textSettings: { textAlign: "left" }
@@ -1068,12 +1068,12 @@ Please run them again to send your data.`
         rows.flatMap(x => x.children).forEach(x => (x.visible = false, x.interactable = false))
         this.animator.add_staggered(rows, 100,
             Anim.custom(null, 100, function (t, obj) {
-                obj.children.forEach(x => (x.height = t * 55, x.visible = true, x.fontSize = 26 * t))
+                obj.children.forEach(x => (x.height = t * 55, x.visible = true, x.fontSize = 40 * t))
             }, [], {
                 on_end: (obj) => obj.children.forEach(x => {
                     x.visible = true
                     x.height = 55
-                    x.fontSize = 26
+                    x.fontSize = 40
                     x.interactable = true
                 })
             }), { initialDelay: 100 })
@@ -1086,7 +1086,7 @@ Please run them again to send your data.`
         })
         manualButton.textSettings = {}
         manualButton.transparent = false
-        manualButton.fontSize = 40
+        manualButton.fontSize = 48
         manualButton.txt = "Manual"
         manualButton.on_release = () => {
             window.open("Manual.pdf")
