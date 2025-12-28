@@ -91,6 +91,8 @@ class Game extends GameCore {
             case pageManager.leaderboardsPage:
                 this.leaderboardsShow()
                 break;
+            case pageManager.brokenButtonChallenges:
+                this.brokenButtonChallenges()
             case "blank":
                 break;
 
@@ -386,24 +388,26 @@ class Game extends GameCore {
     //#endregion
     //#region freeSelector
     freeSelector() {
-        const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } =
+        const { sq, infoButton, lvlButtons, tutorialsButton: backButton, lvlButtonsBG } =
             this.makeGridOfLevels(Object.keys(window.freeLevels))
-        tutorialsButton.on_release = () => {
+        backButton.on_release = () => {
             stgs.stage = pageManager.levelSelector
             stgs.latestSelectorType = pageManager.levelSelector
             main()
         }
-        tutorialsButton.txt = "Back to puzzles"
-        tutorialsButton.resize(500, 100)
+        backButton.fontSize = 40
+        backButton.txt = "Back to puzzles"
+        backButton.resize(500, 100)
         infoButton.txt = "Free play (choose input type):"
         lvlButtons.forEach(x => {
             x.spread(this.WIDTH / 2, this.HEIGHT, 1, 0.4)
             x.move(0, -550)
             x.stretch(1, .4)
             x.color = "lightgray"
+            x.fontSize = 36
         })
         const lowerInfoButton = infoButton.copy
-        lowerInfoButton.txt = `Untested prototypes (might be impossible). 
+        lowerInfoButton.txt = `Untested prototypes (they might be impossible). 
 If you solve any of these, you'll be rewarded with some chocolate (come to Room 203).`
         const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
         game.remove_drawable(tut2)
@@ -413,11 +417,12 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             x.stretch(1, .5)
             x.move(0, 500)
             x.color = x.color.includes("green") ? x.color : "lightgray"
+            x.fontSize = 36
         })
         lowerInfoButton.bottomat(proButtons[0].top - 50)
         lowerInfoButton.leftat(proButtons[0].left)
         this.add_drawable(lowerInfoButton)
-        this.tutorialsButton = tutorialsButton
+        this.tutorialsButton = backButton
         const lowerBg = new Button()
         lowerBg.outline = 0
         lowerBg.topat(lowerInfoButton.top - 20)
@@ -426,10 +431,47 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         lowerBg.centeratX(this.WIDTH / 2)
         lowerBg.color = "lightpink"
 
+        const brokenButton = backButton.copy
+        brokenButton.move(-brokenButton.width - 50, 0)
+        brokenButton.txt = "Broken module challenges"
+        this.animator.add_anim(Anim.stepper(brokenButton, 500, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 6 }))
+        brokenButton.color = "lightsalmon"
+        brokenButton.hover_color = "salmon"
+        brokenButton.on_release = () => {
+            stgs.stage = pageManager.brokenButtonChallenges
+            stgs.latestSelectorType = pageManager.brokenButtonChallenges
+            main()
+        }
+
+        brokenButton.centeratX(this.WIDTH / 2)
+        brokenButton.bottomat(this.HEIGHT - 30)
+
+        this.add_drawable(brokenButton)
         this.add_drawable(lowerBg, 4)
     }
     //#endregion
+    //#region brokenButtonChallenges
+    brokenButtonChallenges() {
+        const { sq, infoButton, lvlButtons, tutorialsButton: backButton, lvlButtonsBG } =
+            this.makeGridOfLevels(Object.keys(window.brokenLevels))
+        backButton.on_release = () => {
+            stgs.stage = pageManager.freeSelector
+            stgs.latestSelectorType = pageManager.freeSelector
+            main()
+        }
+        backButton.fontSize = 40
+        backButton.txt = "Back to free play & prototypes"
+        backButton.resize(500, 100)
+        infoButton.txt = "Broken module challenges. Untested, some might be impossible.\nChocolate rule applies."
+        infoButton.fontSize = 32
+        lvlButtons.forEach(x => {
+            // x.spread(this.WIDTH / 2, this.HEIGHT / 2, 1.4, 1)
 
+            x.color = "lightgray"
+            x.fontSize = 36
+        })
+    }
+    //#endregion
 
     //#region makeLevel
     testLevel(level) {
@@ -445,6 +487,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
                 ?? tutorialLevels[stgs.stage]
                 ?? freeLevels[stgs.stage]
                 ?? prototypeLevels[stgs.stage]
+                ?? brokenLevels[stgs.stage]
         if (!level) throw "Requested level does not exist."
 
         const reactor = new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
@@ -563,9 +606,10 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             this.lastHit = hit
             this.ghosts && this.remove_drawables_batch(...this.ghosts)
             if (!hit) {
-                this.currentDraggingList.forEach(x =>
+                this.currentDraggingList.forEach(x => {
                     this.reactor.removePiece(x)
-                )
+                    this.inspector.removeChild(x.button)
+                })
                 this.currentDraggingList.length = 0
                 this.lastHit = null
                 this.firstHit = null
@@ -605,9 +649,9 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
     dropDownEnd() {
         // this.destroyedMenuAlready = true//awkward: make me click twice
         this.remove_drawables_batch(this.menu)
+        this.menu?.forEach(x => this.inspector.removeChild(x))
         this.menu = null
         this.reactor.buttonsMatrix.flat().forEach(x => x.color = "white")
-        this.inspector.reset()
     }
 
     dropDown(button, cols = 2) {
@@ -634,16 +678,6 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             isBlocking: true
         }))
         menu.forEach((x, i) => x.move(0, i * x.height))
-        /*const del = menu[0].copy
-        del.on_release = () => reactor.removePiecesAt(...button.tag)
-        //del.move(0, menu.at(-1).height)
-        del.txt = "Delete this"
-        menu.push(del)
-        const delAll = menu[0].copy
-        delAll.on_release = () => reactor.pieces.forEach(x => reactor.removePiece(x))
-        delAll.txt = "Delete all"
-        menu.push(delAll)*/
-        //for del + delAll replace the zero below
         const boxheight = (0 + availableTools.length / cols) * 40 * (1 + userSettings.biggerButtons)
         const box = new Rect(
             this.mouser.x + 10, this.mouser.y + 10,
@@ -654,6 +688,12 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
         if (userSettings.hoverTooltips)
             menu.forEach(x => this.inspector.addChild(x, Reactor.description[x.type]))
+        reactor.level?.conditions.toolsDisabled?.forEach(x => {
+            const b = menu.find(u => u.type == x)
+            b.color = "red"
+            b.hover_color = null
+            b.hoverText = "UNAVAILABLE"
+        })
 
 
         this.add_drawable(menu, 8)
@@ -1055,10 +1095,7 @@ Please run them again to send your data.`
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
-            this.animator.add_anim(Anim.custom(firstbg, 500, (t, obj) => {
-                obj.rad = Math.sin(t * TWOPI) * .4
-            }, "rad",
-                { repeat: 10 }))
+            this.animator.add_anim(Anim.stepper(firstbg, 500, "rad", 0, 1, { lerp: Anim.l.wave, repeat: 10 }))
             rows[0].children[0].color = "purple"
 
         }
@@ -1163,14 +1200,16 @@ Please run them again to send your data.`
         }
 
         const freeButton = manualButton.copy
+        freeButton.hover_color = "lightblue"
         freeButton.on_release = () => {
             stgs.stage = pageManager.freeSelector
             stgs.latestSelectorType = pageManager.freeSelector
             main()
         }
-        freeButton.txt = "Free play & prototypes"
+        freeButton.txt = "Free play, prototypes, challenges"
 
         const leaderboardsButton = manualButton.copy
+        leaderboardsButton.hover_color = "lightblue"
         leaderboardsButton.txt = "Leaderboards"
         leaderboardsButton.on_release = () => {
             stgs.stage = pageManager.leaderboardsPage

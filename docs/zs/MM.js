@@ -239,7 +239,7 @@ class MM {
 
     static drawText(screen, txtorarr, rect, {
         fontSize = 12, font = "Times", color = "black", opacity = 0,
-        textAlign = "center", textBaseline = "middle",
+        textAlign = "center", textBaseline = "middle", fontEmphasis = "",
         spacing = 1.2
         //"center left", "middle top" defined only
     } = {}) {
@@ -251,7 +251,7 @@ class MM {
         screen.textBaseline = textBaseline
         //const f = font.split("px")
         //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
-        screen.font = `${fontSize}px ${font}`
+        screen.font = `${fontEmphasis} ${fontSize}px ${font}`
         screen.fillStyle = color
         screen.globalAlpha = 1 - opacity
 

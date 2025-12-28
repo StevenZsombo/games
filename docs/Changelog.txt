@@ -5,6 +5,8 @@ Feature changes:
 Increased base step speed 600 => 400 ms
 Incorrect outputs now replace the expected one.
 Reduced the number of randomized input sheets required to win 3=>2, and they are now progressively faster (8x=>16x,24x)
+2025.12.28.
+Added Broken module challenges. (Untested.)
 
 
 **************************************************************************************************
@@ -16,7 +18,7 @@ TAKE now also has double functionality:
 -TAKE [non-constant] still removes ("takes") the leading term and returns what remains.
 -TAKE [constant] now takes reciprocal.
 -TAKE [0] is of course consumed.
-IN can now push inputs even if OUT is not present (can be disabled in options menu).
+IN can now push inputs even if OUT is not present.
 
 Early victories (for filtering problems) are no longer possible - all inputs must be processed. For infinite problems this is not necessary.
 
@@ -33,7 +35,7 @@ Keyboard shorcuts added. 1-5 for speed, R to restart, WASD to move all modules, 
 Tooltips added.
 2025.12.26.
 Undo + redo (Ctrl+Z, Ctrl+Y) added.
-Touchscreen support.
+Touchscreen support added.
 
 
 

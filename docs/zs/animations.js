@@ -204,7 +204,7 @@ class Anim {
 		return t
 	}
 
-	static l = {
+	static l = Object.freeze({
 		reverse: t => 1 - t,
 		smoothstep: t => 3 * t ** 2 - 2 * t ** 3,
 		smootherstep: t => t * t * t * (t * (6 * t - 15) + 10),
@@ -215,9 +215,10 @@ class Anim {
 		sin: t => Math.sin(t * NINETYDEG),
 		cos: t => Math.cos(t * NINETYDEG),
 		sinFull: t => Math.sin(t * PI),
-		cosFull: t => Math.cos(t * PI)
+		cosFull: t => Math.cos(t * PI),
+		wave: t => Math.sin(t * TWOPI)
 
-	}
+	})
 
 	static f = {
 		scaleFromFactor: "scaleFromFactor",
@@ -504,6 +505,7 @@ class Anim {
 		this.animate()
 		//will never be called again
 	}
+
 
 	rotate() {//BIG TODO? seems useless tho
 		//startRad OR endRad on Anim (not on obj)

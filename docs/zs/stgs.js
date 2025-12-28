@@ -666,12 +666,12 @@ You can click the Speed buttons to increase/decrease game speed or to pause comp
         {
             toolsRestrictedTo: "IN OUT DER INT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
             /**@this {Reactor}*/on_start_more: function () {
-                console.log("asd")
+                this.fromJSON(`[[0,0,"IN"]]`)
                 this.game.animator.add_anim(Anim.custom(this.game.speedButtons.at(-1), 600,
                     function (t, obj) {
                         obj.color = t < .5 ? "blue" : "gray"
-                        //obj.resize(this.orig.width * (1 + t / 2 * .1), this.orig.height * (1 + t / 2 * .1))
-                    }, "x y width height color", { repeat: 12 }))
+                        obj.rad = Anim.l.wave(t) * .4
+                    }, "rad color", { repeat: 12 }))
             }
         }
     ),
@@ -905,7 +905,7 @@ The visitor is only allowed to pass through if the key is [0].
         , {},
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT LEAD CONST SUM DOOR".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[2,0,"IN"]]`) }
+            on_start_more: function () { this.fromJSON(`[[1,0,"IN"],[2,0,"IN"],[2,2,"UP"],[1,2,"UP"],[0,2,"LEFT"]]`) }
         }
     ),
     "COPY1": new Level(
@@ -972,6 +972,28 @@ var freeLevels = {
     "pos. integer inputs": new Level(null, null, x => null, { minimumOutput: 0, maxDegree: 0, maxTerms: 1, maxDenom: 1, maxNumer: 20, negativeChance: 0 }, { saveOnCompletion: false, isFreePlay: true }),
     "many terms inputs": new Level(null, null, x => null, { minimumOutput: 0, minTerms: 2, maxTerms: 4 }, { saveOnCompletion: false, isFreePlay: true }),
     "all [1] input": new Level(null, null, x => null, { minimumOutput: 0, func: () => [new Rational(1)] }, { saveOnCompletion: false, isFreePlay: true })
+}
+//#endregion
+
+//#region brokenLevels
+const makeBrokenLevel = (module, rule = null, genRules = {}, conditions = {}) => {
+    if (typeof rule === 'string') {
+        const ruleFunctionName = rule
+        rule = x => Poly.computed(x)[ruleFunctionName]()
+    }
+    return new Level(`The ${module} module is broken. Recreate its effect.`, null, rule, genRules, { toolsDisabled: [module], ...conditions })
+}
+// "RAISE LOWER DER INT LEAD CONST DEG NEG TAKE"
+var brokenLevels = {
+    "xDER": makeBrokenLevel("DER", "takeDerivative"),
+    "xINT": makeBrokenLevel("INT", "takeIntegral"),
+    "xDEG": makeBrokenLevel("DEG", "takeDegree"),
+    "xLEAD": makeBrokenLevel("LEAD", "takeLead"),
+    "xCONST": makeBrokenLevel("CONST", "takeConst"),
+    "xTAKE": makeBrokenLevel("TAKE", "takeTake"),
+    "xRAISE": makeBrokenLevel("RAISE", "takeRaise"),
+    "xLOWER": makeBrokenLevel("LOWER", "takeLower"),
+    "xNEG": makeBrokenLevel("NEG", "takeNeg")
 }
 //#endregion
 //#region prototypeLevels
@@ -1076,6 +1098,7 @@ const pageManager = Object.freeze({
     freeSelector: -4,
     askForOnlinePermissionOnce: -5,
     leaderboardsPage: -6,
+    brokenButtonChallenges: -7
     //levelSelectorFancy: -11
 })
 //#endregion

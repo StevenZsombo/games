@@ -2,6 +2,7 @@
     "html.validate.enable": false,
     "html.suggest.html5": false,
     "files.exclude": {
+        ".history": true,
         ".hintrc": true,
         "final.code-workspace": true,
         "favicon.png": true,

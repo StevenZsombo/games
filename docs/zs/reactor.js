@@ -235,6 +235,7 @@ Use the Export/Import features instead.`
         instructionButton.txt = this.instructions
         instructionButton.fontSize = 32
         instructionButton.font_font = "monospace"
+        // instructionButton.textSettings.fontEmphasis = "bold"
         if (!this.levelRelated)
             this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
 
@@ -422,6 +423,7 @@ Use the Export/Import features instead.`
             )
             let eventType = "poly"
             if (Object.keys(prototypeLevels).includes(stgs.stage)) eventType = "proto"
+            if (Object.keys(brokenLevels).includes(stgs.stage)) eventType = "broken"
             Supabase.addRow(eventType, toBeSent, popupWhenDone)
         }
     }
@@ -580,6 +582,10 @@ Use the Export/Import features instead.`
             type = x.type
             y = x.y
             x = x.x
+        }
+        if (this.level?.conditions.toolsDisabled?.includes(type)) {
+            this.POPUP(`Module ${type} is unavailable.`)
+            return
         }
         if (!Reactor.t[type]) console.error("invalid type")
         if (!ReactorPiece[type]) console.error("type not yet implemented")

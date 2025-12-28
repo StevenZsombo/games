@@ -444,7 +444,7 @@ class Button extends Clickable {
 		this.dynamicText = null //can be any function; might be bad practice, as it is called as part of the draw function isntead of update but whatevs
 		this.fontSize = 24
 		this.font_color = "black"
-		this.font_font = "Times"
+		this.font_font = "serif"
 		this.fontScale = 1
 		this.textSettings = {}
 		this.outline = 2
@@ -770,6 +770,7 @@ class Inspector extends Button {
 		//child.on_enter = null
 		child.on_leave = null
 		child.hoverText = undefined
+		this.deactivate(child)
 		this.children.delete(child)
 	}
 	reset() {
@@ -825,18 +826,18 @@ class Plot {
 		this.axes_color = "plum"//"deeppink",//"fuchsia",
 		this.axes_width = 3
 		this.show_axes_labels = true
-		this.axes_labels_font = "24px Times"
+		this.axes_labels_font = "24px serif"
 		this.show_dotting = true
 		this.dottingDistance = [1, 1]
 		this.show_grid = true
 		this.grid_width = 1
 		this.grid_color = "lightgray"
 		this.show_border_values = true
-		this.show_border_values_font = "12px Times"
+		this.show_border_values_font = "12px serif"
 		this.show_border_values_dp = 2
 		this.highlightedPoints = [] //
 		this.label_highlighted = true
-		this.label_highlighted_font = "24px Times"
+		this.label_highlighted_font = "24px serif"
 		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true
