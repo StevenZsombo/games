@@ -204,6 +204,7 @@ class Mouser {
 		this.boundingRect = this.canvas.getBoundingClientRect()
 		this.scaleX = this.canvasRect.width / this.boundingRect.width
 		this.scaleY = this.canvasRect.height / this.boundingRect.height
+
 	}
 	whereAmI(e) {
 		const x = (e.clientX - this.boundingRect.left) * this.scaleX
@@ -217,7 +218,6 @@ class Mouser {
 	}
 
 	addListeners(canvas) {
-
 		const pointermove = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
@@ -232,10 +232,11 @@ class Mouser {
 			this.blockNextClick = false
 			this.down = true //updates nevertheless? might be an issue
 			this.lastClickedTime = Date.now()
-			//e.shiftKey, e.ctrlKey //true or false
-			//button = 0 or 2
-			//for some reason clicking both simultaneously does sweet FA
+			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.setPointerCapture(e.pointerId) }
 		}
+		//e.shiftKey, e.ctrlKey //true or false
+		//button = 0 or 2
+		//for some reason clicking both simultaneously does sweet FA
 		const pointerup = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
@@ -244,11 +245,11 @@ class Mouser {
 			this._blockNextRelease = false
 			this.down = false
 			this.lastReleasedTime = Date.now()
+			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.releasePointerCapture(e.pointerId) }
 		}
 		const pointercancel = (e) => {
 			e.preventDefault()
 			e.stopPropagation()
-			this.released = !this._blockNextRelease
 		}
 		const wheel = (e) => {
 			e.preventDefault()

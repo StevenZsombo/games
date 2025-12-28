@@ -244,7 +244,8 @@ class MM {
         //"center left", "middle top" defined only
     } = {}) {
         screen.save()
-        fontSize /= window.devicePixelRatio || 1
+        // fontSize /= window.devicePixelRatio || 1
+        // fontSize /= game?.mouser?.scaleX || 1
         screen.textAlign = textAlign
         const drawTextStartX = textAlign == "left" ? rect.x : rect.centerX
         screen.textBaseline = textBaseline
@@ -1172,50 +1173,50 @@ class GameEffects {
         //on_end && setTimeout(on_end, seconds * 1000)
     }
     /**
-     * @param {Object<string,function>} objTextAndOnClick
+     * @param {Object<string,function>} objTextAndOnRelease
      * @param {Rect|null} backgroundRect 
      * @param {number|null} gridRows 
      * @param {number|null} gridColumns 
      * @param {Button} moreButtonSettings 
-     * @param {Button|Array<Button>} overridenButtons
+     * @param {Button|Array<Button>} alsoClosingButtons
      * @param {Boolean} addCloseButton 
      * @param {function} on_close
      */
-    static dropDownMenu(objTextAndOnClick, backgroundRect = null, gridRows = null, gridColumns = 1,
-        moreButtonSettings = {}, overridenButtons = null, addCloseButton = true, on_close = null
+    static dropDownMenu(objTextAndOnRelease, backgroundRect = null, gridRows = null, gridColumns = 1,
+        moreButtonSettings = {}, alsoClosingButtons = null, addCloseButton = true, on_close = null
     ) {
-        const textList = Object.keys(objTextAndOnClick)
-        const on_clickList = Object.values(objTextAndOnClick)
+        const textList = Object.keys(objTextAndOnRelease)
+        const on_clickList = Object.values(objTextAndOnRelease)
 
+        const origOnReleases = [];
         const result = {}
         result.close = () => {
-            game.remove_drawables_batch(menu)
+            game.remove_drawables_batch(menu);
+            [...alsoClosingButtons].forEach((b, i) => b.on_release = origOnReleases[i])
             on_close?.()
         }
         //add logic here: if menu already exists then delete it
         const menu = textList.map((x, i) => new Button({
             color: "pink",
             hover_color: "fuchsia",
-            fontSize: 36,
+            fontSize: 32,
             ...moreButtonSettings,
             txt: x,
             tag: "dropDown",
-            on_click: () => (on_clickList?.[i]?.(), game.mouser.blockNextRelease(), result.close()),
+            on_release: () => (on_clickList?.[i]?.(), result.close()),
             isBlocking: true,
         }))
         if (addCloseButton) {
             const closeButton = menu[0].copy
             closeButton.txt = "Close"
-            closeButton.on_click = () => (game.mouser.blockNextRelease(), result.close())
+            closeButton.on_release = () => result.close()
             menu.push(closeButton)
         }
-        [].concat(overridenButtons).forEach(b => {
-            const origOnClick = b.on_click
-            b.on_click = function () {
-                result.close()
-                this.on_click = origOnClick
-                this.on_click?.()
-            }
+        ;
+        [...alsoClosingButtons].forEach(b => {
+            origOnReleases.push(b.on_release)
+            b.on_release = result.close
+
         }
         )
 

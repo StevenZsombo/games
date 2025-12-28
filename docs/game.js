@@ -625,9 +625,9 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             txt: x,
             type: x,
             color: Reactor.isMovementType(x) ? "plum" : "pink",
-            on_click: () => {
+            on_release: () => {
                 reactor.addPiece(...button.tag, x)
-                this.mouser.blockNextRelease()
+                //this.mouser.blockNextRelease()
                 this.dropDownEnd()
             },
             hover_color: "fuchsia",
@@ -762,9 +762,11 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         const welcome = Button.fromRect(upper)
         //welcome.textSettings = { textAlign: "left", textBaseline: "top" }
         welcome.txt =
-            `This game saves and sends each of your victories to a public server,
-    and automatically adds your name and results to a public leaderboard.
-If you wish to turn this feature off, you may do so in the Options menu.`
+            `
+This game saves and sends each of your victories to a public server,
+and automatically adds your name and results to a public leaderboard.
+If you wish to turn this feature off, you may do so in the Options menu.
+`
         welcome.transparent = true
         welcome.stretch(.8, .4)
         const okay = Button.fromRect(lower)
@@ -803,7 +805,7 @@ Have fun.
         welcome.transparent = true
         const [no, details, yes] = lower.splitCol(1, 1, 1)
             .map(x => Button.fromRect(x, {
-                fontSize: 40
+                fontSize: 32
             }))
             .map(x => x.stretch(.85, .5))
 
@@ -868,7 +870,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         const big = Button.fromRect(this.rect.copy)
             .stretch(.9, .9)
         big.transparent = true
-        big.fontSize = 40
+        big.fontSize = 32
         big.textSettings = { textAlign: "left", textBaseline: "top" }
         big.txt = "Initializing..."
         this.add_drawable(big)
@@ -981,7 +983,7 @@ Please run them again to send your data.`
             COPY2 COPY3 allint allodd geometric golden sqrttwo powersoftwo
             pi last abs e factorials linmax everyother factorial`
                 .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
-
+        const LEVEL_BUTTON_FONTSIZE = 30
         const getLevelButton = (str) => {
             let tutorial = false
             let level = levels[str]
@@ -1005,7 +1007,7 @@ Please run them again to send your data.`
             b.width = tutorial ? 120 : 200
             b.outline = 3
             b.font_font = "monospace"
-            b.fontSize = 40
+            b.fontSize = LEVEL_BUTTON_FONTSIZE
             b.on_release = () => {
                 stgs.stage = str
                 main()
@@ -1044,7 +1046,8 @@ Please run them again to send your data.`
             height: 100,
             transparent: true,
             txt: "Select level (the short buttons are tutorials):",
-            fontSize: 40,
+            //dynamicText: () => `${game.mouser.x}, ${game.mouser.y}`,
+            fontSize: 36,
             x: 50,
             y: 0,
             textSettings: { textAlign: "left" }
@@ -1068,12 +1071,12 @@ Please run them again to send your data.`
         rows.flatMap(x => x.children).forEach(x => (x.visible = false, x.interactable = false))
         this.animator.add_staggered(rows, 100,
             Anim.custom(null, 100, function (t, obj) {
-                obj.children.forEach(x => (x.height = t * 55, x.visible = true, x.fontSize = 40 * t))
+                obj.children.forEach(x => (x.height = t * 55, x.visible = true, x.fontSize = LEVEL_BUTTON_FONTSIZE * t))
             }, [], {
                 on_end: (obj) => obj.children.forEach(x => {
                     x.visible = true
                     x.height = 55
-                    x.fontSize = 40
+                    x.fontSize = LEVEL_BUTTON_FONTSIZE
                     x.interactable = true
                 })
             }), { initialDelay: 100 })
@@ -1086,7 +1089,7 @@ Please run them again to send your data.`
         })
         manualButton.textSettings = {}
         manualButton.transparent = false
-        manualButton.fontSize = 48
+        manualButton.fontSize = 40
         manualButton.txt = "Manual"
         manualButton.on_release = () => {
             window.open("Manual.pdf")
@@ -1099,10 +1102,10 @@ Please run them again to send your data.`
         optionsButton.on_release = () => {
             const arr = [
                 [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"} `, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
-                //[`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"} `, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
+                //[`IN works without OUT: ${ Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF" } `, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
                 [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
                 [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"} `, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
-                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"} `, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, "Click here to reset."],
+                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"} `, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, `Click here to reset.`],
                 ["Statistics", Game.statistics, "How many puzzles did you solvet yet?"],
             ]
             if (userSettings.isDeveloper) {
@@ -1145,7 +1148,8 @@ Please run them again to send your data.`
                     height: userSettings.biggerButtons ? 140 : 80,
                     width: 400
                 },
-                [optionsButton], true,
+                [optionsButton], //overlay is not yet defined.
+                true,
                 () => this.inspector.reset()
             )
             optionsMenu.menu.forEach(x => {
@@ -1157,6 +1161,7 @@ Please run them again to send your data.`
 
             })
         }
+
         const freeButton = manualButton.copy
         freeButton.on_release = () => {
             stgs.stage = pageManager.freeSelector

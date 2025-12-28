@@ -391,11 +391,8 @@ class Clickable extends Rect {
 		if (!this.interactable || x === null || y === null) { //if not interactable then return
 			return false
 		}
-		const pos = {
-			x: x,
-			y: y
-		}
-		let within = this.collidepoint(x, y) || (this._drag_force_within && this.last_clicked)
+		const pos = { x, y }
+		let within = this.collidepoint(x, y) || (this._drag_force_within) //could demand this is the last_clicked
 		//will be declared as true while dragging
 		if (within) {
 			this.on_hover?.(pos)
@@ -746,9 +743,7 @@ class Inspector extends Button {
 	}
 	update() {
 		if (
-			!this.game.mouser.held
-			&&
-			this.subject && (Date.now() - this.hoverStartTime > this.HOVER_AFTER_TIME)
+			this.subject
 		) {
 			this.visible = true
 			const { x, y } = this.game.mouser.pos

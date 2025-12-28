@@ -2,6 +2,12 @@
 //#region window.onload
 window.onload = function () {
     const canvas = document.getElementById("myCanvas")
+    const screen = canvas.getContext("2d")
+    screen.imageSmoothingQuality = univ.imageSmoothingQuality
+    screen.imageSmoothingEnabled = univ.imageSmoothingEnabled
+    canvas.style.imageRendering = univ.canvasStyleImageRendering
+    //canvas.tabIndex = 0
+    //canvas.focus()
     document.body.style.overflow = 'hidden';
     canvas.style.touchAction = 'none'
     canvas.style.userSelect = 'none'
@@ -26,12 +32,6 @@ window.onload = function () {
     )
 
 
-    const screen = canvas.getContext("2d")
-    screen.imageSmoothingQuality = univ.imageSmoothingQuality
-    screen.imageSmoothingEnabled = univ.imageSmoothingEnabled
-    canvas.style.imageRendering = univ.canvasStyleImageRendering
-    //canvas.tabIndex = 0
-    //canvas.focus()
     beforeMain(canvas)
 }
 //#endregion

@@ -123,7 +123,7 @@ Use the Export/Import features instead.`
     POPUP(str, time = 2000, on_end = null) {
         const p = GameEffects.popup(
             str,
-            { floatTime: time, moreButtonSettings: { fontSize: 24 }, on_end: on_end },
+            { floatTime: time, moreButtonSettings: { fontSize: 28 }, on_end: on_end },
             GameEffects.popupPRESETS.topleftPink)
         p.stretch(1.2, 1)
     }
@@ -206,7 +206,7 @@ Use the Export/Import features instead.`
         allRecords.forEach((x, i) => {
             Button.make_latex(x)
             x.color = "white"
-            x.imgScale = 1.8
+            x.imgScale = 1.6
             x.tag = "records"
         })
 
@@ -233,7 +233,7 @@ Use the Export/Import features instead.`
         instructionButton.rightstretchat(this.buttonsMatrix[0].at(-1).right)
         instructionButton.centerat(instructionButton.centerX, this.buttonsMatrix[0][0].top / 2)
         instructionButton.txt = this.instructions
-        instructionButton.fontSize = 28
+        instructionButton.fontSize = 32
         instructionButton.font_font = "monospace"
         if (!this.levelRelated)
             this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
@@ -269,7 +269,7 @@ Use the Export/Import features instead.`
             obj["DEV.unlockSpeed"] = () => this.stepTime = 5
             obj["DEV.addSheets"] = this.stressTest.bind(this)
         }
-        controlButtons[1].on_click = () => {
+        controlButtons[1].on_release = () => {
             const menu = GameEffects.dropDownMenu(
                 obj,
                 new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
@@ -417,7 +417,7 @@ Use the Export/Import features instead.`
             const popupWhenDone = () => GameEffects.popup("Data sent to server.",
                 {
                     posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
-                    moreButtonSettings: { color: "pink", fontSize: 24 }
+                    moreButtonSettings: { color: "pink", fontSize: 30 }
                 }
             )
             let eventType = "poly"
@@ -753,6 +753,7 @@ class ReactorPiece {
             width: this.parent.width * ReactorPiece.widthRatio,
             height: this.parent.height * ReactorPiece.heightRatio,
             tag: "ReactonPieceButton",
+            fontSize: 28
         }))
         const isMovement = Reactor.isMovementType(this.type)
         /*this.button.on_click = function () { }

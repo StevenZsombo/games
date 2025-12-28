@@ -33,6 +33,7 @@ Keyboard shorcuts added. 1-5 for speed, R to restart, WASD to move all modules, 
 Tooltips added.
 2025.12.26.
 Undo + redo (Ctrl+Z, Ctrl+Y) added.
+Touchscreen support.
 
 
 
@@ -45,6 +46,7 @@ Known bugs:
 Fireworks drop framerate considerably.
 2025.12.26.
 Hover tooltips do not prioritize buttons on the top. - FIXED
-2025.12.28.
+2025.12.27.
 "manyones" input 7 freezes notably. (8 would freeze for several seconds, 9 would crash). - TBD (might crash weaker devices?)
 Tooltips may cover the cursor when near the bottom. - FIXED
+Tooltips do not show on touchscreens. - FIXED

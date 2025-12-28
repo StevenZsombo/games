@@ -65,7 +65,7 @@ class Level {
         this.instructionButton.rightstretchat(this.game.speedButtons.at(-1).right)
         this.instructionButton.topat(this.game.speedButtons.at(-1).bottom + 30)
         this.instructionButton.bottomstretchat(this.game.HEIGHT - 30)
-        this.instructionButton.fontSize = 30
+        this.instructionButton.fontSize = 32
         this.instructionButton.color = "lightgray"
         this.instructionButton.font_font = "Consolas"
         this.numberOfRandomSheets = 0
