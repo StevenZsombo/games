@@ -815,7 +815,8 @@ If you wish to turn this feature off, you may do so in the Options menu.
             userSettings.ALLOW_ONLINE_COLLECTION = true
             userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
             Supabase.acquireName()
-            location.reload()
+            univ.on_beforeunload() //pretend a reload
+            main()
         }
             ;
         [welcome, okay].forEach((x) => {

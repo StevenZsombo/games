@@ -65,7 +65,7 @@ class MM {
     }
 
     static drawTextSingleDepr(screen, txt, x, y, {
-        font = "12px Times", color = "black", opacity = 0,
+        font = "12px serif", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle" }) {
         screen.save()
         screen.textAlign = textAlign
@@ -175,7 +175,7 @@ class MM {
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3,
         show_axes = true, axes_color = "plum", axes_width = 3,
-        show_axes_labels = true, axes_labels_font = "24px Times",
+        show_axes_labels = true, axes_labels_font = "24px serif",
         show_dotting = true, dottingDistance = [1, 1], show_grid = true, grid_width = 1, grid_color = "lightgray",
         opacity = 0 } = {}) {
         density ??= rect.width
@@ -240,7 +240,7 @@ class MM {
 
     //#region MM.drawText
     static drawText(screen, txtorarr, rect, {
-        fontSize = 12, font = "Times", color = "black", opacity = 0,
+        fontSize = 12, font = "serif", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle", fontEmphasis = "",
         spacing = 1.2
         //"center left", "middle top" defined only
