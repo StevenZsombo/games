@@ -826,7 +826,7 @@ If you wish to turn this feature off, you may do so in the Options menu.
         })
 
     }
-    //#region askForOnlinePermissionsOnce
+    //#region askForOnlinePermissionsFull
     askForOnlinePermissionsFull(firstTime = true) {
         const [upper, lower] = this.rect.copy.splitRow(5, 3)
         const welcome = new Button()
