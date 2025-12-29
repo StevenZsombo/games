@@ -265,7 +265,7 @@ class Rect {
 
 	}
 	/**@param {Rect} other  */
-	fitThisWithinAnotherRect(other) {
+	fitWithinAnother(other) {
 		if (this.width > other.width) this.width = other.width
 		if (this.height > other.height) this.height = other.height
 		if (this.left < other.left) this.leftat(other.left)
@@ -749,10 +749,10 @@ class Inspector extends Button {
 			const { x, y } = this.game.mouser.pos
 			this.topat(y + 15)
 			this.rightat(x - 10)
-			this.fitThisWithinAnotherRect(this.game.rect)
+			this.fitWithinAnother(this.game.rect)
 			if (this.collidepoint(x, y)) {
 				this.bottomat(y - 15)
-				this.fitThisWithinAnotherRect(this.game.rect)
+				this.fitWithinAnother(this.game.rect)
 			}
 			this.txt = this.subject.hoverText
 		} else {

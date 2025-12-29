@@ -93,7 +93,7 @@ class Game extends GameCore {
                 break;
             case pageManager.brokenButtonChallenges:
                 this.brokenButtonChallenges()
-            case "blank":
+            case pageManager.blank:
                 break;
 
             default:
@@ -475,7 +475,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
 
     //#region makeLevel
     testLevel(level) {
-        stgs.stage = "blank"
+        stgs.stage = pageManager.blank
         main()
         game.makeLevel(level)
     }
@@ -684,7 +684,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             300,//reactor.width * .5 * cols,
             boxheight //reactor.height * .5 * Math.ceil(menu.length / cols)
         )
-        box.fitThisWithinAnotherRect(game.rect)
+        box.fitWithinAnother(game.rect)
         Rect.packArray(menu, box.splitGrid(Math.ceil(menu.length / cols), cols).flat(), true)
         if (userSettings.hoverTooltips)
             menu.forEach(x => this.inspector.addChild(x, Reactor.description[x.type]))
@@ -839,7 +839,7 @@ If you wish to turn this feature off, you may do so in the Options menu.
         const [upper, lower] = this.rect.copy.splitRow(5, 3)
         const welcome = new Button()
         welcome.textSettings = { textAlign: "left", textBaseline: "top" }
-        welcome.fitThisWithinAnotherRect(upper)
+        welcome.fitWithinAnother(upper)
         welcome.txt = `Welcome to my game!
         
 Would you like to join the online leaderboards ?
@@ -907,14 +907,14 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         }
 
         game.add_drawable([welcome, yes, details, example, no])
-        example.fitThisWithinAnotherRect(details.splitCell(4, 1, 5, 1, 1, 2))
-        details.fitThisWithinAnotherRect(details.splitCell(1, 1, 5, 1, 1, 2))
+        example.fitWithinAnother(details.splitCell(4, 1, 5, 1, 1, 2))
+        details.fitWithinAnother(details.splitCell(1, 1, 5, 1, 1, 2))
 
 
 
     }
     //#region leaderboardsShow
-    leaderboardsShow(topNr = 20) {
+    leaderboardsShow(topNr = 20, callback, showFullAnyways = false) {
         const big = Button.fromRect(this.rect.copy)
             .stretch(.9, .9)
         big.transparent = true
@@ -980,12 +980,21 @@ Please run them again to send your data.`
                     scores.sort((x, y) => y[1] - x[1])
                     const places = []
                     scores.map(x => x[1]).forEach((x, i, a) => places.push(i === 0 ? 1 : places.at(-1) + (x != a[i - 1])))
-                    console.table(scores.map((x, i) => ({ name: x[0], score: x[1], place: places[i] })))
+                    const leaderBoardFullInfo =
+                        scores.map((x, i) => ({ place: places[i], name: x[0], score: x[1], puzzles: Array.from(completions[x[0]]).join(",") }))
+                    // console.table(leaderBoardFullInfo)
+                    this.leaderBoardFullInfo = leaderBoardFullInfo
+                    if ((showFullAnyways || stgs.SHOW_FULL_LEADERBOARD) && leaderBoardFullInfo.length != 0) {
+                        const t = MM.table(leaderBoardFullInfo.map(x => Object.values(x)), Object.keys(leaderBoardFullInfo[0]))
+                        MM.newTabTextFile(t)
+                    }
                     board = scores.map(
                         ([player, wins], i) =>
                             `${("#" + places[i]).padEnd(4, " ")} ${player.padEnd(32)} ${wins} `
                     )
-                    display()
+                    // display(0)
+                    display() //preserve index
+                    callback?.()
                 })
         }
         doAttempt()
@@ -1101,7 +1110,7 @@ Please run them again to send your data.`
         })
         const bigBackground = this.rect.copy.deflate(100, 200)
         bigBackground.bottomstretchat(this.HEIGHT - 150)
-        rows.forEach(x => x.bg.fitThisWithinAnotherRect(bigBackground))
+        rows.forEach(x => x.bg.fitWithinAnother(bigBackground))
         refreshAll = () => {
             Rect.packCol(rows.map(x => x.bg), bigBackground, "justify")
             rows.forEach(x => Rect.packRow(x.children, x.bg, 30))
@@ -1183,6 +1192,14 @@ Please run them again to send your data.`
                 [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"} `, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, `Click here to reset.`],
                 ["Statistics", Game.statistics, "How many puzzles did you solvet yet?"],
             ]
+            if (stgs.ALLOW_EXPORT_IMPORT_ALL) {
+                const importExportMenu = () => GameEffects.dropDownMenu(
+                    [["Export ALL", Game.exportALL],
+                    ["Import ALL", Game.importAll]],
+                    null, null, null, { width: 400, height: 200 }, [optionsButton], true, () => { this.inspector.reset() }
+                )
+                arr.push(["Export/Import ALL", importExportMenu, "Export or import ALL your save data,\nallowing you to transfer them to a different device."])
+            }
             if (userSettings.isDeveloper) {
                 const devArr =
                     [["DEV.resetTutorials", () => {
@@ -1275,16 +1292,43 @@ Please run them again to send your data.`
 
     //#endregion
 
+    //#region import export
+    static exportALL() {
+        const { name, nameID } = Supabase.acquireName()
+        const keys = ["name", stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
+        const data = keys.map(x => [x, localStorage.getItem(x)])
+        MM.exportJSON(data, MM.lettersAndNumberOnly(`${name}_${nameID}`) + ".json", true)
+    }
+
+    static importAll() {
+        MM.importJSON(true).then(data => {
+            data.forEach(([key, value]) => {
+                if (value != null) localStorage.setItem(key, value)
+            })
+            Supabase.acquireName()
+            main()
+            GameEffects.popup("Imported successfully.")
+        }).catch(e => console.error("Import failed", e))
+    }
+
+
+
+    //#endregion
 
     //#endregion
 } //this is the last closing brace for class Game
 
 //#region dev options
 /// dev options
-const dev = {
+const dev = Object.freeze({
     showModules: () => {
         if (stgs.stage !== pageManager.levelSelector) return
         game.levelButtons.forEach(x => game.inspector.addChild(x, Game.loadFromLocalModuleList(x.tag)))
+    },
+    fullLeaderboard: () => {
+        stgs.stage = pageManager.blank
+        main()
+        game.leaderboardsShow(undefined, undefined, true)
     }
-}/// end of dev
+})/// end of dev
 

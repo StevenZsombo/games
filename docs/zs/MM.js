@@ -972,7 +972,67 @@ class MM {
 
     }
 
+    static lettersAndNumberOnly(str) {
+        return str.replace(/\W/g, '')
+    }
 
+    static exportJSON(data, filename = "data.json", alsoAlert = false) {
+        if (alsoAlert)
+            alert(`Your browser will now download a file called ${filename}.\nYou can later use this file to transfer all your data to a different device or browser.`)
+
+        const a = document.createElement("a")
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }))
+        a.download = filename
+        a.click()
+    }
+
+    static importJSON(alsoAlert = false) {
+        if (alsoAlert)
+            alert(`Your browser will now ask you to open a file.\nSelect a file you exported earlier to load in that data.`)
+
+        return new Promise((resolve, reject) => {
+            const input = document.createElement('input')
+            input.type = "file"
+            input.accept = ".json,application/json"
+            input.onchange = (ev) => {
+                const file = ev.target.files[0]
+                if (!file)
+                    return reject(new Error("No file selected"))
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    try {
+                        resolve(JSON.parse(e.target.result))
+                    } catch (error) {
+                        reject(new Error("Invalid JSON file"))
+                    }
+                }
+                reader.onerror = () => reject(new Error("Failed to read file"))
+                reader.readAsText(file)
+            }
+            input.oncancel = () => reject(new Error("File selection cancelled"))
+            input.click()
+        })
+    }
+
+    static newTabTextFile(str) {
+        const tab = window.open()
+        tab.document.write(`<pre style="font-family:monospace">${str}</pre>`)
+        tab.document.close()
+    }
+
+    static newTabHTML(html, title = "Game More!", preTagAlso = false) {
+        const tab = window.open('', '_blank');
+        tab.document.write(`
+<!DOCTYPE html>
+<html>
+<head><title>${title}</title></head>
+<body>
+${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
+</body>
+</html>
+`);
+        tab.document.close();
+    }
 
 }
 //#endregion
@@ -1231,9 +1291,9 @@ class GameEffects {
     static dropDownMenu(objTextAndOnRelease, backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = {}, alsoClosingButtons = null, addCloseButton = true, on_close = null
     ) {
+        if (Array.isArray(objTextAndOnRelease)) objTextAndOnRelease = Object.fromEntries(objTextAndOnRelease)
         const textList = Object.keys(objTextAndOnRelease)
         const on_clickList = Object.values(objTextAndOnRelease)
-
         const origOnReleases = [];
         const result = {}
         result.close = () => {
@@ -1273,7 +1333,7 @@ class GameEffects {
         backgroundRect.width ||= gridColumns * menu[0].width
         backgroundRect.height ||= gridRows * menu[0].height
         backgroundRect.topleftat(...where)
-        backgroundRect.fitThisWithinAnotherRect(game.rect)
+        backgroundRect.fitWithinAnother(game.rect)
         Rect.packArray(menu, backgroundRect.splitGrid(gridRows, gridColumns).flat(), true)
 
         game.add_drawable(menu, 8)

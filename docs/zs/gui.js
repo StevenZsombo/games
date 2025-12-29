@@ -213,7 +213,8 @@ class Mouser {
 		this.x = withinInfo.x
 		this.y = withinInfo.y
 		if (withinInfo.anyOut) {
-			this.released = !this._blockNextRelease
+			// this.released = !this._blockNextRelease
+			//do not want this.
 		}
 	}
 

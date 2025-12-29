@@ -1086,7 +1086,9 @@ var stgs = {
     localVictoriesName: "ZPkeys",
     localDataName: "ZPdatas",
     localUserSettingsName: "ZPsettings",
-    alreadyTriedAskingForClipboardPermission: false
+    alreadyTriedAskingForClipboardPermission: false,
+    ALLOW_EXPORT_IMPORT_ALL: true,
+    SHOW_FULL_LEADERBOARD: false
 
 }/// end of settings
 //#endregion
@@ -1098,8 +1100,8 @@ const pageManager = Object.freeze({
     freeSelector: -4,
     askForOnlinePermissionOnce: -5,
     leaderboardsPage: -6,
-    brokenButtonChallenges: -7
-    //levelSelectorFancy: -11
+    brokenButtonChallenges: -7,
+    blank: -999
 })
 //#endregion
 //#region userSettings
