@@ -816,6 +816,7 @@ If you wish to turn this feature off, you may do so in the Options menu.
             userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
             Supabase.acquireName()
             univ.on_beforeunload() //pretend a reload
+            stgs.stage = pageManager.levelSelector
             main()
         }
             ;
