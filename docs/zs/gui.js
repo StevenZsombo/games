@@ -574,7 +574,7 @@ class Supabase {
 	static async addRow(event, data, callback) {
 		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
 		try {
-			await fetch(`${SUPABASE_URL}/rest/v1/gameEvents`, {
+			const sent = await fetch(`${SUPABASE_URL}/rest/v1/gameEvents`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -588,6 +588,7 @@ class Supabase {
 			})
 			console.log("Sent to server", event, data)
 			callback?.(event, data)
+			return sent
 		} catch (e) {
 			console.error("Failed to write", event, data)
 		}

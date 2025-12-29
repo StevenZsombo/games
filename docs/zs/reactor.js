@@ -60,7 +60,7 @@ class Reactor {
             GameEffects.popup(
                 `You have completed this level once already.
 You need to win to overwrite that save.
-Use the Export/Import features instead.`
+Use the Share/Receive features instead.`
             )
             return
         }
@@ -83,7 +83,7 @@ Use the Export/Import features instead.`
         const str = JSON.stringify(this.toJSON())
         try {
             navigator.clipboard.writeText(str)
-            this.POPUP("Modules copied to the clipboard.\nUse to load later or share with a friend.")
+            this.POPUP("Modules copied to the clipboard.\nUse it to share with a friend.")
         } catch (error) {
             this.POPUP(
                 `Failed to copy to clipboard.\nPlease copy by hand.`, 1000,
@@ -112,12 +112,12 @@ Use the Export/Import features instead.`
     _interactiveImportFromJSON(str) {
         try {
             this.fromJSON(str, false, true)
-            this.POPUP("Imported successfully.", 1000)
+            this.POPUP("Loaded successfully.", 1000)
         } catch (error) {
             this.POPUP(
-                `Failed to import.\n` +
+                `Failed to load.\n` +
                 `Import data ${!str || str == "" ? "is missing from the clipboard." : "on the clipboard is corrupted"}.`)
-            console.error("Failed to import", error)
+            console.error("Failed to load", error)
         }
     }
     POPUP(str, time = 2000, on_end = null) {
@@ -258,8 +258,8 @@ Use the Export/Import features instead.`
         })
         controlButtons[1].txt = "Settings"
         const obj = {
-            "Export": this.grab.bind(this),
-            "Import": this.give.bind(this),
+            "Share": this.grab.bind(this),
+            "Receive": this.give.bind(this),
             "Restart level": main,
             "Save": this.saveTemp.bind(this),
             "Delete save": this.deleteTempOrPerm.bind(this)
@@ -275,8 +275,18 @@ Use the Export/Import features instead.`
                 obj,
                 new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
                 { height: 60 * (1 + userSettings.biggerButtons) },
-                [controlButtons[1], this.game.overlay])
-            menu.menu.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "bisque")
+                [controlButtons[1], this.game.overlay], true,
+                () => { this.game.inspector.removeChild(menu.menuButtons) })
+            menu.menuButtons.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "bisque")
+            const tooltips = [
+                "Copy your module configuration to the clipboard.\nPressing Ctrl+C does the same.",
+                "Load in module configuration from the clipboard.\nPressing Ctrl+V does the same.",
+                "Restart level by restoring to the saved state.\nPressing Ctrl+Z a lot does the same.",
+                "Save your progress.",
+                "Delete your latest save."
+
+            ]
+            menu.menuButtons.slice(0, -1).forEach((x, i) => this.game.inspector.addChild(x, tooltips[i]))
         }
         this.inputBG = inputBG
         this.outputBG = outputBG
@@ -415,18 +425,23 @@ Use the Export/Import features instead.`
                 stage: stgs.stage,
                 data: data
             }
-            const popupWhenDone = () => GameEffects.popup("Data sent to server.",
-                {
-                    posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
-                    moreButtonSettings: { color: "pink", fontSize: 30 }
-                }
-            )
+            const alsoRefresh = true
+            const popupWhenDone = () => {
+                GameEffects.popup("Data sent to server.",
+                    {
+                        posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
+                        moreButtonSettings: { color: "pink", fontSize: 30 }
+                    }
+                )
+                if (alsoRefresh) Supabase.readAllWins(true)
+            }
             let eventType = "poly"
             if (Object.keys(prototypeLevels).includes(stgs.stage)) eventType = "proto"
             if (Object.keys(brokenLevels).includes(stgs.stage)) eventType = "broken"
             Supabase.addRow(eventType, toBeSent, popupWhenDone)
         }
     }
+
     refreshButtons(...piecesOrPolys) {
         piecesOrPolys ??= this.polys.concat(this.pieces)
         piecesOrPolys.forEach(x => {

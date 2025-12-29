@@ -655,7 +655,7 @@ class MM {
     }
     /**@param {Iterable} iterable - Converts an iterable to a generator.*/
     static * toGenerator(iterable) {
-        yield* iterable
+        yield* iterable //whatever this is is super neat
     }
     /**
      * @param {Array | Generator} arrayOrGenerator 
@@ -1042,11 +1042,11 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
      */
     static timeCachedFunction(func, time = 60 * 1000, isLogging = false) {
         const origFunc = func
-        let lastCalled = 0
+        let lastCalledAt = 0
         let lastCached = null
         return function (forcedRefresh = false) {
-            if (forcedRefresh || (Date.now() - lastCalled > time)) {
-                lastCalled = Date.now()
+            if (forcedRefresh || (Date.now() - lastCalledAt > time)) {
+                lastCalledAt = Date.now()
                 lastCached = origFunc()
                 isLogging && console.log(`Function called. Caching for ${(time / 1000).toFixed(0)} seconds`, origFunc.name)
             } else {
@@ -1363,7 +1363,7 @@ class GameEffects {
         Rect.packArray(menu, backgroundRect.splitGrid(gridRows, gridColumns).flat(), true)
 
         game.add_drawable(menu, 8)
-        result.menu = menu
+        result.menuButtons = menu
         return result
     }
 

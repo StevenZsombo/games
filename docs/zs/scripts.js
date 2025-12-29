@@ -766,12 +766,14 @@ class Inspector extends Button {
 		child.hoverText ??= text ?? child.txt
 		this.children.add(child)
 	}
-	removeChild(child) {
-		//child.on_enter = null
-		child.on_leave = null
-		child.hoverText = undefined
-		this.deactivate(child)
-		this.children.delete(child)
+	removeChild(children) {
+		[].concat(children).forEach(child => {
+			//child.on_enter = null
+			child.on_leave = null
+			child.hoverText = undefined
+			this.deactivate(child)
+			this.children.delete(child)
+		})
 	}
 	reset() {
 		this._subjects.clear()

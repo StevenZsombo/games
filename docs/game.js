@@ -9,7 +9,7 @@ var univ = {
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
     on_each_start: null,
-    cacheInterval: 60 * 1000,//null for no caching
+    cacheInterval: 3 * 60 * 1000,//null for no caching
     on_first_run: () => {
         const existing = localStorage.getItem(stgs.localUserSettingsName)
         if (existing) Object.assign(userSettings, JSON.parse(existing))
@@ -336,12 +336,12 @@ class Game extends GameCore {
                 },
                 [optionsButton], true, () => this.inspector.reset()
             )
-            optionsMenu.menu.forEach(x => {
+            optionsMenu.menuButtons.forEach(x => {
                 if (x.txt.includes("DEV.")) x.color = "lightorange"
             })
 
             arr.forEach(([a, b, c], i) => {
-                if (c) this.inspector.addChild(optionsMenu.menu[i], c)
+                if (c) this.inspector.addChild(optionsMenu.menuButtons[i], c)
 
             })
         }
@@ -465,7 +465,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         backButton.fontSize = 40
         backButton.txt = "Back to free play & prototypes"
         backButton.resize(500, 100)
-        infoButton.txt = "Broken module challenges. Untested, some might be impossible.\nChocolate rule applies."
+        infoButton.txt = "Broken module challenges. Untested, most are likely impossible.\nChocolate rule applies."
         infoButton.fontSize = 32
         lvlButtons.forEach(x => {
             // x.spread(this.WIDTH / 2, this.HEIGHT / 2, 1.4, 1)
@@ -700,10 +700,11 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             }/${Object.keys(levels).length
             }\nTutorials completed: ${Object.keys(tutorialLevels).filter(x => victories.includes(x)).length
             }/${Object.keys(tutorialLevels).length
-            }\nPrototypes completed: ${Object.keys(prototypeLevels).filter(x => victories.includes(x)).length
-            }/${Object.keys(prototypeLevels).length
-            }\nBroken module challenges completed: ${Object.keys(brokenLevels).filter(x => victories.includes(x)).length
-            }/${Object.keys(brokenLevels).length}`
+            }`
+        /*+ `\nPrototypes completed: ${Object.keys(prototypeLevels).filter(x => victories.includes(x)).length
+        }/${Object.keys(prototypeLevels).length
+        }\nBroken module challenges completed: ${Object.keys(brokenLevels).filter(x => victories.includes(x)).length
+        }/${Object.keys(brokenLevels).length}`*/
 
         const pop = GameEffects.popup(res, {
             posFrac: [.5, .8], sizeFrac: [.4, .2], floatTime: 6000,
@@ -919,7 +920,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
             const myWins = Game.victoryListLocal().filter(x => levels[x])
             const missing = myWins.filter(x => !serverWins.has(x))
             if (missing.length) {
-                GameEffects.popup(
+                const notice = GameEffects.popup(
                     `The following victories have not been recorded on the server:
 ${MM.reshape(missing, 5).map(x => x.join(", ")).join("\n")}.
 Please run them again to send your data.`
@@ -927,6 +928,7 @@ Please run them again to send your data.`
                         posFrac: [.5, .8], sizeFrac: [.9, .2], floatTime: 8000,
                         moreButtonSettings: { color: "red", fontSize: 40, font_font: "monospace" }
                     })
+                notice.on_release = notice.close
                 console.log("Missing:", missing)
             } else {
                 console.log("Your victories are fully synced.")
@@ -994,13 +996,14 @@ Please run them again to send your data.`
         refreshB.rightat(this.WIDTH - 50)
         refreshB.txt = "Refresh"
         refreshB.fontSize = 40
-        let lastRefreshByClick = Date.now()
+        let lastRefreshByClick = 0 //Date.now()
         refreshB.on_release = () => {
-            //refresh up to every 4 seconds
-            if (Date.now() - lastRefreshByClick < 4 * 1000) return
+            //refresh up to every 3 seconds
+            if (Date.now() - lastRefreshByClick < 3 * 1000) return
             lastRefreshByClick = Date.now()
             doAttempt(true)
         }
+
         refreshB.hover_color = "lightblue"
         this.add_drawable(refreshB)
         const back = refreshB.copy
@@ -1036,6 +1039,7 @@ Please run them again to send your data.`
             console.error("completionRate called but not in levelSelector")
             return
         }
+        const edgeWidth = .1
         /**@param {Button} button */
         const progressBar = (button, ratio) => {
             const oldBG = button.draw_background.bind(button)
@@ -1043,10 +1047,10 @@ Please run them again to send your data.`
                 oldBG(screen)
                 MM.drawPolygon(screen, [
                     this.x, this.y,
-                    this.x + this.width * ratio, this.y,
-                    this.x + this.width * (Math.max(0, ratio - .1)), this.bottom,
+                    this.x + this.width * (Math.max(edgeWidth, ratio)), this.y,
+                    this.x + this.width * (Math.max(0, ratio - edgeWidth)), this.bottom,
                     this.x, this.bottom],
-                    { color: "orange", outline: 0 }
+                    { color: this.color == "gray" ? "darkorange" : "orange", outline: 0 }
                 )
                 // MM.fillRect(screen, this.x, this.y, this.width * ratio, this.height, { color: "orange" })
             }
@@ -1061,7 +1065,7 @@ Please run them again to send your data.`
             })
             const percentage = {}
             Object.entries(completion).forEach(([lvl, names]) => percentage[lvl] = Number((names.size / everyone.size).toFixed(2)))
-            console.log({ percentage, completion, everyone })
+            // console.log({ percentage, completion, everyone })
             Object.keys(completion).forEach(lvl => {
                 const b = this.levelButtons.find(x => x.tag == lvl)
                 if (!b) { console.error("Level", lvl, "is not on the page."); return; }
@@ -1123,7 +1127,7 @@ Please run them again to send your data.`
             b.hover_color = tutorial ? "lightpink" : "pink"
             if (Game.checkIsVictoryFromLocal(str)) {
                 b.color = tutorial ? "lightblue" : "lightgreen"
-                b.hover_color = tutorial ? "blue" : "green"
+                b.hover_color = tutorial ? "teal" : "green"
             }
             b.tag = str
             b.txt = str
@@ -1232,7 +1236,7 @@ Please run them again to send your data.`
                 const importExportMenu = () => GameEffects.dropDownMenu(
                     [["Export ALL", Game.exportALL],
                     ["Import ALL", Game.importAll]],
-                    null, null, null, { width: 400, height: 200 }, [optionsButton], true, () => { this.inspector.reset() }
+                    null, null, null, { width: 400, height: 120 }, [optionsButton], true, () => { this.inspector.reset() }
                 )
                 arr.push(["Export/Import ALL", importExportMenu, "Export or import ALL your save data,\nallowing you to transfer them to a different device."])
             }
@@ -1280,12 +1284,12 @@ Please run them again to send your data.`
                 true,
                 () => this.inspector.reset()
             )
-            optionsMenu.menu.forEach(x => {
+            optionsMenu.menuButtons.forEach(x => {
                 if (x.txt.includes("DEV.")) x.color = "bisque"
             })
 
             arr.forEach(([a, b, c], i) => {
-                if (c) this.inspector.addChild(optionsMenu.menu[i], c)
+                if (c) this.inspector.addChild(optionsMenu.menuButtons[i], c)
 
             })
         }
@@ -1360,8 +1364,9 @@ Please run them again to send your data.`
 /// dev options
 const dev = Object.freeze({
     showModules: () => {
-        if (stgs.stage !== pageManager.levelSelector) return
-        game.levelButtons.forEach(x => game.inspector.addChild(x, Game.loadFromLocalModuleList(x.tag)))
+        stgs.stage = pageManager.levelSelector
+        main()
+        game.levelButtons.forEach(x => (game.inspector.removeChild(x), game.inspector.addChild(x, Game.loadFromLocalModuleList(x.tag))))
     },
     fullLeaderboard: () => {
         stgs.stage = pageManager.blank

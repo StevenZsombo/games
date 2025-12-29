@@ -937,7 +937,16 @@ For infinite problems, it is up to you how many inputs you use.
         },
         {
             rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[0,1,"IN"],[2,0,"OUT"],[0,2,"LEFT"],[0,1,"DOWN"],[1,1,"COPY"],[1,2,"UP"],[1,0,"DOWN"]]`) }
+            on_start_more: function () {
+                this.fromJSON(`[[0,1,"IN"],[2,0,"OUT"],[0,2,"LEFT"],[0,1,"DOWN"],[1,1,"COPY"],[1,2,"UP"],[1,0,"DOWN"]]`)
+                this.game.dropDown = () => { }
+                this.game.extras_temp.push(() => {
+                    this.game.overlay.on_click = null
+                    this.game.overlay.on_release = null
+                    this.game.overlay.on_drag = null
+                })
+                this.level.conditions.allowEarlyWin = true
+            }
         }
     ),
     "COPY3": new Level(
