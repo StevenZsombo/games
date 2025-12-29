@@ -1034,6 +1034,32 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         tab.document.close();
     }
 
+    /**
+     * No args support yet.
+     * @param {Function} func - function without arguments
+     * @param {number} time - in seconds
+     * @returns {Function}
+     */
+    static timeCachedFunction(func, time = 60 * 1000, isLogging = false) {
+        const origFunc = func
+        let lastCalled = 0
+        let lastCached = null
+        return function (forcedRefresh = false) {
+            if (forcedRefresh || (Date.now() - lastCalled > time)) {
+                lastCalled = Date.now()
+                lastCached = origFunc()
+                isLogging && console.log(`Function called. Caching for ${(time / 1000).toFixed(0)} seconds`, origFunc.name)
+            } else {
+                isLogging && console.log("Results retrieved from cache.", origFunc.name)
+            }
+            return lastCached
+        }
+    }
+
+    static memoryCachedFunction(func) {
+        throw "not yet implemented"
+    }
+
 }
 //#endregion
 

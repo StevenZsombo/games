@@ -1110,6 +1110,7 @@ var userSettings = { //these are defaults. actual is in localStorage
     isDeveloper: false,
     hoverTooltips: true,
     ALLOW_ONLINE_COLLECTION: false,
-    ALREADY_ASKED_FOR_ONLINE_COLLECTION: false
+    ALREADY_ASKED_FOR_ONLINE_COLLECTION: false,
+    SHOW_GLOBAL_PROGRESS: true
 }
 //#endregion

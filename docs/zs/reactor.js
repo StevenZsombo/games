@@ -276,7 +276,7 @@ Use the Export/Import features instead.`
                 new Rect(0, 0, 3 * controlButtons[1].width, 0), null, null,
                 { height: 60 * (1 + userSettings.biggerButtons) },
                 [controlButtons[1], this.game.overlay])
-            menu.menu.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "lightorange")
+            menu.menu.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "bisque")
         }
         this.inputBG = inputBG
         this.outputBG = outputBG

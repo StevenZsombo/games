@@ -593,6 +593,7 @@ class Supabase {
 		}
 	}
 
+	/** @returns {Promise<Array<{name: string, stage_text: string}>>} */
 	static async readAllWins(callback) {
 		try {
 			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_public_view?select=name,stage_text`, {

@@ -9,15 +9,18 @@ var univ = {
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     filesList: "", //space-separated
     on_each_start: null,
+    cacheInterval: 60 * 1000,//null for no caching
     on_first_run: () => {
         const existing = localStorage.getItem(stgs.localUserSettingsName)
         if (existing) Object.assign(userSettings, JSON.parse(existing))
+        if (univ.cacheInterval) Supabase.readAllWins = MM.timeCachedFunction(Supabase.readAllWins, univ.cacheInterval, true)
     },
     on_next_game_once: null,
-    on_beforeunload: () => localStorage.setItem(stgs.localUserSettingsName, JSON.stringify(userSettings)),
+    on_beforeunload: () =>
+        localStorage.setItem(stgs.localUserSettingsName, JSON.stringify({ ...userSettings, isDeveloper: false })),
     acquireNameMoreStr: "(English name + homeroom)",
     denybuttons: false,
-    allowQuietReload: true,
+    allowQuietReload: location.hostname == "", //allow if locally hosted only
 }
 
 
@@ -569,25 +572,11 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             if (!this.ALLOW_DRAGGING_MOVINGPIECES) this.currentDraggingList = this.currentDraggingList.filter(x => !Reactor.isMovementType(x))
             if (!this.lastHit) throw "lastHit is missing, how could i be releasing validly?"
 
-            /*this.currentDraggingList.forEach(x => {
-                x.x = this.lastHit.tag[0]
-                x.y = this.lastHit.tag[1]
-                this.reactor.refreshButtons(x)
-                didNotDrag = false
-            })*/
             const swappedList =
                 this.reactor.swapPiecesAt(...this.firstHit.tag, ...this.lastHit.tag)
             this.currentDraggingList.length = 0
-            /*targetsList.forEach(x => {
-                x.x = this.firstHit.tag[0]
-                x.y = this.firstHit.tag[1]
-                this.reactor.refreshButtons(x)
-            })*/
             this.lastHit = null
             this.firstHit = null
-            /*if (this.firstHitChanged || (Date.now() - this.mouser.lastClickedTime > 100)) {
-                return
-            }*/
             if (hit && !swappedList.length && !this.firstHitChanged) {
                 this.dropDown(hit)
                 this.lastHit = hit
@@ -960,9 +949,9 @@ Please run them again to send your data.`
                 + Game.statisticsSelfLeaderboard(myName)
 
         }
-        const doAttempt = () => {
+        const doAttempt = (forcedRefresh = false) => {
             big.txt = "Loading..."
-            Supabase.readAllWins()
+            Supabase.readAllWins(forcedRefresh)
                 .catch((error) => {
                     console.log(error, this)
                     big.txt = "Failed to load the leaderboards.\nCheck your internet connection then try to refresh."
@@ -1005,7 +994,13 @@ Please run them again to send your data.`
         refreshB.rightat(this.WIDTH - 50)
         refreshB.txt = "Refresh"
         refreshB.fontSize = 40
-        refreshB.on_release = doAttempt.bind(this)
+        let lastRefreshByClick = Date.now()
+        refreshB.on_release = () => {
+            //refresh up to every 4 seconds
+            if (Date.now() - lastRefreshByClick < 4 * 1000) return
+            lastRefreshByClick = Date.now()
+            doAttempt(true)
+        }
         refreshB.hover_color = "lightblue"
         this.add_drawable(refreshB)
         const back = refreshB.copy
@@ -1033,6 +1028,47 @@ Please run them again to send your data.`
 
         this.add_drawable([pageDown, pageUp])
 
+    }
+    //#endregion
+    //#region completionRate
+    progressCompletionRate() {
+        if (stgs.stage !== pageManager.levelSelector) {
+            console.error("completionRate called but not in levelSelector")
+            return
+        }
+        /**@param {Button} button */
+        const progressBar = (button, ratio) => {
+            const oldBG = button.draw_background.bind(button)
+            button.draw_background = function (screen) {
+                oldBG(screen)
+                MM.drawPolygon(screen, [
+                    this.x, this.y,
+                    this.x + this.width * ratio, this.y,
+                    this.x + this.width * (Math.max(0, ratio - .1)), this.bottom,
+                    this.x, this.bottom],
+                    { color: "orange", outline: 0 }
+                )
+                // MM.fillRect(screen, this.x, this.y, this.width * ratio, this.height, { color: "orange" })
+            }
+        }
+        Supabase.readAllWins().then(table => {
+            /**@type {Array<Set<string>} */
+            const completion = {}
+            const everyone = new Set()
+            table.forEach(row => {
+                (completion[row.stage_text] ??= new Set()).add(row.name)
+                everyone.add(row.name)
+            })
+            const percentage = {}
+            Object.entries(completion).forEach(([lvl, names]) => percentage[lvl] = Number((names.size / everyone.size).toFixed(2)))
+            console.log({ percentage, completion, everyone })
+            Object.keys(completion).forEach(lvl => {
+                const b = this.levelButtons.find(x => x.tag == lvl)
+                if (!b) { console.error("Level", lvl, "is not on the page."); return; }
+                progressBar(b, percentage[lvl])
+                this.inspector.addChild(b, `${percentage[lvl] * 100}% of players solved this.`)
+            })
+        }).catch(e => console.error(e))
     }
     //#endregion
     //#region levelSelectorFancy
@@ -1245,7 +1281,7 @@ Please run them again to send your data.`
                 () => this.inspector.reset()
             )
             optionsMenu.menu.forEach(x => {
-                if (x.txt.includes("DEV.")) x.color = "lightorange"
+                if (x.txt.includes("DEV.")) x.color = "bisque"
             })
 
             arr.forEach(([a, b, c], i) => {
@@ -1282,6 +1318,8 @@ Please run them again to send your data.`
         )
 
         this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])
+
+        if (userSettings.SHOW_GLOBAL_PROGRESS) this.progressCompletionRate()
     }
 
     //#endregion
