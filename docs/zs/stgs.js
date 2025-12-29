@@ -309,7 +309,7 @@ var levels = Object.freeze({
     "evenonly": new Level(
         "Your inputs are positive integers. Return only the even ones.", null,
         x => x[0].numerator % 2 ? null : x,
-        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99 }
+        { maxDenom: 1, negativeChance: 0, maxTerms: 1, maxDegree: 0, maxNumer: 99, minimumOutput: 2, maximumOutput: 8 }
     ),
     "tangent": new Level(
         `Find the tangent to the given curve at x=1.`, null, x => {

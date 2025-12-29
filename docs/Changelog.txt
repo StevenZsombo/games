@@ -52,3 +52,5 @@ Hover tooltips do not prioritize buttons on the top. - FIXED
 "manyones" input 7 freezes notably. (8 would freeze for several seconds, 9 would crash). - TBD (might crash weaker devices?)
 Tooltips may cover the cursor when near the bottom. - FIXED
 Tooltips do not show on touchscreens. - FIXED
+2025.12.29.
+"evenonly" may load without outputs. - FIXED
