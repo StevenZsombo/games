@@ -686,21 +686,71 @@ class MM {
         return acc
     }
 
-    static * permutations(arr, nrWanted, c = [], u = new Set()) {
+    static * permutations(arr, k) {
+        const n = arr.length;
+        k ??= n
+        if (k > n) throw "Can't return a subset greater than itself"
+        const indices = Array.from({ length: k }, (_, i) => i);
+        const cycles = Array.from({ length: k }, (_, i) => n - i);
+
+        yield indices.map(i => arr[i]);
+
+        while (true) {
+            let i = k - 1;
+            while (i >= 0) {
+                cycles[i]--;
+                if (cycles[i] === 0) {
+                    const temp = indices[i];
+                    for (let j = i; j < n - 1; j++) indices[j] = indices[j + 1];
+                    indices[n - 1] = temp;
+                    cycles[i] = n - i;
+                    i--;
+                } else {
+                    const j = cycles[i];
+                    [indices[i], indices[n - j]] = [indices[n - j], indices[i]];
+                    yield indices.slice(0, k).map(idx => arr[idx]);
+                    break;
+                }
+            }
+            if (i < 0) break;
+        }
+    }
+    /**@deprecated */
+    static * permutationsRecursiveDepr(arr, nrWanted, c = [], u = new Set()) {
         if (nrWanted === 0) yield c;
         else for (const [i, v] of arr.entries())
             if (!u.has(i) && nrWanted > 0)
-                yield* this.permutations(arr, nrWanted - 1, [...c, v], new Set([...u, i]));
+                yield* this.permutationsRecursiveDepr(arr, nrWanted - 1, [...c, v], new Set([...u, i]));
     }
+    static * combinations(arr, k) {
+        const n = arr.length;
+        k ??= n
+        if (k > n) throw "Can't return a subset greater than itself"
+        const indices = Array.from({ length: k }, (_, i) => i);
+        yield indices.map(i => arr[i]);
+        while (true) {
+            let i = k - 1;
+            while (i >= 0 && indices[i] === n - k + i) {
+                i--;
+            }
+            if (i < 0) break;
+            indices[i]++;
+            for (let j = i + 1; j < k; j++) {
+                indices[j] = indices[j - 1] + 1;
+            }
 
-    static * combinations(arr, nrWanted, start = 0, current = []) {
+            yield indices.map(idx => arr[idx]);
+        }
+    }
+    /**@deprecated */
+    static * combinationsRecursiveDepr(arr, nrWanted, start = 0, current = []) {
         if (nrWanted === 0) {
             yield [...current];
             return;
         }
         for (let i = start; i <= arr.length - nrWanted; i++) {
             current.push(arr[i]);
-            yield* this.combinations(arr, nrWanted - 1, i + 1, current);
+            yield* this.combinationsRecursiveDepr(arr, nrWanted - 1, i + 1, current);
             current.pop();
         }
     }

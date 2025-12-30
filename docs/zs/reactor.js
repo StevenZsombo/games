@@ -257,12 +257,12 @@ Use the Share/Receive features instead.`
             x.hover_color = "lightblue"
         })
         controlButtons[1].txt = "Settings"
-        const obj = {
-            "Share": this.grab.bind(this),
-            "Receive": this.give.bind(this),
+        const obj = { //tooltips are below
             "Restart level": main,
             "Save": this.saveTemp.bind(this),
-            "Delete save": this.deleteTempOrPerm.bind(this)
+            "Delete save": this.deleteTempOrPerm.bind(this),
+            "Share": this.grab.bind(this),
+            "Receive": this.give.bind(this),
         }
         obj[`Big buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`] = () => userSettings.biggerButtons ^= 1
         if (userSettings.isDeveloper) {
@@ -279,11 +279,11 @@ Use the Share/Receive features instead.`
                 () => { this.game.inspector.removeChild(menu.menuButtons) })
             menu.menuButtons.filter(x => x.txt.includes("DEV.")).forEach(x => x.color = "bisque")
             const tooltips = [
-                "Copy your module configuration to the clipboard.\nPressing Ctrl+C does the same.",
-                "Load in module configuration from the clipboard.\nPressing Ctrl+V does the same.",
                 "Restart level by restoring to the saved state.\nPressing Ctrl+Z a lot does the same.",
                 "Save your progress.",
-                "Delete your latest save."
+                "Delete your latest save.",
+                "Copy your module configuration to the clipboard.\nPressing Ctrl+C does the same.",
+                "Load in module configuration from the clipboard.\nPressing Ctrl+V does the same.",
 
             ]
             menu.menuButtons.slice(0, -1).forEach((x, i) => this.game.inspector.addChild(x, tooltips[i]))
