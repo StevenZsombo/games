@@ -686,15 +686,98 @@ class MM {
         return acc
     }
 
-    static * permutations(arr, k) {
+    /**
+     * Performant permutations of a string.
+     * Thank you DeepSeek.
+     * @param {String} str
+     * @param {number} k - defaults to full string length
+     */
+    static * permutationsStr(str, k) {
+        k ??= str.length
+        if (k <= 0 || k > str.length) return;
+        const hasDuplicates = new Set(str).size < str.length;
+        if (hasDuplicates) {
+            const freqMap = new Map();
+            for (const char of str) freqMap.set(char, (freqMap.get(char) || 0) + 1);
+            const chars = [...freqMap.keys()].sort();
+            const counts = chars.map(c => freqMap.get(c));
+            const stack = [['', [...counts], 0]];
+            while (stack.length) {
+                const [current, remainingCounts, length] = stack.pop();
+
+                if (length === k) {
+                    yield current;
+                    continue;
+                }
+                for (let i = chars.length - 1; i >= 0; i--) {
+                    if (remainingCounts[i] > 0) {
+                        const newCounts = [...remainingCounts];
+                        newCounts[i]--;
+                        stack.push([current + chars[i], newCounts, length + 1]);
+                    }
+                }
+            }
+        } else {
+            const n = str.length;
+            const chars = [...str].sort();
+            if (k === n) {
+                yield chars.join('');
+                while (true) {
+                    let i = n - 2;
+                    while (i >= 0 && chars[i] >= chars[i + 1]) i--;
+                    if (i < 0) break;
+                    let j = n - 1;
+                    while (chars[j] <= chars[i]) j--;
+                    [chars[i], chars[j]] = [chars[j], chars[i]];
+                    let left = i + 1, right = n - 1;
+                    while (left < right) {
+                        [chars[left], chars[right]] = [chars[right], chars[left]];
+                        left++;
+                        right--;
+                    }
+                    yield chars.join('');
+                }
+            } else {
+                const stack = [];
+                const result = new Array(k);
+                stack.push([0, 0]); // [position in result, start index]
+                while (stack.length) {
+                    const [pos, start] = stack.pop();
+                    if (pos === k) {
+                        // Permute the selected indices
+                        const selected = result.map(i => str[i]);
+                        const permStack = [['', [...selected]]];
+                        while (permStack.length) {
+                            const [current, remaining] = permStack.pop();
+                            if (remaining.length === 0) {
+                                yield current;
+                                continue;
+                            }
+                            for (let i = remaining.length - 1; i >= 0; i--) {
+                                const newRemaining = [...remaining];
+                                newRemaining.splice(i, 1);
+                                permStack.push([current + remaining[i], newRemaining]);
+                            }
+                        }
+                        continue;
+                    }
+                    for (let i = n - 1; i >= start; i--) {
+                        result[pos] = i;
+                        stack.push([pos + 1, i + 1]);
+                    }
+                }
+            }
+        }
+    }
+
+
+    static * permutationsArr(arr, k) {
         const n = arr.length;
         k ??= n
         if (k > n) throw "Can't return a subset greater than itself"
         const indices = Array.from({ length: k }, (_, i) => i);
         const cycles = Array.from({ length: k }, (_, i) => n - i);
-
         yield indices.map(i => arr[i]);
-
         while (true) {
             let i = k - 1;
             while (i >= 0) {
@@ -722,7 +805,35 @@ class MM {
             if (!u.has(i) && nrWanted > 0)
                 yield* this.permutationsRecursiveDepr(arr, nrWanted - 1, [...c, v], new Set([...u, i]));
     }
-    static * combinations(arr, k) {
+    /**
+     * Performant combinations of a string.
+     * Thank you DeepSeek.
+     * @param {String} str
+     * @param {number} k - defaults to full string length
+     */
+
+    static * combinationsStr(str, k) {
+        k ??= str.length
+        if (k <= 0 || k > str.length) return;
+        const seen = new Set();
+        const chars = [...str].sort();
+        const stack = [[[], 0]];
+        while (stack.length) {
+            const [current, start] = stack.pop();
+            if (current.length === k) {
+                const combo = current.join('');
+                if (!seen.has(combo)) {
+                    seen.add(combo);
+                    yield combo;
+                }
+                continue;
+            }
+            for (let i = start; i < chars.length; i++) {
+                stack.push([[...current, chars[i]], i + 1]);
+            }
+        }
+    }
+    static * combinationsArr(arr, k) {
         const n = arr.length;
         k ??= n
         if (k > n) throw "Can't return a subset greater than itself"

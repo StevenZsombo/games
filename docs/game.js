@@ -1052,7 +1052,7 @@ Please run them again to send your data.`
                     this.x + this.width * (Math.max(edgeWidth, ratio)), this.y,
                     this.x + this.width * (Math.max(0, ratio - edgeWidth)), this.bottom,
                     this.x, this.bottom],
-                    { color: this.color == "gray" ? "darkorange" : "orange", outline: 0 }
+                    { color: this.color == "gray" ? "tan" : "orange", outline: 0 }
                 )
                 // MM.fillRect(screen, this.x, this.y, this.width * ratio, this.height, { color: "orange" })
             }
