@@ -125,6 +125,7 @@ class Game extends GameCore {
         if (this.keyboarder.pressed[3]) this.speedButtons?.[3].on_click()
         if (this.keyboarder.pressed[4]) this.speedButtons?.[4].on_click()
         if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
+        if (this.keyboarder.pressed["f"]) MM.toggleFullscreen()
         if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[2].on_click()
         if (this.keyboarder.pressed["w"]) this.reactor?.moveAllPieces(-1, 0)
         if (this.keyboarder.pressed["a"]) this.reactor?.moveAllPieces(0, -1)
@@ -265,116 +266,7 @@ class Game extends GameCore {
 
     }
     //#endregion
-    //#region levelSelector
-    levelSelectorOld() {
-        const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } =
-            this.makeGridOfLevels(Object.keys(window.levels))
-
-        lvlButtons.forEach(x => {
-            x.spread(this.rect.centerX, this.rect.centerY, 1.1, 1.1)
-            x.stretch(1.1, 1.1)
-            x.fontSize = 32
-        })
-
-
-        const manualButton = infoButton.copy
-        manualButton.textSettings = {}
-        manualButton.transparent = false
-        manualButton.fontSize = 36
-        manualButton.txt = "Manual"
-        manualButton.on_release = () => {
-            window.open("Manual.pdf")
-        }
-        manualButton.hover_color = "yellow"
-
-        const optionsButton = manualButton.copy
-        optionsButton.hover_color = "pink"
-        optionsButton.txt = "Options"
-        optionsButton.on_release = () => {
-            const arr = [
-                [`Bigger buttons: ${userSettings.biggerButtons ? "ON" : "OFF"}`, () => userSettings.biggerButtons ^= 1, "Recommended for small screen devices."],
-                [`IN works without OUT: ${Reactor.SERVE_IN_EVEN_IF_NO_OUT ? "ON" : "OFF"}`, () => Reactor.SERVE_IN_EVEN_IF_NO_OUT ^= 1, "Whether or not IN should push \nnew inputs even if there is no OUT module."],
-                [`Tooltips on hover: ${userSettings.hoverTooltips ? "ON" : "OFF"} `, () => userSettings.hoverTooltips ^= 1, "Whether these tooltip boxes should pop up\nwhen hovering over modules."],
-                [`Developer mode: ${userSettings.isDeveloper ? "ON" : "OFF"}`, () => userSettings.isDeveloper ^= 1, "Allows to unlock gamespeed restrictions\nor generate extra sheets."],
-                [`Online data collection: ${userSettings.ALLOW_ONLINE_COLLECTION ? "ON" : "OFF"}`, () => { stgs.stage = pageManager.askForOnlinePermissionsFull; main(); }, "Click here to reset."],
-                ["Statistics", Game.statistics, "How many puzzles did you solvet yet?"],
-            ]
-            if (userSettings.isDeveloper) {
-                const devArr =
-                    [
-                        ["DEV.resetAllProgress", () => {
-                            if (!confirm("This will reset all your progress and erase all your saves.\nDoing so is irreversible.\nAre you sure you want to reset ALL progress?"))
-                                return
-                            if (!confirm("Are you sure?"))
-                                return
-                            localStorage.removeItem(stgs.localDataName)
-                            localStorage.removeItem(stgs.localVictoriesName)
-                            main()
-
-                        }, "Resets ALL progress",],
-                        ["DEV.changeName", () => {
-                            const name = localStorage.getItem("name")
-                            if (!name)
-                                return
-                            if (!confirm(`Your current name is: \n${name}\nwould you like to change it?`))
-                                return
-                            Supabase.resetName()
-                            Supabase.acquireName()
-                        }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")}`],
-                        ["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
-                    ]
-                arr.push(...devArr)
-            }
-
-            const obj = Object.fromEntries(arr.map(x => [x[0], x[1]]))
-            const optionsMenu = GameEffects.dropDownMenu(
-                obj,
-                null, null, null,
-                {
-                    height: userSettings.biggerButtons ? 140 : 80,
-                    width: 400
-                },
-                [optionsButton], true, () => this.inspector.reset()
-            )
-            optionsMenu.menuButtons.forEach(x => {
-                if (x.txt.includes("DEV.")) x.color = "lightorange"
-            })
-
-            arr.forEach(([a, b, c], i) => {
-                if (c) this.inspector.addChild(optionsMenu.menuButtons[i], c)
-
-            })
-        }
-        const freeButton = tutorialsButton.copy
-        freeButton.on_release = () => {
-            stgs.stage = pageManager.freeSelector
-            stgs.latestSelectorType = pageManager.freeSelector
-            main()
-        }
-        freeButton.txt = "Free play & prototypes"
-
-        const leaderboardsButton = tutorialsButton.copy
-        leaderboardsButton.txt = "Leaderboards"
-        leaderboardsButton.on_release = () => {
-            stgs.stage = pageManager.leaderboardsPage
-            stgs.latestSelectorType = pageManager.levelSelector
-            main()
-        }
-
-        const bottomButtonsBG = infoButton.copy
-        bottomButtonsBG.leftat(lvlButtons[0].left)
-        bottomButtonsBG.rightstretchat(lvlButtons[sq - 1].right)
-        bottomButtonsBG.centeratY((lvlButtonsBG.bottom + this.HEIGHT) / 2)
-        Rect.packArray(
-            [optionsButton, freeButton, leaderboardsButton, manualButton],
-            bottomButtonsBG.splitCol(.6, .1, 1, .1, .7, .1, .4)
-                .filter((_, i) => [0, 2, 4, 6].includes(i)), true
-        )
-        this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])
-
-
-    }
-    //#endregion
+    
     //#region tutorialSelector
     tutorialSelector() {
         const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } = this.makeGridOfLevels(Object.keys(window.tutorialLevels))
