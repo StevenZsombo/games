@@ -990,7 +990,9 @@ const makeBrokenLevel = (module, rule = null, genRules = {}, conditions = {}) =>
         const ruleFunctionName = rule
         rule = x => Poly.computed(x)[ruleFunctionName]()
     }
-    return new Level(`The ${module} module is broken. Recreate its effect.`, null, rule, genRules, { toolsDisabled: [module], ...conditions })
+    Object.assign((conditions ??= {}), { on_start: function () { this.numberOfRandomSheets = 20 } })
+    return new Level(`The ${module} module is broken. Recreate its effect.`,
+        null, rule, genRules, { toolsDisabled: [module], ...conditions })
 }
 // "RAISE LOWER DER INT LEAD CONST DEG NEG TAKE"
 var brokenLevels = {
@@ -1081,6 +1083,20 @@ var prototypeLevels = {
         `Your input is positive constant a. Return floor(a), \nthe greatest integer not greater than a.`,
         null, x => [Math.floor(x[0].toFloat())].map(x => new Rational(x)),
         { maxTerms: 1, maxDegree: 0, negativeChance: 0, maxNumer: 300, minDenom: 2, maxDenom: 10 }
+    ),
+    "prime": new Level(
+        `Your inputs are positive integers. Return only the primes.`,
+        [], null, {
+        funcOut: function (inputs) {
+            const primes = MM.choice(MM.primes(200), 4)
+            const others = MM.choice(MM.range(1, 200), 6)
+            inputs.length = 0
+            inputs.push(...primes, ...others)
+            const outputs = inputs.filter(x => MM.isPrime(x))
+            inputs.splice(0, 10, ...inputs.map(x => [new Rational(x)]))
+            return outputs.map(x => [new Rational(x)])
+        }
+    }
     )
 
 }

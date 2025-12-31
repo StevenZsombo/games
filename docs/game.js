@@ -266,7 +266,7 @@ class Game extends GameCore {
 
     }
     //#endregion
-    
+
     //#region tutorialSelector
     tutorialSelector() {
         const { sq, infoButton, lvlButtons, tutorialsButton, lvlButtonsBG } = this.makeGridOfLevels(Object.keys(window.tutorialLevels))
@@ -357,12 +357,11 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         backButton.fontSize = 40
         backButton.txt = "Back to free play & prototypes"
         backButton.resize(500, 100)
-        infoButton.txt = "Broken module challenges. Untested, most are likely impossible.\nChocolate rule applies."
+        infoButton.txt = "Broken module challenges. Untested, most are likely impossible."
         infoButton.fontSize = 32
         lvlButtons.forEach(x => {
             // x.spread(this.WIDTH / 2, this.HEIGHT / 2, 1.4, 1)
-
-            x.color = "lightgray"
+            if (x.color == "gray") x.color = "lightgray"
             x.fontSize = 36
         })
     }

@@ -56,6 +56,12 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
+        const b = Button.fromRect(game.rect.stretch(.6, .6))
+        window.b = b
+        b.color = "lightgray"
+        b.hover_color = "lightblue"
+        Button.make_latex(b)
+        this.add_drawable(b)
 
 
 
