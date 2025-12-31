@@ -412,6 +412,26 @@ class Cropper {
 		return ret
 	}
 
+	static downloadImage(img, filename = 'image.png') {
+		const canvas = document.createElement('canvas');
+		const ctx = canvas.getContext('2d');
+		canvas.width = img.width;
+		canvas.height = img.height;
+		ctx.drawImage(img, 0, 0);
+
+		canvas.toBlob(blob => {
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			canvas.remove(); // Remove canvas from DOM
+		}, 'image/png');
+	}
+
 	static pattern = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~" `
 
 	static drawText(screen, fontDict, txt, scale = 1) {

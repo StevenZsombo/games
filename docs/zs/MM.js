@@ -1145,6 +1145,7 @@ class MM {
         a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }))
         a.download = filename
         a.click()
+        a.remove()
     }
 
     static importJSON(alsoAlert = false) {
@@ -1173,6 +1174,17 @@ class MM {
             input.oncancel = () => reject(new Error("File selection cancelled"))
             input.click()
         })
+    }
+    /**
+     * Alternative to window.open() for tauri.
+     * @param {string} str - What link to open.
+     * */
+    static newTabLink(str) {
+        const a = document.createElement('a')
+        a.href = str
+        a.target = '_blank'
+        a.click()
+        a.remove()
     }
 
     static newTabTextFile(str) {

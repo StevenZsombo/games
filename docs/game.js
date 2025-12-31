@@ -1218,7 +1218,8 @@ Please run them again to send your data.`
         manualButton.fontSize = 36
         manualButton.txt = "Manual"
         manualButton.on_release = () => {
-            window.open("Manual.pdf")
+            // window.open("Manual.pdf") //BAD
+            MM.newTabLink("Manual.pdf")
         }
         manualButton.hover_color = "yellow"
 
@@ -1269,7 +1270,7 @@ Please run them again to send your data.`
                         Supabase.resetName()
                         Supabase.acquireName()
                     }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")} `],
-                    ["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
+                        //["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
                     ]
                 arr.push(...devArr)
             }
