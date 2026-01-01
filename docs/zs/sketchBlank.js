@@ -58,6 +58,7 @@ class Game extends GameCore {
     initialize_more() {
         const b = Button.fromRect(this.rect.copy.stretch(.6, .6))
         window.b = b
+        b.move(-200, 0)
         b.color = "lightgray"
         b.hover_color = "lightblue"
         Button.make_latex(b)
@@ -66,9 +67,11 @@ class Game extends GameCore {
         window.s = s
         s.leftat(b.right)
         s.hover_color = "blue"
+        s.isBlocking = true
+        s.move(50, -100)
         Button.make_latex(s)
         Button.make_draggable(s)
-        this.add_drawable([s, b])
+        this.add_drawable([b, s])
 
 
 

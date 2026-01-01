@@ -342,6 +342,10 @@ class MM {
         return Math.round(x)
     }
 
+    static transpose(matrix) {
+        return matrix.map((row, i) => row.map((_, j) => matrix[j][i]))
+    }
+
     static gcd(a, b) {
         while (b !== 0) [a, b] = [b, a % b]
         return Math.abs(a)

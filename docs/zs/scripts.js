@@ -185,6 +185,10 @@ class Rect {
 		this.y += dy
 		return this
 	}
+	moveFrac(fracX, fracY) {
+		this.x += fracX * this.width
+		this.y += fracY * this.height
+	}
 
 	inflate(dw, dh) {
 		this.x -= dw / 2
