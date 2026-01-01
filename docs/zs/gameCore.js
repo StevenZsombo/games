@@ -63,6 +63,7 @@ const flushListeners = function (canvas) {
     Object.entries(documentHandlers).forEach(([str, handler]) => document.removeEventListener(str, handler))
     Object.entries(canvasHandlers).forEach(([str, handler]) => canvas.removeEventListener(str, handler))
     Object.entries(windowHandlers).forEach(([str, handler]) => window.removeEventListener(str, handler))
+    canvas.removeEventListener("wheel", canvasHandlers.wheel, { passive: false })
 }
 
 const main = function (canvas) {

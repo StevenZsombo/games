@@ -278,7 +278,7 @@ class Mouser {
 		canvas.addEventListener('pointerdown', pointerdown)
 		canvas.addEventListener('pointerup', pointerup)
 		canvas.addEventListener('pointercancel', pointercancel)
-		canvas.addEventListener('wheel', wheel) //{passive:false} omitted for now as I do not want to deal with it
+		canvas.addEventListener('wheel', wheel, { passive: false }) //added removal manually
 		canvasHandlers.pointermove = pointermove
 		canvasHandlers.pointerdown = pointerdown
 		canvasHandlers.pointerup = pointerup

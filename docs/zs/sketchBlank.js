@@ -56,12 +56,19 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
-        const b = Button.fromRect(game.rect.stretch(.6, .6))
+        const b = Button.fromRect(this.rect.copy.stretch(.6, .6))
         window.b = b
         b.color = "lightgray"
         b.hover_color = "lightblue"
         Button.make_latex(b)
-        this.add_drawable(b)
+        Button.make_draggable(b)
+        const s = Button.fromRect(this.rect.copy.stretch(.2, .2))
+        window.s = s
+        s.leftat(b.right)
+        s.hover_color = "blue"
+        Button.make_latex(s)
+        Button.make_draggable(s)
+        this.add_drawable([s, b])
 
 
 

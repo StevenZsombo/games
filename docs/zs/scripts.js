@@ -295,9 +295,9 @@ class Rect {
 		rectsToMove.forEach((x, i) => {
 			x.leftat(i == 0 ? destinationRect.left : rectsToMove[i - 1].right + gapSizeOrJustify)
 			if (alsoResize) x.height = destinationRect.height
-			if (alignTMB == "t") x.topat(destinationRect.top)
-			if (alignTMB == "m") x.centeratY(destinationRect.centerY)
-			if (alignTMB == "b") x.bottomat(destinationRect.bottom)
+			if (alignTMB == "t" || alignTMB == "top") x.topat(destinationRect.top)
+			if (alignTMB == "m" || alignTMB == "middle") x.centeratY(destinationRect.centerY)
+			if (alignTMB == "b" || alignTMB == "bottom") x.bottomat(destinationRect.bottom)
 		})
 	}
 
@@ -308,9 +308,9 @@ class Rect {
 		rectsToMove.forEach((x, i) => {
 			x.topat(i == 0 ? destinationRect.top : rectsToMove[i - 1].bottom + gapSizeOrJustify)
 			if (alsoResize) x.width = destinationRect.width
-			if (alignLCR == "l") x.leftat(destinationRect.left)
-			if (alignLCR == "c") x.centeratX(destinationRect.centerX)
-			if (alignLCR == "r") x.rightat(destinationRect.right)
+			if (alignLCR == "l" || alignLCR == "left") x.leftat(destinationRect.left)
+			if (alignLCR == "c" || alignLCR == "center") x.centeratX(destinationRect.centerX)
+			if (alignLCR == "r" || alignLCR == "right") x.rightat(destinationRect.right)
 		})
 	}
 
@@ -392,7 +392,7 @@ class Clickable extends Rect {
 			return false
 		}
 		const pos = { x, y }
-		let within = this.collidepoint(x, y) || (this._drag_force_within) //could demand this is the last_clicked
+		let within = this.collidepoint(x, y) || (this._drag_force_within && this.last_clicked) //could demand this is the last_clicked
 		//will be declared as true while dragging
 		if (within) {
 			this.on_hover?.(pos)

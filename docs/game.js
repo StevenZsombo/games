@@ -642,8 +642,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             }
             console.log("Solution saved to", key)
         } catch (error) {
-            console.error("Something's off with saving to local storage")
-            console.error(error)
+            console.error("Something's off with saving to local storage", { error })
         }
     }
 
@@ -658,8 +657,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             const data = JSON.parse(localStorage.getItem(stgs.localDataName))[key]
             return data
         } catch (error) {
-            console.error("something's off with loading from local storage")
-            console.error(key, error)
+            console.error("something's off with loading from local storage", { key, error })
         }
     }
     static loadFromLocalModuleList(key) {
@@ -678,8 +676,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             return true
         }
         catch (error) {
-            console.error("something's off with deleting from local storage")
-            console.error(key, error)
+            console.error("something's off with deleting from local storage", { key, error })
             return false
         }
     }
@@ -847,10 +844,7 @@ Please run them again to send your data.`
         const doAttempt = (forcedRefresh = false) => {
             big.txt = "Loading..."
             Supabase.readAllWins(forcedRefresh)
-                .catch((error) => {
-                    console.log(error, this)
-                    big.txt = "Failed to load the leaderboards.\nCheck your internet connection then try to refresh."
-                }).then((table) => {
+                .then((table) => {
                     const completions = table.reduce((s, t, i, a) => {
                         if (s[t.name]) { (s[t.name]).add(t.stage_text) }
                         else { s[t.name] = new Set([t.stage_text]) }
@@ -879,6 +873,10 @@ Please run them again to send your data.`
                     // display(0)
                     display() //preserve index
                     callback?.()
+                })
+                .catch((error) => {
+                    console.log({ error, this: this })
+                    big.txt = "Failed to load the leaderboards.\nCheck your internet connection then try to refresh."
                 })
         }
         doAttempt()
@@ -1198,7 +1196,7 @@ Please run them again to send your data.`
         freeButton.txt = "Free play, prototypes, challenges"
 
         const leaderboardsButton = manualButton.copy
-        leaderboardsButton.hover_color = "lightblue"
+        leaderboardsButton.hover_color = "yellow"
         leaderboardsButton.txt = "Leaderboards"
         leaderboardsButton.on_release = () => {
             stgs.stage = pageManager.leaderboardsPage
@@ -1209,13 +1207,21 @@ Please run them again to send your data.`
         const bottomButtonsBG = game.rect.copy.deflate(100, 0)
         bottomButtonsBG.height = 100
         bottomButtonsBG.bottomat(this.HEIGHT - 25)
-        Rect.packArray(
+
+        /*Rect.packArray(
             [optionsButton, freeButton, leaderboardsButton, manualButton],
             bottomButtonsBG.splitCol(.6, .1, 1, .1, .7, .1, .4)
                 .filter((_, i) => [0, 2, 4, 6].includes(i)), true
         )
+        this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])*/
 
-        this.add_drawable([optionsButton, freeButton, leaderboardsButton, manualButton])
+        Rect.packArray(
+            [optionsButton, freeButton, leaderboardsButton],
+            bottomButtonsBG.splitCol(.6, .2, 1, .2, .7).filter((_, i) => !(i % 2)), true
+        )
+
+        this.add_drawable([optionsButton, freeButton, leaderboardsButton])
+
 
         if (userSettings.SHOW_GLOBAL_PROGRESS) this.progressCompletionRate()
     }

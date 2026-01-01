@@ -400,6 +400,16 @@ class MM {
         }
         return ret
     }
+    static *fibonacci() {
+        yield 0n
+        let [a, b] = [0n, 1n]
+        while (true) {
+            yield b
+            const next = a + b //it sucks that [a,b]=[b,a+b] does not work
+            a = b
+            b = next
+        }
+    }
 
 
 
@@ -871,8 +881,28 @@ class MM {
             yield arr.filter((_, i) => mask & (1 << i));
         }
     }
+    /**@param {...(Array | Generator)} arrays  */
+    static *cartesianProduct(...arrays) {
+        const n = arrays.length
+        if (!n) { yield []; return }
+        arrays = arrays.map(x => Array.from(x))
+        const p = arrays.map(b => b.length)
+        const i = new Array(n).fill(0)
+        while (1) {
+            const r = new Array(n)
+            for (let j = 0; j < n; j++) r[j] = arrays[j][i[j]]
+            yield r
+            let j = n - 1
+            for (; j >= 0; j--) {
+                if (++i[j] < p[j]) break
+                i[j] = 0
+            }
+            if (j < 0) break
+        }
+    }
 
-    static * cartesianProduct(...arrays) {
+    /**@deprecated */
+    static * cartesianProductRecursiveDepr(...arrays) {
         if (arrays.length === 0) yield [];
         else {
             const [first, ...rest] = arrays;
@@ -1223,11 +1253,15 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
                 lastCached = origFunc()
                 isLogging && console.log(`Function called. Caching for ${(time / 1000).toFixed(0)} seconds`, origFunc.name)
             } else {
-                isLogging && console.log("Results retrieved from cache.", origFunc.name)
+                isLogging && console.log(
+                    `Results retrieved from cache. Next update in ${((time - (Date.now() - lastCalledAt)) / 1000).toFixed(0)} seconds.`
+                    , origFunc.name)
             }
             return lastCached
         }
     }
+
+
 
     static memoryCachedFunction(func) {
         throw "not yet implemented"
