@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,15 +12,17 @@
             overflow: hidden;
             font-family: Arial, sans-serif;
         }
+
         canvas {
             display: block;
         }
+
         #info {
             position: absolute;
             top: 10px;
             left: 10px;
             color: white;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
             font-size: 14px;
@@ -27,13 +30,17 @@
         }
     </style>
 </head>
+
 <body>
     <div id="info">
         WASD to move | Mouse to look | R to reset position
     </div>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        /** @type {import('three')} */
+        const THREE = window.THREE
+
         // Scene setup
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x87ceeb, 10, 100);
@@ -64,7 +71,7 @@
 
         // Create ground plane
         const planeGeometry = new THREE.PlaneGeometry(100, 100);
-        const planeMaterial = new THREE.MeshStandardMaterial({ 
+        const planeMaterial = new THREE.MeshStandardMaterial({
             color: 0x3a7c3a,
             roughness: 0.8,
             metalness: 0.2
@@ -75,7 +82,7 @@
         scene.add(plane);
 
         // Create some cubes
-        const cubeMaterial = new THREE.MeshStandardMaterial({ 
+        const cubeMaterial = new THREE.MeshStandardMaterial({
             color: 0xff6b6b,
             roughness: 0.7,
             metalness: 0.3
@@ -112,10 +119,10 @@
         const lookSpeed = 0.002;
         let pitch = 0;
         let yaw = 0;
-        
+
         // Keyboard state
         const keys = {};
-        
+
         // Mouse state
         let mouseX = 0;
         let mouseY = 0;
@@ -124,7 +131,7 @@
         // Event listeners for keyboard
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
-            
+
             // Reset camera position with R key
             if (e.code === 'KeyR') {
                 camera.position.set(0, 1.6, 5);
@@ -157,7 +164,7 @@
 
         document.addEventListener('mousemove', (e) => {
             if (!isMouseLocked) return;
-            
+
             mouseX = e.movementX || e.mozMovementX || 0;
             mouseY = e.movementY || e.mozMovementY || 0;
         });
@@ -173,14 +180,14 @@
         function updateCameraRotation() {
             yaw -= mouseX * lookSpeed;
             pitch -= mouseY * lookSpeed;
-            
+
             // Clamp pitch to prevent camera flip
             pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-            
+
             camera.rotation.order = 'YXZ';
             camera.rotation.y = yaw;
             camera.rotation.x = pitch;
-            
+
             // Reset mouse movement
             mouseX = 0;
             mouseY = 0;
@@ -190,14 +197,14 @@
         function updateCameraPosition() {
             const forward = new THREE.Vector3();
             const right = new THREE.Vector3();
-            
+
             // Get forward and right vectors from camera orientation
             camera.getWorldDirection(forward);
             forward.y = 0;
             forward.normalize();
-            
+
             right.crossVectors(camera.up, forward).normalize();
-            
+
             // Movement based on key states
             if (keys['KeyW'] || keys['ArrowUp']) {
                 camera.position.addScaledVector(forward, moveSpeed);
@@ -211,7 +218,7 @@
             if (keys['KeyD'] || keys['ArrowRight']) {
                 camera.position.addScaledVector(right, -moveSpeed);
             }
-            
+
             // Keep camera above ground
             camera.position.y = Math.max(camera.position.y, 0.5);
         }
@@ -221,7 +228,7 @@
             cubes.forEach((cubeObj, i) => {
                 cubeObj.mesh.rotation.y += 0.01;
                 cubeObj.mesh.rotation.x += 0.005;
-                
+
                 // Bobbing animation
                 cubeObj.mesh.position.y = cubeObj.originalY + Math.sin(Date.now() * 0.001 + i) * 0.2;
             });
@@ -230,11 +237,11 @@
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
-            
+
             updateCameraRotation();
             updateCameraPosition();
             animateCubes();
-            
+
             renderer.render(scene, camera);
         }
 
@@ -242,4 +249,5 @@
         animate();
     </script>
 </body>
+
 </html>

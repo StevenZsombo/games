@@ -383,19 +383,47 @@ class MM {
     }
     /**@param {number} upto - Returns an array of all primes up to a number.  */
     static primes(upto = 999) {
-        const a = Array(upto + 1).fill(true)
-        a[0] = a[1] = false
+        const a = this.primesGen(upto)
+        return a.reduce((s, t, i) => (t && s.push(i), s), [])
+    }
+
+    /**@param {number} upto */
+    static * primesGen(upto = 999) {
+        const a = new Uint8Array(upto + 1).fill(1)
+        a[0] = a[1] = 0
         for (let i = 2; i < upto + 1; i++) {
             if (a[i]) {
                 let j = i
                 while (j < upto + 1) {
                     j += i
-                    a[j] = false
+                    a[j] = 0
                 }
             }
         }
-        return a.reduce((s, t, i) => (t && s.push(i), s), [])
+        for (let i = 0; i < upto + 1; i++) {
+            if (a[i]) yield i
+        }
     }
+
+    static factoredUpTo(n) {
+        const a = Array(n + 1).fill().map(x => [])
+        a[1] = [1]
+        for (let i = 2; i < a.length; i++) {
+            if (a[i].length == 0) {
+                for (let k = 1; i ** k < a.length; k++) {
+                    for (let j = i ** k; j < a.length; j += i ** k) {
+                        a[j].push(i)
+                    }
+                }
+            }
+        }
+        return a
+    }
+
+    static countOccurences(arrOrGen) {
+        return arrOrGen.reduce((s, t) => (s[t] ??= 0, s[t]++, s), {})
+    }
+
     static divisors(n) { //grossly unpotimized but whatevs
         if (n <= 0) return []
         const ret = []
