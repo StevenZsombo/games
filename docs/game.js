@@ -863,8 +863,8 @@ Please run them again to send your data.`
                     // console.table(leaderBoardFullInfo)
                     this.leaderBoardFullInfo = leaderBoardFullInfo
                     if ((showFullAnyways || stgs.SHOW_FULL_LEADERBOARD) && leaderBoardFullInfo.length != 0) {
-                        const t = MM.table(leaderBoardFullInfo.map(x => Object.values(x)), Object.keys(leaderBoardFullInfo[0]))
-                        MM.newTabTextFile(t)
+                        const t = MM.tableHTML(leaderBoardFullInfo.map(x => Object.values(x)), Object.keys(leaderBoardFullInfo[0]))
+                        MM.newTabHTML(t)
                     }
                     board = scores.map(
                         ([player, wins], i) =>

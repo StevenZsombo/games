@@ -10,6 +10,7 @@
     "exclude": [
         "node_modules",
         "./sketch*.js",
-        "./zs/sketch*.js"
+        "./zs/sketch*.js",
+        "*apl.js"
     ]
 }

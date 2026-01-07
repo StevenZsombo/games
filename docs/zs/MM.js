@@ -1173,7 +1173,7 @@ class MM {
     }
 
     /**@param {Array<Array<string>>} strArrArr  */
-    static table(strArrArr, labels, spacing = 2) {
+    static tableStr(strArrArr, labels, spacing = 2) {
         if (!strArrArr || strArrArr.length == 0 || strArrArr[0].length == 0) return ""
         const strings = strArrArr.map(row => row.map(String))
         const connector = Array(spacing).fill(" ").join("")
@@ -1192,7 +1192,18 @@ class MM {
                 + "\n" + res
         }
         return res
-
+    }
+    /**@param {Array<Array<string>>} strArrArr  */
+    static tableHTML(strArrArr, labels, border = 1) {
+        if (!strArrArr || !strArrArr.length || !strArrArr[0].length) return ""
+        const wrap = (tag, str, params = "") => `<${tag} ${params}>${str}</${tag}>`
+        let headers = labels ?
+            wrap("tr", labels.map(x => wrap("th", x, "align=left")).join(""))
+            : ""
+        let entries = strArrArr.map(row =>
+            wrap("tr", row.map(x => wrap("td", x, "nowrap")).join(""))).join("")
+        let ret = `<table${border ? " border = " + border : ""}>${headers}${entries}</table>`
+        return ret
     }
 
     static lettersAndNumberOnly(str) {
