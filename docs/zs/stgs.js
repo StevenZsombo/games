@@ -537,6 +537,31 @@ If something goes wrong, press the "Reset inputs" button in the right-upper corn
         , null, x => x, { numberOfInputs: 4 },
         {
             toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
+            on_start_more: /**@this {Reactor}*/function () {
+                const click1 = Button.fromRect(this.buttonsMatrix[1][0].copyRect)
+                click1.txt = "Click me,\nthen select IN."
+                const click2 = Button.fromRect(this.buttonsMatrix[1][2].copyRect)
+                click2.txt = "Click me,\nthen select OUT.";
+                [click1, click2].forEach(b => {
+                    b.transparent = true
+                    b.txt = `\n${b.txt}\n`
+                    /*this.game.animator.add_anim(Anim.custom(b, 1500, (t, obj) => {
+                        obj.y = this.buttonsMatrix[1][0].y + t * 20
+                    }, "",
+                        { repeat: 100, lerp: Anim.l.vee }
+                    ))*/
+                    this.game.animator.add_anim(Anim.stepper(b, 1500, "rad", 0, .2,
+                        { repeat: 100, lerp: Anim.l.wave }
+                    ))
+                    b.on_click = () => this.game.remove_drawable(b)
+
+                })
+                // this.controlButtons[2].color = "lightpink"
+                this.game.animator.add_anim(Anim.stepper(this.controlButtons[2], 1500, "rad", 0, .1,
+                    { repeat: 100, lerp: Anim.l.wave }
+                ))
+                this.game.add_drawable([click1, click2])
+            }
         }
     ),
     "REMOVE": new Level(
@@ -553,6 +578,10 @@ If something goes wrong, press the Reset inputs button in the right-upper corner
             /**@this {Reactor} */
             on_start_more: function () {
                 this.fromJSON(`[[0,0,"IN"],[1,2,"OUT"]]`)
+                this.game.animator.add_anim(Anim.stepper(this.controlButtons[2], 1500, "rad", 0, .1,
+                    { repeat: 100, lerp: Anim.l.wave }
+                ))
+
             }
         }
 
