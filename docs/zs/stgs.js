@@ -538,6 +538,9 @@ If something goes wrong, press the "Reset inputs" button in the right-upper corn
         {
             toolsRestrictedTo: "IN OUT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
             on_start_more: /**@this {Reactor}*/function () {
+                this.clickMeButtons?.forEach(x =>
+                    this.game.remove_drawable(x)
+                )
                 const click1 = Button.fromRect(this.buttonsMatrix[1][0].copyRect)
                 click1.txt = "Click me,\nthen select IN."
                 const click2 = Button.fromRect(this.buttonsMatrix[1][2].copyRect)
@@ -558,9 +561,10 @@ If something goes wrong, press the "Reset inputs" button in the right-upper corn
                 })
                 // this.controlButtons[2].color = "lightpink"
                 this.game.animator.add_anim(Anim.stepper(this.controlButtons[2], 1500, "rad", 0, .1,
-                    { repeat: 100, lerp: Anim.l.wave }
+                    { repeat: 100, lerp: Anim.l.wave, ditch: true }
                 ))
-                this.game.add_drawable([click1, click2])
+                this.clickMeButtons = [click1, click2]
+                this.game.add_drawable(this.clickMeButtons)
             }
         }
     ),

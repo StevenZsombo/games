@@ -329,7 +329,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         const brokenButton = backButton.copy
         brokenButton.move(-brokenButton.width - 50, 0)
         brokenButton.txt = "Broken module challenges"
-        this.animator.add_anim(Anim.stepper(brokenButton, 500, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 6 }))
+        //this.animator.add_anim(Anim.stepper(brokenButton, 1000, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 6 }))
         brokenButton.color = "lightsalmon"
         brokenButton.hover_color = "salmon"
         brokenButton.on_release = () => {
