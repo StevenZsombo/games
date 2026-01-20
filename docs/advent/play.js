@@ -26,3 +26,8 @@ const gcd = (a, b) => {
     return a
 }
     */
+
+const script = document.createElement("script")
+script.onload = () => console.log("MM loaded") //goes first
+script.src = "../zs/MM.js"
+document.head.appendChild(script)
