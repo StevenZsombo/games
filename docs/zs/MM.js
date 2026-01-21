@@ -148,6 +148,30 @@ class MM {
     static drawLinePos(ctx, pt1, pt2, { color = "black", width = 5 } = {}) {
         MM.drawLine(ctx, pt1.x, pt1.y, pt2.x, pt2.y, { color, width })
     }
+    //#region drawArrow
+    static drawArrow(ctx, x, y, u, w, { color = "black", width = 5, size = 10 }) {
+        ctx.strokeStyle = color
+        ctx.fillStyle = color
+        ctx.lineWidth = width
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(u, w)
+        ctx.stroke()
+        const angle = Math.atan2(w - y, u - x)
+        ctx.beginPath()
+        ctx.moveTo(u, w)
+        ctx.lineTo(
+            u - size * Math.cos(angle - Math.PI / 6),
+            w - size * Math.sin(angle - Math.PI / 6)
+        )
+        ctx.lineTo(
+            u - size * Math.cos(angle + Math.PI / 6),
+            w - size * Math.sin(angle + Math.PI / 6)
+        )
+        ctx.closePath()
+        ctx.fill()
+    }
+    //#endregion
     //#region MM.drawPolyLine
     static drawPolyLine(screen, xArr, yArr, { color = "blank", width = 4, offsetX = 0, offsetY = 0 } = {}) {
         if (xArr.length != yArr.length) { throw "drawPolyLine length mismatch" }
@@ -383,8 +407,9 @@ class MM {
     }
     /**@param {number} upto - Returns an array of all primes up to a number.  */
     static primes(upto = 999) {
-        const a = this.primesGen(upto)
-        return a.reduce((s, t, i) => (t && s.push(i), s), [])
+        // const a = this.primesGen(upto)
+        // return a.reduce((s, t, i) => (t && s.push(i), s), [])
+        return Array.from(this.primesGen(upto))
     }
 
     /**@param {number} upto */
