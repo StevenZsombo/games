@@ -56,8 +56,9 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initialize_more() {
+        const ADDBUTTONS = true
 
-        const what = prompt(
+        const what = !ADDBUTTONS || prompt(
             `Each graph represents the 6, 24, or 120 possible states of Alain's card shuffling game.
 Which graph do you want? (Type in the number)
 1: three cards, tangled
@@ -65,23 +66,30 @@ Which graph do you want? (Type in the number)
 3: four cards, tangled
 4: four cards, untangled
 5: five cards, tangled
-6: five cards, untangled
+6: five cards, untangled (recommended)
+7: six cards, a mess (not recommended)
             `)
-
+        alert("drag&drop with mouse, zoom with mousewheel")
         let [NR, NRROWS, NRCOLS, NRARRANGE] = [
             [3, 3, 2, false], [3, 3, 2, true],
-            [4, 6, 4, false], [4, 6, 4, true], [5, 12, 10, false], [5, 12, 10, true]
+            [4, 6, 4, false], [4, 6, 4, true],
+            [5, 12, 10, false], [5, 12, 10, true],
+            [6, 24, 30, false],
+            //[7, 70, 72, false]
         ][what - 1]
+        if (!ADDBUTTONS) NR = 8
         const Card = function (str) {
             this.str = str
             this.after = undefined
             this.afterArrowColor = "black"//MM.randomColor(0, 150)
+            if (!ADDBUTTONS) return
             this.button = new Button({
                 width: 150,
                 height: 75,
                 tag: this,
                 txt: str,
-                fontSize: NR == 4 ? 32 : 24
+                fontSize: NR == 4 ? 32 : 24,
+                isBlocking: true
             })
             Button.make_draggable(this.button)
             game.add_drawable(this.button)
@@ -91,10 +99,30 @@ Which graph do you want? (Type in the number)
         for (const str of MM.permutationsStr(Array.from({ length: NR }, (_, i) => `${i + 1}`).join(""))) {//NR
             cards.set(str, new Card(str))
         }
-        Rect.packArray(cards.values().map(x => x.button),
-            this.rect.copy.deflate(100, 100).splitGrid(NRROWS, NRCOLS).flat()
-                .map(x => x.stretch(.4, .4))
-            , true)//NR
+        if (ADDBUTTONS) {
+            const buttons = Array.from(cards.values().map(x => x.button))
+            const cX = game.rect.centerX
+            const cY = game.rect.centerY
+            const sfBase = 1.08
+            Rect.packArray(buttons,
+                this.rect.copy.deflate(100, 100).splitGrid(NRROWS, NRCOLS).flat()
+                    .map(x => x.resize(70, 30))
+                , true)//NR
+            const bg = Button.fromRect(game.rect.copy)
+            if (NR == 6) buttons.forEach(x => (x.stretch(.5, .5), x.fontSize *= .5))
+
+            bg.transparent = true
+            bg.on_wheel = function (wheel, pos) {
+                const sf = wheel > 0 ? 1 / sfBase : sfBase
+                buttons.forEach(x => {
+                    x.spread(pos.x, pos.y, sf, sf)
+                    x.stretch(sf, sf)
+                    x.fontSize *= sf
+                })
+            }
+            this.add_drawable(bg, 4)
+            Button.make_drag_others(bg, buttons, true)
+        }
         globalThis.cards = cards
         console.log(cards)
 
@@ -123,10 +151,22 @@ Which graph do you want? (Type in the number)
             while (!chain.parent) chain = chain.after
             card.parent = chain.parent
         }
+        const getChain = function (card) {
+            let chain = [card]
+            while (!parents.has(chain.at(-1))) chain.push(chain.at(-1).after)
+            card.chain = chain
+        }
+        let worstLength = 1
         for (const card of cards.values()) {
             getParent(card)
+            getChain(card)
+            if (card.chain.length > worstLength) worstLength = card.chain.length
         }
-        if (NRARRANGE) {
+        globalThis.worstLength = worstLength
+        globalThis.worstChains = cards.values().filter(x => x.chain.length == worstLength)
+        globalThis.worstSorted = Array.from(cards.values()).toSorted((u, w) => w.chain.length - u.chain.length)
+
+        if (NRARRANGE && ADDBUTTONS) {
             const posBankThree = JSON.parse(
                 `[["123",1302.837213464157,488.2379254179546],["132",1277.4833705471349,123.95491628336211],["213",1210.263718793411,734.3535065990553],["231",301.2530023841739,677.8476424172],["312",794.2836750349867,834.9963955017975],["321",813.41334025218,570.5004746187805]]`
             )
@@ -140,8 +180,8 @@ Which graph do you want? (Type in the number)
             for (const [str, x, y] of posBank)
                 Object.assign(cards.get(str).button, { x, y })
         }
-        const NRCOLORPARENT = NRARRANGE
-        if (NRCOLORPARENT) {
+        const NRCOLORPARENT = true//NRARRANGE
+        if (NRCOLORPARENT && ADDBUTTONS) {
             for (parent of parents.values()) {
                 const color = MM.randomColor(180, 250)
                 cards.values().filter(x => x.parent === parent).forEach(x =>
@@ -151,6 +191,16 @@ Which graph do you want? (Type in the number)
             }
         }
 
+        if (NR >= 6) { //rearrange if 6
+            Rect.packCol(Array.from(parents.values().map(x => x.button)), game.rect.copy)
+            for (const parent of parents) {
+                const kids = Array.from(cards.values().filter(x => x.parent === parent).map(x => x.button))
+                Rect.packRow(kids, parent.button.copy.resize(100, 1000))
+            }
+            const rightmost = cards.values().map(x => x.button.right).reduce((s, t) => s < t ? s : t)
+            cards.values().map(x => x.button).forEach(x => x.x = rightmost - x.x + 1800)
+            // cards.values().map(x => x.button).forEach(x => x.y += MM.random(-20, 20))
+        }
 
 
 
@@ -186,7 +236,7 @@ Which graph do you want? (Type in the number)
     draw_more(screen) {
         const cards = window.cards
         for (const card of cards.values()) {
-            if (!card.after) continue
+            if (!card.after || !card.button) continue
             MM.drawArrow(screen,
                 card.button.x, card.button.y,
                 card.after.button.x, card.after.button.y,

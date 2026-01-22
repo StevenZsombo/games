@@ -649,7 +649,7 @@ class Button extends Clickable {
 	}
 
 	/**@param {Button} button @param {Button[]} others */
-	static make_drag_others(button, others) {
+	static make_drag_others(button, others, doNotDragSelf = false) {
 		others ??= []
 		button.drag_others_list ??= []
 		button.drag_others_list.push(...(others.filter(x => x !== button)))
@@ -657,7 +657,8 @@ class Button extends Clickable {
 			this.drag_others_list.forEach(b => {
 				b.move(pos.x - button.last_held.x, pos.y - button.last_held.y)
 			})
-			this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
+			if (!doNotDragSelf)
+				this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
 		}
 		button._drag_force_within = true
 		return button
