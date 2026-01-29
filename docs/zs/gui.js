@@ -636,13 +636,13 @@ class Supabase {
 	static async checkSolution(problem, solution, callback) {
 		try {
 			const response = await fetch(
-				`${SUPABASE_URL}/rest/v1/rpc/check_blake_solution`,
+				`${Supabase.SUPABASE_URL}/rest/v1/rpc/check_blake_solution`,
 				{
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'apikey': SUPABASE_KEY,
-						'Authorization': `Bearer ${SUPABASE_KEY}`
+						'apikey': Supabase.SUPABASE_KEY,
+						'Authorization': `Bearer ${Supabase.SUPABASE_KEY}`
 					},
 					body: JSON.stringify({
 						p_problem: problem,
