@@ -591,6 +591,7 @@ class Supabase {
 
 	static SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
 	static SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
+	/** @param {*} callback - Called as callback(event,data) */
 	static async addRow(event, data, callback) {
 		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
 		try {
@@ -631,6 +632,34 @@ class Supabase {
 			throw error // Re-throw for outer .catch()
 		}
 	}
+
+	static async checkSolution(problem, solution, callback) {
+		try {
+			const response = await fetch(
+				`${SUPABASE_URL}/rest/v1/rpc/check_blake_solution`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'apikey': SUPABASE_KEY,
+						'Authorization': `Bearer ${SUPABASE_KEY}`
+					},
+					body: JSON.stringify({
+						p_problem: problem,
+						p_solution: solution
+					})
+				}
+			)
+			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+			const result = await response.json()
+			callback?.(result)
+			return result
+		} catch (error) {
+			console.error('Error checking solution:', error)
+			return null //return null by default
+		}
+	}
+
 
 
 }
