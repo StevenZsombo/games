@@ -93,6 +93,16 @@ var levels = Object.freeze({
             return y
         }, { maxDegree: 4 }
     ),
+    "sequence": new Level(
+        "Your input is integer [a].\nReturn [a], [ax], [ax^2] in that order.",
+        null, null, {
+        numberOfInputs: 4,
+        func: () => [new Rational(MM.randomInt(1, 20))],
+        funcOut: (inp) => inp.flatMap(u => [Poly.computed(u), Poly.computed(u).takeRaise(), Poly.computed(u).takeRaise().takeRaise()].map(x => x.arr)
+        )
+
+    }
+    ),
     "degreetwo": new Level(
         "Return only the degree 2 term (if there is any).", null, x => x[2].numerator ? [new Rational(0), new Rational(0), x[2]] : [],
         { minTerms: 3, minDegree: 1, maxDegree: 5 }
@@ -351,6 +361,21 @@ var levels = Object.freeze({
                 return out
             }
         }, { allowEarlyWin: true }
+    ),
+    "fibonacci": new Level(
+        "Your inputs are all [1]. Generate the Fibonacci sequence.", null, null,
+        {
+            numberOfInputs: 10,
+            func: x => [new Rational(1)],
+            funcOut: x => {
+                let fib = [2, 3]
+                for (let i = 2; i < 10; i++) {
+                    fib.push(fib.at(-1) + fib.at(-2))
+                }
+                return fib.map(x => [new Rational(x)])
+            }
+        },
+        { allowEarlyWin: true }
     ),
     "sqrttwo": new Level(
         "Approximate sqrt(2) via the recursion\nx_1=1, x_{n+1}= x_n/2 + 1/(x_n).", null, null,
@@ -1092,20 +1117,6 @@ var prototypeLevels = {
         /**@param {Rational[]} x @param {Rational[][]} a  */(x, i, a) => {
             return [new Rational(a.slice(0, i + 1).reduce((s, t) => Rational.sumOfTwo(s, t[0]), new Rational(0)))]
         }, { maxTerms: 1, maxDegree: 0, maxDenom: 0, negativeChance: 0, maxNumer: 12 }
-    ),
-    "fibonacci": new Level(
-        "Your inputs are all [1]. Generate the Fibonacci sequence.", null, null,
-        {
-            numberOfInputs: 10,
-            func: x => [new Rational(1)],
-            funcOut: x => {
-                let fib = [2, 3]
-                for (let i = 2; i < 10; i++) {
-                    fib.push(fib.at(-1) + fib.at(-2))
-                }
-                return fib.map(x => [new Rational(x)])
-            }
-        }
     ),
     "onesdigit": new Level(
         `Your input is a positive integer. Return the ones digit.`,
