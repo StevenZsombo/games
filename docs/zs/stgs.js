@@ -127,6 +127,18 @@ var levels = Object.freeze({
         `Map each input to [2/3].`, null,
         x => [new Rational(2, 3)]
     ),
+    "pickthree": new Level(
+        "Your input is integer n > 3.\nReturn the binomial coefficient (n choose 3).",
+        null, x => { const n = x[0].numerator; return [new Rational(n * (n - 1) * (n - 2), 6)] },
+        {
+            maxTerms: 1,
+            maxDegree: 0,
+            maxDenom: 1,
+            negativeChance: 0,
+            minNumer: 4,
+            maxNumer: 30
+        }
+    ),
     "constone": new Level(
         "Change the constant to 1.", null,
         x => { const p = Poly.computed(x); p.arr[0] = new Rational(1); return p },
