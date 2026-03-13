@@ -157,7 +157,7 @@ class GameCore {
         this.update(dt)
         this.update_more(dt)
         this.extras_on_update.forEach(x => x.call(this, dt))
-        !this.drawnAlready && this.draw_before(screen)
+        !this.drawnAlready && this.draw_before?.(screen)
         !this.drawnAlready && this.draw(screen)
         !this.drawnAlready && this.draw_more(screen)
         !this.drawnAlready && this.extras_on_draw.forEach(x => x.call(this, screen))
