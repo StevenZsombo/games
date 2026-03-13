@@ -724,8 +724,8 @@ If you wish to turn this feature off, you may do so in the Options menu.
         
 Would you like to join the online leaderboards ?
 
-    If you agree: your victories will be recorded on a public server,
-        and your name will be added to the leaderboards.
+If you agree: your victories will be recorded on a public server,
+and your name will be added to the leaderboards.
 
 Have fun.
     Best, Steven`
@@ -737,7 +737,7 @@ Have fun.
             }))
             .map(x => x.stretch(.85, .5))
 
-        yes.txt = "I agree to share my victories\nand join the leaderboards."
+        yes.txt = "\nI agree to share my victories\nand join the leaderboards.\n"
         details.txt = "Clarify what data will be sent."
         no.txt = "I do not want to share my victories."
 
@@ -771,7 +771,7 @@ anyone with the know-how might be able to read it.
 
 This data will also get published on the leaderboards, or to highlight unique solutions.
 
-The game will notify you with a small in -game popup each time data is sent successfully.`
+The game will notify you with a small in-game popup each time data is sent successfully.`
             )
         }
         const example = details.copy
@@ -780,7 +780,7 @@ The game will notify you with a small in -game popup each time data is sent succ
             alert(
                 `Name: Steven Zsombo
 Unique ID: gf5xh2g7
-Time: 2025.12.24. 16: 52:05
+Time: 2025.12.24. 16:52:05
 Level name: secondder
 Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
             )
@@ -989,17 +989,17 @@ Please run them again to send your data.`
         }
 
         const levelList =
-            `INOUT1 REMOVE UDLR1 UDLR2 INOUT2 RAISE LOWER mulxcube noconst
+            `INOUT1 REMOVE UDLR1 UDLR2 INOUT2 RAISE LOWER mulxcube noconst sequence
             LEAD CONST1 degreetwo DER1 secondder DER2 multhree multt
             INT1 INT2 divthree constone CONST2 CONST3 twoxplusone twothirds
-            DEG1 DEG2 four hasconst NEG TAKE perp nzconst
-            POW1 POW2 exp sqrt sumupto evenonly divtwelve evenodd
+            DEG1 DEG2 four hasconst NEG TAKE perp nzconst POW1 POW2
+            exp sqrt sumupto pickthree evenonly divtwelve evenodd
             SUM1 SUM2 COPY1 multeight mult tail leadingterm lindiff manyones
             SUBS ntothen poweroftwo sumcoeff invsq boolflip linprod linsolve
             penta vel accel tangent sixsixsix DOOR1 DOOR2 twoonly POW3
-            posonly quadonly statattwo degfour compsqonly sign inconly 
-            COPY2 COPY3 allint allodd geometric golden sqrttwo powersoftwo
-            pi last abs e factorials linmax everyother factorial`
+            posonly quadonly statattwo degfour compsqonly sign inconly COPY2
+            COPY3 allint allodd geometric golden fibonacci sqrttwo powersoftwo
+            pi last abs e factorials linmax everyother factorial `
                 .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
         const LEVEL_BUTTON_FONTSIZE = 30
         const getLevelButton = (str) => {
