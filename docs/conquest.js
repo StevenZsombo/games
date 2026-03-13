@@ -136,8 +136,9 @@ const sharedFunc = {
             territories: Array.from(x.territories.values().map(u => u.id))
         }
     )),
-    //conflictsData: () => game.conflicts.filter(x => !x.alreadyResolved).map(x => (
-    conflictsData: () => game.conflicts.map(x => (
+    //#region conflictsData
+    //CDhere
+    conflictsData: () => game.conflicts.filter(x => !x.alreadyResolved).map(/**@param {Conflict} x*/ x => (
         {
             from: x.attackingFrom.id,
             to: x.territory.id,
@@ -145,7 +146,8 @@ const sharedFunc = {
             fromKD: x.attacker.id,
             toKD: x.defender.id,
             timeLeft: x.timeLeft,
-            id: x.id
+            id: x.id,
+            qID: x.question?.id ?? -1
         }
     )),
     rankingData: () => game.getRanking()
@@ -167,11 +169,25 @@ listener.on_message = (obj, person) => {
     if (obj.attack) {
         if (!person.kingdom) console.error("Person without kingdom wants to attack", person, obj, this)
         game.beginAttack(person.kingdom, game.territories[obj.attack], person)
-
+    }
+    if (obj.accept) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
+        const c = game.conflicts.find(x => x.id === obj.accept)
+        if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.name)
+        else SHARE("conflictsData", person.name)
+    }
+    if (obj.attempt) {
+        const c = game.conflicts.find(x => x.id === obj.attempt)
+        c.attempt(person.kingdom, obj.guess, person)
     }
 }
 
+const lastBroadcastDate = {}
+const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
+    if (Date.now() - lastBroadcastDate["conflictsData"] > 5 * 1000) SHARE("conflictsData")
+}, 6 * 1000)
+
 const SHARE = (key, target) => {
+    if (!target) lastBroadcastDate[key] = Date.now()
     const msg = { shared: key }
     if (target) msg.target = target
     if (shared[key] !== undefined) {
@@ -182,8 +198,7 @@ const SHARE = (key, target) => {
         msg.value = sharedFunc[key]()
         chat.sendMessage(msg)
         return true
-    }
-    return false
+    } else return false
 }
 
 
@@ -270,18 +285,12 @@ class Game extends GameCore {
         /**@type {Conflict[]} */
         this.conflictsHistory = []
         this.conflictsHistoryCount = 0
-        /**@type {Map<number,Question>} */
-        const questions =
-            Array.from({ length: 10 }, (_, i) =>
-                new Question(i, { txt: `Find 2*${i + 1}+1.`, sol: 2 * (i + 1) + 1 }))
-        this.questions = questions
-        Question.ALL = questions
 
         //debug drag and drop
         buts.forEach(Button.make_draggable)
 
         const bpos =
-            `[[268.4490926777775,176.46867796895398],[586,122.5],[951.2533019042131,92.42167101827675],[1316.5850463315383,127.5913646887239],[1528.861662987227,280.411227154047],[338.55352016066433,361.23366233885446],[556,337.5],[824.6735959892732,291.05093296140666],[1158.595382945591,258.4660574412532],[1425.6754659259957,469.7388626827269],[277.1435913745854,584.9282175567068],[677.4882852544048,556.1031331592691],[1031.5403125438118,397.01693303280024],[936.7676008033214,631.2990129834367],[1235.5977376196743,528.5312933461163],[519.1018146444449,713.4530217342525],[502.0313540613017,542.9308476460507],[792.0887791371646,759.7454308093995],[1103.4517055162194,750.9725466098238],[1319.5665556679448,670.7636310786553],[864.7781991727304,450.3482328482328],[1145.4920304920306,87.10495915085761],[744.9583793529105,127.02182952182946],[1378.2710038764724,351.8867349922038]]`
+            `[[28.449092677777514,176.46867796895398],[346,122.5],[711.2533019042131,92.42167101827675],[1076.5850463315383,127.5913646887239],[1288.861662987227,280.411227154047],[98.55352016066433,361.23366233885446],[316,337.5],[584.6735959892732,291.05093296140666],[918.5953829455909,258.4660574412532],[1185.6754659259957,469.7388626827269],[37.14359137458541,584.9282175567068],[437.4882852544048,556.1031331592691],[791.5403125438118,397.01693303280024],[696.7676008033214,631.2990129834367],[995.5977376196743,528.5312933461163],[279.10181464444486,713.4530217342525],[262.0313540613017,542.9308476460507],[552.0887791371646,759.7454308093995],[863.4517055162194,750.9725466098238],[1079.5665556679448,670.7636310786553],[624.7781991727304,450.3482328482328],[905.4920304920306,87.10495915085761],[504.95837935291047,127.02182952182946],[1138.2710038764724,351.8867349922038]]`
         JSON.parse(bpos).forEach((u, i) => {
             buts[i].topleftat(...u)
         })
@@ -348,15 +357,23 @@ class Game extends GameCore {
 
     }
     draw_more(screen) {
-
         if (this.showingMap)
             for (const c of this.conflicts) {
                 if (c.alreadyResolved) continue
                 MM.drawArrow(screen,
-                    ...c.attackingFrom.button.centerXY,
-                    ...c.territory.button.centerXY,
+                    c.attackingFrom.button.centerX - 10,
+                    c.attackingFrom.button.centerY - 10,
+                    c.territory.button.centerX + 10,
+                    c.territory.button.centerY + 10,
                     { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR(c.attacker.color), width: 10, size: 30 }
                 )
+                //debugging timer
+                /*MM.drawText(screen,
+                    MM.toMMSS(c.timeLeft), c.attackingFrom.button.copy.move(
+                        (c.territory.button.centerX - c.attackingFrom.button.centerX) * .3,
+                        (c.territory.button.centerY - c.attackingFrom.button.centerY) * .3
+                    ), { fontSize: 20, color: "red" }
+                )*/
 
             }
 

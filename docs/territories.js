@@ -10,18 +10,25 @@ var RULES = Object.freeze({
     TIMEOUT_ON_ATTACK: 60 * 1000,
     TIMEOUT_ON_ATTACK_TEXT: "one minute",
     TIMEOUT_ON_DEFENSE: 8 * 60 * 1000,
-    TIMEOUT_ON_DEFENSE: "eight minutes",
+    TIMEOUT_ON_DEFENSE_TEXT: "eight minutes",
     NUMBER_OF_TERRITORIES: 24,
     NUMBER_OF_TEAMS: 6, //best for 24 territories
     CAPITAL_PLUNDER_VALUE: 400,
+    PICTURE_PATH: "conquest/pictures/",
+    PICTURE_EXTENSION: ".png"
 })
 //#region GRAPHICS
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
     ATTACK_TEAM_COLOR: x => x,
-    POPUP_ATTACK_DEFENSE_INFO: "smallPink",
+    POPUP_ATTACK_SUCCESS: "bigBlue",
+    POPUP_ATTACK_FAIL: "bigBlue",
+    POPUP_DEFEND_SUCCESS: "bigBlue",
+    POPUP_DEFEND_FAIL: "bigBlue",
     POPUP_SERVER_RESPONSE: "bigYellow",
     POPUP_DEFENSE_WARNING: "bigRed",
+    POPUP_PATIENCE: "smallPink",
+    POPUP_START_DEFENSE: "bigBlue",
     TERRITORY_SIZE_BASE: 100,
     TERRITORY_SIZE_CAPITAL_FACTOR: 1.4,
 })
@@ -81,9 +88,9 @@ class Territory {
     }
 
 }
-
+//#region Kingdom
 class Kingdom {
-    static defaultColors = Object.freeze(["lightblue", "pink", "orange", "yellow", "green", "brown"])
+    static defaultColors = Object.freeze(["cyan", "pink", "orange", "yellow", "green", "brown"])
 
     constructor(id, name) {
         this.id = id
@@ -172,17 +179,23 @@ class Conflict {
     }
 
 
-
+    /**@returns {Boolean} was accepting succesful? */
     accept() {
+        if (this.solving) return false //can only accept once. then it is free game
         this.justDeclared = false
         this.solving = true
         const availableQuestions = Question.ALL.filter(x => !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
+        if (!availableQuestions.length) { console.error("out of questions!!!!") }
+        /**@type {Question} */
         this.question = MM.choice(availableQuestions)
+        this.attacker.seenQuestions.add(this.question)
+        this.defender.seenQuestions.add(this.question)
         this.timeLeft = RULES.TIMEOUT_ON_DEFENSE
         SHARE("conflictsData")
+        return true
     }
 
-    attempt(who, guessValue) {
+    attempt(who, guessValue, person) {
         if (who !== this.attacker && who !== this.defender) console.error("wrong attempt person", this)
         if (!this.question?.sol) console.error("conflict is yet to be accepted", this)
         if (!this.solving) console.error("wrong conflict state: not solving")
@@ -190,6 +203,13 @@ class Conflict {
         if (guessValue !== this.question.sol) {
             //wrong attempt
             console.log("wrong attempt", who.name)
+            if (person) {
+                chat.sendMessage({
+                    target: person.name,
+                    popup: `Your answer of ${guessValue} is incorrect.`,
+                    popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+                })
+            }
         } else {
             if (who === this.attacker) {
                 this.winAttack("successful attack")
@@ -212,11 +232,46 @@ class Conflict {
         this.defender?.territories.delete(this.territory)
         this.attacker.territories.add(this.territory)
         this.territory.button.color = this.attacker.color
+        //notify attackers of victory
+        const short = this.territory.nameShort
+        this.attacker.members.forEach(x =>
+            chat.sendMessage({
+                target: x.name,
+                popup: `You captured ${short}.`,
+                popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
+            })
+        )
+        //notify defenders of lost territory
+        this.defender.members.forEach(x =>
+            chat.sendMessage({
+                target: x.name,
+                popup: `You lost ${short}.`,
+                popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
+            })
+        )
         this.resolve()
     }
     winDefend(reason) {
         console.log(reason, this.defender.name, this.territory.name)
         this.territory.value += RULES.DEFENSE_GAIN_VALUE
+        //notify defenders of victory
+        const short = this.territory.nameShort
+        this.defender.members.forEach(x =>
+            chat.sendMessage({
+                target: x.name,
+                popup: `You defended ${short}.`,
+                popupSettings: GRAPHICS.POPUP_DEFEND_SUCCESS
+            })
+        )
+        //notify attackers of failure
+        this.attacker.members.forEach(x =>
+            chat.sendMessage({
+                target: x.name,
+                popup: `You could not capture ${short}.`,
+                popupSettings: GRAPHICS.POPUP_ATTACK_FAIL
+            })
+        )
+        this.resolve()
     }
 
     timeoutWithoutAccept() {
@@ -233,10 +288,10 @@ class Conflict {
         this.solving = false
         this.alreadyResolved = true
         this.territory.isUnderAttack = false
+        SHARE("conflictsData")
         SHARE("ownershipData")
         SHARE("valuesData")
         SHARE("rankingData")
-        SHARE("conflictsData")
     }
 
     update(dt) {
@@ -245,14 +300,33 @@ class Conflict {
     }
 }
 
-
+//#region Question
 class Question {
-    static ALL = []
-    constructor(id, { img, txt, sol } = {}) {
+    constructor(id, { img, txt, sol, latex } = {}) {
         this.id = id
         this.img = img
         this.txt = txt
+        this.latex = latex
         this.sol = sol
         this.points = null //maybe?
+    }
+    /**@type {Question[]} */
+    static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~`
+    static ALL = Question.raw.
+        split("@").map(x => x.split("~")).map(
+            ([id, note, img, sol, txt, latex], i) => new Question(i, { img, txt, sol: +sol, latex }))
+}
+//#region Gimmicks
+class Gimmicks {
+    static setupBorder() {
+        const bot = Button.fromRect(game.rect.splitCell(-1, 1, 5.5, 1))
+        const top = Button.fromRect(game.rect.splitCell(1, 1, 20, 1))
+        const right = Button.fromRect(game.rect.splitCell(1, -1, 1, 5))
+        right.topat(top.bottom)
+        right.bottomstretchat(bot.top)
+        const left = Button.fromButton(right)
+        left.leftat(0)
+        left.width = 20
+        return { bot, top, right, left }
     }
 }

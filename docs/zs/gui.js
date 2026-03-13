@@ -88,9 +88,9 @@ class Keyboarder {
 				pressed[e.key] = true
 				this.strokeBuffer.push([Date.now(), e.key])
 				this.keyBuffer.push([Date.now(), e.key])
+				this.on_keydown?.(e)
+				this.on_keydownDict[e.key]?.()
 			}
-			this.on_keydown?.(e)
-			this.on_keydownDict[e.key]?.()
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()

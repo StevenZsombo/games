@@ -18,6 +18,8 @@ var univ = {
 }
 
 var myKingdomID
+var myColor
+var myKingdomObject
 
 
 class Game extends GameCore {
@@ -133,17 +135,32 @@ class Game extends GameCore {
                 if (!territories.length) return
                 value.forEach(x => territories[x.id].value = x.value)
             }
+            //#region conflictsData
+            //CDhere
             if (shared == "conflictsData") {
-                value = value.filter(x => x.fromKD === myKingdomID || x.toKD === myKingdomID)
+                value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
-                    if (match) match.confD.timeLeft = x.timeLeft
+                    if (match) {
+                        match.confD.timeLeft = x.timeLeft
+                        if (x.qID != -1) {
+                            //new pane created when necessary
+                            if (!panes.has(x.id)) //by conflict id
+                                panes.set(x.id, new QPane(x.qID, x.id))
+                        }
+                        match.confD.qID = x.qID
+                    }
                     else snippets.push(new Snippet(x))
                 })
                 const serverIDs = value.map(x => x.id)
-                snippets.filter(x => !serverIDs.includes(x.id)).forEach(x =>
-                    x.destroy()
-                )
+                snippets.filter(x => !serverIDs.includes(x.id)).forEach(x => {
+                    if (focus == x.id) setFocus("map")
+                    if (panes.has(x.id)) {
+                        panes.get(x.id).destroy()
+                        panes.delete(x.id)
+                    }
+                    x.destroy() //snippet
+                })
                 Snippet.rearrange()
             }
             if (shared == "rankingData") {
@@ -174,9 +191,18 @@ class Game extends GameCore {
 
 
         const init_after_basics = () => {
-            const top = Button.fromRect(game.rect.splitCell(1, 1, 20, 1))
-            top.visible = false
+            let border = Gimmicks.setupBorder()
+            const { top, bot, left, right } = border
+            border = Object.values(border)
+            this.border = border
             this.top = top
+            this.bot = bot
+            this.left = left
+            this.right = right
+            top.visible = false
+
+            myKingdomObject = kingdoms[myKingdomID]
+            myColor = myKingdomObject.color
 
             //first it label, last is status
             const ranking = top.splitGrid(1, RULES.NUMBER_OF_TEAMS + 3).flat().slice(0, -1).map(x => Button.fromRect(x))
@@ -192,23 +218,14 @@ class Game extends GameCore {
             })
             game.add_drawable(ranking)
 
-            const bot = Button.fromRect(game.rect.splitCell(-1, 1, 5.5, 1))
             Snippet.bgDefault.resize(180, bot.height - 20)
             Snippet.bgDefault.topat(bot.top)
             Snippet.bgDefault.leftat(bot.left + 20)
-            this.bot = bot
-            const right = Button.fromRect(game.rect.splitCell(1, 10, 1, 10))
-            right.topat(top.bottom)
-            right.bottomstretchat(bot.top)
-            this.right = right
 
-            const left = Button.fromButton(right)
-            left.leftat(0)
-            this.left = left
-            this.add_drawable([left, right, top, bot], 3)
-                ;[left, right, top, bot].forEach(x => {
-                    x.outline = 0
-                })
+            this.add_drawable(Object.values(border), 3)
+            border.forEach(x => {
+                x.outline = 0
+            })
 
             const attackButton = new Button({ width: 200, height: 150 })
             attackButton.fontSize = 30
@@ -229,13 +246,27 @@ class Game extends GameCore {
             }
             attackButton.on_click = () => {
                 chat.sendMessage({ attack: attackButton.territory.id })
+                attackButton.interactable = false
                 attackButton.txt = "Waiting for\nserver..."
                 this.animator.add_anim(Anim.delay(500, { on_end: () => attackButton.deactivate() }))
             }
 
+            const mapArea = new Button()
+            mapArea.leftat(left.right)
+            mapArea.topat(top.bottom)
+            mapArea.bottomstretchat(bot.top)
+            mapArea.rightstretchat(right.left)
+            this.mapArea = mapArea
+            QPane.bgDefault = mapArea.copy
+            QPane.bgDefault.height -= 100
+            const answerArea = QPane.bgDefault.copy
+            answerArea.height = 100
+            answerArea.topat(QPane.bgDefault.bottom)
+            QPane.answerSpaceDefault = answerArea.copy
+            QPane.calculatorSpaceDefault = right.copy
+
+
         }
-
-
 
 
 
@@ -294,8 +325,10 @@ class Game extends GameCore {
                 for (const c of contest?.shared?.conflictsData) {
                     if (c.alreadyResolved) continue
                     MM.drawArrow(screen,
-                        ...this.territories[c.from].button.centerXY,
-                        ...this.territories[c.to].button.centerXY,
+                        this.territories[c.from].button.centerX - 10,
+                        this.territories[c.from].button.centerY - 10,
+                        this.territories[c.to].button.centerX + 10,
+                        this.territories[c.to].button.centerY + 10,
                         { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR(this.kingdoms[c.fromKD].color), width: 10, size: 30 }
                     )
 
@@ -347,7 +380,7 @@ class Snippet {
     /**@param {Button} bg  */
     constructor(confD, bg) {
         this.confD = confD
-        this.id = confD.id
+        this.id = confD.id //conflict id
         bg ??= Snippet.bgDefault.copy
         this.bg = bg
         /**@type {Button[]} */
@@ -378,8 +411,18 @@ class Snippet {
         // bg.deflate(-10, -10)
         bg.outline = 10
         game.add_drawable(bg, 4)
-        bg.isBlocking = true
-        bg.on_click = () => console.log("clicked", this)
+        // bg.isBlocking = true
+        bg.on_click = () => {
+            if (confD.question == -1) {
+                if (confD.fromKD === myKingdomID) //attacking
+                    GameEffects.popup("Wait for the opponent to respond.", {}, GRAPHICS.POPUP_PATIENCE)
+                else { //trying to defend
+                    GameEffects.popup("Defense began!", {}, GRAPHICS.POPUP_START_DEFENSE)
+                    setFocus(confD.id) //will accept via invalid focus
+                }
+            } else setFocus(confD.id)
+
+        }
     }
     recenter() {
         Rect.packCol(this.rows, this.bg, 0, "c", true)
@@ -404,5 +447,137 @@ class Snippet {
 
 /**@type {Snippet[]} */
 const snippets = []
+
+
+//#region panes
+class QPane extends Panel {
+    static bgDefault = new Button()
+    static answerSpaceDefault = new Button()
+    static calculatorSpaceDefault = new Button()
+    /**
+     * 
+     * @param {number} qID 
+     * @param {Button} bg 
+     */
+    constructor(qID, id, bg) {
+        super()
+        this.qID = qID //question id
+        this.id = id //conflict id
+        bg ??= QPane.bgDefault.copy
+        bg.tag = "QPane bg"
+        this.components.push(bg)
+        const question = Question.ALL[qID]
+        const [imgB, latexB, txtB] = bg.splitRow(
+            question.img ? 7 : 0,
+            question.latex ? 1 : 0,
+            question.txt ? 1 : 0
+        ).map(x => Button.fromRect(x))
+        if (question.img) {
+            cropper.load_img(RULES.PICTURE_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
+            imgB.tag = "QPane imgB component"
+            this.components.push(imgB)
+        }
+        if (question.latex) {
+            Button.make_latex(latexB, question.latex, 0)
+            latexB.tag = "QPane latexB component"
+            this.components.push(latexB)
+        }
+        if (question.txt) {
+            txtB.txt = question.txt
+            txtB.fontSize = 32
+            txtB.tag = "QPane txtB component"
+            this.components.push(txtB)
+        }
+        const answerSpace = QPane.answerSpaceDefault.copy
+        const ansBunch = answerSpace.splitCol(1, 1, 1).map(x => Button.fromRect(x))
+        const [ansLab, ansDisplayShow, ansSubmitButton] = ansBunch
+        ansLab.txt = "Your answer:"
+        ansSubmitButton.txt = "Submit"
+        ansDisplayShow.color = myColor
+        ansBunch.forEach(x => {
+            x.fontSize = 32
+        })
+        this.components.push(...ansBunch)
+
+
+        this.guess = ""
+        const calculatorButtons = QPane.calculatorSpaceDefault.splitGrid(4, 3).flat().map(x => Button.fromRect(x))
+        calculatorButtons.forEach((x, i) => {
+            x.color = myColor
+            x.shrinkToSquare()
+            x.deflate(20, 20)
+            x.fontSize = 36
+            x.spread(QPane.calculatorSpaceDefault.centerX, QPane.calculatorSpaceDefault.centerY,
+                1, .6
+            )
+            if (i < 9) {
+                x.txt = i + 1
+                x.on_click = () => this.guess += `${i + 1}`
+            }
+            if (i == 10) {
+                x.txt = 0
+                x.on_click = () => this.guess += "0"
+            }
+            if (i == 9) {
+                x.txt = "."
+                x.on_click = () => this.guess = this.guess == "" ? "0." : this.guess.split("").filter(x => x != ".").join("") + "."
+            }
+            if (i == 11) {
+                x.txt = "-/Del"
+                x.on_click = () => this.guess = this.guess[0] == "-" ? "" : "-" + this.guess
+            }
+            MM.extFunc(x.on_click, () => GameEffects.sendFancy(
+                x, ansDisplayShow, 500
+            ))
+        })
+        ansDisplayShow.dynamicText = () => this.guess
+        this.components.push(...calculatorButtons)
+
+
+        ansSubmitButton.on_click = () => {
+            if (this.guess == "") return //do not send empty
+            chat.sendSecure({
+                attempt: this.id,
+                guess: +this.guess //send as number
+            })
+            this.guess = "" //to prevent spam a bit
+        }
+
+
+
+        this.deactivate()
+        this.components.forEach(x => x.tag = "QPanePart")
+        game.add_drawable(this)
+
+    }
+
+}
+//#region focus
+/**@type {Map<number,QPane} */
+const panes = new Map()
+let focus = "map" //"map" or id of the QPane which is the same as conflict id
+const setFocus = (tgt) => {
+    //requesting a pane not yet available accepts the conflict
+    if (tgt == "map") {//focusing on map means closing all panes
+        game.showingMap = true
+        Object.values(panes).forEach(x => x.deactivate())
+    } else if (tgt != "map" && !panes.has(tgt)) {
+        chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
+        tgt = "map"
+        Object.values(panes).forEach(x => x.deactivate())
+        return //otherwise quit
+    } else if (focus == "map" && tgt != "map") {//switching away from map
+        game.showingMap = false
+        panes.get(tgt).activate()
+    } else if (focus != "map" && focus != tgt) {//switching between panes
+        panes.get(focus).deactivate()
+        panes.get(tgt).activate()
+    } else if (focus == tgt && focus != "map") {//same pane means close pane
+        panes.get(focus).deactivate()
+        game.showingMap = true
+        tgt = "map"
+    }
+    focus = tgt
+}
 
 

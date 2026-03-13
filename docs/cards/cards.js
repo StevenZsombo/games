@@ -69,7 +69,8 @@ Which graph do you want? (Type in the number)
 6: five cards, untangled (recommended)
 7: six cards, a mess (not recommended)
             `)
-        alert("drag&drop with mouse, zoom with mousewheel")
+        //alert("drag&drop with mouse, zoom with mousewheel")
+        GameEffects.popup("drag&drop with mouse, zoom with mousewheel", { floatTime: 2000 })
         let [NR, NRROWS, NRCOLS, NRARRANGE] = [
             [3, 3, 2, false], [3, 3, 2, true],
             [4, 6, 4, false], [4, 6, 4, true],

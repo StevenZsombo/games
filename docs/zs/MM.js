@@ -1565,6 +1565,7 @@ class GameEffects {
     static popupPRESETS = {
         bigYellow: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "yellow", fontSize: 40 } },
         bigRed: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 40 } },
+        bigBlue: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "lightblue", fontSize: 40 } },
         smallPink: { sizeFrac: [.2, .05], posFrac: [.5, .9], moreButtonSettings: { color: "pink", fontSize: 24 } },
         megaBlue: { posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue", fontSize: 40 } },
         topleftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },

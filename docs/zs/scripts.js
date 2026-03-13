@@ -732,8 +732,7 @@ class Button extends Clickable {
 	}
 	/**@param {Boolean} bool  */
 	set activeState(bool) {
-		if (bool) this.activate()
-		else this.deactivate()
+		bool ? this.activate() : this.deactivate()
 	}
 
 
@@ -823,6 +822,12 @@ class MouseHelper extends Button {
 class Malleable {
 	constructor(...comps) {
 		this.components = [...comps]
+	}
+
+	check(...params) {
+		for (let c of this.components) {
+			c.check?.(...params)
+		}
 	}
 
 	update(dt) {
@@ -1315,18 +1320,18 @@ class InputBoard {
 //#region Panel
 
 class Panel extends Malleable {
-	constructor() {
-		/**@type {Button[]} */
 
-	}
 	activate() { this.components.forEach(x => x.activate?.()) }
 	deactivate() { this.components.forEach(x => x.deactivate?.()) }
 	/**@param {Boolean} bool  */
 	set activeState(bool) { this.components.forEach(x.activate = bool) }
+
+
 	destroy() {
-		game.remove_drawables_batch(this.components)
 		game.remove_drawable(this)
 	}
+
+
 
 
 
