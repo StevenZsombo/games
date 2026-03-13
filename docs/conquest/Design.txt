@@ -1,0 +1,15 @@
+Conquest game:
+Map: Large Provinces of China (~22) or Large (>3mil) Countries of Europe (~29)
+Teams: 4-6
+Each team starts with 1 capital and a uniform number of territories
+Actions:
+-Attack: attack an occupied territory. The owner has 3 minutes to respond – otherwise attacked wins.
+-Each team can launch only up to 4 attacks simultaneously. (Total of up to (4-6) x 4 = 16-24 battles at any moment.)
+-Defend: respond to an attack. Then both teams get the same question to solve within 10 minutes. Faster response wins – otherwise defender wins.
+-Attack capital: must be defeated 3 times. Final time: the fallen kingdom is merged into the victor.
+Value:
+Starter value:
+-Capital 1000 (=100+3x300)
+-Territory 300
+-Increase after each battle: +100
+-(Maybe) consolation price: +50 to the capital

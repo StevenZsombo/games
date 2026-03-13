@@ -211,7 +211,10 @@ class Chat {
             this.sendMessage({ promptResponse: response })
         }
         if (message.present) this.sendMessage({ presentResponse: MM.time() })
-        if (message.popup) game && GameEffects.popup(message.popup, message.popupSettings)
+        if (message.popup) {
+            if (typeof message.popupSettings === 'string') GameEffects.popup(message.popup, {}, message.popupSettings)
+            else GameEffects.popup(message.popup, message.popupSettings)
+        }
         if (message.echo) this.receiveEcho(message.echo)
         if (message.request) this.sendMessage({ requestResponse: eval(message.request) })
 
@@ -220,9 +223,9 @@ class Chat {
             MM.setByPath(message.demand, message.value)
             //eval(`${message.demand} = ${message.value}`)
         }
-        if (message.shared) {
-            contest.shared = message.shared
-            contest.on_share?.()
+        if (message.shared) {//not sure if touching this was a good call.
+            contest.shared[message.shared] = message.value
+            contest.on_share?.(message.shared, message.value)
         }
     }
     //#endregion
@@ -299,7 +302,7 @@ class Listener {
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
         this.allowPriorJoin = true
-        this.isLogging = true
+        this.isLogging = false//true
 
         this.chat.receiveMessageParse = this.messageParsing.bind(this)
 

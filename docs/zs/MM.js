@@ -155,7 +155,7 @@ class MM {
         ctx.lineWidth = width
         ctx.beginPath()
         ctx.moveTo(x, y)
-        ctx.lineTo(u, w)
+        ctx.lineTo(u - (u - x) * .05, w - (w - y) * .05) //let 5% off so it does not reach beyond the triangle
         ctx.stroke()
         const angle = Math.atan2(w - y, u - x)
         ctx.beginPath()
@@ -1101,7 +1101,16 @@ class MM {
         }
         return [XYXYXY.filter((_, i) => !(i % 2)), XYXYXY.filter((_, i) => i % 2)]
     }
+    /**@param {Rect} rect */
+    static rectToRhombus(rect) {
+        return [
+            [rect.centerX, rect.top],
+            [rect.right, rect.centerY],
+            [rect.centerX, rect.bottom],
+            [rect.left, rect.centerY]
+        ].flatMap(([x, y]) => [x - rect.width / 4, y + rect.height / 4])
 
+    }
 
     static brokenLineFunction(...polyXYXYXY) {
         const xs = polyXYXYXY.filter((_, i) => !(i % 2))
@@ -1145,6 +1154,11 @@ class MM {
 
     static timestampToTime(timestamp) {
         new Date(timestamp).toTimeString().slice(0, 8)
+    }
+
+    static toMMSS(miliseconds) {
+        const seconds = miliseconds / 1000
+        return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds) % 60).padStart(2, "0")}`
     }
 
     static localStorageBackup(key, howmany = 5) {
@@ -1506,7 +1520,7 @@ class GameEffects {
                 travelTime = travelTime,
                 floatTime = floatTime,
             } = preset)
-            moreButtonSettings = { ...preset.moreButtonSettings, ...moreButtonSettings }
+            moreButtonSettings = { ...moreButtonSettings, ...preset.moreButtonSettings }
         }
         const b = new Button()
         const { width: W, height: H } = game.rect
@@ -1550,6 +1564,7 @@ class GameEffects {
 
     static popupPRESETS = {
         bigYellow: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "yellow", fontSize: 40 } },
+        bigRed: { posFrac: [.5, .8], sizeFrac: [.4, .1], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 40 } },
         smallPink: { sizeFrac: [.2, .05], posFrac: [.5, .9], moreButtonSettings: { color: "pink", fontSize: 24 } },
         megaBlue: { posFrac: [.5, .5], sizeFrac: [.9, .9], moreButtonSettings: { color: "lightblue", fontSize: 40 } },
         topleftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .075], direction: "top", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },

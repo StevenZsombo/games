@@ -157,6 +157,7 @@ class GameCore {
         this.update(dt)
         this.update_more(dt)
         this.extras_on_update.forEach(x => x.call(this, dt))
+        !this.drawnAlready && this.draw_before(screen)
         !this.drawnAlready && this.draw(screen)
         !this.drawnAlready && this.draw_more(screen)
         !this.drawnAlready && this.extras_on_draw.forEach(x => x.call(this, screen))
@@ -296,8 +297,8 @@ var contest
 class ContestManager {
     constructor() {
         this.chat ??= chat
-        this.shared = {}
-        this.on_share = null
+        this.shared = {} //updated property by property
+        this.on_share = null //called with the NEW properties only
 
         this.isActive = false
 

@@ -47,6 +47,9 @@ class Rect {
 			y: this.y + this.height / 2
 		}
 	}
+	get centerXY() {
+		return [this.x + this.width / 2, this.y + this.height / 2]
+	}
 	get cx() {
 		return this.x + this.width / 2
 	}
@@ -681,6 +684,10 @@ class Button extends Clickable {
 		}
 		return button
 	}
+	/**@param {Button} button  */
+	static make_rhombus(button) {
+		return Button.make_polygon(button, MM.rectToRhombus(button))
+	}
 
 	/**@param {Button} button  */
 	static make_circle(button) {
@@ -713,6 +720,20 @@ class Button extends Clickable {
 		})*/
 		button.setTex = function (str) { this.latex.tex = str }
 		return button
+	}
+
+	activate() {
+		this.visible = true
+		this.interactable = true
+	}
+	deactivate() {
+		this.visible = false
+		this.interactable = false
+	}
+	/**@param {Boolean} bool  */
+	set activeState(bool) {
+		if (bool) this.activate()
+		else this.deactivate()
 	}
 
 
@@ -804,9 +825,9 @@ class Malleable {
 		this.components = [...comps]
 	}
 
-	update() {
+	update(dt) {
 		for (let c of this.components) {
-			c.update?.()
+			c.update?.(dt)
 		}
 	}
 
@@ -1290,3 +1311,23 @@ class InputBoard {
 }
 //#endregion
 
+
+//#region Panel
+
+class Panel extends Malleable {
+	constructor() {
+		/**@type {Button[]} */
+
+	}
+	activate() { this.components.forEach(x => x.activate?.()) }
+	deactivate() { this.components.forEach(x => x.deactivate?.()) }
+	/**@param {Boolean} bool  */
+	set activeState(bool) { this.components.forEach(x.activate = bool) }
+	destroy() {
+		game.remove_drawables_batch(this.components)
+		game.remove_drawable(this)
+	}
+
+
+
+}
