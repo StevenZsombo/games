@@ -250,6 +250,8 @@ class Game extends GameCore {
         this.territories = territories
         this.buts = buts
 
+        this.attacksAllowed = false
+
         const ASD = name => territories.find(x => x.name === name)
         const addConnection = (one, ...others) =>
             others.forEach(oth => {
@@ -261,13 +263,15 @@ class Game extends GameCore {
         const connectionsDrawableObject = { //could even be optimized
             draw: (screen) => {
                 if (this.showingMap)
-                    this.territories.forEach(t => {
-                        t.connections.forEach(oth =>
-                            MM.drawLine(screen,
-                                t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                                { width: 3 })
-                        )
-                    })
+                    this.territories.forEach(
+                        /**@param {Territory} t  */
+                        t => {
+                            t.connections.forEach(oth =>
+                                MM.drawLine(screen,
+                                    t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
+                                    { width: 3 })
+                            )
+                        })
             }
         }
         this.add_drawable(connectionsDrawableObject, 4)
@@ -305,10 +309,8 @@ class Game extends GameCore {
         //debug drag and drop
         buts.forEach(Button.make_draggable)
 
-        const bposFallback =
-            `[[28.449092677777514,176.46867796895398],[346,122.5],[711.2533019042131,92.42167101827675],[1076.5850463315383,127.5913646887239],[1288.861662987227,280.411227154047],[98.55352016066433,361.23366233885446],[316,337.5],[584.6735959892732,291.05093296140666],[918.5953829455909,258.4660574412532],[1185.6754659259957,469.7388626827269],[37.14359137458541,584.9282175567068],[437.4882852544048,556.1031331592691],[791.5403125438118,397.01693303280024],[696.7676008033214,631.2990129834367],[995.5977376196743,528.5312933461163],[279.10181464444486,713.4530217342525],[262.0313540613017,542.9308476460507],[552.0887791371646,759.7454308093995],[863.4517055162194,750.9725466098238],[1079.5665556679448,670.7636310786553],[624.7781991727304,450.3482328482328],[905.4920304920306,87.10495915085761],[504.95837935291047,127.02182952182946],[1138.2710038764724,351.8867349922038]]`
 
-        const bpos = localStorage.getItem("bpos") ?? bposFallback
+        const bpos = RULES.PROVINCE_POSITIONS ?? localStorage.getItem("bpos") ?? []
         JSON.parse(bpos).forEach((u, i) => {
             buts[i].topleftat(...u)
         })
@@ -322,6 +324,19 @@ class Game extends GameCore {
         switchModeButton.on_click = () => switchStage()
         this.add_drawable(switchModeButton)
 
+        const startContestButton = switchModeButton.copy
+        startContestButton.txt = "START!"
+        startContestButton.on_click = () => {
+            chat.sendMessage({
+                popup: "The game has started, you can now attack!",
+                popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+            })
+            hq.startContest()
+            this.remove_drawable(startContestButton)
+        }
+        startContestButton.move(startContestButton.width * -1.5, 0)
+        this.add_drawable(startContestButton)
+
         this.border = Gimmicks.setupBorder()
 
         Gimmicks.createBackground(this, true)
@@ -334,6 +349,7 @@ class Game extends GameCore {
             this.conflicts = this.conflicts.filter(x => !x.alreadyResolved)
         }, 1000 //tick every second only
         )
+        this.showTimeOnArrows = true
 
     }
 
@@ -391,7 +407,12 @@ class Game extends GameCore {
                     c.attackingFrom.button.centerY - 10,
                     c.territory.button.centerX + 10,
                     c.territory.button.centerY + 10,
-                    { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color), width: 10, size: 30 }
+                    {
+                        color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color),
+                        width: 10, size: 30,
+                        txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null
+
+                    }
                 )
                 //debugging timer
                 /*MM.drawText(screen,
@@ -434,6 +455,14 @@ class Game extends GameCore {
      * @param {Person} person 
      */
     beginAttack(who, territory, person) {
+        if (!this.attacksAllowed) {
+            person && chat.sendMessage({
+                target: person.name,
+                popup: "Contest did not start yet - cannot attack.",
+                popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+            })
+            return
+        }
         if (typeof territory === 'number') territory = this.territories[territory]
         if (!Conflict.checkValidity(who, territory)) {
             console.log("invalid conflict request", who, territory)
@@ -602,6 +631,7 @@ const dev = {
 
 
 const hq = {
+    startContest: () => { game.attacksAllowed = true },
     resetAllKingdoms: () => {
         game.kingdoms.forEach(x => x.members.clear())
         COMM("game.resetKingdom()")

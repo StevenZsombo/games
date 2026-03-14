@@ -238,9 +238,11 @@ class Game extends GameCore {
 
             const attackButton = new Button({ width: 200, height: 150 })
             attackButton.fontSize = 30
-            attackButton.bottomat(bot.top)
+            // attackButton.bottomat(bot.top)
+            attackButton.topat(top.bottom)
             attackButton.rightat(right.left)
-            attackButton.move(-30, -30)
+            attackButton.move(-30, 30)
+            attackButton.color = "lightsalmon"
             attackButton.deactivate()
             this.attackButton = attackButton
             this.add_drawable(attackButton)
@@ -301,6 +303,7 @@ class Game extends GameCore {
         //clockwork for snippet update
         this.snippetUpdateClockwork = setInterval(
             () => snippets.forEach(x => x.update(1000)),
+            // () => contest.shared.conflicts.forEach(x => x.timeLeft -= 1000),
             1000)
 
 
@@ -327,7 +330,7 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-        // snippets.forEach(x => x.update(dt))
+        // snippets.forEach(x => x.update(dt)) //only for removal! //timeleft is managed by confD
 
 
 
@@ -356,7 +359,11 @@ class Game extends GameCore {
                         this.territories[c.from].button.centerY - 10,
                         this.territories[c.to].button.centerX + 10,
                         this.territories[c.to].button.centerY + 10,
-                        { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(this.kingdoms[c.fromKD].color), width: 10, size: 30 }
+                        {
+                            color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(this.kingdoms[c.fromKD].color),
+                            width: 10, size: 30,
+                            // txt: MM.toMMSS(c.timeLeft) //too buggy.
+                        }
                     )
 
                 }

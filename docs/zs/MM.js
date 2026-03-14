@@ -149,7 +149,10 @@ class MM {
         MM.drawLine(ctx, pt1.x, pt1.y, pt2.x, pt2.y, { color, width })
     }
     //#region drawArrow
-    static drawArrow(ctx, x, y, u, w, { color = "black", width = 5, size = 10 }) {
+    /**@param {RenderingContext} ctx  */
+    static drawArrow(ctx, x, y, u, w, { color = "black", width = 5, size = 10,
+        txt = null, fontSize = 32
+    } = {}) {
         ctx.strokeStyle = color
         ctx.fillStyle = color
         ctx.lineWidth = width
@@ -170,6 +173,14 @@ class MM {
         )
         ctx.closePath()
         ctx.fill()
+        if (txt) {
+            ctx.textAlign = "center"
+            ctx.textBaseline = "middle"
+            ctx.font = `${fontSize}px serif`
+            const halfDistVector = [u - x, w - y].map(u => u / 2)
+            const rotated = [halfDistVector[1], -halfDistVector[0]].map(u => u / 3) //close, 1/6 times
+            ctx.fillText(txt, halfDistVector[0] + rotated[0] + x, halfDistVector[1] + rotated[1] + y)
+        }
     }
     //#endregion
     //#region MM.drawPolyLine
