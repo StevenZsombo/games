@@ -4,8 +4,6 @@ var RULES = Object.freeze({
     CAPITAL_BASE_VALUE: 1000,
     DEFENSE_GAIN_VALUE: +100,
     ATTACK_GAIN_VALUE: +100,
-    CONSOLATION: "yet to be implemented", //maybe 50 to help with pacing?
-    STEAL: "to be considered", //50 might be better?
     MAX_ATTACKS_ALLOWED: 3, //maybe 3? maybe same as team size?
     TIMEOUT_ON_ATTACK: 60 * 1000,
     TIMEOUT_ON_ATTACK_TEXT: "one minute",
@@ -13,14 +11,46 @@ var RULES = Object.freeze({
     TIMEOUT_ON_DEFENSE_TEXT: "eight minutes",
     NUMBER_OF_TERRITORIES: 24,
     NUMBER_OF_TEAMS: 6, //best for 24 territories
-    CAPITAL_PLUNDER_VALUE: 400,
+    CAPITAL_PLUNDER_VALUE: 500,
+    ACCURACY_FUNCTION: (attempt, solution) => {
+        //integers must be exact
+        if (Number.isInteger(solution)) return attempt == solution
+        //non-integers must be accurate to 3sf
+        return (attempt == solution) || (+attempt.toPrecision(3) == solution)
+    },
+
+
+
+    //technical
     PICTURE_PATH: "conquest/pictures/",
-    PICTURE_EXTENSION: ".png"
+    PICTURE_EXTENSION: ".png",
+    SHOW_QUESTION_ID: true,
+
+    //Maps
+    //Europe
+    PICTURE_BACKGROUND_MAP: "europeBlank.png", //null for no background //with extension
+    PICTURE_BACKGROUND_DIMENSIONS: [3840, 2852],
+    PICTURE_BACKGROUND_SCALEFACTOR: .4,
+    PICTURE_BACKGROUND_CENTER: {
+        "x": 783.4856567382811,
+        "y": 333.04688926795876
+    },
+    PROVINCE_NAMES: `["Turkey","Russia","Hungary","Spain","Germany","Black sea","Croatia","Italy","France","Belarus","Romania","Denmark","Ireland","North Sea","Poland","Sweden","Norway","Finland","Netherlands","Ukraine","UK","Switzerland","Bulgaria","Baltic sea"]`,
+    PROVINCE_CONNECTIONS: `[[0, 5, 22], [1, 5, 17, 9], [2, 14, 4, 21, 10, 6], [3, 8], [4, 2, 21, 18, 14, 11], [5, 0, 1, 10, 19, 22], [6, 2, 7], [7, 6, 21, 8], [8, 3, 7, 18, 21, 20], [9, 1, 23, 14, 19], [10, 2, 5, 22, 19], [11, 4, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 2, 4, 9, 23, 19], [15, 11, 16, 17], [16, 13, 15], [17, 1, 15, 23], [18, 4, 8, 13, 20], [19, 5, 9, 10, 14], [20, 8, 12, 13, 18], [21, 2, 4, 7, 8], [22, 0, 5, 10], [23, 9, 11, 14, 17]]`,
+    /*
+        //China
+        PICTURE_BACKGROUND_MAP: "chinaBlank.png", //null for no background //with extension
+        PICTURE_BACKGROUND_DIMENSIONS: [1000, 850],//[3840, 2852]
+        PICTURE_BACKGROUND_SCALEFACTOR: 1.4, //.4
+        PICTURE_BACKGROUND_CENTER: { "x": 544.8571428571428, "y": 409.84676370992304 },
+        PROVINCE_NAMES: `["Yunnan","Guangxi","Zhejiang","Shaanxi","Hunan","Guizhou","Fujian","Guangdong","Hubei","Shandong","Jiangxi","Heilongjiang","Xinjiang","Qinghai","Anhui","Jilin","Inner Mongolia","Liaoning","Tibet","Jiangsu","Gansu","Shanxi","Sichuan","Hebei"]`,
+    */
+
 })
 //#region GRAPHICS
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
-    ATTACK_TEAM_COLOR: x => x,
+    ATTACK_TEAM_COLOR_FUNCTION: x => "red",//x => x,
     POPUP_ATTACK_SUCCESS: "bigBlue",
     POPUP_ATTACK_FAIL: "bigBlue",
     POPUP_DEFEND_SUCCESS: "bigBlue",
@@ -29,8 +59,13 @@ var GRAPHICS = Object.freeze({
     POPUP_DEFENSE_WARNING: "bigRed",
     POPUP_PATIENCE: "smallPink",
     POPUP_START_DEFENSE: "bigBlue",
-    TERRITORY_SIZE_BASE: 100,
-    TERRITORY_SIZE_CAPITAL_FACTOR: 1.4,
+    TERRITORY_SIZE_BASE_WIDTH: 130,
+    TERRITORY_SIZE_BASE_HEIGHT: 80,
+    TERRITORY_SIZE_CAPITAL_FACTOR: 1.3,
+    PROVINCE_FONTSIZE: 28,
+    SNIPPET_WIDTH: 180,
+    SNIPPET_FONTSIZE: 28,
+    QUESTION_FONTSIZE: 52,
 })
 //#region Territory
 class Territory {
@@ -46,9 +81,9 @@ class Territory {
         this.connections = new Set()
 
         this.button = new Button()
-        this.button.width = GRAPHICS.TERRITORY_SIZE_BASE
-        this.button.height = GRAPHICS.TERRITORY_SIZE_BASE
-        this.button.fontSize = 28
+        this.button.width = GRAPHICS.TERRITORY_SIZE_BASE_WIDTH
+        this.button.height = GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT
+        this.button.fontSize = GRAPHICS.PROVINCE_FONTSIZE
         this.button.dynamicText = () => `${this.name}\n${this.value}`
         this.button.territory = this
         this.button.on_click = () => {
@@ -67,6 +102,7 @@ class Territory {
     }
 
     connectWith(territory) {
+        if (territory === this) return
         this.connections.add(territory)
         territory.connections.add(this)
     }
@@ -79,8 +115,7 @@ class Territory {
                 y: x.y,
                 width: x.width,
                 height: x.height,
-                color: x.color,
-                txt: x.txt
+                color: x.color
             })
             r[i].connections = new Set(x.connections.map(u => r[u]))
         })
@@ -132,6 +167,10 @@ class Kingdom {
             r[i].color = x.color
         })
         return r
+    }
+
+    get membersStr() {
+        return this.members.size ? Array.from(this.members.values().map(x => x.name)).join("\n") : ""
     }
 
 }
@@ -200,7 +239,7 @@ class Conflict {
         if (!this.question?.sol) console.error("conflict is yet to be accepted", this)
         if (!this.solving) console.error("wrong conflict state: not solving")
         if (this.alreadyResolved) console.error("guess on already resolved", this)
-        if (guessValue !== this.question.sol) {
+        if (!RULES.ACCURACY_FUNCTION(guessValue, this.question.sol)) {
             //wrong attempt
             console.log("wrong attempt", who.name)
             if (person) {
@@ -210,7 +249,7 @@ class Conflict {
                     popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
                 })
             }
-        } else {
+        } else { //correct attempt
             if (who === this.attacker) {
                 this.winAttack("successful attack")
             } else {
@@ -310,8 +349,11 @@ class Question {
         this.sol = sol
         this.points = null //maybe?
     }
+    /**Question.raw*/
+    static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~@3~~~1.4~~\text{find\ }\frac{3+2^2}{5}@4~~test2~5.83~~@5~~test2~5.83~find the above~\text{find\ }\frac{2+\sqrt{2}}{2-\sqrt{2}}`
+
+
     /**@type {Question[]} */
-    static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~`
     static ALL = Question.raw.
         split("@").map(x => x.split("~")).map(
             ([id, note, img, sol, txt, latex], i) => new Question(i, { img, txt, sol: +sol, latex }))
@@ -329,4 +371,35 @@ class Gimmicks {
         left.width = 20
         return { bot, top, right, left }
     }
+
+    static setupBorderAndAddToGame(game, color) {
+        const buts = Object.values(Gimmicks.setupBorder())
+        buts.forEach(x => x.color = color)
+        game.add_drawable(buts, 2)
+    }
+
+    /**@param {Game} game  */
+    static createBackground(game, masterMode) {
+        if (!RULES.PICTURE_BACKGROUND_MAP) return
+        const mapIMG = new Button()
+        game.cropper.load_img(RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP, (t) => { mapIMG.img = t })
+        const { left, right, top, bot } = Gimmicks.setupBorder()
+        mapIMG.resize(...RULES.PICTURE_BACKGROUND_DIMENSIONS)
+        mapIMG.centeratX((left.right + right.left) / 2)
+        mapIMG.centeratY((top.bottom + bot.top) / 2)
+        const scaleFactor = RULES.PICTURE_BACKGROUND_SCALEFACTOR
+        if (scaleFactor != 1) mapIMG.stretch(scaleFactor, scaleFactor)
+        if (RULES.PICTURE_BACKGROUND_CENTER) mapIMG.centeratV(RULES.PICTURE_BACKGROUND_CENTER)
+        game.add_drawable(mapIMG, 2)
+
+
+        masterMode = false //FORCED
+        if (!masterMode) return
+        game.mapIMG = mapIMG //save for game
+        window.mapIMG = mapIMG //save for debug
+        Button.make_draggable(mapIMG)
+        game.territories.forEach(x => x.button.isBlocking = true)
+        Gimmicks.setupBorderAndAddToGame(game, "lightblue")
+    }
+
 }

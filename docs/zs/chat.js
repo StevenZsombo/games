@@ -36,6 +36,9 @@ class Chat {
         this.on_error = null
         this.on_issue = null
 
+        this.on_receive = null
+        this.on_receive_more = null
+
     }
 
     connect(ip, isServer = false) {
@@ -227,6 +230,9 @@ class Chat {
             contest.shared[message.shared] = message.value
             contest.on_share?.(message.shared, message.value)
         }
+
+        this.on_receive?.(message)
+        this.on_receive_more?.(message)
     }
     //#endregion
 

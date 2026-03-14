@@ -27,7 +27,8 @@ class Person extends Participant {
         this.kingdom = null
     }
     kick() {
-        game.remove_drawable(this.button)
+        // game.remove_drawable(this.button) //no buttons
+        game?.kingdoms.forEach(x => x.members.delete(this))
         chat.orderResetName(this.name)
         delete participants[this.name]
     }
@@ -49,6 +50,7 @@ class Person extends Participant {
 
     assignKingdom(kingdom) {
         this.kingdom = kingdom
+        game?.kingdoms?.forEach(x => x.members.delete(this))
         kingdom.members.add(this)
     }
 }
@@ -114,7 +116,6 @@ const sharedFunc = {
             width: x.button.width,
             height: x.button.height,
             color: x.button.color,
-            txt: x.button.txt
         }
     )),
     kingdomsFullData: () => game.kingdoms.map(x => (
@@ -154,7 +155,7 @@ const sharedFunc = {
 }
 /**@param {Person} person */
 listener.on_message = (obj, person) => {
-    if (!game) {
+    if (/**@type {Game}*/!game) {
         console.error("game fail", this)
         return
     }
@@ -200,7 +201,10 @@ const SHARE = (key, target) => {
         return true
     } else return false
 }
-
+const HARDREFRESH = () => {
+    SHARE("territoriesFullData")
+    SHARE("kingdomsFullData")
+}
 
 class Game extends GameCore {
     //#region more
@@ -245,26 +249,38 @@ class Game extends GameCore {
         /**@type {Territory[]} */
         this.territories = territories
         this.buts = buts
-        const addConnection = (id, ...others) =>
-            others.forEach(oth => {
-                territories[id].connections.add(territories[oth])
-                territories[oth].connections.add(territories[id])
-            })
-        addConnection(7, 2, 6, 8, 11)
-        addConnection(14, 8, 9, 13)
-        addConnection(19, 18, 14)
-        addConnection(10, 16, 6)
-        addConnection(0, 1, 5, 6)
-        addConnection(15, 11, 16)
-        addConnection(17, 16, 18)
-        addConnection(3, 4, 8)
-        addConnection(13, 17)
-        addConnection(12, 13, 18)
-        addConnection(23, 4, 9)
-        addConnection(21, 2, 3, 8)
-        addConnection(22, 1, 7, 2)
-        addConnection(20, 7, 12, 11, 17, 13)
 
+        const ASD = name => territories.find(x => x.name === name)
+        const addConnection = (one, ...others) =>
+            others.forEach(oth => {
+                ASD(one).connections.add(ASD(oth))
+                ASD(oth).connections.add(ASD(one))
+            })
+
+
+        const connectionsDrawableObject = { //could even be optimized
+            draw: (screen) => {
+                if (this.showingMap)
+                    this.territories.forEach(t => {
+                        t.connections.forEach(oth =>
+                            MM.drawLine(screen,
+                                t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
+                                { width: 3 })
+                        )
+                    })
+            }
+        }
+        this.add_drawable(connectionsDrawableObject, 4)
+
+        const provinceNamesStored =
+            JSON.parse(RULES.PROVINCE_NAMES || localStorage.getItem("provinceNamesStored"))
+        if (provinceNamesStored)
+            this.territories.forEach((x, i) => x.name = provinceNamesStored[i])
+        const provinceConnections =
+            JSON.parse(RULES.PROVINCE_CONNECTIONS || localStorage.getItem("provinceConnections"))
+        if (provinceConnections)
+            provinceConnections.forEach(arr =>
+                arr.slice(1).forEach(y => territories[y].connectWith(territories[arr[0]])))
         const kingdoms = Array(6).fill().map((x, i) => new Kingdom(i))
         kingdoms.forEach((x, i) => {
             x.acquireCapital(territories[i * 3])
@@ -289,8 +305,10 @@ class Game extends GameCore {
         //debug drag and drop
         buts.forEach(Button.make_draggable)
 
-        const bpos =
+        const bposFallback =
             `[[28.449092677777514,176.46867796895398],[346,122.5],[711.2533019042131,92.42167101827675],[1076.5850463315383,127.5913646887239],[1288.861662987227,280.411227154047],[98.55352016066433,361.23366233885446],[316,337.5],[584.6735959892732,291.05093296140666],[918.5953829455909,258.4660574412532],[1185.6754659259957,469.7388626827269],[37.14359137458541,584.9282175567068],[437.4882852544048,556.1031331592691],[791.5403125438118,397.01693303280024],[696.7676008033214,631.2990129834367],[995.5977376196743,528.5312933461163],[279.10181464444486,713.4530217342525],[262.0313540613017,542.9308476460507],[552.0887791371646,759.7454308093995],[863.4517055162194,750.9725466098238],[1079.5665556679448,670.7636310786553],[624.7781991727304,450.3482328482328],[905.4920304920306,87.10495915085761],[504.95837935291047,127.02182952182946],[1138.2710038764724,351.8867349922038]]`
+
+        const bpos = localStorage.getItem("bpos") ?? bposFallback
         JSON.parse(bpos).forEach((u, i) => {
             buts[i].topleftat(...u)
         })
@@ -301,10 +319,12 @@ class Game extends GameCore {
         this.switchModeButton = switchModeButton
         switchModeButton.bottomat(this.rect.bottom - 50)
         switchModeButton.rightat(this.rect.right - 50)
-        switchModeButton.on_click = () => stageManager.setStage(this.showingMap ? "scores" : "map") //not robust
+        switchModeButton.on_click = () => switchStage()
         this.add_drawable(switchModeButton)
 
+        this.initialize_scores()
 
+        Gimmicks.createBackground(this, true)
 
     }
 
@@ -314,6 +334,7 @@ class Game extends GameCore {
         if (bool === this._showingMap) return bool
         this._showingMap = bool
         this.buts.forEach(x => x.activeState = bool)
+        // this.mapIMG.activeState = bool //i dont mind the map, its neat
         return bool
     }
 
@@ -346,14 +367,7 @@ class Game extends GameCore {
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region draw_more
     draw_before(screen) {
-        if (this.showingMap)
-            this.territories.forEach(t => {
-                t.connections.forEach(oth =>
-                    MM.drawLine(screen,
-                        t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                        { width: 3 })
-                )
-            })
+
 
     }
     draw_more(screen) {
@@ -365,7 +379,7 @@ class Game extends GameCore {
                     c.attackingFrom.button.centerY - 10,
                     c.territory.button.centerX + 10,
                     c.territory.button.centerY + 10,
-                    { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR(c.attacker.color), width: 10, size: 30 }
+                    { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color), width: 10, size: 30 }
                 )
                 //debugging timer
                 /*MM.drawText(screen,
@@ -451,49 +465,116 @@ class Game extends GameCore {
         SHARE("conflictsData")
         return c
     }
-
+    /**
+     * @param {Kingdom | number} kingdomOrID 
+     */
+    getKingdomTotalValue(kingdomOrID) {
+        if (typeof kingdomOrID === "number") kingdomOrID = this.kingdoms[kingdomOrID]
+        return kingdomOrID.territories.values().map(x => x.value).reduce((s, t) => s + t, 0)
+    }
     getRanking() {
-        return this.kingdoms.map(x => [x, x.territories.values().map(x => x.value).reduce((s, t) => s + t, 0)])
+        return this.kingdoms.map(x => [x, this.getKingdomTotalValue(x)])
             .sort((x, y) => y[1] - x[1])
             .map(x => [x[0].id, x[0].name, x[1]])
     }
+
+    initialize_scores() {
+        const sc = new Panel()
+        this.scorePanel = sc
+        const cols = game.rect.copy.deflate(200, 200).splitGrid(1, RULES.NUMBER_OF_TEAMS).flat().map(x => Button.fromRect(x))
+        const valCols = []
+        cols.forEach((b, i) => {
+            const k = this.kingdoms[i]
+            b.deflate(50, 50)
+            b.move(-50, 0)
+            b.fontSize = 48
+            b.dynamicText = () => {
+                if (!k.members.size) return ""
+                return Array.from(k.members.values().map(
+                    /**@param {Person} x*/
+                    x => x.name + (x.isConnected ? "" : " (X)"))).join("\n")
+            }
+            b.color = k.color
+            b.height -= 150
+            b.textSettings = { textBaseline: "top" }
+            const v = b.copy
+            v.height = 100
+            v.bottomat(b.bottom + 150)
+            v.dynamicText = null
+            v.textSettings = null
+            v.dynamicText = () => this.getKingdomTotalValue(k)
+            valCols.push(v)
+
+        })
+
+        sc.components.push(...cols, ...valCols)
+        sc.deactivate()
+        this.add_drawable(sc)
+
+    }
+
 
 
 
 } //this is the last closing brace for class Game
 
 //#region dev options
-/// dev options
+/// dev options dev.dev.dev.
 const dev = {
     k: id => game.kingdoms[id],
     n: name => game.kingdoms.find(x => x.name.includes(name)),
     t: id => game.territories[id],
     scoreBoard: () => console.table(game.getRanking()),
-    members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)]))
+    members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
+    rename: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
+    savePositions: () => localStorage.setItem("bpos", JSON.stringify(game.buts.map(x => [x.x, x.y]))),
+    saveProvinceNames: () => localStorage.setItem("provinceNamesStored", JSON.stringify(
+        game.territories.map(x => x.name.split("\n")[0])
+    )),
+    clickToConnect: () => {
+        let S
+        game.buts.forEach(x => {
+            x.on_drag = null
+            x.on_click = function () {
+                if (S) { S.territory.connectWith(this.territory); S = null }
+                else S = this
+            }
+        })
+    },
+    saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
+    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections()),
+    severConnections: (tgtName) => {
+        /**@type {Territory} */
+        const tgt = tgtName ? game.territories.find(x => x.name === tgtName) : Territory.LCP
+        tgt.connections.clear()
+        game.territories.forEach(x => x.connections.delete(tgt))
+    }
+
 }/// end of dev
 
 
 const hq = {
-    resetKingdoms: () => COMM("game.resetKingdom()"),
-    resetNames: () => COMM(`chat.resetName("Your name has been reset by the server:")`)
+    resetAllKingdoms: () => {
+        game.kingdoms.forEach(x => x.members.clear())
+        COMM("game.resetKingdom()")
+    },
+    orderResetKingdom: (name) => {
+        game.kingdoms.forEach(x => x.members.delete(Person.to(name)))
+        chat.sendMessage({ orderResetKingdom: true, target: Person.to(name).name })
+    },
+    resetNames: () => COMM(`chat.resetName("Your name has been reset by the server:")`),
 }
 
 
-const stageManager = {
-    STAGES: Object.freeze({
-        "map": "map",
-        "scores": "scores"
-    }),
-    stage: "map",
-    setStage: (tgt) => {
-        if (stageManager.stage === tgt) return
-        if (stageManager.stage === stageManager.STAGES.map) game.showingMap = false
-        if (stageManager.stage === stageManager.STAGES.scores) {
-
-        }
-        if (tgt === stageManager.STAGES.map) game.showingMap = true
-        stageManager.stage = tgt
-    },
-
-
+let stage = ["map", "score"][0]
+const switchStage = () => {
+    if (stage === "map") {
+        game.showingMap = false
+        stage = "score"
+        game.scorePanel.activate()
+    } else if (stage === "score") {
+        game.scorePanel.deactivate()
+        stage = "map"
+        game.showingMap = true
+    }
 }

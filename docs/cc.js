@@ -17,9 +17,13 @@ var univ = {
     acquireNameMoreStr: "(English name + homeroom)"
 }
 
+let syncReady = false
 var myKingdomID
 var myColor
 var myKingdomObject
+/**@type {Set<number>} */
+let waitingQuestionsTrigger = new Set() //by conflictID
+
 
 
 class Game extends GameCore {
@@ -101,8 +105,8 @@ class Game extends GameCore {
         const kingdoms = []
         /**@type {Territory[]} */
         const territories = []
-        //shallow
-        const conflicts = []
+        /**@type {Conflict[]} */
+        const conflicts = [] //shallow
 
         this.kingdoms = kingdoms
         this.territories = territories
@@ -116,23 +120,23 @@ class Game extends GameCore {
                 territories.push(...Territory.manyFromData(value))
                 game.add_drawable(territories.map(x => x.button))
                 this.buts = territories.map(x => x.button)
-                waitTrigger()
+                checkSyncState()
             }
             if (shared == "kingdomsFullData") {
                 // if (kingdoms.length) return
                 kingdoms.length = 0
                 kingdoms.push(...Kingdom.manyFromData(value))
-                waitTrigger()
+                checkSyncState()
             }
+            if (!syncReady) return
+            //only if syncReady
             if (shared == "ownershipData") {
-                if (!kingdoms.length || !territories.length) return
                 value.forEach(x => {
                     kingdoms[x.id].territories = new Set(x.territories.map(u => territories[u]))
                     x.territories.forEach(u => territories[u].button.color = kingdoms[x.id].color)
                 })
             }
             if (shared == "valuesData") {
-                if (!territories.length) return
                 value.forEach(x => territories[x.id].value = x.value)
             }
             //#region conflictsData
@@ -143,10 +147,16 @@ class Game extends GameCore {
                     const match = snippets.find(u => u.id === x.id)
                     if (match) {
                         match.confD.timeLeft = x.timeLeft
+                        match.confD.justDeclared = x.justDeclared
                         if (x.qID != -1) {
                             //new pane created when necessary
-                            if (!panes.has(x.id)) //by conflict id
+                            if (!panes.has(x.id)) { //by conflict id
                                 panes.set(x.id, new QPane(x.qID, x.id))
+                                if (waitingQuestionsTrigger.has(x.id)) {
+                                    waitingQuestionsTrigger.delete(x.id)
+                                    setFocus(x.id)
+                                }
+                            }
                         }
                         match.confD.qID = x.qID
                     }
@@ -174,16 +184,15 @@ class Game extends GameCore {
             }
         }
 
-        let waitSetup = 2
-        const waitTrigger = () => {
-            waitSetup -= 1
-            if (!waitSetup) {
+        const checkSyncState = () => {
+            if (this.territories.length && this.kingdoms.length) {
                 chat.sendSecure({ inquire: "ownershipData" })
                 chat.sendSecure({ inquire: "valuesData" })
                 chat.sendSecure({ inquire: "conflictsData" })
                 chat.sendSecure({ inquire: "rankingData" })
                 init_after_basics()
-                //dont bother tracking for now
+                syncReady = true
+
             }
         }
         chat.sendSecure({ inquire: "territoriesFullData" })
@@ -199,7 +208,6 @@ class Game extends GameCore {
             this.bot = bot
             this.left = left
             this.right = right
-            top.visible = false
 
             myKingdomObject = kingdoms[myKingdomID]
             myColor = myKingdomObject.color
@@ -218,7 +226,7 @@ class Game extends GameCore {
             })
             game.add_drawable(ranking)
 
-            Snippet.bgDefault.resize(180, bot.height - 20)
+            Snippet.bgDefault.resize(GRAPHICS.SNIPPET_WIDTH, bot.height - 20)
             Snippet.bgDefault.topat(bot.top)
             Snippet.bgDefault.leftat(bot.left + 20)
 
@@ -265,11 +273,34 @@ class Game extends GameCore {
             QPane.answerSpaceDefault = answerArea.copy
             QPane.calculatorSpaceDefault = right.copy
 
+        }
 
+        const connectionsDrawableObject = { //could even be optimized
+            draw: (screen) => {
+                if (this.showingMap)
+                    this.territories?.forEach(t => {
+                        t.connections.forEach(oth =>
+                            MM.drawLine(screen,
+                                t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
+                                { width: 3 })
+                        )
+                    })
+            }
+        }
+        this.add_drawable(connectionsDrawableObject, 4)
+
+
+        chat.on_receive = (message) => {
+            console.log(message)
+            if (message.orderResetKingdom) {
+                game.resetKingdom()
+            }
         }
 
 
 
+
+        Gimmicks.createBackground(this)
     }
 
     _showingMap = true
@@ -308,17 +339,7 @@ class Game extends GameCore {
     ///                                                DRAW                                                          ///
     ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region draw_more
-    draw_before(screen) {
-        if (this.showingMap)
-            this.territories?.forEach(t => {
-                t.connections.forEach(oth =>
-                    MM.drawLine(screen,
-                        t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                        { width: 3 })
-                )
-            })
 
-    }
     draw_more(screen) {
         if (this.showingMap)
             if (this.territories?.length && this.kingdoms?.length && contest?.shared?.conflictsData)
@@ -329,7 +350,7 @@ class Game extends GameCore {
                         this.territories[c.from].button.centerY - 10,
                         this.territories[c.to].button.centerX + 10,
                         this.territories[c.to].button.centerY + 10,
-                        { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR(this.kingdoms[c.fromKD].color), width: 10, size: 30 }
+                        { color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(this.kingdoms[c.fromKD].color), width: 10, size: 30 }
                     )
 
                 }
@@ -374,7 +395,7 @@ const dev = {
 
 }/// end of dev
 
-
+//#region 
 class Snippet {
     static bgDefault = new Button()
     /**@param {Button} bg  */
@@ -389,13 +410,13 @@ class Snippet {
         let color
         if (confD.fromKD === myKingdomID) {//attacking
             color = game.kingdoms[confD.toKD].color
-            rows[0].txt = "attacking"
+            rows[0].dynamicText = () => confD.justDeclared ? "threatening" : "attacking"
             rows[1].txt = game.kingdoms[confD.toKD].name + " in"
             // rows[1].color = color
             rows[2].txt = game.territories[confD.to].nameShort
         } else {
             color = game.kingdoms[confD.fromKD].color
-            rows[0].txt = "defending"
+            rows[0].dynamicText = () => confD.justDeclared ? "THREAT at" : "defending"
             rows[1].txt = game.territories[confD.to].nameShort
             rows[2].txt = "from " + game.kingdoms[confD.fromKD].name
             // rows[2].color = color
@@ -404,8 +425,10 @@ class Snippet {
         rows.forEach(x => {
             x.outline = 0
             x.color = color
+            x.fontSize = GRAPHICS.SNIPPET_FONTSIZE
         })
         this.recenter()
+        Snippet.rearrange()
         //adds itself
         game.add_drawable(rows)
         // bg.deflate(-10, -10)
@@ -428,7 +451,12 @@ class Snippet {
         Rect.packCol(this.rows, this.bg, 0, "c", true)
     }
     static rearrange() {
-        Rect.packRow(snippets.map(x => x.bg), game.bot.copy.deflate(40, 0), 20, "m", false)
+        const gapSizeIfPossible = 20
+        Rect.packRow(snippets.map(x => x.bg), game.bot.copy.deflate(40, 0),
+            //20 gap if fits, justify otherwise
+            snippets.reduce((s, t) => s + t.bg.width, 0) + (snippets.length - 1) * gapSizeIfPossible < game.bot.width
+                ? 20 : "justify"
+            , "m", false)
         snippets.forEach(x => x.recenter())
     }
 
@@ -463,6 +491,7 @@ class QPane extends Panel {
         super()
         this.qID = qID //question id
         this.id = id //conflict id
+        this.snippet = snippets.find(x => x.id == id)
         bg ??= QPane.bgDefault.copy
         bg.tag = "QPane bg"
         this.components.push(bg)
@@ -484,20 +513,25 @@ class QPane extends Panel {
         }
         if (question.txt) {
             txtB.txt = question.txt
-            txtB.fontSize = 32
+            txtB.fontSize = GRAPHICS.QUESTION_FONTSIZE
             txtB.tag = "QPane txtB component"
             this.components.push(txtB)
         }
         const answerSpace = QPane.answerSpaceDefault.copy
-        const ansBunch = answerSpace.splitCol(1, 1, 1).map(x => Button.fromRect(x))
-        const [ansLab, ansDisplayShow, ansSubmitButton] = ansBunch
+        const ansBunch = answerSpace.splitCol(.5, 1, .5, 1.5).map(x => Button.fromRect(x))
+        const [ansLab, ansDisplayShow, ansSubmitButton, ansInfo] = ansBunch
+        const ansInfoTxt = this.snippet.rows.slice(0, -1).map(x => x.txt).join(" ")
+        ansInfo.dynamicText = () => ansInfoTxt + " " + MM.toMMSS(this.snippet.confD.timeLeft)
         ansLab.txt = "Your answer:"
         ansSubmitButton.txt = "Submit"
+        ansSubmitButton.color = myColor
+        ansSubmitButton.outline = 6
         ansDisplayShow.color = myColor
         ansBunch.forEach(x => {
-            x.fontSize = 32
+            x.fontSize = 36
         })
-        this.components.push(...ansBunch)
+        // this.components.push(...ansBunch)
+        this.components.push(ansLab, ansInfo, ansDisplayShow, ansSubmitButton)
 
 
         this.guess = ""
@@ -526,7 +560,7 @@ class QPane extends Panel {
                 x.txt = "-/Del"
                 x.on_click = () => this.guess = this.guess[0] == "-" ? "" : "-" + this.guess
             }
-            MM.extFunc(x.on_click, () => GameEffects.sendFancy(
+            x.on_click = MM.extFunc(x.on_click, () => GameEffects.sendFancy(
                 x, ansDisplayShow, 500
             ))
         })
@@ -541,13 +575,25 @@ class QPane extends Panel {
                 guess: +this.guess //send as number
             })
             this.guess = "" //to prevent spam a bit
+            //to prevent spam fully
+            game.animator.add_anim(Anim.setter(ansSubmitButton, 1000, ["txt", "interactable"], ["Submitting...", false]))
         }
 
+        if (RULES.SHOW_QUESTION_ID) {
+            const revealer = new Button()
+            revealer.width = 60
+            revealer.height = 40
+            revealer.rightat(bg.right)
+            revealer.topat(bg.top)
+            revealer.txt = "Q" + qID
+            this.components.push(revealer)
+        }
 
 
         this.deactivate()
         this.components.forEach(x => x.tag = "QPanePart")
         game.add_drawable(this)
+
 
     }
 
@@ -562,6 +608,7 @@ const setFocus = (tgt) => {
         game.showingMap = true
         Object.values(panes).forEach(x => x.deactivate())
     } else if (tgt != "map" && !panes.has(tgt)) {
+        waitingQuestionsTrigger.add(tgt) //on waitlist so no need to double click
         chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
         tgt = "map"
         Object.values(panes).forEach(x => x.deactivate())
