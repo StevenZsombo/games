@@ -317,14 +317,17 @@ class Game extends GameCore {
 
         const switchModeButton = new Button({ txt: "switch", widht: 120, height: 80 })
         this.switchModeButton = switchModeButton
-        switchModeButton.bottomat(this.rect.bottom - 50)
+        switchModeButton.bottomat(this.rect.bottom - 20)
         switchModeButton.rightat(this.rect.right - 50)
         switchModeButton.on_click = () => switchStage()
         this.add_drawable(switchModeButton)
 
-        this.initialize_scores()
+        this.border = Gimmicks.setupBorder()
 
         Gimmicks.createBackground(this, true)
+        this.initialize_scores()
+        this.initialize_scores_side()
+
 
     }
 
@@ -334,6 +337,7 @@ class Game extends GameCore {
         if (bool === this._showingMap) return bool
         this._showingMap = bool
         this.buts.forEach(x => x.activeState = bool)
+        this.sideScorePanel.activeState = bool
         // this.mapIMG.activeState = bool //i dont mind the map, its neat
         return bool
     }
@@ -478,6 +482,42 @@ class Game extends GameCore {
             .map(x => [x[0].id, x[0].name, x[1]])
     }
 
+    initialize_scores_side() {
+        const sc = new Panel()
+        //const banners = game.rect.copy.deflate(200, 200).splitGrid(1, RULES.NUMBER_OF_TEAMS).flat().map(x => Button.fromRect(x))
+        const banners = game.border.right.copy
+            .topat(0)
+            .leftat(game.switchModeButton.left - 10)
+            .bottomstretchat(game.switchModeButton.top - 40)
+            .rightstretchat(game.rect.right)
+            .splitGrid(RULES.NUMBER_OF_TEAMS, 1).flat().map(x => Button.fromRect(x))
+        const valCols = []
+        banners.forEach((b, i) => {
+            const k = this.kingdoms[i]
+            b.deflate(20, 20)
+            b.fontSize = 20
+            b.dynamicText = () => {
+                if (!k.members.size) return ""
+                return Array.from(k.members.values().map(
+                    /**@param {Person} x*/
+                    x => x.name + (x.isConnected ? "" : " (X)"))).join("\n")
+            }
+            b.color = k.color
+            b.textSettings = { textBaseline: "top" }
+            const v = b.copy
+            v.transparent = true
+            v.height = 0 //transparent anyways
+            v.textSettings = { textBaseline: "bottom" }
+            v.bottomat(b.bottom)
+            v.dynamicText = () => this.getKingdomTotalValue(k)
+            valCols.push(v)
+
+        })
+        sc.components.push(...banners, ...valCols)
+        this.sideScorePanel = sc
+        this.add_drawable(sc)
+
+    }
     initialize_scores() {
         const sc = new Panel()
         this.scorePanel = sc

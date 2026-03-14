@@ -1324,7 +1324,7 @@ class Panel extends Malleable {
 	activate() { this.components.forEach(x => x.activate?.()) }
 	deactivate() { this.components.forEach(x => x.deactivate?.()) }
 	/**@param {Boolean} bool  */
-	set activeState(bool) { this.components.forEach(x.activate = bool) }
+	set activeState(bool) { this.components.forEach(x => x.activeState = bool) }
 
 
 	destroy() {

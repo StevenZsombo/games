@@ -50,7 +50,7 @@ var RULES = Object.freeze({
 //#region GRAPHICS
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
-    ATTACK_TEAM_COLOR_FUNCTION: x => "red",//x => x,
+    ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
     POPUP_ATTACK_SUCCESS: "bigBlue",
     POPUP_ATTACK_FAIL: "bigBlue",
     POPUP_DEFEND_SUCCESS: "bigBlue",
@@ -391,11 +391,11 @@ class Gimmicks {
         if (scaleFactor != 1) mapIMG.stretch(scaleFactor, scaleFactor)
         if (RULES.PICTURE_BACKGROUND_CENTER) mapIMG.centeratV(RULES.PICTURE_BACKGROUND_CENTER)
         game.add_drawable(mapIMG, 2)
+        game.mapIMG = mapIMG //save for game
 
 
         masterMode = false //FORCED
         if (!masterMode) return
-        game.mapIMG = mapIMG //save for game
         window.mapIMG = mapIMG //save for debug
         Button.make_draggable(mapIMG)
         game.territories.forEach(x => x.button.isBlocking = true)
