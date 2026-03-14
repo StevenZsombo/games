@@ -328,6 +328,12 @@ class Game extends GameCore {
         this.initialize_scores()
         this.initialize_scores_side()
 
+        this.conflictsClockwork = setInterval(() => {
+            this.conflicts.forEach(x => x.update(1000))
+            this.conflictsHistory.push(...this.conflicts.filter(x => x.alreadyResolved))
+            this.conflicts = this.conflicts.filter(x => !x.alreadyResolved)
+        }, 1000 //tick every second only
+        )
 
     }
 
@@ -351,10 +357,12 @@ class Game extends GameCore {
     //#region update_more
     update_more(dt) {
 
+        //done by clockwork instead
+        /*
         this.conflicts.forEach(x => x.update(dt))
         this.conflictsHistory.push(...this.conflicts.filter(x => x.alreadyResolved))
         this.conflicts = this.conflicts.filter(x => !x.alreadyResolved)
-
+*/
 
 
 

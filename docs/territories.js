@@ -66,6 +66,7 @@ var GRAPHICS = Object.freeze({
     SNIPPET_WIDTH: 180,
     SNIPPET_FONTSIZE: 28,
     QUESTION_FONTSIZE: 52,
+    BORDER_COLOR: "linen"
 })
 //#region Territory
 class Territory {
@@ -369,6 +370,7 @@ class Gimmicks {
         const left = Button.fromButton(right)
         left.leftat(0)
         left.width = 20
+            ;[bot, top, left, right].forEach(x => x.color = GRAPHICS.BORDER_COLOR)
         return { bot, top, right, left }
     }
 

@@ -221,9 +221,10 @@ class Game extends GameCore {
             this.ranking = ranking
             ranking.forEach(b => {
                 b.outline = 0
-                b.color = "gray"
-
+                // b.color = "gray"
+                b.transparent = true
             })
+            top.color = "gray"
             game.add_drawable(ranking)
 
             Snippet.bgDefault.resize(GRAPHICS.SNIPPET_WIDTH, bot.height - 20)
@@ -297,6 +298,11 @@ class Game extends GameCore {
             }
         }
 
+        //clockwork for snippet update
+        this.snippetUpdateClockwork = setInterval(
+            () => snippets.forEach(x => x.update(1000)),
+            1000)
+
 
 
 
@@ -321,7 +327,7 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-        snippets.forEach(x => x.update(dt))
+        // snippets.forEach(x => x.update(dt))
 
 
 
