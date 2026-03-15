@@ -451,7 +451,7 @@ class Button extends Clickable {
 		this.dynamicText = null //can be any function; might be bad practice, as it is called as part of the draw function isntead of update but whatevs
 		this.fontSize = 24
 		this.font_color = "black"
-		this.font_font = "serif"
+		this.font_font = "mySerif" //can override from CSS
 		this.fontScale = 1
 		this.textSettings = {}
 		this.outline = 2

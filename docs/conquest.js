@@ -658,7 +658,8 @@ const dev = {
 
 }/// end of dev
 
-
+//#region hq
+//hq.hq.hq.
 const hq = {
     startContest: () => { game.attacksAllowed = true },
     resetAllKingdoms: () => {

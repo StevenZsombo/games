@@ -65,7 +65,7 @@ class MM {
     }
 
     static drawTextSingleDepr(screen, txt, x, y, {
-        font = "12px serif", color = "black", opacity = 0,
+        font = "12px mySerif", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle" }) {
         screen.save()
         screen.textAlign = textAlign
@@ -176,7 +176,7 @@ class MM {
         if (txt) {
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
-            ctx.font = `${fontSize}px serif`
+            ctx.font = `${fontSize}px mySerif`
             const halfDistVector = [u - x, w - y].map(u => u / 2)
             const rotated = [halfDistVector[1], -halfDistVector[0]].map(u => u / 3) //close, 1/6 times
             ctx.fillText(txt, halfDistVector[0] + rotated[0] + x, halfDistVector[1] + rotated[1] + y)
@@ -210,7 +210,7 @@ class MM {
     static plot(screen, func, minX, maxX, minY, maxY, rect, {
         density, color = "black", width = 3,
         show_axes = true, axes_color = "plum", axes_width = 3,
-        show_axes_labels = true, axes_labels_font = "24px serif",
+        show_axes_labels = true, axes_labels_font = "24px mySerif",
         show_dotting = true, dottingDistance = [1, 1], show_grid = true, grid_width = 1, grid_color = "lightgray",
         opacity = 0 } = {}) {
         density ??= rect.width
@@ -275,7 +275,7 @@ class MM {
 
     //#region MM.drawText
     static drawText(screen, txtorarr, rect, {
-        fontSize = 12, font = "serif", color = "black", opacity = 0,
+        fontSize = 12, font = "mySerif", color = "black", opacity = 0,
         textAlign = "center", textBaseline = "middle", fontEmphasis = "",
         spacing = 1.2
         //"center left", "middle top" defined only
@@ -328,7 +328,13 @@ class MM {
         opacity && screen.restore()
     }
     //#endregion
-
+    /**
+     * @param {RenderingContext} screen 
+     * @param {Object} obj - must have a center.x center.y
+     * @param {number} rad 
+     * @param {Function} drawFunc 
+     * @param {Function[]} drawFuncArgs - screen is included by default
+     */
     static drawRotated(screen, obj, rad, drawFunc, drawFuncArgs = []) {
         //obj needs to have a center
         MM.require(obj, "center")

@@ -293,6 +293,31 @@ class Game extends GameCore {
             }
         }
         this.add_drawable(connectionsDrawableObject, 4)
+        const highlightOwnProvincesDrawableObject = {
+            lineWidth: 10, //interesting
+            growthRate: +0.2,
+            draw: (screen) => {
+                if (this.showingMap && myKingdomObject)
+                    myKingdomObject.territories.forEach(
+                        /** @param {Territory} t */
+                        t => {
+                            MM.drawRect(screen,
+                                t.button.x,
+                                t.button.y,
+                                t.button.width, t.button.height,
+                                { lineWidth: highlightOwnProvincesDrawableObject.lineWidth, color: "black" }
+                            )
+                        })
+            },
+            update: (dt) => {
+                highlightOwnProvincesDrawableObject.lineWidth += highlightOwnProvincesDrawableObject.growthRate
+                if (highlightOwnProvincesDrawableObject.lineWidth > 15 ||
+                    highlightOwnProvincesDrawableObject.lineWidth < 8)
+                    highlightOwnProvincesDrawableObject.growthRate *= -1
+
+            }
+        }
+        this.add_drawable(highlightOwnProvincesDrawableObject, 4)
 
 
         chat.on_receive = (message) => {
