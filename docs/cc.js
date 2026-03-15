@@ -214,16 +214,18 @@ class Game extends GameCore {
 
             //first it label, last is status
             const ranking = top.splitGrid(1, RULES.NUMBER_OF_TEAMS + 3).flat().slice(0, -1).map(x => Button.fromRect(x))
-            ranking.at(-1).width *= 2
-            ranking[0].txt = "Teams:"
-            ranking.at(-1).txt = `You: ${chat.name} (${kingdoms[myKingdomID].name})`
-            ranking.at(-1).font_color = kingdoms[myKingdomID].color
-            this.ranking = ranking
             ranking.forEach(b => {
                 b.outline = 0
                 // b.color = "gray"
                 b.transparent = true
             })
+            ranking.at(-1).width *= 2
+            ranking[0].txt = "Teams:"
+            ranking.at(-1).txt = `You: ${chat.name} (${kingdoms[myKingdomID].name})`
+            ranking.at(-1).color = myColor
+            ranking.at(-1).transparent = false
+
+            this.ranking = ranking
             top.color = "gray"
             game.add_drawable(ranking)
 
@@ -423,7 +425,7 @@ class Snippet {
         let color
         if (confD.fromKD === myKingdomID) {//attacking
             color = game.kingdoms[confD.toKD].color
-            rows[0].dynamicText = () => confD.justDeclared ? "threatening" : "attacking"
+            rows[0].dynamicText = () => confD.justDeclared ? "waiting for" : "attacking"
             rows[1].txt = game.kingdoms[confD.toKD].name + " in"
             // rows[1].color = color
             rows[2].txt = game.territories[confD.to].nameShort
@@ -482,7 +484,13 @@ class Snippet {
 
     update(dt) {
         this.confD.timeLeft -= dt
-        if (this.confD.timeLeft < 0) this.destroy()
+        if (this.confD.timeLeft < 0) {
+            this.destroy()
+            return
+        }
+        if (this.confD.justDeclared && this.confD.toKD === myKingdomID) //blink red if it is a threat!
+            game.animator.add_anim(
+                Anim.setter(this.rows[0], 500, "color", "red", { ditch: true }))
     }
 }
 

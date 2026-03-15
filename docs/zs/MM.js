@@ -1607,11 +1607,12 @@ class GameEffects {
         //on_end && setTimeout(on_end, seconds * 1000)
     }
     /**
-     * @param {Object<string,function>} objTextAndOnRelease
+     * Adds to game automatically.
+     * @param {Object<string,function> | Array<Array<string,function>>} objTextAndOnRelease
      * @param {Rect|null} backgroundRect 
      * @param {number|null} gridRows 
      * @param {number|null} gridColumns 
-     * @param {Button} moreButtonSettings 
+     * @param {Button|null} moreButtonSettings 
      * @param {Button|Array<Button>} alsoClosingButtons
      * @param {Boolean} addCloseButton 
      * @param {function} on_close
@@ -1625,8 +1626,8 @@ class GameEffects {
         const origOnReleases = [];
         const result = {}
         result.close = () => {
-            game.remove_drawables_batch(menu);
-            [...alsoClosingButtons].forEach((b, i) => b.on_release = origOnReleases[i])
+            game.remove_drawables_batch(menu)
+            alsoClosingButtons && [...alsoClosingButtons].forEach((b, i) => b.on_release = origOnReleases[i])
             on_close?.()
         }
         //add logic here: if menu already exists then delete it
@@ -1646,8 +1647,7 @@ class GameEffects {
             closeButton.on_release = () => result.close()
             menu.push(closeButton)
         }
-        ;
-        [...alsoClosingButtons].forEach(b => {
+        alsoClosingButtons && [...alsoClosingButtons].forEach(b => {
             origOnReleases.push(b.on_release)
             b.on_release = result.close
 

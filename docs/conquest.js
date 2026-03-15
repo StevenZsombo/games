@@ -28,7 +28,7 @@ class Person extends Participant {
     }
     kick() {
         // game.remove_drawable(this.button) //no buttons
-        game?.kingdoms.forEach(x => x.members.delete(this))
+        game?.kingdoms.forEach(x => x.members.delete(this)) //but removed from kingdom
         chat.orderResetName(this.name)
         delete participants[this.name]
     }
@@ -306,8 +306,8 @@ class Game extends GameCore {
         this.conflictsHistory = []
         this.conflictsHistoryCount = 0
 
-        //debug drag and drop
-        buts.forEach(Button.make_draggable)
+        //debug drag and drop //turned off for now
+        // buts.forEach(Button.make_draggable)
 
 
         const bpos = RULES.PROVINCE_POSITIONS ?? localStorage.getItem("bpos") ?? []
@@ -317,12 +317,38 @@ class Game extends GameCore {
 
         //control tools
 
-        const switchModeButton = new Button({ txt: "switch", widht: 120, height: 80 })
+        const switchModeButton = new Button({ txt: "Show\nBanners", widht: 120, height: 80 })
         this.switchModeButton = switchModeButton
         switchModeButton.bottomat(this.rect.bottom - 20)
         switchModeButton.rightat(this.rect.right - 50)
         switchModeButton.on_click = () => switchStage()
         this.add_drawable(switchModeButton)
+        this.border = Gimmicks.setupBorder()
+
+        const orderResetKingdomButton = switchModeButton.copy
+        orderResetKingdomButton.move(orderResetKingdomButton.width * -1.5, 0)
+        orderResetKingdomButton.txt = "Switch\nKingdom"
+        orderResetKingdomButton.on_click = null
+        orderResetKingdomButton.on_release = () => {
+            if (!Object.keys(participants).length) return
+            GameEffects.dropDownMenu(
+                Object.values(participants).map(x => [x.name, () => hq.orderResetKingdom(x.name)]),
+                null, null, null, { height: 35, fontSize: 24, width: 300 }
+            ) //adds to game automatically
+        }
+        this.add_drawable(orderResetKingdomButton)
+
+        const orderChangeNameButton = orderResetKingdomButton.copy
+        orderChangeNameButton.move(orderChangeNameButton.width * -1.5, 0)
+        orderChangeNameButton.txt = "Change\nname"
+        orderChangeNameButton.on_release = () => {
+            if (!Object.keys(participants).length) return
+            GameEffects.dropDownMenu(
+                Object.values(participants).map(x => [x.name, () => x.kick()]),
+                null, null, null, { height: 35, fontSize: 24, width: 300 }
+            )
+        }
+        this.add_drawable(orderChangeNameButton)
 
         const startContestButton = switchModeButton.copy
         startContestButton.txt = "START!"
@@ -337,7 +363,7 @@ class Game extends GameCore {
         startContestButton.move(startContestButton.width * -1.5, 0)
         this.add_drawable(startContestButton)
 
-        this.border = Gimmicks.setupBorder()
+        startContestButton.topat(10)
 
         Gimmicks.createBackground(this, true)
         this.initialize_scores()
@@ -618,6 +644,8 @@ const dev = {
             }
         })
     },
+    dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
+    clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
     saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
     saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections()),
     severConnections: (tgtName) => {
@@ -625,7 +653,8 @@ const dev = {
         const tgt = tgtName ? game.territories.find(x => x.name === tgtName) : Territory.LCP
         tgt.connections.clear()
         game.territories.forEach(x => x.connections.delete(tgt))
-    }
+    },
+    severALLConnections: () => { game.territories.forEach(x => x.connections.clear()) }
 
 }/// end of dev
 
@@ -637,10 +666,22 @@ const hq = {
         COMM("game.resetKingdom()")
     },
     orderResetKingdom: (name) => {
+        if (!name) { console.log("use dev.resetAllKingdom instead"); return; }
         game.kingdoms.forEach(x => x.members.delete(Person.to(name)))
         chat.sendMessage({ orderResetKingdom: true, target: Person.to(name).name })
     },
     resetNames: () => COMM(`chat.resetName("Your name has been reset by the server:")`),
+    cheat: (nameOrPerson) => {
+        chat.sendMessage({
+            target: Person.check(nameOrPerson).name,
+            popup: game.conflicts
+                .filter(x => x.involves(Person.check(nameOrPerson).kingdom))
+                .filter(x => x.solving)
+                .map(x => `Q${x.question.id} solution: ${x.question.sol}`)
+                .join("\n"),
+            popupSettings: { floatTime: 10000 }
+        })
+    },
 }
 
 

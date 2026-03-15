@@ -5,8 +5,8 @@ var RULES = Object.freeze({
     DEFENSE_GAIN_VALUE: +100,
     ATTACK_GAIN_VALUE: +100,
     MAX_ATTACKS_ALLOWED: 3, //maybe 3? maybe same as team size?
-    TIMEOUT_ON_ATTACK: 60 * 1000,
-    TIMEOUT_ON_ATTACK_TEXT: "one minute",
+    TIMEOUT_ON_ATTACK: 30 * 1000, //formerly 1 minute
+    TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 8 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "eight minutes",
     NUMBER_OF_TERRITORIES: 24,
@@ -334,6 +334,14 @@ class Conflict {
         SHARE("valuesData")
         SHARE("rankingData")
     }
+    /**
+     * 
+     * @param {Kingdom} kingdom 
+     * @returns if the given kingdom is involved in the conflict
+     */
+    involves(kingdom) {
+        return this.attacker === kingdom || this.defender === kingdom
+    }
 
     update(dt) {
         this.timeLeft -= dt
@@ -352,13 +360,17 @@ class Question {
         this.points = null //maybe?
     }
     /**Question.raw*/
-    static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~@3~~~1.4~~\text{find\ }\frac{3+2^2}{5}@4~~test2~5.83~~@5~~test2~5.83~find the above~\text{find\ }\frac{2+\sqrt{2}}{2-\sqrt{2}}`
+    //static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~@3~~~1.4~~\text{find\ }\frac{3+2^2}{5}@4~~test2~5.83~~@5~~test2~5.83~find the above~\text{find\ }\frac{2+\sqrt{2}}{2-\sqrt{2}}`
 
 
     /**@type {Question[]} */
-    static ALL = Question.raw.
+    /*static ALL = Question.raw.
         split("@").map(x => x.split("~")).map(
             ([id, note, img, sol, txt, latex], i) => new Question(i, { img, txt, sol: +sol, latex }))
+    */
+    static ALL =
+        `343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;21;10;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.555;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414`
+            .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
 }
 //#region Gimmicks
 class Gimmicks {
