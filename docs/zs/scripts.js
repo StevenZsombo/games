@@ -859,18 +859,18 @@ class Plot {
 		this.axes_color = "plum"//"deeppink",//"fuchsia",
 		this.axes_width = 3
 		this.show_axes_labels = true
-		this.axes_labels_font = "24px serif"
+		this.axes_labels_font = "24px mySerif"
 		this.show_dotting = true
 		this.dottingDistance = [1, 1]
 		this.show_grid = true
 		this.grid_width = 1
 		this.grid_color = "lightgray"
 		this.show_border_values = true
-		this.show_border_values_font = "12px serif"
+		this.show_border_values_font = "12px mySerif"
 		this.show_border_values_dp = 2
 		this.highlightedPoints = [] //
 		this.label_highlighted = true
-		this.label_highlighted_font = "24px serif"
+		this.label_highlighted_font = "24px mySerif"
 		/**@type {Array<{func: Function, color: string, highlightedPoints: Array}>} */
 		this.pltMore = [] //{func, color, highlightedPoints}
 		this.overrideBoundaryCheck = true

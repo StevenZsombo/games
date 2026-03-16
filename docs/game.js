@@ -231,7 +231,7 @@ class Game extends GameCore {
             }
             else { x.hover_color = "lightblue" }
             x.fontSize = 48
-            x.font_font = "monospace"
+            x.font_font = "myMonospace"
             x.on_release = () => {
                 stgs.stage = levelList[i]
                 main()
@@ -637,7 +637,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
             if (addKeyToVictories) {
                 GameEffects.popup(`Solution of "${stgs.stage}" saved.`, {
                     posFrac: [.5, .9],
-                    moreButtonSettings: { font_font: "monospace", color: "pink" }
+                    moreButtonSettings: { font_font: "myMonospace", color: "pink" }
                 })
             }
             console.log("Solution saved to", key)
@@ -799,7 +799,7 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
             .stretch(.9, .9)
         big.transparent = true
         big.fontSize = 32
-        big.font_font = 'monospace'
+        big.font_font = 'myMonospace'
         big.textSettings = { textAlign: "left", textBaseline: "top" }
         big.txt = "Initializing..."
         this.add_drawable(big)
@@ -816,7 +816,7 @@ ${MM.reshape(missing, 5).map(x => x.join(", ")).join("\n")}.
 Please run them again to send your data.`
                     , {
                         posFrac: [.5, .8], sizeFrac: [.9, .2], floatTime: 8000,
-                        moreButtonSettings: { color: "red", fontSize: 40, font_font: "monospace" }
+                        moreButtonSettings: { color: "red", fontSize: 40, font_font: "myMonospace" }
                     })
                 notice.on_release = notice.close
                 console.log("Missing:", missing)
@@ -1024,7 +1024,7 @@ Please run them again to send your data.`
             b.txt = str
             b.width = tutorial ? 120 : 200
             b.outline = 3
-            b.font_font = "monospace"
+            b.font_font = "myMonospace"
             b.fontSize = LEVEL_BUTTON_FONTSIZE
             b.on_release = () => {
                 stgs.stage = str

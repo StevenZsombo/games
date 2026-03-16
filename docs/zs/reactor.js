@@ -234,7 +234,7 @@ Use the Share/Receive features instead.`
         instructionButton.centerat(instructionButton.centerX, this.buttonsMatrix[0][0].top / 2)
         instructionButton.txt = this.instructions
         instructionButton.fontSize = 32
-        instructionButton.font_font = "monospace"
+        instructionButton.font_font = "myMonospace"
         // instructionButton.textSettings.fontEmphasis = "bold"
         if (!this.levelRelated)
             this.game.animator.add_anim(instructionButton, 2500, Anim.f.typing, { fillChar: " " })
