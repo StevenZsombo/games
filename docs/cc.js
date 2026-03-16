@@ -122,13 +122,13 @@ class Game extends GameCore {
                 territories.push(...Territory.manyFromData(value))
                 game.add_drawable(territories.map(x => x.button))
                 this.buts = territories.map(x => x.button)
-                checkSyncState()
+                waitCheckSyncState()
             }
             if (shared == "kingdomsFullData") {
                 // if (kingdoms.length) return
                 kingdoms.length = 0
                 kingdoms.push(...Kingdom.manyFromData(value))
-                checkSyncState()
+                waitCheckSyncState()
             }
             if (!syncReady) return
             //only if syncReady
@@ -186,7 +186,7 @@ class Game extends GameCore {
             }
         }
 
-        const checkSyncState = () => {
+        const waitCheckSyncState = () => {
             if (this.territories.length && this.kingdoms.length) {
                 chat.sendSecure({ inquire: "ownershipData" })
                 chat.sendSecure({ inquire: "valuesData" })

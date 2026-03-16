@@ -1,0 +1,1 @@
+magick "*.png" -delay 20 -loop 1 -resize 800x600 output.gif

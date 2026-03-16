@@ -612,7 +612,9 @@ class Game extends GameCore {
 
     }
 
-    saveGame(saveName = "conquestManual") {
+    saveGame(saveName = "conquestManual",
+        backups = 10 //write to text file instead?
+    ) {
         //assumption: territories, kingdoms and conflicts are all arrays
         //kingdoms and territories will override
         //conflicts will be reconstructed
@@ -629,12 +631,13 @@ class Game extends GameCore {
             }),
             kingdoms: this.kingdoms.map((x, i) => {
                 return {
-                    seenQuestions: x.seenQuestions.values().map(x => x.id),
-                    territories: x.territories.map(x => x.id),
-                    capital: x.capital.id,
+                    seenQuestions: Array.from(x.seenQuestions.values().map(x => x.id)),
+                    territories: Array.from(x.territories.values().map(x => x.id)),
+                    // capital: x.capital.id,//unchanging
                     name: x.name, //no harm in saving
                     color: x.color, //no harm in saving
                     //members are saved client-side
+                    membersNames: x.membersStr(",")//memberNames //cause why not!
 
                 }
             }),
@@ -655,24 +658,40 @@ class Game extends GameCore {
                 }
             }),
         }
+        const str = JSON.stringify(saveObj)
+        try { localStorage.setItem(saveName, str) }
+        catch (err) { console.error(err) }
+        try { Cropper.downloadText(str) }
+        catch (err) { console.error(err) }
+        try { if (backups) MM.localStorageBackup(saveName, backups) }
+        catch (err) { console.error(err) }
+
+        return str
 
     }
 
-    loadGame(saveName) {
+    loadGame(saveName = "conquestManual") {
         const saveObj = JSON.parse(localStorage.getItem(saveName))
+        if (!saveObj) {
+            console.error("No save was found", this)
+            return
+        }
         saveObj.territories.forEach((x, i) => {
             const t = this.territories[i]
             t.value = x.value
         })
         saveObj.kingdoms.forEach((x, i) => {
             const k = this.kingdoms[i]
+            console.log(k)
             k.name = x.name
             k.color = x.color
-            x.seenQuestions.forEach(u => k.seenQuestions.add(Question.ALL(u)))
+            x.seenQuestions.forEach(u => k.seenQuestions.add(Question.ALL[u]))
+            console.log(x.territories)
+            console.log(x.territories.map(u => this.territories[u]))
             x.territories.forEach(u => k.acquireTerritory(this.territories[u]))
-            k.acquireCapital(x.capital)
+            // k.acquireCapital(this.territories[x.capital])//unchanging. so this is pointless!
         })
-        this.conflictsHistoryCount = saveObj.conflictsHistoryCount
+        this.conflictsHistoryCount = saveObj.conflictsHistoryCount //IMPORTANT
         saveObj.conflicts.forEach((x, i) => {
             //beginAttack would probably have index issues, better override
             const c = new Conflict(
@@ -684,6 +703,7 @@ class Game extends GameCore {
             c.solving = x.solving
             c.alreadyResolved = x.alreadyResolved
             c.timeLeft = x.timeLeft
+            this.conflicts.push(c)
         })
     }
 
@@ -749,11 +769,22 @@ const hq = {
         })
         //screenshots
         Cropper.screenshot()
-        contestIntervals.push(setInterval(
-            () => {
-                Cropper.screenshot(), 20 * 1000
+        console.log("Screenshot saved.")
+        contestIntervals.push(
+            setInterval(() => {
+                Cropper.screenshot()
                 console.log("Screenshot saved.")
-            }))
+            }, 20 * 1000)
+        )
+        //autosaves
+        game.saveGame("conquestAuto")
+        console.log("Autosave created.")
+        contestIntervals.push(
+            setInterval(() => {
+                game.saveGame("conquestAuto")
+                console.log("Autosave created.")
+            }, 60 * 1000)
+        )
         console.log("Timers/intervals started.")
     },
     endContest: () => {

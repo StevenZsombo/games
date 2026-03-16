@@ -1182,6 +1182,9 @@ class MM {
         for (let i = howmany; i > 0; i--) {
             localStorage.setItem(`${key}_${i}`, localStorage.getItem(`${key}_${i - 1}`))
         }
+        if (key.slice(-2) !== "_0") {
+            localStorage.setItem(key + "_0", localStorage.getItem(key))
+        }
     }
 
     static toggleFullscreen(whatToDo) {
