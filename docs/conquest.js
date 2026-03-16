@@ -373,7 +373,31 @@ class Game extends GameCore {
         )
         this.showTimeOnArrows = true
 
+        const statsBot = this.border.bot.copy
+        statsBot.color = "linen"
+        statsBot.outline = 0
+        statsBot.width = this.mapIMG.width + 4
+        statsBot.leftat(this.mapIMG.left - 2)
+        statsBot.font_font = "myMonospace"
+        statsBot.fontSize = 28
+        statsBot.textSettings = { textAlign: "left", textBaseline: "middle" }
+        this.statsBot = statsBot
+        this.add_drawable(statsBot, 4)
+
+        statsBot.dynamicText = () => {
+            const statsBot = this.statsBot
+            const lines = []
+            const first = `Conflicts: ${this.conflicts.length} current / ${this.conflictsHistoryCount} total`
+            lines.push([`Teams:`].concat(this.kingdoms.map(x => x.name)))
+            lines.push([`Questions seen:`].concat(this.kingdoms.map(x => x.seenQuestions.size)))
+            lines.push([`Territories:`].concat(this.kingdoms.map(x => x.territories.size)))
+            lines.push([`Points:`].concat(this.valCols.map(x => x.txt)))
+            const linesStr = MM.tableStr(lines, null, 4)
+            return first + "\n" + linesStr
+
+        }
     }
+
 
     _showingMap = true
     get showingMap() { return this._showingMap }
@@ -432,7 +456,8 @@ class Game extends GameCore {
                     {
                         color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color),
                         width: 10, size: 30,
-                        txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null
+                        txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null,
+                        fontSize: 28
 
                     }
                 )
@@ -541,6 +566,9 @@ class Game extends GameCore {
             .map(x => [x[0].id, x[0].name, x[1]])
     }
 
+
+
+
     initialize_scores_side() {
         const sc = new Panel()
         //const banners = game.rect.copy.deflate(200, 200).splitGrid(1, RULES.NUMBER_OF_TEAMS).flat().map(x => Button.fromRect(x))
@@ -572,6 +600,8 @@ class Game extends GameCore {
             valCols.push(v)
 
         })
+        this.banners = banners
+        this.valCols = valCols
         sc.components.push(...banners, ...valCols)
         this.sideScorePanel = sc
         this.add_drawable(sc)
