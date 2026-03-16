@@ -71,6 +71,8 @@ class Game extends GameCore {
 
         ks.forEach((b, i) => {
             b.color = Kingdom.defaultColors[i]
+            b.txt = b.color
+            b.fontSize = 60
             b.shrinkToSquare()
             b.stretch(.8, .8)
             b.outline = 5
@@ -218,6 +220,7 @@ class Game extends GameCore {
                 b.outline = 0
                 // b.color = "gray"
                 b.transparent = true
+                b.fontSize = 28
             })
             ranking.at(-1).width *= 2
             ranking[0].txt = "Teams:"
@@ -228,6 +231,9 @@ class Game extends GameCore {
             this.ranking = ranking
             top.color = "gray"
             game.add_drawable(ranking)
+
+            bot.txt = "BATTLES".split("").join("  ")
+            bot.fontSize = 48
 
             Snippet.bgDefault.resize(GRAPHICS.SNIPPET_WIDTH, bot.height - 20)
             Snippet.bgDefault.topat(bot.top)
@@ -345,7 +351,7 @@ class Game extends GameCore {
         if (bool === this._showingMap) return bool
         this._showingMap = bool
         this.buts.forEach(x => x.activeState = bool)
-        this.attackButton.activeState = bool
+        this.attackButton.activeState = false //always false.
         return bool
     }
 
@@ -543,11 +549,11 @@ class QPane extends Panel {
         this.components.push(bg)
         const question = Question.ALL[qID]
         const [imgB, latexB, txtB] = bg.splitRow(
-            question.img ? 7 : 0,
+            question.img !== undefined ? 7 : 0, //watch out for 0
             question.latex ? 1 : 0,
             question.txt ? 1 : 0
         ).map(x => Button.fromRect(x))
-        if (question.img) {
+        if (question.img !== undefined) {//watch out for 0
             cropper.load_img(RULES.PICTURE_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
             imgB.tag = "QPane imgB component"
             this.components.push(imgB)
@@ -576,6 +582,7 @@ class QPane extends Panel {
         ansBunch.forEach(x => {
             x.fontSize = 36
         })
+        ansDisplayShow.fontSize = 52
         // this.components.push(...ansBunch)
         this.components.push(ansLab, ansInfo, ansDisplayShow, ansSubmitButton)
 
@@ -586,7 +593,7 @@ class QPane extends Panel {
             x.color = myColor
             x.shrinkToSquare()
             x.deflate(20, 20)
-            x.fontSize = 36
+            x.fontSize = 48
             x.spread(QPane.calculatorSpaceDefault.centerX, QPane.calculatorSpaceDefault.centerY,
                 1, .6
             )
@@ -635,6 +642,15 @@ class QPane extends Panel {
             this.components.push(revealer)
         }
 
+        const backToMapButton = calculatorButtons[1].copy
+        backToMapButton.on_click = () => setFocus("map")
+        backToMapButton.color = "lightgray"
+        backToMapButton.stretch(2.4, .7)
+        backToMapButton.txt = "Back to Map"
+        backToMapButton.fontSize = 36
+        backToMapButton.centeratY((calculatorButtons[1].top + 50) / 2)
+        this.components.push(backToMapButton)
+
 
         this.deactivate()
         this.components.forEach(x => x.tag = "QPanePart")
@@ -651,13 +667,13 @@ let focus = "map" //"map" or id of the QPane which is the same as conflict id
 const setFocus = (tgt) => {
     //requesting a pane not yet available accepts the conflict
     if (tgt == "map") {//focusing on map means closing all panes
+        panes.values().forEach(x => x.deactivate())
         game.showingMap = true
-        Object.values(panes).forEach(x => x.deactivate())
     } else if (tgt != "map" && !panes.has(tgt)) {
         waitingQuestionsTrigger.add(tgt) //on waitlist so no need to double click
         chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
         tgt = "map"
-        Object.values(panes).forEach(x => x.deactivate())
+        panes.values().forEach(x => x.deactivate())
         return //otherwise quit
     } else if (focus == "map" && tgt != "map") {//switching away from map
         game.showingMap = false

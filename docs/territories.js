@@ -2,8 +2,10 @@
 var RULES = Object.freeze({
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
-    DEFENSE_GAIN_VALUE: +100,
+    DEFENSE_GAIN_VALUE: +50,
+    DEFENSE_GAIN_VALUE_FOR_CAPITAL: +100,
     ATTACK_GAIN_VALUE: +100,
+    ATTACK_GAIN_VALUE_FOR_CAPITAL: +50,
     MAX_ATTACKS_ALLOWED: 3, //maybe 3? maybe same as team size?
     TIMEOUT_ON_ATTACK: 30 * 1000, //formerly 1 minute
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
@@ -148,6 +150,7 @@ class Kingdom {
 
     /**@param {Territory} territory  */
     acquireTerritory(territory) {
+        game?.kingdoms?.forEach(x => x.territories.delete(territory))
         this.territories.add(territory)
         territory.button.color = this.color
     }
@@ -158,6 +161,7 @@ class Kingdom {
         capital.isCapital = true
         capital.value = RULES.CAPITAL_BASE_VALUE
         capital.name = `${capital.name}\n(${this.name})`
+        // capital.name = `${capital.name}\nCapital`
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
 
@@ -171,8 +175,8 @@ class Kingdom {
         return r
     }
 
-    get membersStr() {
-        return this.members.size ? Array.from(this.members.values().map(x => x.name)).join("\n") : ""
+    membersStr(joinChar = "\n") {
+        return this.members.size ? Array.from(this.members.values().map(x => x.name)).join(joinChar) : ""
     }
 
 }
@@ -226,9 +230,26 @@ class Conflict {
         this.justDeclared = false
         this.solving = true
         const availableQuestions = Question.ALL.filter(x => !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
-        if (!availableQuestions.length) { console.error("out of questions!!!!") }
+        if (!availableQuestions.length) {
+            console.error("out of questions!!!!")
+            GameEffects.popup(`Out of questions: ${this.attacker.name} & ${this.defender.name}!`,
+                GameEffects.popupPRESETS.bigRed
+            )
+        }
+        //grouped by modulo 10
+        const availableIDs = availableQuestions.map(x => x.id)
         /**@type {Question} */
-        this.question = MM.choice(availableQuestions)
+        let qSel
+        for (let i = 0; i < 10; i++) {
+            const curr = availableIDs.filter(x => x % 10 == i)
+            if (curr.length) {
+                const selectedID = MM.choice(curr)
+                qSel = availableQuestions.find(x => x.id == selectedID)
+                break
+            }
+        }
+        /**@type {Question} */
+        this.question = qSel
         this.attacker.seenQuestions.add(this.question)
         this.defender.seenQuestions.add(this.question)
         this.timeLeft = RULES.TIMEOUT_ON_DEFENSE
@@ -266,13 +287,30 @@ class Conflict {
             const plundered = Math.min(this.territory.value, RULES.CAPITAL_PLUNDER_VALUE)
             this.territory.value -= plundered
             this.attacker.capital.value += plundered
+            //notify attackers of victory
+            const short = this.territory.nameShort
+            this.attacker.members.forEach(x =>
+                chat.sendMessage({
+                    target: x.name,
+                    popup: `You plundered ${short} for ${plundered} points.`,
+                    popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
+                })
+            )
+            //notify defenders of loss
+            this.defender.members.forEach(x =>
+                chat.sendMessage({
+                    target: x.name,
+                    popup: `Your capital lost ${plundered} points\nbecause you failed to defend it.`,
+                    popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
+                })
+            )
+
             return this.resolve()
         }
         console.log(reason, this.attacker.name, this.territory.name)
         this.territory.value += RULES.ATTACK_GAIN_VALUE
-        this.defender?.territories.delete(this.territory)
-        this.attacker.territories.add(this.territory)
-        this.territory.button.color = this.attacker.color
+        this.attacker.capital.value += RULES.ATTACK_GAIN_VALUE_FOR_CAPITAL
+        this.attacker.acquireTerritory(this.territory)
         //notify attackers of victory
         const short = this.territory.nameShort
         this.attacker.members.forEach(x =>
@@ -295,6 +333,7 @@ class Conflict {
     winDefend(reason) {
         console.log(reason, this.defender.name, this.territory.name)
         this.territory.value += RULES.DEFENSE_GAIN_VALUE
+        this.defender.capital.value += RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL
         //notify defenders of victory
         const short = this.territory.nameShort
         this.defender.members.forEach(x =>
@@ -308,7 +347,7 @@ class Conflict {
         this.attacker.members.forEach(x =>
             chat.sendMessage({
                 target: x.name,
-                popup: `You could not capture ${short}.`,
+                popup: `You could not ${this.territory.isCapital ? "plunder" : "capture"} ${short}.`,
                 popupSettings: GRAPHICS.POPUP_ATTACK_FAIL
             })
         )
@@ -368,6 +407,7 @@ class Question {
         split("@").map(x => x.split("~")).map(
             ([id, note, img, sol, txt, latex], i) => new Question(i, { img, txt, sol: +sol, latex }))
     */
+    //Question.ALL
     static ALL =
         `343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;21;10;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.555;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414`
             .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))

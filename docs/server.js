@@ -15,7 +15,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_PAGE_TO_SERVE = '/template.html'
+const DEFAULT_PAGE_TO_SERVE = '/cc.html'
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'zlistener/listener.html'
 
 const DOTS = {

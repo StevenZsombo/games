@@ -340,7 +340,7 @@ class Game extends GameCore {
 
         const orderChangeNameButton = orderResetKingdomButton.copy
         orderChangeNameButton.move(orderChangeNameButton.width * -1.5, 0)
-        orderChangeNameButton.txt = "Change\nname"
+        orderChangeNameButton.txt = "Change\nName"
         orderChangeNameButton.on_release = () => {
             if (!Object.keys(participants).length) return
             GameEffects.dropDownMenu(
@@ -353,10 +353,6 @@ class Game extends GameCore {
         const startContestButton = switchModeButton.copy
         startContestButton.txt = "START!"
         startContestButton.on_click = () => {
-            chat.sendMessage({
-                popup: "The game has started, you can now attack!",
-                popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
-            })
             hq.startContest()
             this.remove_drawable(startContestButton)
         }
@@ -590,7 +586,7 @@ class Game extends GameCore {
             const k = this.kingdoms[i]
             b.deflate(50, 50)
             b.move(-50, 0)
-            b.fontSize = 48
+            b.fontSize = 36
             b.dynamicText = () => {
                 if (!k.members.size) return ""
                 return Array.from(k.members.values().map(
@@ -654,14 +650,47 @@ const dev = {
         tgt.connections.clear()
         game.territories.forEach(x => x.connections.delete(tgt))
     },
-    severALLConnections: () => { game.territories.forEach(x => x.connections.clear()) }
+    severALLConnections: () => { game.territories.forEach(x => x.connections.clear()) },
+    shareMembers: () => {
+        chat.sendMessage({
+            popup: game.kingdoms.map(x => `${x.name}: ${x.membersStr(", ")}`).join("\n"),
+            popupSettings: {
+                ...GameEffects.popupPRESETS.megaBlue, floatTime: 2000
+            }
+        })
+    }
 
 }/// end of dev
 
+
+
 //#region hq
+const contestIntervals = []
 //hq.hq.hq.
 const hq = {
-    startContest: () => { game.attacksAllowed = true },
+    startContest: () => {
+        game.attacksAllowed = true
+        chat.sendMessage({
+            popup: "The game has started, you can now attack!",
+            popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+        })
+        //screenshots
+        contestIntervals.push(setInterval(
+            () => {
+                Cropper.screenshot(), 20 * 1000
+                console.log("Screenshot saved.")
+            }))
+        console.log("Timers/intervals started.")
+    },
+    endContest: () => {
+        game.attacksAllowed = false
+        contestIntervals.forEach(x => clearInterval(x))
+        console.log("Timers/intervals cleared.")
+        chat.sendMessage({
+            popup: "The game has ended. Thank you for playing.",
+            popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+        })
+    },
     resetAllKingdoms: () => {
         game.kingdoms.forEach(x => x.members.clear())
         COMM("game.resetKingdom()")

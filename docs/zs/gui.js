@@ -413,23 +413,49 @@ class Cropper {
 	}
 
 	static downloadImage(img, filename = 'image.png') {
-		const canvas = document.createElement('canvas');
-		const ctx = canvas.getContext('2d');
-		canvas.width = img.width;
-		canvas.height = img.height;
-		ctx.drawImage(img, 0, 0);
+		const canvas = document.createElement('canvas')
+		const ctx = canvas.getContext('2d')
+		canvas.width = img.width
+		canvas.height = img.height
+		ctx.drawImage(img, 0, 0)
 
 		canvas.toBlob(blob => {
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = filename;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
-			canvas.remove(); // Remove canvas from DOM
-		}, 'image/png');
+			const url = URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = filename
+			document.body.appendChild(a)
+			a.click()
+			document.body.removeChild(a)
+			URL.revokeObjectURL(url)
+			canvas.remove() // Remove canvas from DOM
+		}, 'image/png')
+	}
+
+	static screenshot(filename = "screenshot", doNotTimestamp = false) {
+		if (!game) return
+		game.canvas.toBlob(blob => {
+			const url = URL.createObjectURL(blob)
+			const a = document.createElement("a")
+			a.href = url
+			const fullName = filename + (doNotTimestamp ? "" : ":" + MM.time() + ".png")
+			a.download = fullName.split(":").join("_")
+			// document.body.appendChild(a) //not needed in modern browsers
+			a.click()
+			// document.body.removeChild(a)
+			URL.revokeObjectURL(url)
+		}, "image/png")
+	}
+
+	static downloadText(text, filename = "text", doNotTimestamp) {
+		const blob = new Blob([text], { type: 'text/plain' })
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		const fullName = filename + (doNotTimestamp ? "" : ":" + MM.time() + ".txt")
+		a.download = fullName.split(":").join("_")
+		a.click()
+		URL.revokeObjectURL(url)
 	}
 
 	static pattern = `!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_${"\`"}abcdefghijklmnopqrstuvwxyz{|}~" `
@@ -447,6 +473,19 @@ class Cropper {
 			c.convertFont(img, ret)
 		})
 		return ret
+	}
+
+	static listItemsInAFolder(callback) {
+		const i = Object.assign(document.createElement('input'), {
+			type: 'file', webkitdirectory: 1, directory: 1, multiple: 1, style: 'display:none'
+		});
+		callback ??= console.log
+		i.onchange = e => {
+			callback([...e.target.files].map(f => ({ name: f.name, path: f.webkitRelativePath, size: f.size, type: f.type })));
+			document.body.removeChild(i);
+		};
+		document.body.appendChild(i);
+		i.click();
 	}
 }
 //#region customFont
