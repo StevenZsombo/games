@@ -612,7 +612,80 @@ class Game extends GameCore {
 
     }
 
+    saveGame(saveName = "conquestManual") {
+        //assumption: territories, kingdoms and conflicts are all arrays
+        //kingdoms and territories will override
+        //conflicts will be reconstructed
+        //conflictsHistory may be lost, but whatever
+        const saveObj = {
+            territories: this.territories.map((x, i) => {
+                return {
+                    value: x.value,
+                    // isUnderAttack: x.isUnderAttack //handled by conflict
+                    //names are unchanging
+                    //connections are unchanging
+                    //isCapital is set by kingdom
+                }
+            }),
+            kingdoms: this.kingdoms.map((x, i) => {
+                return {
+                    seenQuestions: x.seenQuestions.values().map(x => x.id),
+                    territories: x.territories.map(x => x.id),
+                    capital: x.capital.id,
+                    name: x.name, //no harm in saving
+                    color: x.color, //no harm in saving
+                    //members are saved client-side
 
+                }
+            }),
+            conflictsHistoryCount: this.conflictsHistoryCount, //for conflict id consistency
+            conflicts: this.conflicts.map((x, i) => {
+                return {
+                    attacker: x.attacker.id,
+                    // defender: x.defender.id, //handled
+                    territory: x.territory.id,
+                    justDeclared: x.justDeclared,
+                    solving: x.solving,
+                    question: x.question?.id, //null by default
+                    alreadyResolved: x.alreadyResolved,
+                    // attackingFrom: x.attackingFrom.id, //handled
+                    timeLeft: x.timeLeft,
+                    id: x.id //does NOT start from 0,
+
+                }
+            }),
+        }
+
+    }
+
+    loadGame(saveName) {
+        const saveObj = JSON.parse(localStorage.getItem(saveName))
+        saveObj.territories.forEach((x, i) => {
+            const t = this.territories[i]
+            t.value = x.value
+        })
+        saveObj.kingdoms.forEach((x, i) => {
+            const k = this.kingdoms[i]
+            k.name = x.name
+            k.color = x.color
+            x.seenQuestions.forEach(u => k.seenQuestions.add(Question.ALL(u)))
+            x.territories.forEach(u => k.acquireTerritory(this.territories[u]))
+            k.acquireCapital(x.capital)
+        })
+        this.conflictsHistoryCount = saveObj.conflictsHistoryCount
+        saveObj.conflicts.forEach((x, i) => {
+            //beginAttack would probably have index issues, better override
+            const c = new Conflict(
+                this.kingdoms[x.attacker],
+                this.territories[x.territory])
+            c.id = x.id //SUPER IMPORTANT
+            if (x.question) c.question = Question.ALL[x.question]
+            c.justDeclared = x.justDeclared
+            c.solving = x.solving
+            c.alreadyResolved = x.alreadyResolved
+            c.timeLeft = x.timeLeft
+        })
+    }
 
 
 } //this is the last closing brace for class Game
@@ -675,6 +748,7 @@ const hq = {
             popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
         })
         //screenshots
+        Cropper.screenshot()
         contestIntervals.push(setInterval(
             () => {
                 Cropper.screenshot(), 20 * 1000
