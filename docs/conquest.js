@@ -74,6 +74,14 @@ const ATTENDANCE = () => {
         popupSettings: "smallPink"
     })
 }
+const ASK = (person, question) => {
+    person = Person.to(person)
+    if (!person) return
+    person.on_prompt_response = (txt) => { GameEffects.popup(`${person.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
+    chat.sendMessage({ target: person.name, prompt: question })
+}
+const RELOAD = () => dev.orderReload()
+
 const participants = listener.participants
 //#region connectionInfoButton
 const connectionInfoButton = new Button()
@@ -178,17 +186,34 @@ listener.on_message = (obj, person) => {
     }
     if (obj.attempt) {
         const c = game.conflicts.find(x => x.id === obj.attempt)
-        c.attempt(person.kingdom, obj.guess, person)
+        if (c) c.attempt(person.kingdom, obj.guess, person)
+        else { console.error("invalid conflict.id for attempt", this) }
     }
 }
 
 const lastBroadcastDate = {}
 const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
     if (Date.now() - lastBroadcastDate["conflictsData"] > 5 * 1000) SHARE("conflictsData")
-}, 6 * 1000)
+}, 6 * 1000) //update every 6 seconds at least
+
+const throttleList = new Set()
+window.throttleList = throttleList
+const throttleInterval = setInterval(() => {
+    throttleList.values().forEach(x => SHARE(x))
+    throttleList.clear()
+}, 1000)//recheck every second
 
 const SHARE = (key, target) => {
-    if (!target) lastBroadcastDate[key] = Date.now()
+    if (!target) {
+        //broadcast network throttle
+        const lastSent = lastBroadcastDate[key] ?? 0
+        if (Date.now() - lastSent < 600) //600 ms limit per share keyword
+        {
+            throttleList.add(key)
+            return
+        }
+        lastBroadcastDate[key] = Date.now() //sent naturally, without throttle
+    }
     const msg = { shared: key }
     if (target) msg.target = target
     if (shared[key] !== undefined) {
@@ -245,7 +270,8 @@ class Game extends GameCore {
         const territories = Array(RULES.NUMBER_OF_TERRITORIES).fill().map((x, i) => new Territory(i))
         const buts = territories.map(x => x.button)
         game.add_drawable(buts)
-        Rect.packArray(buts, this.rect.copy.deflate(100, 100).splitGrid(4, 6).flat(), false)
+        const sq = Math.floor(RULES.NUMBER_OF_TERRITORIES)
+        Rect.packArray(buts, this.rect.copy.deflate(100, 100).splitGrid(sq + 1, sq + 1).flat(), false)
         /**@type {Territory[]} */
         this.territories = territories
         this.buts = buts
@@ -269,7 +295,7 @@ class Game extends GameCore {
                             t.connections.forEach(oth =>
                                 MM.drawLine(screen,
                                     t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                                    { width: 3 })
+                                    { width: GRAPHICS.CONNECTION_LINE_WIDTH })
                             )
                         })
             }
@@ -285,9 +311,10 @@ class Game extends GameCore {
         if (provinceConnections)
             provinceConnections.forEach(arr =>
                 arr.slice(1).forEach(y => territories[y].connectWith(territories[arr[0]])))
-        const kingdoms = Array(6).fill().map((x, i) => new Kingdom(i))
+        const kingdoms = Array(RULES.NUMBER_OF_TEAMS).fill().map((x, i) => new Kingdom(i))
+        const provinceCapitals = JSON.parse(RULES.PROVINCE_CAPITAL_IDS || localStorage.getItem("provinceCapitals"))
         kingdoms.forEach((x, i) => {
-            x.acquireCapital(territories[i * 3])
+            x.acquireCapital(territories[provinceCapitals[i]])
         })
         this.kingdoms = kingdoms
         //color territories
@@ -350,6 +377,18 @@ class Game extends GameCore {
         }
         this.add_drawable(orderChangeNameButton)
 
+        const snapShotButton = orderChangeNameButton.copy
+        snapShotButton.move(snapShotButton.width * -1.5, 0)
+        snapShotButton.txt = "Snapshot\n& Save"
+        snapShotButton.on_release = () => {
+            game.saveGame()
+            if (MASTER.ALLOW_SCREENSHOTS)
+                setTimeout(() => Cropper.screenshot("snap"), 1) //to avoid blanks
+            console.log("Snapshot & Save successful.")
+            GameEffects.popup("Snapshot & Save successful.", GameEffects.popupPRESETS.topleftGreen)
+        }
+        this.add_drawable(snapShotButton)
+
         const startContestButton = switchModeButton.copy
         startContestButton.txt = "START!"
         startContestButton.on_click = () => {
@@ -390,6 +429,7 @@ class Game extends GameCore {
             const first = `Conflicts: ${this.conflicts.length} current / ${this.conflictsHistoryCount} total`
             lines.push([`Teams:`].concat(this.kingdoms.map(x => x.name)))
             lines.push([`Questions seen:`].concat(this.kingdoms.map(x => x.seenQuestions.size)))
+            lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedCount)))
             lines.push([`Territories:`].concat(this.kingdoms.map(x => x.territories.size)))
             lines.push([`Points:`].concat(this.valCols.map(x => x.txt)))
             const linesStr = MM.tableStr(lines, null, 4)
@@ -687,6 +727,7 @@ class Game extends GameCore {
 
                 }
             }),
+            questionRecord: Question.record
         }
         const str = JSON.stringify(saveObj)
         try { localStorage.setItem(saveName, str) }
@@ -735,6 +776,7 @@ class Game extends GameCore {
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
+        Question.record = saveObj.questionRecord
     }
 
 
@@ -748,10 +790,13 @@ const dev = {
     t: id => game.territories[id],
     scoreBoard: () => console.table(game.getRanking()),
     members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
-    rename: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
+    renameTerritory: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
     savePositions: () => localStorage.setItem("bpos", JSON.stringify(game.buts.map(x => [x.x, x.y]))),
     saveProvinceNames: () => localStorage.setItem("provinceNamesStored", JSON.stringify(
-        game.territories.map(x => x.name.split("\n")[0])
+        game.territories.map(x => x.name.split("\n")[0]) //ignore after first line
+    )),
+    saveCapitalIDs: () => localStorage.setItem("provinceCapitals", JSON.stringify(
+        game.kingdoms.map(x => x.capital.id)
     )),
     clickToConnect: () => {
         let S
@@ -766,7 +811,7 @@ const dev = {
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
     clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
     saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
-    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections()),
+    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections(), dev.saveCapitalIDs()),
     severConnections: (tgtName) => {
         /**@type {Territory} */
         const tgt = tgtName ? game.territories.find(x => x.name === tgtName) : Territory.LCP
@@ -781,6 +826,14 @@ const dev = {
                 ...GameEffects.popupPRESETS.megaBlue, floatTime: 2000
             }
         })
+    },
+    orderReload: (tgt) => {
+        const msg = { orderReload: 1 }
+        if (tgt) msg.target = Person.to(tgt).name
+        chat.sendMessage(msg)
+    },
+    forceName: (tgt, forcedName) => {
+        chat.orderForceName(Person.to(tgt).name, forcedName)
     }
 
 }/// end of dev
@@ -798,14 +851,16 @@ const hq = {
             popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
         })
         //screenshots
-        Cropper.screenshot()
-        console.log("Screenshot saved.")
-        contestIntervals.push(
-            setInterval(() => {
-                Cropper.screenshot()
-                console.log("Screenshot saved.")
-            }, 20 * 1000)
-        )
+        if (MASTER.ALLOW_SCREENSHOTS) {
+            Cropper.screenshot("timelapse")
+            console.log("Screenshot saved.")
+            contestIntervals.push(
+                setInterval(() => {
+                    Cropper.screenshot("timelapse")
+                    console.log("Screenshot saved.")
+                }, 20 * 1000)
+            )
+        }
         //autosaves
         game.saveGame("conquestAuto")
         console.log("Autosave created.")
@@ -813,6 +868,7 @@ const hq = {
             setInterval(() => {
                 game.saveGame("conquestAuto")
                 console.log("Autosave created.")
+
             }, 60 * 1000)
         )
         console.log("Timers/intervals started.")

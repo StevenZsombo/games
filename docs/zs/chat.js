@@ -145,15 +145,7 @@ class Chat {
             this.nameID = "GM"
             return
         }
-        if (!this.nameID) { //consistent with Supabase
-            const stored = localStorage.getItem("nameID")
-            if (stored) {
-                this.nameID = stored
-            } else {
-                this.nameID = MM.randomID()
-                localStorage.setItem("nameID", this.nameID)
-            }
-        }
+        this._acquireNameID()
         if (!this.name) {
             let name = localStorage.getItem("name")
             if (name) {
@@ -167,6 +159,24 @@ class Chat {
             }
         }
 
+    }
+    _acquireNameID() {
+        if (!this.nameID) { //consistent with Supabase
+            const stored = localStorage.getItem("nameID")
+            if (stored) {
+                this.nameID = stored
+            } else {
+                this.nameID = MM.randomID()
+                localStorage.setItem("nameID", this.nameID)
+            }
+        }
+        return this.nameID
+    }
+
+    forceName(name) {
+        this.name = name
+        localStorage.setItem("name", name)
+        this.silentReload()
     }
 
     resetName(reason) {
@@ -203,12 +213,14 @@ class Chat {
 
         if (message.SERVERnameAlreadyExists) this.resetName("A user has already joined with that name, please select a different name.")
         if (message.SERVERnameOrderedToReset) this.resetName()
+        if (message.SERVERnameForceName) this.forceName(message.SERVERnameForceName)
 
 
         if (message.eval) eval(message.eval)
         if (message.log) console.log(message.log)
         if (message.alert) alert(message.alert)
         if (message.reload) this.silentReload()
+        if (message.orderReload) this.silentReload()
         if (message.prompt) {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
@@ -290,7 +302,13 @@ class ChatServer extends Chat {
     }
     //**param {String} target */
     orderReload(target) {
-        this.sendMessage({ target: target, eval: "location.reload()" }, true)
+        this.sendMessage({ target: target, reload: true }, true)
+    }
+    orderForceName(target, forcedName) {
+        const obj = {}
+        obj[Listener.SERVER.SERVERnameForceName] = forcedName
+        obj.target = target
+        this.sendMessage(obj)
     }
     orderAttendance() {
         this.sendMessage({ present: "ask" })
@@ -424,7 +442,8 @@ class Listener {
 
     static SERVER = {
         SERVERnameAlreadyExists: "SERVERnameAlreadyExists",
-        SERVERnameOrderedToReset: "SERVERnameOrderedToReset"
+        SERVERnameOrderedToReset: "SERVERnameOrderedToReset",
+        SERVERnameForceName: "SERVERnameForceName"
     }
 
 }

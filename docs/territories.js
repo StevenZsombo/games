@@ -38,6 +38,7 @@ var RULES = Object.freeze({
         "y": 333.04688926795876
     },
     PROVINCE_NAMES: `["Turkey","Russia","Hungary","Spain","Germany","Black sea","Croatia","Italy","France","Belarus","Romania","Denmark","Ireland","North Sea","Poland","Sweden","Norway","Finland","Netherlands","Ukraine","UK","Switzerland","Bulgaria","Baltic sea"]`,
+    PROVINCE_CAPITAL_IDS: `[0, 3, 6, 9, 12, 15]`,
     PROVINCE_CONNECTIONS: `[[0, 5, 22], [1, 5, 17, 9], [2, 14, 4, 21, 10, 6], [3, 8], [4, 2, 21, 18, 14, 11], [5, 0, 1, 10, 19, 22], [6, 2, 7], [7, 6, 21, 8], [8, 3, 7, 18, 21, 20], [9, 1, 23, 14, 19], [10, 2, 5, 22, 19], [11, 4, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 2, 4, 9, 23, 19], [15, 11, 16, 17], [16, 13, 15], [17, 1, 15, 23], [18, 4, 8, 13, 20], [19, 5, 9, 10, 14], [20, 8, 12, 13, 18], [21, 2, 4, 7, 8], [22, 0, 5, 10], [23, 9, 11, 14, 17]]`,
     PROVINCE_POSITIONS: `[[1147.031167556789,689.0182975761581],[1107.0041915735305,197.8542779753107],[727.6451013411865,519.677300863384],[135.37385145708166,705.2963555028149],[564.7712884195712,409.9368331695212],[1176.2652634235035,528.841111390414],[691.0068790889168,668.8781591906592],[501.94176202450774,680.8949886179865],[340.37874030859047,548.2823625944112],[886.7041001335854,250.31036972792805],[915.5400334855302,503.2724009298821],[544.5967804842581,203.77569910551657],[72.91160901772352,207.75972216505443],[362.1389561325627,206.15612968265538],[730.9119814812814,357.1028265492412],[583.0153466259153,58.72562518530741],[410.260401980277,78.72074625699408],[797.5744620333701,83.63109016347326],[405.3945155748132,402.6296685406274],[994.5380260920517,395.1064568320035],[236.6639239216144,350.23408838673726],[516.126469720179,541.9002826442552],[950.0143284256937,639.046515237906],[717.7857335975922,217.0976661294657]]`
     /*
@@ -50,6 +51,9 @@ var RULES = Object.freeze({
     */
 
 })
+var MASTER = {
+    ALLOW_SCREENSHOTS: true
+}
 //#region GRAPHICS
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
@@ -66,10 +70,11 @@ var GRAPHICS = Object.freeze({
     TERRITORY_SIZE_BASE_HEIGHT: 80,
     TERRITORY_SIZE_CAPITAL_FACTOR: 1.3,
     PROVINCE_FONTSIZE: 28,
+    CONNECTION_LINE_WIDTH: 4,
     SNIPPET_WIDTH: 180,
     SNIPPET_FONTSIZE: 28,
     QUESTION_FONTSIZE: 52,
-    BORDER_COLOR: "linen"
+    BORDER_COLOR: "linen",
 })
 //#region Territory
 class Territory {
@@ -88,6 +93,7 @@ class Territory {
         this.button.width = GRAPHICS.TERRITORY_SIZE_BASE_WIDTH
         this.button.height = GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT
         this.button.fontSize = GRAPHICS.PROVINCE_FONTSIZE
+        this.button.outline = 2
         this.button.dynamicText = () => `${this.name}\n${this.value}`
         this.button.territory = this
         this.button.on_click = () => {
@@ -144,6 +150,7 @@ class Kingdom {
         this.seenQuestions = new Set()
         /**@type {Set<Person>} */
         this.members = new Set()
+        this.solvedCount = 0
 
     }
 
@@ -258,10 +265,10 @@ class Conflict {
     }
 
     attempt(who, guessValue, person) {
-        if (who !== this.attacker && who !== this.defender) console.error("wrong attempt person", this)
-        if (!this.question?.sol) console.error("conflict is yet to be accepted", this)
-        if (!this.solving) console.error("wrong conflict state: not solving")
-        if (this.alreadyResolved) console.error("guess on already resolved", this)
+        if (who !== this.attacker && who !== this.defender) { console.error("wrong attempt person", this); return }
+        if (!this.question?.sol) { console.error("conflict is yet to be accepted", this); return }
+        if (!this.solving) { console.error("wrong conflict state: not solving"); return }
+        if (this.alreadyResolved) { console.error("guess on already resolved", this); return }
         if (!RULES.ACCURACY_FUNCTION(guessValue, this.question.sol)) {
             //wrong attempt
             console.log("wrong attempt", who.name)
@@ -273,9 +280,18 @@ class Conflict {
                 })
             }
         } else { //correct attempt
+            Question.record.push({
+                id: this.question.id,
+                name: person?.name,
+                kingdom: who === this.attacker ? this.attacker.id : this.defender.id,
+                time: (RULES.TIMEOUT_ON_DEFENSE - this.timeLeft) / 1000,
+                conflict: this.id
+            })
             if (who === this.attacker) {
+                this.attacker.solvedCount += 1
                 this.winAttack("successful attack")
             } else {
+                this.defender.solvedCount += 1
                 this.winDefend("successful defense")
             }
             return true
@@ -411,6 +427,8 @@ class Question {
     static ALL =
         `343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;21;10;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.555;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414`
             .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
+    /**@type {Array<{id:number,name:string,kingdom:number,time:number,kingdom:number,conflict:number}>} */
+    static record = []
 }
 //#region Gimmicks
 class Gimmicks {

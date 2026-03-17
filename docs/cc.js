@@ -13,7 +13,7 @@ var univ = {
     on_first_run: null,
     on_next_game_once: null,
     on_beforeunload: null,
-    allowQuietReload: true,
+    allowQuietReload: false,
     acquireNameMoreStr: "(English name + homeroom)"
 }
 
@@ -88,11 +88,12 @@ class Game extends GameCore {
     }
     resetKingdom() {
         localStorage.removeItem("myKingdomID")
-        location.reload()
+        chat.silentReload()
     }
 
     //#region initialize_more
     initialize_more() {
+        Question.ALL.forEach(x => x.sol = undefined)
         if (myKingdomID === undefined) {
             const stored = localStorage.getItem("myKingdomID")
             if (stored) myKingdomID = +stored
@@ -293,7 +294,7 @@ class Game extends GameCore {
                         t.connections.forEach(oth =>
                             MM.drawLine(screen,
                                 t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                                { width: 3 })
+                                { width: GRAPHICS.CONNECTION_LINE_WIDTH })
                         )
                     })
             }
@@ -301,7 +302,7 @@ class Game extends GameCore {
         this.add_drawable(connectionsDrawableObject, 4)
         const highlightOwnProvincesDrawableObject = {
             lineWidth: 10, //interesting
-            growthRate: +0.2,
+            growthRate: +0.1,
             draw: (screen) => {
                 if (this.showingMap && myKingdomObject)
                     myKingdomObject.territories.forEach(
@@ -311,13 +312,17 @@ class Game extends GameCore {
                                 t.button.x,
                                 t.button.y,
                                 t.button.width, t.button.height,
-                                { lineWidth: highlightOwnProvincesDrawableObject.lineWidth, color: "black" }
+                                {
+                                    lineWidth: highlightOwnProvincesDrawableObject.lineWidth,
+                                    // lineWidth: 8,
+                                    color: "black"
+                                }
                             )
                         })
             },
             update: (dt) => {
                 highlightOwnProvincesDrawableObject.lineWidth += highlightOwnProvincesDrawableObject.growthRate
-                if (highlightOwnProvincesDrawableObject.lineWidth > 15 ||
+                if (highlightOwnProvincesDrawableObject.lineWidth > 14 ||
                     highlightOwnProvincesDrawableObject.lineWidth < 8)
                     highlightOwnProvincesDrawableObject.growthRate *= -1
 
