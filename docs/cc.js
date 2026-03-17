@@ -14,7 +14,8 @@ var univ = {
     on_next_game_once: null,
     on_beforeunload: null,
     allowQuietReload: false,
-    acquireNameMoreStr: "(English name + homeroom)"
+    acquireNameStr: "Your English name (at least 4 letters):", //for chat
+    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 
 let syncReady = false
@@ -248,9 +249,9 @@ class Game extends GameCore {
             const attackButton = new Button({ width: 200, height: 150 })
             attackButton.fontSize = 30
             // attackButton.bottomat(bot.top)
-            attackButton.topat(top.bottom)
-            attackButton.rightat(right.left)
-            attackButton.move(-30, 30)
+            attackButton.topat(this.top.bottom + 50)
+            attackButton.centeratX(this.right.centerX)
+
             attackButton.color = "lightsalmon"
             attackButton.deactivate()
             this.attackButton = attackButton

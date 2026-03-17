@@ -151,8 +151,8 @@ class Chat {
             if (name) {
                 this.name = name
             } else {
-                while (!name || name.length <= 3 || name.length > 30) {
-                    name = prompt("Please tell me your name.")
+                while (!name || name.length <= 3 || name.length > 25) {
+                    name = prompt(univ.acquireNameStr)
                 }
                 localStorage.setItem("name", name)
                 this.name = name

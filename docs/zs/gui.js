@@ -641,7 +641,7 @@ class Supabase {
 		const name = localStorage.getItem('name') ||
 			(() => {
 				let name
-				while (!name || name.length <= 3 || name.length > 30) {
+				while (!name || name.length <= 3 || name.length > 25) {
 					name = prompt("Please tell me your name" + univ.acquireNameMoreStr);
 					localStorage.setItem("name", name)
 				}

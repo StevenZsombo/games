@@ -14,7 +14,8 @@ var univ = {
     on_next_game_once: null,
     on_beforeunload: null,
     allowQuietReload: true,
-    acquireNameMoreStr: "(English name + homeroom)"
+    acquireNameStr: "Your English name:", //for chat
+    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 /** @type {Game} */ game;
 

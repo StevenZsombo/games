@@ -21,9 +21,9 @@ const MASTER = false
 
 const SCORE_ON_WIN = 3
 const SCORE_ON_TIE = 1
-const DEFAULT_COLOR = "lightgray"
+const DEFAULT_COLOR = "lightblue"
 const WIN_COLOR = "lightgreen"
-const LOSE_COLOR = "lightgray"
+const LOSE_COLOR = "white"
 const TIE_COLOR = "lightgreen"
 const RIGHT = 200
 
@@ -51,7 +51,8 @@ class Player {
                 this.button.color = WIN_COLOR
                 this.resolved = true
                 this.partner.resolved = true
-            }
+            },
+            isBlocking: true
         })
         game.add_drawable(this.button)
     }
@@ -144,6 +145,9 @@ class Game extends GameCore {
         })
         this.add_drawable(tieButtons)
 
+
+
+
     }
 
     get buts() {
@@ -155,14 +159,14 @@ class Game extends GameCore {
             if (prompt("Not all matches have been finished yet.\nType OVERRIDE to advance anyways.") !== "OVERRIDE") { return }
         } else if (!confirm("Do you want to advance to the next round?")) return
         let sorted = [...players] //same by reference, lets shuffle it.
-        sorted.sort(() => Math.random() - .5)
-        sorted.sort((x, y) => y.score - x.score) //mutating
         sorted.forEach(x => {
             x.score += x.scoreToBeGained
             x.scoreToBeGained = 0
             x.button.color = DEFAULT_COLOR
             x.resolved = false
         })
+        sorted.sort(() => Math.random() - .5)
+        sorted.sort((x, y) => y.score - x.score) //mutating
         this.rearrange(sorted)
 
 
@@ -204,7 +208,41 @@ class Game extends GameCore {
         this.add_drawable(advance)
 
 
-
+        this.timeCount = 6 * 60 * 1000
+        const timer = new Button()
+        timer.fontSize = 200
+        timer.transparent = true
+        timer.dynamicText = () => MM.toMMSS(this.timeCount)
+        const timerSet = new Button()
+        timerSet.txt = "Set"
+        timerSet.on_click = () => {
+            this.timeCount = prompt("Set timer for (minutes):") * 60 * 1000
+        }
+        timerSet.width = advance.width * .45
+        timerSet.leftat(advance.left)
+        timerSet.bottomat(this.rect.bottom)
+        const timerStart = timerSet.copy
+        timerStart.txt = "Start"
+        timerStart.rightat(advance.right)
+        timerStart.bottomat(this.rect.bottom)
+        let timerIsRunning = false
+        timerStart.on_click = () => {
+            if (timerIsRunning) return
+            timerIsRunning = true
+            const a = setInterval(() => {
+                this.timeCount -= 1000
+                if (this.timeCount <= 0) {
+                    this.timeCount = 0
+                    timerIsRunning = false
+                    clearInterval(a)
+                }
+            }, 1000)
+        }
+        timer.width = 400
+        timer.height = 400
+        timer.bottomat(timerSet.top)
+        timer.rightat(this.rect.right)
+        this.add_drawable([timer, timerSet, timerStart])
 
     }
 
