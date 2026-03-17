@@ -77,6 +77,7 @@ class Keyboarder {
 		this.on_keyup = null //takes event
 		this.on_keyupDict = {} //takes event.key
 		this.on_paste = null //(text) => ...
+		this.on_pasteEvent = null //(event) => ...
 		this.on_copy = null
 		this.on_undo = null
 		this.on_redo = null
@@ -107,6 +108,7 @@ class Keyboarder {
 			}
 		}
 		const paste = (e) => {
+			this.on_pasteEvent?.(e)
 			const text = e.clipboardData.getData('text/plain');
 			this.lastPasted = text
 			this.on_paste?.(text)
@@ -411,7 +413,11 @@ class Cropper {
 		}
 		return ret
 	}
-
+	/**
+	 * Prompts to download the given image.
+	 * @param {Image} img
+	 * @param {string} filename 
+	 */
 	static downloadImage(img, filename = 'image.png') {
 		const canvas = document.createElement('canvas')
 		const ctx = canvas.getContext('2d')
@@ -487,6 +493,25 @@ class Cropper {
 		document.body.appendChild(i);
 		i.click();
 	}
+	/**
+	 * MUST BE FOCUSED!!!
+	 * @returns string
+	 */
+	static async readClipboardImage() { //MUST BE FOCUSED!
+		try {
+			for (const i of await navigator.clipboard.read()) {
+				const t = i.types.find(t => t.startsWith('image/'))
+				if (!t) continue
+				const b = await i.getType(t)
+				return await new Promise(r => {
+					const f = new FileReader()
+					f.onload = () => r(f.result)
+					f.readAsDataURL(b)
+				})
+			}
+		} catch (err) { console.error(err) }
+	}
+
 }
 //#region customFont
 class customFont {

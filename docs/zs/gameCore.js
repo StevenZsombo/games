@@ -356,11 +356,11 @@ class ContestManager {
 
 
     startAfter(seconds) {
-        GameEffects.countdown("Contest will start", seconds, this.startContest())
+        GameEffects.countdown("Contest will start in:", seconds, this.startContest())
     }
 
     endAfter(seconds) {
-        GameEffects.countdown("Contest will end", seconds, this.endContest())
+        GameEffects.countdown("Contest will end in:", seconds, this.endContest())
     }
 
 

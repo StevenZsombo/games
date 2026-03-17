@@ -332,8 +332,8 @@ class Game extends GameCore {
 
 
         chat.on_receive = (message) => {
-            console.log(message)
-            if (message.orderResetKingdom) {
+            // console.log(message)
+            if (message.orderResetKingdom !== undefined) {
                 game.resetKingdom()
             }
         }
@@ -520,7 +520,7 @@ class Snippet {
 
     update(dt) {
         this.confD.timeLeft -= dt
-        if (this.confD.timeLeft < 0) {
+        if (this.confD.timeLeft <= 0) {
             this.destroy()
             return
         }
@@ -615,13 +615,23 @@ class QPane extends Panel {
                 x.on_click = () => this.guess = this.guess == "" ? "0." : this.guess.split("").filter(x => x != ".").join("") + "."
             }
             if (i == 11) {
-                x.txt = "-/Del"
-                x.on_click = () => this.guess = this.guess[0] == "-" ? "" : "-" + this.guess
+                x.txt = "-/+"
+                x.fontSize *= 1.2
+                x.on_click = () => this.guess = this.guess[0] == "-" ? this.guess.slice(1) : "-" + this.guess
             }
             x.on_click = MM.extFunc(x.on_click, () => GameEffects.sendFancy(
-                x, ansDisplayShow, 500
+                x, ansDisplayShow, 500 //duplicated belove
             ))
         })
+        const delButton = calculatorButtons.at(-1).copy
+        delButton.txt = "Del"
+        delButton.move(
+            0, calculatorButtons[3].y - calculatorButtons[0].y)
+        delButton.on_click = () => {
+            this.guess = ""
+            GameEffects.sendFancy(delButton, ansDisplayShow, 500)//duplicated above
+        }
+        this.components.push(delButton)
         ansDisplayShow.dynamicText = () => this.guess
         this.components.push(...calculatorButtons)
 

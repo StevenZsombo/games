@@ -387,6 +387,10 @@ class MM {
         return matrix.map((row, i) => row.map((_, j) => matrix[j][i]))
     }
 
+    static transposeArray(arr) {
+        return arr[0].flatMap((_, col) => arr.map(row => row[col]))
+    }
+
     static gcd(a, b) {
         while (b !== 0) [a, b] = [b, a % b]
         return Math.abs(a)
@@ -1601,15 +1605,31 @@ class GameEffects {
 
     }
 
+    static popupPicture(dataurl, floatTime = 5000, doNotAllowCloseByRelease = false) {
+        const q = new Image()
+        q.src = dataurl
+        q.onload = () => {
+            const p = GameEffects.popup("",
+                {
+                    posFrac: [0.5, 0.51], sizeFrac: [0.98, 0.98], travelTime: 1000, floatTime: floatTime,
+                    moreButtonSettings: { img: q, outline: 8 }
+                })
+            p.on_release = () => !doNotAllowCloseByRelease && p.close()
+        }
+
+    }
+
+
     static countdown(message = "Countdown", seconds, on_end = null) {
         const b = GameEffects.popup(null, {
             posFrac: [.5, .9], sizeFrac: [.5, .1], direction: "bottom", travelTime: 500, floatTime: (seconds - .25) * 1000,
             moreButtonSettings: {
-                color: "orange"
+                color: "orange",
+                fontSize: 40
             },
             on_end: on_end
         })
-        const a = Anim.custom({}, seconds * 1000, (t) => b.txt = `${message} in ${Math.ceil(a.time / 1000)}`)
+        const a = Anim.custom({}, seconds * 1000, (t) => b.txt = `${message} ${Math.ceil(a.time / 1000)}`)
         game.animator.add_anim(a)
 
         //setTimeout(() => game.remove_drawable(b), (seconds + .5) * 1000)

@@ -81,6 +81,37 @@ const ASK = (person, question) => {
     chat.sendMessage({ target: person.name, prompt: question })
 }
 const RELOAD = () => dev.orderReload()
+const DISPLAY = () => {
+    const d = game.canvas.toDataURL()
+    chat.sendCommand(
+        `GameEffects.popupPicture("${d}")`
+    )
+}
+const CLIPBOARD = () => {
+    const d = game.lastPastedPicture
+    if (!d) {
+        console.log("No picture has been pasted.")
+        return
+    }
+    GameEffects.popupPicture(d)
+    chat.sendCommand(
+        `GameEffects.popupPicture("${d}")`
+    )
+}
+const DOWNLOAD = () => {
+    const d = game.canvas.toDataURL()
+    chat.sendCommand(
+        `(()=>{const img = new Image();img.src = "${d}";` +
+        `img.onload = () => { Cropper.downloadImage(img, "Conquest game.png") }})()`
+    )
+}
+
+const COUNTDOWN = (text, seconds) => {
+    GameEffects.countdown(text, seconds)
+    chat.sendCommand(
+        `GameEffects.countdown("${text}",${seconds})`
+    )
+}
 
 const participants = listener.participants
 //#region connectionInfoButton
@@ -168,23 +199,23 @@ listener.on_message = (obj, person) => {
         return
     }
     person = Person.check(person)
-    if (obj.inquire && shared.isActive) { //share only if active
+    if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }
-    if (obj.kingdom) {
+    if (obj.kingdom !== undefined) {
         person.assignKingdom(game.kingdoms[obj.kingdom])
     }
-    if (obj.attack) {
+    if (obj.attack !== undefined) {
         if (!person.kingdom) console.error("Person without kingdom wants to attack", person, obj, this)
         game.beginAttack(person.kingdom, game.territories[obj.attack], person)
     }
-    if (obj.accept) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
+    if (obj.accept !== undefined) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
         const c = game.conflicts.find(x => x.id === obj.accept)
         if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.name)
         else SHARE("conflictsData", person.name)
     }
-    if (obj.attempt) {
+    if (obj.attempt !== undefined) {
         const c = game.conflicts.find(x => x.id === obj.attempt)
         if (c) c.attempt(person.kingdom, obj.guess, person)
         else { console.error("invalid conflict.id for attempt", this) }
@@ -270,7 +301,7 @@ class Game extends GameCore {
         const territories = Array(RULES.NUMBER_OF_TERRITORIES).fill().map((x, i) => new Territory(i))
         const buts = territories.map(x => x.button)
         game.add_drawable(buts)
-        const sq = Math.floor(RULES.NUMBER_OF_TERRITORIES)
+        const sq = Math.floor(Math.sqrt(RULES.NUMBER_OF_TERRITORIES))
         Rect.packArray(buts, this.rect.copy.deflate(100, 100).splitGrid(sq + 1, sq + 1).flat(), false)
         /**@type {Territory[]} */
         this.territories = territories
@@ -311,20 +342,30 @@ class Game extends GameCore {
         if (provinceConnections)
             provinceConnections.forEach(arr =>
                 arr.slice(1).forEach(y => territories[y].connectWith(territories[arr[0]])))
+
         const kingdoms = Array(RULES.NUMBER_OF_TEAMS).fill().map((x, i) => new Kingdom(i))
         const provinceCapitals = JSON.parse(RULES.PROVINCE_CAPITAL_IDS || localStorage.getItem("provinceCapitals"))
         kingdoms.forEach((x, i) => {
             x.acquireCapital(territories[provinceCapitals[i]])
         })
+
         this.kingdoms = kingdoms
         //color territories
-        const addTerritory = (id, ...places) => places.forEach(x => kingdoms[id].acquireTerritory(territories[x]))
-        addTerritory(0, 1, 5, 22)
-        addTerritory(1, 8, 4, 21)
-        addTerritory(2, 10, 7, 2)
-        addTerritory(3, 14, 19, 23)
-        addTerritory(4, 13, 18, 20)
-        addTerritory(5, 11, 16, 17)
+        const ownership = JSON.parse(RULES.PROVINCE_OWNERSHIP || localStorage.getItem("provinceOwnership"))
+        if (ownership) {
+            ownership.forEach((x, i) => {
+                x.map(u => kingdoms[i].acquireTerritory(territories[u]))
+            })
+        }
+        else {
+            const addTerritory = (id, ...places) => places.forEach(x => kingdoms[id].acquireTerritory(territories[x]))
+            addTerritory(0, 1, 5, 22)
+            addTerritory(1, 8, 4, 21)
+            addTerritory(2, 10, 7, 2)
+            addTerritory(3, 14, 19, 23)
+            addTerritory(4, 13, 18, 20)
+            addTerritory(5, 11, 16, 17)
+        }
         /**@type {Conflict[]} */
         const conflicts = []
         /**@type {Conflict[]} */
@@ -351,6 +392,13 @@ class Game extends GameCore {
         switchModeButton.on_click = () => switchStage()
         this.add_drawable(switchModeButton)
         this.border = Gimmicks.setupBorder()
+        Object.values(this.border).forEach(x => {
+            x.tag = "border"
+            x.outline = 0
+        })
+        this.border.right.topat(0)
+        this.border.right.height = this.rect.height
+        this.add_drawable([this.border.left, this.border.right], 3)
 
         const orderResetKingdomButton = switchModeButton.copy
         orderResetKingdomButton.move(orderResetKingdomButton.width * -1.5, 0)
@@ -426,7 +474,7 @@ class Game extends GameCore {
         statsBot.dynamicText = () => {
             const statsBot = this.statsBot
             const lines = []
-            const first = `Conflicts: ${this.conflicts.length} current / ${this.conflictsHistoryCount} total`
+            const first = `Attacks: ${this.conflicts.length} current / ${this.conflictsHistoryCount} total`
             lines.push([`Teams:`].concat(this.kingdoms.map(x => x.name)))
             lines.push([`Questions seen:`].concat(this.kingdoms.map(x => x.seenQuestions.size)))
             lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedCount)))
@@ -436,6 +484,22 @@ class Game extends GameCore {
             return first + "\n" + linesStr
 
         }
+
+        //track last pasted picture
+        this.lastPastedPicture = null
+        this.keyboarder.on_pasteEvent =
+            e => {
+                const blob = e.clipboardData.items[0]?.getAsFile()
+                if (!blob?.type.startsWith('image/')) return
+                const f = new FileReader()
+                f.onload = () => {
+                    game.lastPastedPicture = f.result
+                    console.log("Pasted IMAGE.")
+                }
+                f.readAsDataURL(blob)
+            }
+
+
     }
 
 
@@ -622,6 +686,8 @@ class Game extends GameCore {
         banners.forEach((b, i) => {
             const k = this.kingdoms[i]
             b.deflate(20, 20)
+            if (GRAPHICS.SIDE_SCORE_PANEL_WIDTH)
+                b.width = GRAPHICS.SIDE_SCORE_PANEL_WIDTH
             b.fontSize = 20
             b.dynamicText = () => {
                 if (!k.members.size) return ""
@@ -664,6 +730,7 @@ class Game extends GameCore {
                     x => x.name + (x.isConnected ? "" : " (X)"))).join("\n")
             }
             b.color = k.color
+            b.bottomat(this.border.bot.top)
             b.height -= 150
             b.textSettings = { textBaseline: "top" }
             const v = b.copy
@@ -787,7 +854,7 @@ class Game extends GameCore {
 const dev = {
     k: id => game.kingdoms[id],
     n: name => game.kingdoms.find(x => x.name.includes(name)),
-    t: id => game.territories[id],
+    t: name => game.territories.find(x => x.name.includes(name)),
     scoreBoard: () => console.table(game.getRanking()),
     members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
     renameTerritory: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
@@ -797,6 +864,9 @@ const dev = {
     )),
     saveCapitalIDs: () => localStorage.setItem("provinceCapitals", JSON.stringify(
         game.kingdoms.map(x => x.capital.id)
+    )),
+    saveOwnership: () => localStorage.setItem("provinceOwnership", JSON.stringify(
+        game.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
     )),
     clickToConnect: () => {
         let S
@@ -810,8 +880,10 @@ const dev = {
     },
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
     clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
+    clickToAcquire: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
     saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
-    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections(), dev.saveCapitalIDs()),
+    // saveProvinceValues: () => localStorage.setItem("provinceValues", JSON.stringify(game.territories.map(x => x.value))),
+    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections(), dev.saveCapitalIDs(), dev.saveProvinceValues?.(), dev.saveOwnership()),
     severConnections: (tgtName) => {
         /**@type {Territory} */
         const tgt = tgtName ? game.territories.find(x => x.name === tgtName) : Territory.LCP
@@ -834,7 +906,8 @@ const dev = {
     },
     forceName: (tgt, forcedName) => {
         chat.orderForceName(Person.to(tgt).name, forcedName)
-    }
+    },
+    MAX_ATTACKS_ALLOWEDchange: (num) => { _RULES_MAX_ATTACKS_ALLOWED = num },
 
 }/// end of dev
 
@@ -858,7 +931,7 @@ const hq = {
                 setInterval(() => {
                     Cropper.screenshot("timelapse")
                     console.log("Screenshot saved.")
-                }, 20 * 1000)
+                }, 20 * 1000) //every 20 seconds
             )
         }
         //autosaves
@@ -869,18 +942,20 @@ const hq = {
                 game.saveGame("conquestAuto")
                 console.log("Autosave created.")
 
-            }, 60 * 1000)
+            }, 55 * 1000) //every 55 seconds
         )
         console.log("Timers/intervals started.")
     },
     endContest: () => {
         game.attacksAllowed = false
+        game.conflicts.forEach(x => x.resolve()) //cut off all conflicts
         contestIntervals.forEach(x => clearInterval(x))
         console.log("Timers/intervals cleared.")
         chat.sendMessage({
-            popup: "The game has ended. Thank you for playing.",
+            popup: "The game has ended. Thank you for playing.\nStand by for results!",
             popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
         })
+        GameEffects.popup("Contest ended.", GameEffects.popupPRESETS.topleftGreen)
     },
     resetAllKingdoms: () => {
         game.kingdoms.forEach(x => x.members.clear())
