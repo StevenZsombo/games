@@ -603,6 +603,14 @@ class Button extends Clickable {
 	flip_selected() {
 		this.selected = !this.selected
 	}
+	resizeToMatchImageSize() {
+		if (!this.img) {
+			console.error("Button has no image", this)
+			return
+		}
+		this.resize(this.img.width, this.img.height)
+		this.imgScale = 1
+	}
 
 	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
 	static make_checkbox(button, preservePreviousFunction = false) {

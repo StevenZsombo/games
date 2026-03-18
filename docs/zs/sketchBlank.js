@@ -62,23 +62,39 @@ class Game extends GameCore {
 
         const q = Array(9).fill().map(x => new Button())
         window.q = q
-        this.add_drawable(q)
+            // this.add_drawable(q)
             ;[[175.99991607666016, 475.3332824707031], [435.3334045410156, 420.6667175292969], [422.6667175292969, 563.3333435058594], [758.0000305175781, 426.0000305175781], [707.9999389648438, 566], [988.6666564941406, 507.3333435058594], [1204.0000915527344, 407.3333435058594], [1443.3332824707031, 411.3333740234375], [1677.3333282470703, 450.00006103515625]]
                 .forEach((x, i) => (q[i].x = x[0], q[i].y = x[1]))
 
-        const img = cropper.load_img("conquest/test.bmp")
         b.img = cropper.secondCanvas
-        cropper.ctx.drawImage(img, 0, 0)
-
+        const img = cropper.load_img("conquest/test.bmp", (img) => {
+            cropper.secondCanvas.width = img.width
+            cropper.secondCanvas.forEach = img.height
+            cropper.ctx.drawImage(img, 0, 0)
+            b.resizeToMatchImageSize()
+        })
+        // cropper.ctx.drawImage(img, 0, 0)
         q.forEach((x, i) => {
             x.on_click = () => {
-                cropper.replaceColor(img,
+                cropper.recolor(img,
                     [[50, 0, 0], [100, 0, 0], [150, 0, 0], [200, 0, 0], [250, 0, 0], [0, 50, 0], [0, 100, 0], [0, 150, 0], [0, 200, 0]][i],
                     [0, 0, 225]
                 )
 
             }
         })
+        b.on_click = function ({ x, y }) {
+            x -= b.x
+            console.log(b.x)
+            y -= b.y
+            console.log(x)
+            let sf = b.img.width / b.width;
+            console.log({ sf })
+            x *= sf;
+            console.log(x)
+            y *= sf;
+            cropper.floodFill(x, y, [MM.randomInt(0, 255), MM.randomInt(0, 255), MM.randomInt(0, 255)]); console.log("ok")
+        }
 
     }
 

@@ -413,34 +413,6 @@ class Cropper {
 		}
 		return ret
 	}
-	/**
-	 * 
-	 * @param {HTMLImageElement} img 
-	 * @param {[number,number,number]} oldColor 
-	 * @param {[number,number,number]} newColor 
-	 * @returns 
-	 */
-	replaceColor(img, oldColor, newColor) {
-		this.secondCanvas.width = img.width
-		this.secondCanvas.height = img.height
-		const ctx = this.ctx
-		ctx.drawImage(img, 0, 0)
-		const imageData = ctx.getImageData(0, 0, img.width, img.height)
-		const data = imageData.data
-
-		for (let i = 0; i < data.length; i += 4) {
-			if (data[i] === oldColor[0] &&
-				data[i + 1] === oldColor[1] &&
-				data[i + 2] === oldColor[2]) {
-				data[i] = newColor[0]
-				data[i + 1] = newColor[1]
-				data[i + 2] = newColor[2]
-				// Keep alpha (data[i+3]) unchanged
-			}
-		}
-		ctx.putImageData(imageData, 0, 0)
-		return this.secondCanvas
-	}
 
 	/**
 	 * Prompts to download the given image.
@@ -526,7 +498,7 @@ class Cropper {
 	 * MUST BE FOCUSED!!!
 	 * @returns string
 	 */
-	static async readClipboardImage() { //MUST BE FOCUSED!
+	static async readClipboardImage() { //BROWSER TAB MUST BE FOCUSED!
 		try {
 			for (const i of await navigator.clipboard.read()) {
 				const t = i.types.find(t => t.startsWith('image/'))
@@ -540,6 +512,80 @@ class Cropper {
 			}
 		} catch (err) { console.error(err) }
 	}
+
+
+
+	static getFloodFillIndices(imageDataObj, x, y) {
+		x = Math.round(x)
+		y = Math.round(y)
+		const { width, height, data } = imageDataObj
+		const starti = (y * width + x) * 4 //RGBA => we do not care for A
+		const startR = data[starti]
+		const startG = data[starti + 1]
+		const startB = data[starti + 2]
+		const startA = data[starti + 3]
+		const ret = []
+		const stack = [[x, y]]
+		const visited = new Set()
+		while (stack.length) {
+			const [pixelX, pixelY] = stack.pop()
+			const key = pixelX + ',' + pixelY
+			if (pixelX < 0 || pixelX >= width || pixelY < 0 || pixelY >= height || visited.has(key))
+				continue
+			const i = (pixelY * width + pixelX) * 4
+			if (data[i] === startR && data[i + 1] === startG &&
+				data[i + 2] === startB && data[i + 3] === startA) {
+				visited.add(key)
+				ret.push(i)
+				stack.push([pixelX + 1, pixelY], [pixelX - 1, pixelY], [pixelX, pixelY + 1], [pixelX, pixelY - 1])
+			}
+		}
+		return ret
+	}
+
+	/**
+		 * @param {HTMLImageElement} img 
+		 * @param {[number,number,number]} oldColor 
+		 * @param {[number,number,number]} newColor 
+		 * @returns 
+		 */
+	recolor(img, oldColor, newColor) {
+		this.secondCanvas.width = img.width
+		this.secondCanvas.height = img.height
+		const ctx = this.ctx
+		ctx.drawImage(img, 0, 0)
+		const imageData = ctx.getImageData(0, 0, img.width, img.height)
+		const data = imageData.data
+		for (let i = 0; i < data.length; i += 4) {//RGBA => we do not care for A
+			if (data[i] === oldColor[0] &&
+				data[i + 1] === oldColor[1] &&
+				data[i + 2] === oldColor[2]) {
+				data[i] = newColor[0]
+				data[i + 1] = newColor[1]
+				data[i + 2] = newColor[2]
+			}
+		}
+		ctx.putImageData(imageData, 0, 0)
+		return this.secondCanvas
+	}
+
+	floodFill(x, y, color) {
+		x = Math.round(x)
+		y = Math.round(y)
+		const canvas = this.secondCanvas
+		const ctx = this.ctx
+		const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+		const ind = Cropper.getFloodFillIndices(imageData, x, y)
+		const data = imageData.data
+		ind.forEach(i => {
+			data[i] = color[0]
+			data[i + 1] = color[1]
+			data[i + 2] = color[2]
+		})
+		ctx.putImageData(imageData, 0, 0)
+	}
+
+
 
 }
 //#region customFont
