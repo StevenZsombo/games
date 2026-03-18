@@ -508,6 +508,17 @@ class MM {
         return `rgb(${Math.random() * (max - min) + min},${Math.random() * (max - min) + min},${Math.random() * (max - min) + min})`
     }
 
+    static namedColorToRGB(colorName) {
+        console.log("This function is expensive, do not call it in a hot loop.")
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        ctx.fillStyle = colorName
+        ctx.fillRect(0, 0, 1, 1)
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
+        canvas.remove()
+        return [r, g, b]
+    }
+
     static sigmoid(x) {
         return 1 / (1 + Math.exp(-x))
     }
@@ -590,7 +601,7 @@ class MM {
      * @param {Function} function
      * @returns {Generator}
      */
-    static *forrGenerator(startIndex, funcOrEndIndex, funcIfEndIndex) {
+    static * forrGenerator(startIndex, funcOrEndIndex, funcIfEndIndex) {
         let start, end, func
         if (funcIfEndIndex) {
             [start, end, func] = [startIndex, funcOrEndIndex, funcIfEndIndex]
@@ -685,7 +696,7 @@ class MM {
         }
     }
 
-    static *zip(...iterables) {
+    static * zip(...iterables) {
         const generators = iterables.map(this.toGenerator)
         let items
         while (true) {
@@ -720,7 +731,7 @@ class MM {
      * @param {number} endExclusive
      * @returns {Generator<number>}
      */
-    static *range(startOrEnd, endExclusive = null) {
+    static * range(startOrEnd, endExclusive = null) {
         const [start, stop] = endExclusive !== null ? [startOrEnd, endExclusive] : [0, startOrEnd]
         for (let i = start; i < stop; i++) {
             yield i
@@ -960,7 +971,7 @@ class MM {
         }
     }
     /**@param {...(Array | Generator)} arrays  */
-    static *cartesianProduct(...arrays) {
+    static * cartesianProduct(...arrays) {
         const n = arrays.length
         if (!n) { yield []; return }
         arrays = arrays.map(x => Array.from(x))
