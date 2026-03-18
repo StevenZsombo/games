@@ -339,7 +339,7 @@ class Cropper {
 		this.secondCanvas = document.createElement("canvas")
 		this.secondCanvas.style.imageRendering = "pixelated"
 		/**@type {CanvasRenderingContext2D} */
-		this.ctx = this.secondCanvas.getContext("2d")
+		this.ctx = this.secondCanvas.getContext("2d", { willReadFrequently: true })
 		this.ctx.imageSmoothingEnabled = false
 	}
 
@@ -413,6 +413,35 @@ class Cropper {
 		}
 		return ret
 	}
+	/**
+	 * 
+	 * @param {HTMLImageElement} img 
+	 * @param {[number,number,number]} oldColor 
+	 * @param {[number,number,number]} newColor 
+	 * @returns 
+	 */
+	replaceColor(img, oldColor, newColor) {
+		this.secondCanvas.width = img.width
+		this.secondCanvas.height = img.height
+		const ctx = this.ctx
+		ctx.drawImage(img, 0, 0)
+		const imageData = ctx.getImageData(0, 0, img.width, img.height)
+		const data = imageData.data
+
+		for (let i = 0; i < data.length; i += 4) {
+			if (data[i] === oldColor[0] &&
+				data[i + 1] === oldColor[1] &&
+				data[i + 2] === oldColor[2]) {
+				data[i] = newColor[0]
+				data[i + 1] = newColor[1]
+				data[i + 2] = newColor[2]
+				// Keep alpha (data[i+3]) unchanged
+			}
+		}
+		ctx.putImageData(imageData, 0, 0)
+		return this.secondCanvas
+	}
+
 	/**
 	 * Prompts to download the given image.
 	 * @param {Image} img

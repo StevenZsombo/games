@@ -9,10 +9,10 @@ var RULES = Object.freeze({
     get MAX_ATTACKS_ALLOWED() { return _RULES_MAX_ATTACKS_ALLOWED }, //maybe 3? maybe same as team size?
     TIMEOUT_ON_ATTACK: 30 * 1000, //formerly 1 minute
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
-    TIMEOUT_ON_DEFENSE: 8 * 60 * 1000,
-    TIMEOUT_ON_DEFENSE_TEXT: "eight minutes",
+    TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
+    TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
     NUMBER_OF_TERRITORIES: 24,
-    NUMBER_OF_TEAMS: 6, //best for 24 territories
+    NUMBER_OF_TEAMS: 6,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -20,7 +20,6 @@ var RULES = Object.freeze({
         //non-integers must be accurate to 3sf
         return (attempt == solution) || (+attempt.toPrecision(3) == solution)
     },
-
 
 
     //technical
@@ -38,45 +37,24 @@ var RULES = Object.freeze({
         "y": 442.08083182670555
     },
     PROVINCE_NAMES:
-        `["Germany", "Estonia", "Hungary", "Spain", "Belgium", "Serbia", "Croatia", "Italy", "France", "Lithuania", "Romania", "Denmark", "Ireland", "North Sea", "Poland", "Sweden", "Norway", "Finland", "Netherlands", "Austria", "UK", "Switzerland", "Bulgaria", "Baltic sea"]`,
+        ["Germany", "Estonia", "Hungary", "Spain", "Belgium", "Serbia", "Croatia", "Italy", "France", "Lithuania", "Romania", "Denmark", "Ireland", "North Sea", "Poland", "Sweden", "Norway", "Finland", "Netherlands", "Austria", "UK", "Switzerland", "Bulgaria", "Baltic sea"],
     PROVINCE_CAPITAL_IDS:
-        `[22, 3, 6, 9, 12, 15]`,
+        [22, 3, 6, 9, 12, 15],
     PROVINCE_CONNECTIONS:
-        `[[0,21,18,19,14,11],[1,17,9,10],[2,5,10,14,19],[3,8],[4,18,21,8],[5,2,22],[6,19,7],[7,6,19,8],[8,3,4,7,21],[9,1,14,23],[10,1,2,22,14],[11,0,16,15,23,13],[12,20],[13,11,20,18,16],[14,0,2,9,10,23],[15,11,17,16],[16,11,15,13],[17,1,15,23],[18,0,4,13,20],[19,0,2,6,7,21],[20,12,13,18],[21,0,4,8,19],[22,5,10],[23,9,11,14,17]]`,
+        [[0, 21, 18, 19, 14, 11], [1, 17, 9, 10], [2, 5, 10, 14, 19], [3, 8], [4, 18, 21, 8], [5, 2, 22], [6, 19, 7], [7, 6, 19, 8], [8, 3, 4, 7, 21], [9, 1, 14, 23], [10, 1, 2, 22, 14], [11, 0, 16, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 0, 2, 9, 10, 23], [15, 11, 17, 16], [16, 11, 15, 13], [17, 1, 15, 23], [18, 0, 4, 13, 20], [19, 0, 2, 6, 7, 21], [20, 12, 13, 18], [21, 0, 4, 8, 19], [22, 5, 10], [23, 9, 11, 14, 17]],
     PROVINCE_POSITIONS:
-        `[[737.2140088778591,386.9817631746404],[1184.7065001007347,125.16503074436255],[1002.1097849948287,646.2570118212822],[119.08142868856292,741.6410795155434],[470.77651409645483,472.60003767139784],[1104.8291775680777,792.0264899804923],[876.4898239267231,761.6195779345396],[688.6779513966698,764.8636379020109],[416.827832986368,721.2328116091794],[1049.628299133844,232.76468738356618],[1222.5895913611394,643.6379170546372],[668.6698252209144,200.01590798280117],[60.378962879665124,311.7806003318707],[457.3869749900348,186.10387211493347],[1025.4290940133321,432.29870637340883],[791.057094671127,61.23217172373759],[604.5162880380033,74.96092644934883],[998.0968002423044,61.072314742250995],[517.3310814168656,331.20792716568155],[865.4519458481152,540.4850373486893],[308.09995240718285,323.91555052772947],[615.1343942902904,617.0960477287038],[1304.9933109784445,767.4119166229419],[881.9632345020641,227.1237662283968]]`,
+        [[737.2140088778591, 386.9817631746404], [1184.7065001007347, 125.16503074436255], [1002.1097849948287, 646.2570118212822], [119.08142868856292, 741.6410795155434], [470.77651409645483, 472.60003767139784], [1104.8291775680777, 792.0264899804923], [876.4898239267231, 761.6195779345396], [688.6779513966698, 764.8636379020109], [416.827832986368, 721.2328116091794], [1049.628299133844, 232.76468738356618], [1222.5895913611394, 643.6379170546372], [668.6698252209144, 200.01590798280117], [60.378962879665124, 311.7806003318707], [457.3869749900348, 186.10387211493347], [1025.4290940133321, 432.29870637340883], [791.057094671127, 61.23217172373759], [604.5162880380033, 74.96092644934883], [998.0968002423044, 61.072314742250995], [517.3310814168656, 331.20792716568155], [865.4519458481152, 540.4850373486893], [308.09995240718285, 323.91555052772947], [615.1343942902904, 617.0960477287038], [1304.9933109784445, 767.4119166229419], [881.9632345020641, 227.1237662283968]],
     PROVINCE_OWNERSHIP:
-        `[[5,22,10,2],[3,8,4,21],[6,7,19,0],[9,14,23,1],[12,13,18,20],[15,11,16,17]]`,
-    //Maps
-    /*
-        //EuropeBig
-        PICTURE_BACKGROUND_MAP: "europeBlank.png", //null for no background //with extension
-        PICTURE_BACKGROUND_DIMENSIONS: [3840, 2852],
-        PICTURE_BACKGROUND_SCALEFACTOR: .4,
-        PICTURE_BACKGROUND_CENTER: {
-            "x": 783.4856567382811,
-            "y": 333.04688926795876
-        },
-        PROVINCE_NAMES: `["Turkey","Russia","Hungary","Spain","Germany","Black sea","Croatia","Italy","France","Belarus","Romania","Denmark","Ireland","North Sea","Poland","Sweden","Norway","Finland","Netherlands","Ukraine","UK","Switzerland","Bulgaria","Baltic sea"]`,
-        PROVINCE_CAPITAL_IDS: `[0, 3, 6, 9, 12, 15]`,
-        PROVINCE_CONNECTIONS: `[[0, 5, 22], [1, 5, 17, 9], [2, 14, 4, 21, 10, 6], [3, 8], [4, 2, 21, 18, 14, 11], [5, 0, 1, 10, 19, 22], [6, 2, 7], [7, 6, 21, 8], [8, 3, 7, 18, 21, 20], [9, 1, 23, 14, 19], [10, 2, 5, 22, 19], [11, 4, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 2, 4, 9, 23, 19], [15, 11, 16, 17], [16, 13, 15], [17, 1, 15, 23], [18, 4, 8, 13, 20], [19, 5, 9, 10, 14], [20, 8, 12, 13, 18], [21, 2, 4, 7, 8], [22, 0, 5, 10], [23, 9, 11, 14, 17]]`,
-        PROVINCE_POSITIONS: `[[1147.031167556789,689.0182975761581],[1107.0041915735305,197.8542779753107],[727.6451013411865,519.677300863384],[135.37385145708166,705.2963555028149],[564.7712884195712,409.9368331695212],[1176.2652634235035,528.841111390414],[691.0068790889168,668.8781591906592],[501.94176202450774,680.8949886179865],[340.37874030859047,548.2823625944112],[886.7041001335854,250.31036972792805],[915.5400334855302,503.2724009298821],[544.5967804842581,203.77569910551657],[72.91160901772352,207.75972216505443],[362.1389561325627,206.15612968265538],[730.9119814812814,357.1028265492412],[583.0153466259153,58.72562518530741],[410.260401980277,78.72074625699408],[797.5744620333701,83.63109016347326],[405.3945155748132,402.6296685406274],[994.5380260920517,395.1064568320035],[236.6639239216144,350.23408838673726],[516.126469720179,541.9002826442552],[950.0143284256937,639.046515237906],[717.7857335975922,217.0976661294657]]`
-    */
-    /*
-        //China
-        PICTURE_BACKGROUND_MAP: "chinaBlank.png", //null for no background //with extension
-        PICTURE_BACKGROUND_DIMENSIONS: [1000, 850],//[3840, 2852]
-        PICTURE_BACKGROUND_SCALEFACTOR: 1.4, //.4
-        PICTURE_BACKGROUND_CENTER: { "x": 544.8571428571428, "y": 409.84676370992304 },
-        PROVINCE_NAMES: `["Yunnan","Guangxi","Zhejiang","Shaanxi","Hunan","Guizhou","Fujian","Guangdong","Hubei","Shandong","Jiangxi","Heilongjiang","Xinjiang","Qinghai","Anhui","Jilin","Inner Mongolia","Liaoning","Tibet","Jiangsu","Gansu","Shanxi","Sichuan","Hebei"]`,
-    */
+        [[5, 22, 10, 2], [3, 8, 4, 21], [6, 7, 19, 0], [9, 14, 23, 1], [12, 13, 18, 20], [15, 11, 16, 17]],
 
+    //to load in from localstorage
+    ...(() => {
+        const mapDataTemp = localStorage.getItem("mapDataTemp")
+        if (!mapDataTemp) return {}
+        return JSON.parse(mapDataTemp).RULES
+    })()
 })
 var _RULES_MAX_ATTACKS_ALLOWED = 3
-var MASTER = Object.freeze({
-    ALLOW_SCREENSHOTS: true,
-    ALLOW_PASTING: true
-})
 //#region GRAPHICS.
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
@@ -99,7 +77,43 @@ var GRAPHICS = Object.freeze({
     QUESTION_FONTSIZE: 52,
     BORDER_COLOR: "linen",
     SIDE_SCORE_PANEL_WIDTH: 140, //or null
+
+    //to load in from localstorage
+    ...(() => {
+        const mapDataTemp = localStorage.getItem("mapDataTemp")
+        if (!mapDataTemp) return {}
+        return JSON.parse(mapDataTemp).GRAPHICS
+    })()
 })
+
+const MANAGER = {
+    grab: () => {
+        return game.exportRulesAndGraphics()
+    },
+    saveToLocal: () => {
+        localStorage.setItem("mapDataTemp", JSON.stringify(game.exportRulesAndGraphics()))
+    },
+    saveToFile: () => {
+        MM.exportJSON(game.exportRulesAndGraphics(),
+            "conquestMap" +
+            Date.now()
+            + ".json")
+    },
+    loadFromFile: () => {
+        MM.importJSON().then(d => {
+            localStorage.setItem("mapDataTemp", JSON.stringify(d))
+            chat.silentReload()
+        })
+
+    }
+}
+
+var MASTER = Object.freeze({
+    ALLOW_SCREENSHOTS: true,
+    ALLOW_PASTING: true
+})
+
+
 //#region Territory
 class Territory {
     static LCP = null
@@ -159,11 +173,33 @@ class Territory {
 }
 //#region Kingdom
 class Kingdom {
-    static defaultColors = Object.freeze(["cyan", "pink", "orange", "yellow", "green", "brown"])
+    static defaultColors = Object.freeze([
+        "cyan",
+        "pink",
+        "orange",
+        "yellow",
+        "green",
+        "brown",
+        "lightblue",
+        "purple",
+        "magenta",
+        "lime",
+        "navy",
+        "teal",
+        "olive",
+        "maroon",
+        "coral",
+        "gold",
+        "silver",
+        "indigo",
+        "turquoise",
+        "crimson"
+    ])
+
 
     constructor(id, name) {
         this.id = id
-        this.name = name ?? Kingdom.defaultColors[id] ?? ("kingdom " + i)
+        this.name = name ?? Kingdom.defaultColors[id] ?? ("kingdom " + id)
         /**@type {Territory} */
         this.capital = null
         /**@type {Set<Territory>} */
@@ -181,18 +217,30 @@ class Kingdom {
 
     /**@param {Territory} territory  */
     acquireTerritory(territory) {
+        if (territory.isCapital && !this.territories.has(territory)) {
+            console.error("Trying to acquire a capital!")
+            GameEffects.popup("Cannot change teams for a capital", GameEffects.popupPRESETS.bigRed)
+            return
+        }
         game?.kingdoms?.forEach(x => x.territories.delete(territory))
         this.territories.add(territory)
         territory.button.color = this.color
     }
     /**@param {Territory} capital  */
     acquireCapital(capital) {
+        if (this.capital) {
+            //ditch previous capital
+            this.capital.isCapital = false
+            this.capital.value = RULES.TERRITORY_BASE_VALUE
+            this.capital.name = this.capital.name.split("\n")[0]
+            this.capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
+        }
         this.acquireTerritory(capital)
         this.capital = capital
         capital.isCapital = true
         capital.value = RULES.CAPITAL_BASE_VALUE
         capital.name = `${capital.name}\n(${this.name})`
-        // capital.name = `${capital.name}\nCapital`
+        capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
 
@@ -260,12 +308,19 @@ class Conflict {
         if (this.solving) return false //can only accept once. then it is free game
         this.justDeclared = false
         this.solving = true
-        const availableQuestions = Question.ALL.filter(x => !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
+        const availableQuestions =
+            Question.ALL.filter(x =>
+                Question.INVALID_IDS.has(x.id)
+                &&
+                !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
         if (!availableQuestions.length) {
             console.error("out of questions!!!!")
-            GameEffects.popup(`Out of questions: ${this.attacker.name} & ${this.defender.name}!`,
+            GameEffects.popup(`Out of questions: ${this.attacker.name} & ${this.defender.name}!` +
+                `\nSad.`, { floatTime: 10 * 1000, close_on_release: true },
                 GameEffects.popupPRESETS.bigRed
             )
+            this.resolve()
+            return
         }
         //grouped by modulo 10
         const availableIDs = availableQuestions.map(x => x.id)
@@ -438,21 +493,18 @@ class Question {
         this.sol = sol
         this.points = null //maybe?
     }
-    /**Question.raw*/
-    //static raw = String.raw`0~~~4~find 2+3-1~@1~~~0.5~~\text{find}\ \frac{2}3\cdot \frac{6}{8}@2~~test~512~~@3~~~1.4~~\text{find\ }\frac{3+2^2}{5}@4~~test2~5.83~~@5~~test2~5.83~find the above~\text{find\ }\frac{2+\sqrt{2}}{2-\sqrt{2}}`
 
 
     /**@type {Question[]} */
-    /*static ALL = Question.raw.
-        split("@").map(x => x.split("~")).map(
-            ([id, note, img, sol, txt, latex], i) => new Question(i, { img, txt, sol: +sol, latex }))
-    */
     //Question.ALL
     static ALL =
         `343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;21;10;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.555;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414`
             .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
     /**@type {Array<{id:number,name:string,kingdom:number,time:number,kingdom:number,conflict:number}>} */
     static record = []
+    /**@type {Set<Question} */
+    static INVALID_IDS = new Set()
+
 }
 //#region Gimmicks
 class Gimmicks {
@@ -490,7 +542,7 @@ class Gimmicks {
         game.add_drawable(mapIMG, 2)
         game.mapIMG = mapIMG //save for game
 
-        return
+        return mapIMG
         //masterMode
         window.mapIMG = mapIMG //save for debug
         // Button.make_draggable(mapIMG)

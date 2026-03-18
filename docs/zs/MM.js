@@ -1101,11 +1101,23 @@ class MM {
     static arrayEquals(arr1, arr2) {
         return arr1.length == arr2.length && arr1.every((x, i) => x == arr2[i])
     }
+    /**@deprecated */
     static arrToStr(arr) {
         return arr.join(",")
     }
+    /**@deprecated */
     static strToArr(str) {
         return str.split(",").map(Number)
+    }
+
+    static collectToMap(arr, key) {
+        const s = new Map()
+        for (const item of arr) {
+            if (!s.has(item[key])) s.set(item[key], [])
+            s.get(item[key]).push(item)
+        }
+        return s
+
     }
 
 
@@ -1532,7 +1544,9 @@ class GameEffects {
      */
     static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
         travelTime = 500, floatTime = 1000,
-        moreButtonSettings = { color: "yellow" }, on_end = null } = {},
+        moreButtonSettings = { color: "yellow" },
+        close_on_release = false,
+        on_end = null } = {},
         preset
     ) {
         if (preset) {
@@ -1577,6 +1591,7 @@ class GameEffects {
             }
         })
         b.close = () => game.animator.add_anim(floatOut)
+        if (close_on_release) b.on_release = b.close
         game.add_drawable(b, 7)
         game.animator.add_sequence(floatIn, floatDelay, floatOut)
 

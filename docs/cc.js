@@ -236,6 +236,7 @@ class Game extends GameCore {
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
+            bot.color = myColor || "white"
 
             Snippet.bgDefault.resize(GRAPHICS.SNIPPET_WIDTH, bot.height - 20)
             Snippet.bgDefault.topat(bot.top)

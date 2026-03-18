@@ -68,6 +68,7 @@ const COMM = chat.sendCommand.bind(chat)
 const POPUP = (txt, settings) => chat.sendMessage({
     popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
 })
+const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftPink) }
 const ATTENDANCE = () => {
     chat.orderAttendance()
     chat.sendMessage({
@@ -83,28 +84,40 @@ const ASK = (person, question) => {
 }
 const RELOAD = () => dev.orderReload()
 const DISPLAY = () => {
-    const d = game.canvas.toDataURL()
-    chat.sendCommand(
-        `GameEffects.popupPicture("${d}")`
-    )
+    const action = () => {
+        const d = game.canvas.toDataURL()
+        chat.sendCommand(
+            `GameEffects.popupPicture("${d}")`
+        )
+        spop("Sent.")
+    }
+    game.extras_temp.push(action)
 }
 const CLIPBOARD = () => {
-    const d = game.lastPastedPicture
-    if (!d) {
-        console.log("No picture has been pasted.")
-        return
+    const action = () => {
+        const d = game.lastPastedPicture
+        if (!d) {
+            console.log("No picture has been pasted.")
+            spop("No pasted picture found.")
+            return
+        }
+        GameEffects.popupPicture(d)
+        chat.sendCommand(
+            `GameEffects.popupPicture("${d}")`
+        )
     }
-    GameEffects.popupPicture(d)
-    chat.sendCommand(
-        `GameEffects.popupPicture("${d}")`
-    )
+    game.extras_temp.push(action)
 }
 const DOWNLOAD = () => {
-    const d = game.canvas.toDataURL()
-    chat.sendCommand(
-        `(()=>{const img = new Image();img.src = "${d}";` +
-        `img.onload = () => { Cropper.downloadImage(img, "Conquest game.png") }})()`
-    )
+    const action = () => {
+        const d = game.canvas.toDataURL()
+        chat.sendCommand(
+            `(()=>{const img = new Image();img.src = "${d}";` +
+            `img.onload = () => { Cropper.downloadImage(img, "Conquest game.png") }})()`
+        )
+        spop("Sent.")
+    }
+    game.extras_temp.push(action)
 }
 
 const COUNTDOWN = (text, seconds) => {
@@ -112,6 +125,21 @@ const COUNTDOWN = (text, seconds) => {
     chat.sendCommand(
         `GameEffects.countdown("${text}",${seconds})`
     )
+}
+const PAUSE = () => {
+    game.isPaused = true
+    game.attacksAllowed = false
+    spop("Paused.")
+    POPUP("The game has been paused!")
+}
+const UNPAUSE = () => {
+    game.isPaused = false
+    game.attacksAllowed = true
+    spop("Unpaused.")
+    POPUP("The game continues!")
+}
+const INVALIDATE = (id) => {
+    game.invalidate(id)
 }
 
 const participants = listener.participants
@@ -261,6 +289,7 @@ const SHARE = (key, target) => {
 const HARDREFRESH = () => {
     SHARE("territoriesFullData")
     SHARE("kingdomsFullData")
+    spop("Hard refresh.")
 }
 
 class Game extends GameCore {
@@ -309,13 +338,7 @@ class Game extends GameCore {
         this.buts = buts
 
         this.attacksAllowed = false
-
-        const ASD = name => territories.find(x => x.name === name)
-        const addConnection = (one, ...others) =>
-            others.forEach(oth => {
-                ASD(one).connections.add(ASD(oth))
-                ASD(oth).connections.add(ASD(one))
-            })
+        this.isPaused = false
 
 
         const connectionsDrawableObject = { //could even be optimized
@@ -334,39 +357,27 @@ class Game extends GameCore {
         }
         this.add_drawable(connectionsDrawableObject, 4)
 
-        const provinceNamesStored =
-            JSON.parse(RULES.PROVINCE_NAMES || localStorage.getItem("provinceNamesStored"))
-        if (provinceNamesStored)
-            this.territories.forEach((x, i) => x.name = provinceNamesStored[i])
-        const provinceConnections =
-            JSON.parse(RULES.PROVINCE_CONNECTIONS || localStorage.getItem("provinceConnections"))
-        if (provinceConnections)
-            provinceConnections.forEach(arr =>
-                arr.slice(1).forEach(y => territories[y].connectWith(territories[arr[0]])))
+        const provinceNamesStored = RULES.PROVINCE_NAMES ?? []
+        this.territories.slice(0, provinceNamesStored.length).forEach((x, i) => x.name = provinceNamesStored[i])
+        const provinceConnections = RULES.PROVINCE_CONNECTIONS ?? []
+        provinceConnections.forEach(arr =>
+            //does not connect to itself, obviously.
+            arr.slice(1).forEach(y => territories[y] && territories[arr[0]] && territories[y].connectWith(territories[arr[0]])))
 
         const kingdoms = Array(RULES.NUMBER_OF_TEAMS).fill().map((x, i) => new Kingdom(i))
-        const provinceCapitals = JSON.parse(RULES.PROVINCE_CAPITAL_IDS || localStorage.getItem("provinceCapitals"))
-        kingdoms.forEach((x, i) => {
-            x.acquireCapital(territories[provinceCapitals[i]])
+        const provinceCapitals = RULES.PROVINCE_CAPITAL_IDS ?? []
+        kingdoms.slice(0, provinceCapitals.length).forEach((x, i) => {
+            x !== null && territories[provinceCapitals[i]] && x.acquireCapital(territories[provinceCapitals[i]])
         })
-
         this.kingdoms = kingdoms
         //color territories
-        const ownership = JSON.parse(RULES.PROVINCE_OWNERSHIP || localStorage.getItem("provinceOwnership"))
-        if (ownership) {
-            ownership.forEach((x, i) => {
-                x.map(u => kingdoms[i].acquireTerritory(territories[u]))
-            })
-        }
-        else {
-            const addTerritory = (id, ...places) => places.forEach(x => kingdoms[id].acquireTerritory(territories[x]))
-            addTerritory(0, 1, 5, 22)
-            addTerritory(1, 8, 4, 21)
-            addTerritory(2, 10, 7, 2)
-            addTerritory(3, 14, 19, 23)
-            addTerritory(4, 13, 18, 20)
-            addTerritory(5, 11, 16, 17)
-        }
+        const ownership = RULES.PROVINCE_OWNERSHIP ?? []
+        ownership.slice(0, kingdoms.length).forEach((x, i) => {
+            x.forEach(u => territories[u] && kingdoms[i].acquireTerritory(territories[u]))
+        })
+
+
+
         /**@type {Conflict[]} */
         const conflicts = []
         /**@type {Conflict[]} */
@@ -379,8 +390,8 @@ class Game extends GameCore {
         // buts.forEach(Button.make_draggable)
 
 
-        const bpos = RULES.PROVINCE_POSITIONS ?? localStorage.getItem("bpos") ?? []
-        JSON.parse(bpos).forEach((u, i) => {
+        const bpos = RULES.PROVINCE_POSITIONS ?? JSON.parse(localStorage.getItem("bpos")) ?? []
+        bpos.forEach((u, i) => {
             buts[i].topleftat(...u)
         })
 
@@ -438,22 +449,22 @@ class Game extends GameCore {
         }
         this.add_drawable(snapShotButton)
 
-        const startContestButton = switchModeButton.copy
-        startContestButton.txt = "START!"
-        startContestButton.on_click = () => {
-            hq.startContest()
-            this.remove_drawable(startContestButton)
+        const serverButton = switchModeButton.copy
+        serverButton.txt = "SERVER"
+        serverButton.on_click = () => {
+            SERVERBUTTON()
         }
-        startContestButton.move(startContestButton.width * -1.5, 0)
-        this.add_drawable(startContestButton)
+        serverButton.move(serverButton.width * -1.5, 0)
+        this.add_drawable(serverButton)
 
-        startContestButton.topat(10)
+        serverButton.topat(10)
 
-        Gimmicks.createBackground(this, true)
+        this.mapIMG = Gimmicks.createBackground(this)
         this.initialize_scores()
         this.initialize_scores_side()
 
         this.conflictsClockwork = setInterval(() => {
+            if (this.isPaused) return
             this.conflicts.forEach(x => x.update(1000))
             this.conflictsHistory.push(...this.conflicts.filter(x => x.alreadyResolved))
             this.conflicts = this.conflicts.filter(x => !x.alreadyResolved)
@@ -496,10 +507,54 @@ class Game extends GameCore {
                 f.onload = () => {
                     game.lastPastedPicture = f.result
                     console.log("Pasted IMAGE.")
+                    GameEffects.popup("Pasted.", { floatTime: 300, travelTime: 100 }, GameEffects.popupPRESETS.leftPink)
                 }
                 f.readAsDataURL(blob)
             }
 
+
+        const SERVERBUTTON = () => {
+            const obj = {}
+            if (!this.attacksAllowed && !this.isPaused)
+                obj["START"] = () => { hq.startContest(); spop("Started.") }
+            if (this.attacksAllowed || this.isPaused) {
+                obj[this.isPaused ? "UNPAUSE" : "PAUSE"] = () => {
+                    this.isPaused ? UNPAUSE() : PAUSE()
+                }
+            }
+            obj["MAXATTACKS"] = () => {
+                GameEffects.dropDownMenu([1, 2, 3, 4, 5].map(x => [x, () => {
+                    _RULES_MAX_ATTACKS_ALLOWED = x
+                    spop(`MAX_ATTACKS_ALLOWED = ${RULES.MAX_ATTACKS_ALLOWED}`)
+                }]))
+            }
+            obj["ATTENDANCE"] = ATTENDANCE
+            obj["INVALIDATE"] = () => {
+                const currQuestions =
+                    [...new Set(this.conflicts.filter(x => x.solving).map(x => x.question.id))].sort((x, y) => x - y)
+                if (!currQuestions.length) {
+                    spop("no conflicts")
+                    return
+                }
+                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => INVALIDATE(id)]))
+
+            }
+            obj["DISPLAY"] = DISPLAY
+            obj["DOWNLOAD"] = DOWNLOAD
+            obj["CLIPBOARD"] = CLIPBOARD
+            obj["HARDREFRESH"] = HARDREFRESH
+            obj["RELOAD"] = RELOAD
+            if (this.attacksAllowed || this.isPaused) {
+                obj["END"] = () => GameEffects.dropDownMenu({ "Sure?": () => { }, "Yes": () => { hq.startContest(); spop("Contest started") } })
+            }
+
+
+
+            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 200, height: 80 })
+
+        }
+
+        //MAPBUTTON goes here. when i feel like it.
 
     }
 
@@ -513,6 +568,46 @@ class Game extends GameCore {
         this.sideScorePanel.activeState = bool
         // this.mapIMG.activeState = bool //i dont mind the map, its neat
         return bool
+    }
+
+    invalidate(id) {
+        if (id === undefined) {
+            spop("Wrong ID.")
+            return
+        }
+        const badness = this.conflicts.filter(x => x.question?.id === id)
+        if (!badness.length) {
+            spop(`No Q${id} is in play.`)
+        }
+        badness.forEach(x => x.resolve())
+        Question.INVALID_IDS.add(id)
+        let report = badness.map(x => `${x.attacker.name} - ${x.defender.name} cancelled`).join("\n")
+        report += `Q${id} invalidated.`
+        spop(report)
+    }
+
+    exportRulesAndGraphics() {
+        let r = {}
+        r.PICTURE_BACKGROUND_CENTER =
+            this.mapIMG.center
+        r.PICTURE_BACKGROUND_DIMENSIONS =
+            [this.mapIMG.img.width, this.mapIMG.img.height]
+        r.PICTURE_BACKGROUND_SCALEFACTOR =
+            this.mapIMG.width / this.mapIMG.img.width
+        r.PROVINCE_NAMES =
+            this.territories.map(x => x.name.split("\n")[0])
+        r.PROVINCE_CAPITAL_IDS =
+            this.kingdoms.map(x => x.capital?.id)
+        r.PROVINCE_CONNECTIONS =
+            this.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)])
+        r.PROVINCE_OWNERSHIP =
+            this.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
+        let g = {}
+
+        return {
+            RULES: r,
+            GRAPHICS: g
+        }
     }
 
     //#endregion
@@ -529,7 +624,7 @@ class Game extends GameCore {
         this.conflicts.forEach(x => x.update(dt))
         this.conflictsHistory.push(...this.conflicts.filter(x => x.alreadyResolved))
         this.conflicts = this.conflicts.filter(x => !x.alreadyResolved)
-*/
+    */
 
 
 
@@ -850,7 +945,7 @@ class Game extends GameCore {
 
 } //this is the last closing brace for class Game
 
-//#region dev options
+//#region dev
 /// dev options dev.dev.dev.
 const dev = {
     k: id => game.kingdoms[id],
@@ -881,9 +976,21 @@ const dev = {
     },
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
     clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
-    clickToAcquire: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
+    _clickToAcquire: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
+    clickToAcquire: () => {
+        const colorPicker = (territory) => {
+            const ddm = GameEffects.dropDownMenu(
+                game.kingdoms.map(x => [x.name,
+                () => { x.acquireTerritory(territory) }
+                ]), null, 10, null,
+                { fontSize: 12, width: 60, height: 60, hover_color: null }
+            )
+            ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
+            ddm.menuButtons.at(-1).color = "lightgray"
+        }
+        game.buts.forEach(x => x.on_click = () => colorPicker(x.territory))
+    },
     saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
-    // saveProvinceValues: () => localStorage.setItem("provinceValues", JSON.stringify(game.territories.map(x => x.value))),
     saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections(), dev.saveCapitalIDs(), dev.saveProvinceValues?.(), dev.saveOwnership()),
     severConnections: (tgtName) => {
         /**@type {Territory} */
@@ -904,6 +1011,7 @@ const dev = {
         const msg = { orderReload: 1 }
         if (tgt) msg.target = Person.to(tgt).name
         chat.sendMessage(msg)
+        spop("Ordered reload.")
     },
     forceName: (tgt, forcedName) => {
         chat.orderForceName(Person.to(tgt).name, forcedName)
