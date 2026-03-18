@@ -21,6 +21,7 @@ const MASTER = false
 
 const SCORE_ON_WIN = 3
 const SCORE_ON_TIE = 1
+const SCORE_ON_LOSE = 0
 const DEFAULT_COLOR = "lightblue"
 const WIN_COLOR = "lightgreen"
 const LOSE_COLOR = "white"
@@ -32,9 +33,9 @@ class Player {
     constructor(name = "unnamed") {
         this.name = name
         this.score = 0
-        this.scoreToBeGained = 0
+        this.rest()
         this.partner = null
-        this.resolved = false
+        this.id = null //will match players[id]
 
         this.button = new Button({
             height: 100,
@@ -44,18 +45,41 @@ class Player {
             dynamicText: () =>
                 `${this.name}\n${this.score}${this.scoreToBeGained ? " + " + this.scoreToBeGained : ""}`,
             on_click: () => {
-                if (!this.partner) return
-                this.partner.scoreToBeGained = 0
-                this.partner.button.color = LOSE_COLOR
-                this.scoreToBeGained = SCORE_ON_WIN
-                this.button.color = WIN_COLOR
-                this.resolved = true
-                this.partner.resolved = true
+                this.win()
             },
             isBlocking: true
         })
         game.add_drawable(this.button)
     }
+
+    win() {
+        if (!this.partner) return
+        this.partner.lose()
+        this.scoreToBeGained = SCORE_ON_WIN
+        this.button.color = WIN_COLOR
+        this.resolved = true
+    }
+    lose() {
+        this.scoreToBeGained = SCORE_ON_LOSE
+        this.button.color = LOSE_COLOR
+        this.resolved = true
+    }
+    tie() {
+        if (!this.partner) return
+        this.partner._tie()
+        this._tie()
+    }
+    _tie() {
+        this.scoreToBeGained = SCORE_ON_TIE
+        this.button.color = SCORE_ON_TIE
+        this.resolved = true
+    }
+    rest() {
+        this.resolved = false
+        this.scoreToBeGained = 0
+    }
+
+
 
 }
 
@@ -65,6 +89,10 @@ const players = []
 let tieButtons = []
 const round = 0
 let COLS = 3
+
+/**
+ * @param {Player[]} seatingOrder 
+ */
 
 
 class Game extends GameCore {
@@ -131,12 +159,7 @@ class Game extends GameCore {
                 height: 60,
                 txt: "TIE",
                 on_click: () => {
-                    a.scoreToBeGained = SCORE_ON_TIE
-                    b.scoreToBeGained = SCORE_ON_TIE
-                    a.button.color = TIE_COLOR
-                    b.button.color = TIE_COLOR
-                    a.resolved = true
-                    b.resolved = true
+                    a.tie() //b._tie() is called by a
                 }
             })
             tie.centeratX((a.button.centerX + b.button.centerX) / 2)
@@ -195,6 +218,7 @@ class Game extends GameCore {
                 .flatMap(x => x.split(";"))
                 .map(x => new Player(x)))
             if (!round) this.rearrange()
+            players.forEach((x, i) => x.id = i)
         }
         setPlayers.rightat(this.rect.right)
         setPlayers.topat(0)
