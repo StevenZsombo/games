@@ -1708,11 +1708,18 @@ class GameEffects {
 
         }
         )
-
-        gridRows ||= menu.length
-        gridColumns ||= 1
+        if (gridRows && gridColumns) { //extend rows if must
+            if (gridRows * gridColumns < menu.length) gridRows = 0 //by defaulting to no gridRows
+        } else if (!gridRows && !gridColumns) {  //default to vertical stack if neither were given
+            gridRows = menu.length
+            gridColumns = 1
+        } else if (gridColumns) {
+            gridRows = Math.ceil(menu.length / gridColumns)
+        } else { //here we must have gridRows
+            gridColumns = Math.ceil(menu.length / gridRows)
+        }
         const where = [game.mouser.x + 5, game.mouser.y + 5]
-        backgroundRect ??= new Rect(...where, 0, 0)
+        backgroundRect ??= new Rect(0, 0, 0, 0)
         backgroundRect.width ||= gridColumns * menu[0].width
         backgroundRect.height ||= gridRows * menu[0].height
         backgroundRect.topleftat(...where)

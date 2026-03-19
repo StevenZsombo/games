@@ -3,7 +3,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: false,
+    showFramerate: true,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -340,9 +340,10 @@ class Game extends GameCore {
         this.attacksAllowed = false
         this.isPaused = false
 
-
+        this.showConnections = RULES.PROVINCE_SHOW_CONNECTIONS
         const connectionsDrawableObject = { //could even be optimized
             draw: (screen) => {
+                if (!this.showConnections) return
                 if (this.showingMap)
                     this.territories.forEach(
                         /**@param {Territory} t  */
@@ -350,15 +351,16 @@ class Game extends GameCore {
                             t.connections.forEach(oth =>
                                 MM.drawLine(screen,
                                     t.button.centerX, t.button.centerY, oth.button.centerX, oth.button.centerY,
-                                    { width: GRAPHICS.CONNECTION_LINE_WIDTH })
+                                    {
+                                        width: GRAPHICS.CONNECTION_LINE_WIDTH,
+                                        color: "blue"
+                                    })
                             )
                         })
             }
         }
-        if (RULES.PROVINCE_SHOW_CONNECTIONS) {
-            this.add_drawable(connectionsDrawableObject, 4)
-            this.connectionsDrawableObject = connectionsDrawableObject
-        }
+        this.add_drawable(connectionsDrawableObject, 4)
+        this.connectionsDrawableObject = connectionsDrawableObject
 
         const provinceNamesStored = RULES.PROVINCE_NAMES ?? []
         this.territories.slice(0, provinceNamesStored.length).forEach((x, i) => x.name = provinceNamesStored[i])
@@ -394,9 +396,9 @@ class Game extends GameCore {
         // buts.forEach(Button.make_draggable)
 
 
-        const bpos = RULES.PROVINCE_POSITIONS ?? JSON.parse(localStorage.getItem("bpos")) ?? []
+        const bpos = RULES.PROVINCE_POSITIONS //?? JSON.parse(localStorage.getItem("bpos")) ?? []
         bpos.forEach((u, i) => {
-            buts[i]?.topleftat(...u)
+            buts[i]?.centerat(...u)
         })
 
         //control tools
@@ -458,12 +460,13 @@ class Game extends GameCore {
         serverButton.on_click = () => {
             SERVERBUTTON()
         }
-        serverButton.move(serverButton.width * -1.5, 0)
         this.add_drawable(serverButton)
 
-        serverButton.topat(10)
+        serverButton.topat(this.border.bot.top + 20)
+        serverButton.bottomstretchat(snapShotButton.top - 20)
+        serverButton.leftat(snapShotButton.left)
 
-        this.mapIMG = Gimmicks.createBackground(this)
+        // this.mapIMG = Gimmicks.createBackground(this)
         this.initialize_scores()
         this.initialize_scores_side()
 
@@ -482,7 +485,8 @@ class Game extends GameCore {
         statsBot.width = this.border.right.left
         statsBot.leftat(this.border.left.right)
         statsBot.font_font = "myMonospace"
-        statsBot.fontSize = 28
+        statsBot.fontSize =
+            RULES.NUMBER_OF_TEAMS <= 6 ? 48 : 22
         statsBot.textSettings = { textAlign: "left", textBaseline: "middle" }
         this.statsBot = statsBot
         this.add_drawable(statsBot, 4)
@@ -496,7 +500,7 @@ class Game extends GameCore {
             lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedCount)))
             lines.push([`Territories:`].concat(this.kingdoms.map(x => x.territories.size)))
             lines.push([`Points:`].concat(this.valCols.map(x => x.txt)))
-            const linesStr = MM.tableStr(lines, null, 4)
+            const linesStr = MM.tableStr(lines, null, 1)
             return first + "\n" + linesStr
 
         }
@@ -529,7 +533,12 @@ class Game extends GameCore {
             obj["MAXATTACKS"] = () => {
                 GameEffects.dropDownMenu([1, 2, 3, 4, 5].map(x => [x, () => {
                     _RULES_MAX_ATTACKS_ALLOWED = x
-                    spop(`MAX_ATTACKS_ALLOWED = ${RULES.MAX_ATTACKS_ALLOWED}`)
+                    chat.sendMessage({
+                        popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
+                        popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+
+                    })
+                    spop(`Rule: ${RULES.MAX_ATTACKS_ALLOWED} attacks at time.`)
                 }]))
             }
             obj["ATTENDANCE"] = ATTENDANCE
@@ -559,7 +568,52 @@ class Game extends GameCore {
         }
 
         //MAPBUTTON goes here. when i feel like it.
+        const devButton = serverButton.copy
+        devButton.txt = "dev"
+        // devButton.move(0, 120)
+        devButton.leftat(orderChangeNameButton.left)
+        devButton.on_click = null
+        devButton.on_release = () => {
+            GameEffects.dropDownMenu(
+                [...Object.keys(dev)
+                    .filter(x => dev[x].length == 0 && x[0] !== "_").
+                    map(x => [`${x}`,
+                    () => {
+                        dev.resetOnClicks()
+                        dev[x]()
+                    }])]
+                    /*[...Object.keys(dev).map(x => [`dev.${x}`, () => {
+                        console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
+    
+                    }])]*/
+                    .concat(
+                        [...Object.keys(MANAGER)
+                            .filter(x => MANAGER[x].length == 0)
+                            .filter(x => !"grab".split(" ").includes(x))
+                            .map(x => [`MANAGER.${x}`,
+                            () => {
+                                dev.resetOnClicks()
+                                MANAGER[x]()
+                            }
+                            ])]
+                    ), null, null, 2, { width: 400, height: 60, fontSize: 28 }
+            )
 
+        }
+        this.add_drawable(devButton)
+
+
+        mapster = new Mapster(
+            Kingdom.defaultRGBs.slice(0, RULES.NUMBER_OF_TEAMS),
+            RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
+            RULES.PICTURE_BACKGROUND_CENTER.x - RULES.PICTURE_BACKGROUND_DIMENSIONS[0] / 2,
+            RULES.PICTURE_BACKGROUND_CENTER.y - RULES.PICTURE_BACKGROUND_DIMENSIONS[1] / 2,
+            territories,
+            () => {
+                mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
+            }
+        )
+        this.add_drawable(mapster, 2)
     }
 
 
@@ -593,12 +647,12 @@ class Game extends GameCore {
     exportRulesAndGraphics() {
         let r = {}
         Object.assign(r, RULES)
-        r.PICTURE_BACKGROUND_CENTER =
+        /*r.PICTURE_BACKGROUND_CENTER =
             this.mapIMG.center
         r.PICTURE_BACKGROUND_DIMENSIONS =
             [this.mapIMG.img.width, this.mapIMG.img.height]
         r.PICTURE_BACKGROUND_SCALEFACTOR =
-            this.mapIMG.width / this.mapIMG.img.width
+            this.mapIMG.width / this.mapIMG.img.width*/
         r.PROVINCE_NAMES =
             this.territories.map(x => x.name.split("\n")[0])
         r.PROVINCE_CAPITAL_IDS =
@@ -608,7 +662,7 @@ class Game extends GameCore {
         r.PROVINCE_OWNERSHIP =
             this.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
         r.PROVINCE_POSITIONS =
-            this.territories.map(x => [x.button.x, x.button.y].map(Math.round))
+            this.territories.map(x => [x.button.centerX, x.button.centerY].map(Math.round))
         r.PROVINCE_BUTTONS_TRANSPARENT =
             this.territories[0]?.button.transparent
         let g = {}
@@ -787,7 +841,10 @@ class Game extends GameCore {
             .leftat(game.switchModeButton.left - 10)
             .bottomstretchat(game.switchModeButton.top - 40)
             .rightstretchat(game.rect.right)
-            .splitGrid(RULES.NUMBER_OF_TEAMS, 1).flat().map(x => Button.fromRect(x))
+            .splitGrid(
+                RULES.NUMBER_OF_TEAMS <= 6 ? RULES.NUMBER_OF_TEAMS : 6,
+                RULES.NUMBER_OF_TEAMS <= 6 ? 1 : 2 //max teams = 12
+            ).flat().slice(0, RULES.NUMBER_OF_TEAMS).map(x => Button.fromRect(x))
         const valCols = []
         banners.forEach((b, i) => {
             const k = this.kingdoms[i]
@@ -812,6 +869,13 @@ class Game extends GameCore {
             valCols.push(v)
 
         })
+        if (banners.length > 6) //if more than 6 teams
+            banners.forEach((x, i) => {
+                x.rightat(i % 2 ? this.rect.right - 20 : this.rect.right - 20 - 20 - GRAPHICS.SIDE_SCORE_PANEL_WIDTH)
+                valCols[i].rightat(x.right)
+            }
+            )
+
         this.banners = banners
         this.valCols = valCols
         sc.components.push(...banners, ...valCols)
@@ -961,19 +1025,15 @@ const dev = {
     k: id => game.kingdoms[id],
     n: name => game.kingdoms.find(x => x.name.includes(name)),
     t: name => game.territories.find(x => x.name.includes(name)),
-    scoreBoard: () => console.table(game.getRanking()),
     members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
     renameTerritory: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
-    savePositions: () => localStorage.setItem("bpos", JSON.stringify(game.buts.map(x => [x.x, x.y]))),
-    saveProvinceNames: () => localStorage.setItem("provinceNamesStored", JSON.stringify(
-        game.territories.map(x => x.name.split("\n")[0]) //ignore after first line
-    )),
-    saveCapitalIDs: () => localStorage.setItem("provinceCapitals", JSON.stringify(
-        game.kingdoms.map(x => x.capital.id)
-    )),
-    saveOwnership: () => localStorage.setItem("provinceOwnership", JSON.stringify(
-        game.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
-    )),
+    resetOnClicks: () => {
+        game.buts.forEach(x => {
+            x.on_click = null
+            x.on_release = null
+            x.on_drag = null
+        })
+    },
     clickToConnect: () => {
         let S
         game.buts.forEach(x => {
@@ -987,7 +1047,7 @@ const dev = {
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
     clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
     _clickToAcquire: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
-    clickToAcquire: () => {
+    clickToReassign: () => {
         const colorPicker = (territory) => {
             const ddm = GameEffects.dropDownMenu(
                 game.kingdoms.map(x => [x.name,
@@ -1000,13 +1060,44 @@ const dev = {
         }
         game.buts.forEach(x => x.on_click = () => colorPicker(x.territory))
     },
-    saveConnections: () => localStorage.setItem("provinceConnections", JSON.stringify(game.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)]))),
-    saveALL: () => (dev.savePositions(), dev.saveProvinceNames(), dev.saveConnections(), dev.saveCapitalIDs(), dev.saveProvinceValues?.(), dev.saveOwnership()),
+    clickToAcquire: () => {
+        let taker
+        const ddm = GameEffects.dropDownMenu(
+            game.kingdoms.map(x => [x.name,
+            () => { taker = x }
+            ]), null, 10, null,
+            { fontSize: 12, width: 60, height: 60, hover_color: null }
+        )
+        ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
+        ddm.menuButtons.at(-1).color = "lightgray"
+        game.buts.forEach(x => x.on_click = () => taker.acquireTerritory(x.territory))
+
+    },
+    clickToMakeCapital: () => {
+        game.buts.forEach(x => x.on_click = () => {
+            const k = x.territory.owner
+            if (!k) {
+                spop("Assign to a kingdom first.")
+                return
+            }
+            k.acquireCapital(x.territory)
+        })
+    },
     severConnections: (tgtName) => {
         /**@type {Territory} */
         const tgt = tgtName ? game.territories.find(x => x.name === tgtName) : Territory.LCP
         tgt.connections.clear()
         game.territories.forEach(x => x.connections.delete(tgt))
+    },
+    clickToSever: () => {
+        game.buts.forEach(x => x.on_click = () => dev.severConnections(x.territory.name))
+    },
+    clickToDebugConnections: () => {
+        game.buts.forEach(x => x.on_click = () => {
+            game.territories.forEach(x => game.kingdoms[3].acquireTerritory(x))
+            game.kingdoms[0].acquireTerritory(x.territory)
+            x.territory.connections.forEach(y => game.kingdoms[1].acquireTerritory(y))
+        })
     },
     severALLConnections: () => { game.territories.forEach(x => x.connections.clear()) },
     shareMembers: () => {
@@ -1026,7 +1117,16 @@ const dev = {
     forceName: (tgt, forcedName) => {
         chat.orderForceName(Person.to(tgt).name, forcedName)
     },
-    MAX_ATTACKS_ALLOWEDchange: (num) => { _RULES_MAX_ATTACKS_ALLOWED = num },
+    showConnections: () => {
+        game.showConnections ^= 1
+    },
+    showValencyAsValue: () => {
+        game.territories.forEach(x => {
+            Object.defineProperty(x, "value", {
+                get() { return x.connections.size }
+            })
+        })
+    }
 
 }/// end of dev
 
@@ -1050,7 +1150,7 @@ const hq = {
                 setInterval(() => {
                     Cropper.screenshot("timelapse")
                     console.log("Screenshot saved.")
-                }, 20 * 1000) //every 20 seconds
+                }, 17 * 1000) //every 17 seconds
             )
         }
         //autosaves
@@ -1061,7 +1161,7 @@ const hq = {
                 game.saveGame("conquestAuto")
                 console.log("Autosave created.")
 
-            }, 55 * 1000) //every 55 seconds
+            }, 60 * 1000) //every 60 seconds
         )
         console.log("Timers/intervals started.")
     },

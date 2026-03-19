@@ -543,6 +543,80 @@ class Cropper {
 		return ret
 	}
 
+	static getFloodFillRunsFlat(imageDataObj, x, y) {
+		x = Math.round(x)
+		y = Math.round(y)
+		const { width, height, data } = imageDataObj
+		const starti = (y * width + x) * 4
+		const startR = data[starti]
+		const startG = data[starti + 1]
+		const startB = data[starti + 2]
+		const startA = data[starti + 3]
+
+		const runs = [] // Temporary, will convert to flat
+		const stack = [[x, y]]
+		const visited = new Uint8Array(width * height)
+
+		while (stack.length) {
+			const [pixelX, pixelY] = stack.pop()
+			if (pixelX < 0 || pixelX >= width || pixelY < 0 || pixelY >= height ||
+				visited[pixelY * width + pixelX]) continue
+
+			const i = (pixelY * width + pixelX) * 4
+			if (data[i] === startR && data[i + 1] === startG &&
+				data[i + 2] === startB && data[i + 3] === startA) {
+
+				let left = pixelX
+				while (left > 0 && !visited[pixelY * width + left - 1] &&
+					data[(pixelY * width + left - 1) * 4] === startR &&
+					data[(pixelY * width + left - 1) * 4 + 1] === startG &&
+					data[(pixelY * width + left - 1) * 4 + 2] === startB &&
+					data[(pixelY * width + left - 1) * 4 + 3] === startA) {
+					left--
+				}
+
+				let right = pixelX
+				while (right < width - 1 && !visited[pixelY * width + right + 1] &&
+					data[(pixelY * width + right + 1) * 4] === startR &&
+					data[(pixelY * width + right + 1) * 4 + 1] === startG &&
+					data[(pixelY * width + right + 1) * 4 + 2] === startB &&
+					data[(pixelY * width + right + 1) * 4 + 3] === startA) {
+					right++
+				}
+
+				for (let cx = left; cx <= right; cx++) {
+					visited[pixelY * width + cx] = 1
+					if (pixelY > 0) stack.push([cx, pixelY - 1])
+					if (pixelY < height - 1) stack.push([cx, pixelY + 1])
+				}
+
+				runs.push(pixelY, left, right) // Store as flat values
+			}
+		}
+
+		// Convert to Uint16Array for compact storage
+		return new Uint16Array(runs)
+	}
+
+	static getFloodFillRunsDelta(imageDataObj, x, y) {
+		const runs = this.getFloodFillRunsFlat(imageDataObj, x, y)
+		if (runs.length === 0) return new Uint16Array(0)
+
+		const delta = []
+		let lastY = 0
+
+		for (let i = 0; i < runs.length; i += 3) {
+			const y = runs[i]
+			delta.push(y - lastY)      // Delta Y (smaller numbers)
+			delta.push(runs[i + 1])    // left
+			delta.push(runs[i + 2])    // right
+			lastY = y
+		}
+
+		return new Uint16Array(delta)
+	}
+
+
 	/**
 		 * @param {HTMLImageElement} img 
 		 * @param {[number,number,number]} oldColor 

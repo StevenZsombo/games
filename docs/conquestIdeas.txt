@@ -4,6 +4,8 @@ Add many,many,many more territories
 Number of students * 1.5 minimum, preferably even double.
 
 Popup on ranking change
+Make circle when attack available
+Make blink when attack available
 
 
 Only 1 attack token at the beginning.

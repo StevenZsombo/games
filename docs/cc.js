@@ -19,8 +19,11 @@ var univ = {
 }
 
 let syncReady = false
+/**@type {number} */
 var myKingdomID
+/**@type {string} */
 var myColor
+/**@type {Kingdom} */
 var myKingdomObject
 /**@type {Set<number>} */
 let waitingQuestionsTrigger = new Set() //by conflictID
@@ -67,14 +70,16 @@ class Game extends GameCore {
         top.fontSize = 48
         game.add_drawable(top)
 
-        const ks = game.rect.copy.splitCell(3, 1, 4, 1, 1, 1).splitGrid(1, RULES.NUMBER_OF_TEAMS).flat().map(x => Button.fromRect(x))
+        const ks = game.rect.copy.splitCell(3, 1, 4, 1, 1, 1)
+            .splitGrid(RULES.NUMBER_OF_TEAMS <= 6 ? 1 : 2, RULES.NUMBER_OF_TEAMS <= 6 ? RULES.NUMBER_OF_TEAMS : 6)
+            .flat().map(x => Button.fromRect(x))
         game.add_drawable(ks)
 
         ks.forEach((b, i) => {
             b.color = Kingdom.defaultColors[i]
             b.txt = b.color
             b.fontSize = 60
-            b.shrinkToSquare()
+            //b.shrinkToSquare()
             b.stretch(.8, .8)
             b.outline = 5
             b.on_release = () => {
@@ -116,6 +121,11 @@ class Game extends GameCore {
         this.territories = territories
         this.conflicts = conflicts
 
+        /**@type {Set<number} */
+        this.territoriesUnderAttack = new Set()
+        /**@type {Territory[]} */
+        this.canAttackList = []
+
         contest.on_share = (shared, value) => {
             if (shared == "territoriesFullData") {
                 // if (territories.length) return
@@ -124,6 +134,8 @@ class Game extends GameCore {
                 territories.push(...Territory.manyFromData(value))
                 game.add_drawable(territories.map(x => x.button))
                 this.buts = territories.map(x => x.button)
+                this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
+
                 waitCheckSyncState()
             }
             if (shared == "kingdomsFullData") {
@@ -146,6 +158,7 @@ class Game extends GameCore {
             //#region conflictsData
             //CDhere
             if (shared == "conflictsData") {
+                this.territoriesUnderAttack = new Set(value.map(x => x.to))//id of the place
                 value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
@@ -287,11 +300,25 @@ class Game extends GameCore {
             QPane.answerSpaceDefault = answerArea.copy
             QPane.calculatorSpaceDefault = right.copy
 
+
+
+            mapster = new Mapster(
+                Kingdom.defaultRGBs.slice(0, RULES.NUMBER_OF_TEAMS),
+                RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
+                RULES.PICTURE_BACKGROUND_CENTER.x - RULES.PICTURE_BACKGROUND_DIMENSIONS[0] / 2,
+                RULES.PICTURE_BACKGROUND_CENTER.y - RULES.PICTURE_BACKGROUND_DIMENSIONS[1] / 2,
+                territories,
+                () => {
+                    mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
+                }
+            )
+            this.add_drawable(mapster, 2)
+
         }
 
         const connectionsDrawableObject = { //could even be optimized
             draw: (screen) => {
-                if (this.showingMap)
+                if (this.showingMap && RULES.PROVINCE_SHOW_CONNECTIONS)
                     this.territories?.forEach(t => {
                         t.connections.forEach(oth =>
                             MM.drawLine(screen,
@@ -302,36 +329,37 @@ class Game extends GameCore {
             }
         }
         this.add_drawable(connectionsDrawableObject, 4)
-        const highlightOwnProvincesDrawableObject = {
-            lineWidth: 10, //interesting
-            growthRate: +0.1,
-            draw: (screen) => {
-                if (this.showingMap && myKingdomObject)
-                    myKingdomObject.territories.forEach(
-                        /** @param {Territory} t */
-                        t => {
-                            MM.drawRect(screen,
-                                t.button.x,
-                                t.button.y,
-                                t.button.width, t.button.height,
-                                {
-                                    lineWidth: highlightOwnProvincesDrawableObject.lineWidth,
-                                    // lineWidth: 8,
-                                    color: "black"
-                                }
-                            )
-                        })
-            },
-            update: (dt) => {
-                highlightOwnProvincesDrawableObject.lineWidth += highlightOwnProvincesDrawableObject.growthRate
-                if (highlightOwnProvincesDrawableObject.lineWidth > 14 ||
-                    highlightOwnProvincesDrawableObject.lineWidth < 8)
-                    highlightOwnProvincesDrawableObject.growthRate *= -1
+        if (!RULES.PROVINCE_BUTTONS_TRANSPARENT) {
+            const highlightOwnProvincesDrawableObject = {
+                lineWidth: 10, //interesting
+                growthRate: +0.1,
+                draw: (screen) => {
+                    if (this.showingMap)
+                        myKingdomObject.territories.forEach(
+                            /** @param {Territory} t */
+                            t => {
+                                MM.drawRect(screen,
+                                    t.button.x,
+                                    t.button.y,
+                                    t.button.width, t.button.height,
+                                    {
+                                        lineWidth: highlightOwnProvincesDrawableObject.lineWidth,
+                                        // lineWidth: 8,
+                                        color: "black"
+                                    }
+                                )
+                            })
+                },
+                update: (dt) => {
+                    highlightOwnProvincesDrawableObject.lineWidth += highlightOwnProvincesDrawableObject.growthRate
+                    if (highlightOwnProvincesDrawableObject.lineWidth > 14 ||
+                        highlightOwnProvincesDrawableObject.lineWidth < 8)
+                        highlightOwnProvincesDrawableObject.growthRate *= -1
 
+                }
             }
+            this.add_drawable(highlightOwnProvincesDrawableObject, 4)
         }
-        this.add_drawable(highlightOwnProvincesDrawableObject, 4)
-
 
         chat.on_receive = (message) => {
             // console.log(message)
@@ -340,19 +368,55 @@ class Game extends GameCore {
             }
         }
 
-        //clockwork for snippet update
+        //clockwork for snippet update 
+        //AND also attack reminders
         this.snippetUpdateClockwork = setInterval(
-            () => snippets.forEach(x => x.update(1000)),
-            // () => contest.shared.conflicts.forEach(x => x.timeLeft -= 1000),
+            () => {
+                snippets.forEach(x => x.update(1000))
+                if (!myKingdomObject) return
+                this.canAttackList = Array.from(
+                    myKingdomObject.territories.values().flatMap(x => x.connections)//neighbouring
+                        .filter(x => !myKingdomObject.territories.has(x))//is not your own
+                        .filter(x => !this.territoriesUnderAttack.has(x)))//is not under attack
+                if (this.canAttackList.length > 0) {
+                    //animated circle via attackCircleDrawableObject
+
+                }
+
+            },
             1000)
 
+        const attackCircleDrawableObject = {
+            size: 30,
+            growthRate: 0.02,
+            draw: (screen) => {
+                if (!this.showingMap) return
+                this.canAttackList.forEach(x => MM.drawEllipse(
+                    screen,
+                    x.button.centerX,
+                    x.button.centerY - 5,
+                    attackCircleDrawableObject.size * 2,
+                    attackCircleDrawableObject.size,
+                    { outline: 4, outline_color: "red", color: null }
+                )
+                )
+            },
+            update: (dt) => {
+                if (!this.showingMap) return
+                attackCircleDrawableObject.size += dt * attackCircleDrawableObject.growthRate
+                if (attackCircleDrawableObject.size > 40 || attackCircleDrawableObject.size < 30)
+                    attackCircleDrawableObject.growthRate *= -1
+            }
+        }
+        this.attackCircleDrawableObject = attackCircleDrawableObject
+        this.add_drawable(attackCircleDrawableObject)
 
 
+        this._showingMap = true
 
-        Gimmicks.createBackground(this)
     }
 
-    _showingMap = true
+    _showingMap = false
     get showingMap() { return this._showingMap }
     set showingMap(bool) {
         if (bool === this._showingMap) return bool

@@ -11,8 +11,8 @@ var RULES = Object.freeze({
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
-    NUMBER_OF_TERRITORIES: 61,
-    NUMBER_OF_TEAMS: 6,
+    NUMBER_OF_TERRITORIES: 60,
+    NUMBER_OF_TEAMS: 12,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -43,30 +43,35 @@ var RULES = Object.freeze({
         "y": 491
     },
     PROVINCE_NAMES:
-        ["Alderreach", "Ashmere", "Briarfen", "Brindle", "Caelmoor", "Cindervale", "Corwyn", "Dawnmere", "Dunhollow", "Eldenwatch", "Emberfall", "Fairharbor", "Frostmere", "Glenward", "Goldmarsh", "Grayhaven", "Greenholt", "Highvale", "Ironmere", "Juniper", "Kestrel", "Kingshade", "Larkspur", "Lowfen", "Marrowind", "Moonmere", "Northpass", "Oakrest", "Palehaven", "Pinewatch", "Queenshollow", "Rainmere", "Redfield", "Rimeford", "Riverwake", "Rosefen", "Sablemoor", "Seabrook", "Silverden", "Southwatch", "Stonemere", "Sunreach", "Thornfield", "Timberrun", "Umberfall", "Valecrest", "Westmere", "Whitebarrow", "Wildmere", "Windrest", "Wolfden", "Yarrow", "Zephyr Vale", "Blackharbor", "Copperfen", "Dragonmere", "Eastcliff", "Foxhollow", "Hartmoor", "Mistwood", "Starfen"],
+        ["Alderreach", "Ashmere", "Briarfen", "Brindle", "Caelmoor", "Howder", "Corwyn", "Oakrest", "Dunhollow", "Warrel", "Emberfall", "Fairharbor", "Frostmere", "Glenward", "Goldmarsh", "Haven", "Greenholt", "Highvale", "Ironmere", "Juniper", "Kestrel", "Kingshade", "Larkspur", "Foxhollow", "Sunreach", "Northpass", "Dawnmere", "Palehaven", "Whitebarrow", "Quartz", "Rainmere", "Redfield", "Rimeford", "Riverwake", "Rosefen", "Sablemoor", "Seabrook", "Silverden", "Southwatch", "Stonemere", "Wolfden", "Thornfield", "Timberrun", "Umberfall", "Valecrest", "Haller", "Baden", "Wildmere", "Windrest", "Goldenbay", "Yarrow", "Mistwood", "Blackharbor", "Zawfen", "Dragonmere", "Eastcliff", "Lowfen", "Hartmoor", "Zephyr", "Starfen"],
     PROVINCE_CAPITAL_IDS:
         null,
     PROVINCE_CONNECTIONS:
-        null,
+        [[0, 2, 12, 8], [1, 5, 11, 10], [2, 0, 12, 13], [3, 16, 6, 8], [4, 10, 14, 9], [5, 1, 15, 11], [6, 3, 16, 18], [7, 9, 19, 18], [8, 0, 3, 22, 17, 16], [9, 4, 7, 14, 19, 21], [10, 1, 4, 20, 23, 14], [11, 1, 5, 15, 20], [12, 0, 2, 13, 17], [13, 2, 12, 25, 45], [14, 4, 9, 10, 23, 21], [15, 5, 11, 27, 51], [16, 3, 6, 8, 24, 18, 22], [17, 8, 12, 25, 22], [18, 6, 7, 16, 24, 26, 19], [19, 7, 9, 18, 21, 26], [20, 10, 11, 27, 23, 30], [21, 9, 14, 19, 28, 26, 23, 34], [22, 8, 16, 17, 25, 32, 29, 24], [23, 10, 14, 20, 21, 28, 30], [24, 16, 18, 22, 35, 31, 26, 29], [25, 13, 17, 22, 33, 32], [26, 18, 19, 21, 24, 34, 31], [27, 15, 20, 36, 30], [28, 21, 23, 37, 30, 34], [29, 22, 24, 35, 40, 32], [30, 20, 23, 27, 28, 36, 42, 37], [31, 24, 26, 35, 39, 34, 41], [32, 22, 25, 29, 40, 38, 33], [33, 25, 32, 38], [34, 21, 26, 28, 31, 37, 43, 39], [35, 24, 29, 31, 41, 40], [36, 27, 30, 51, 42], [37, 28, 30, 34, 43, 42, 47], [38, 32, 33, 40, 46, 44], [39, 31, 34, 43, 50, 41], [40, 29, 32, 35, 38, 49, 41, 46], [41, 31, 35, 39, 40, 52, 49, 50], [42, 30, 36, 37, 47, 53], [43, 34, 37, 39, 47, 55, 50], [44, 38, 48, 45, 54], [45, 13, 44, 54], [46, 38, 40, 49, 48], [47, 37, 42, 43, 58, 55], [48, 44, 46, 54, 57], [49, 40, 41, 46, 52, 57], [50, 39, 41, 43, 55, 52], [51, 15, 36, 56, 53], [52, 41, 49, 50], [53, 42, 51, 59, 58, 56], [54, 44, 45, 48, 57], [55, 43, 47, 50, 58], [56, 51, 53, 59], [57, 48, 49, 54], [58, 47, 53, 55, 59], [59, 53, 56, 58]],
     PROVINCE_POSITIONS:
-        [[1192, 119], [136, 133], [1290, 134], [905, 149], [382, 166], [38, 160], [804, 169], [589, 172], [1009, 199], [513, 184], [297, 217], [103, 214], [1240, 215], [1370, 226], [425, 254], [22, 251], [877, 264], [1097, 261], [720, 257], [582, 257], [224, 287], [499, 317], [987, 324], [368, 342], [827, 351], [737, 347], [1073, 360], [638, 363], [199, 380], [440, 408], [902, 425], [311, 445], [689, 445], [994, 439], [1152, 444], [557, 451], [793, 453], [204, 492], [440, 504], [1043, 523], [631, 531], [943, 535], [751, 544], [339, 547], [528, 564], [1290, 556], [1361, 595], [1019, 613], [427, 603], [1212, 610], [875, 616], [634, 628], [105, 625], [774, 635], [219, 667], [1313, 676], [518, 680], [89, 704], [1128, 706], [274, 713], [174, 749]],
+        [[1293, 124], [169, 109], [1411, 155], [993, 198], [459, 211], [84, 151], [883, 219], [669, 220], [1104, 245], [577, 241], [357, 271], [167, 202], [1344, 218], [1473, 239], [484, 302], [81, 247], [973, 308], [1197, 314], [808, 308], [665, 313], [288, 341], [572, 367], [1061, 380], [424, 382], [889, 390], [1198, 409], [693, 413], [258, 434], [487, 468], [987, 470], [362, 500], [758, 495], [1092, 498], [1235, 495], [627, 491], [886, 497], [258, 546], [500, 555], [1168, 577], [712, 579], [1013, 575], [844, 595], [404, 597], [590, 620], [1391, 660], [1480, 694], [1118, 661], [474, 672], [1298, 728], [970, 670], [709, 673], [135, 706], [849, 690], [273, 737], [1412, 775], [588, 720], [104, 782], [1245, 806], [370, 805], [219, 838], [1074, 969]],
     PROVINCE_OWNERSHIP:
         null,
     PROVINCE_BUTTONS_TRANSPARENT:
         true,
     PROVINCE_SHOW_CONNECTIONS:
-        true,
+        false,
 
 
     //to load in from localstorage
-    ...(() => {
-        const mapDataTemp = localStorage.getItem("mapDataTemp")
-        if (!mapDataTemp) return {}
-        return JSON.parse(mapDataTemp).RULES
-    })()
+    ...(/**
+     * @returns {{}}
+     */
+        () => {
+            const mapDataTemp = localStorage.getItem("mapDataTemp")
+            if (!mapDataTemp) return {}
+            return JSON.parse(mapDataTemp).RULES
+        })()
 })
+
 var _RULES_MAX_ATTACKS_ALLOWED = 3
 //#region GRAPHICS.
+
 var GRAPHICS = Object.freeze({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
     ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
@@ -78,9 +83,9 @@ var GRAPHICS = Object.freeze({
     POPUP_DEFENSE_WARNING: "bigRed",
     POPUP_PATIENCE: "smallPink",
     POPUP_START_DEFENSE: "bigBlue",
-    TERRITORY_SIZE_BASE_WIDTH: 140,
-    TERRITORY_SIZE_BASE_HEIGHT: 80,
-    TERRITORY_SIZE_CAPITAL_FACTOR: 1.3,
+    TERRITORY_SIZE_BASE_WIDTH: 100,//140,
+    TERRITORY_SIZE_BASE_HEIGHT: 60,//80,
+    TERRITORY_SIZE_CAPITAL_FACTOR: 1,//its the hitbox only anyways
     PROVINCE_FONTSIZE: 24,
     CONNECTION_LINE_WIDTH: 4,
     SNIPPET_WIDTH: 180,
@@ -90,13 +95,18 @@ var GRAPHICS = Object.freeze({
     SIDE_SCORE_PANEL_WIDTH: 140, //or null
     RIGHT: 360,
     LEFT: 10,
+    TOP: 40,
 
     //to load in from localstorage
-    ...(() => {
-        const mapDataTemp = localStorage.getItem("mapDataTemp")
-        if (!mapDataTemp) return {}
-        return JSON.parse(mapDataTemp).GRAPHICS
-    })()
+    ...(/**
+     * @returns {{}}
+     */
+        () => {
+            const mapDataTemp = localStorage.getItem("mapDataTemp")
+            if (!mapDataTemp) return {}
+            return JSON.parse(mapDataTemp).GRAPHICS
+        })()
+
 })
 
 const MANAGER = {
@@ -137,6 +147,8 @@ class Territory {
         this.id = id
         this.name = name || "prov " + id
         this.value = RULES.TERRITORY_BASE_VALUE
+        /** @type {Kingdom|null} */
+        this.owner = null
         /**@type {Set<Territory} */
         this.connections = new Set()
 
@@ -193,21 +205,18 @@ class Kingdom {
         "yellow",
         "green",
         "brown",
-        "lightblue",
-        "purple",
-        "magenta",
-        "lime",
-        "navy",
-        "teal",
-        "olive",
-        "maroon",
-        "coral",
-        "gold",
         "silver",
+        "purple",
+        "crimson",
+        "lime",
         "indigo",
-        "turquoise",
-        "crimson"
+        "olive", //this is number 12
     ])
+    static defaultRGBs = Object.freeze( //from Kingdom.defaultColors.map(MM.namedColorToRGB)
+        [[0, 255, 255], [255, 192, 203], [255, 165, 0], [255, 255, 0], [0, 128, 0], [165, 42, 42], [192, 192, 192], [128, 0, 128], [220, 20, 60], [0, 255, 0], [75, 0, 130], [128, 128, 0]]
+    )
+
+
 
 
     constructor(id, name) {
@@ -237,11 +246,13 @@ class Kingdom {
         }
         game?.kingdoms?.forEach(x => x.territories.delete(territory))
         this.territories.add(territory)
-        territory.button.color = this.color
+        territory.button.color = this.color //pointless but it can stay
+        territory.owner = this
     }
+
     /**@param {Territory} capital  */
     acquireCapital(capital) {
-        if (this.capital) {
+        if (this.capital !== null) {
             //ditch previous capital
             this.capital.isCapital = false
             this.capital.value = RULES.TERRITORY_BASE_VALUE
@@ -252,7 +263,7 @@ class Kingdom {
         this.capital = capital
         capital.isCapital = true
         capital.value = RULES.CAPITAL_BASE_VALUE
-        capital.name = RULES.CAPITAL_NAMING_FUNCTION(this.capital.name, this.kingdom.name)
+        capital.name = RULES.CAPITAL_NAMING_FUNCTION(this.capital.name, this.name)
         capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
@@ -524,6 +535,7 @@ class Gimmicks {
     static setupBorder() {
         const bot = Button.fromRect(game.rect.splitCell(-1, 1, 5.5, 1))
         const top = Button.fromRect(game.rect.splitCell(1, 1, 20, 1))
+        top.height = GRAPHICS.TOP
         const right = Button.fromRect(game.rect.splitCell(1, -1, 1, 5))
         right.width = GRAPHICS.RIGHT
         right.rightat(game.rect.right)
@@ -560,7 +572,7 @@ class Gimmicks {
         const scaleFactor = RULES.PICTURE_BACKGROUND_SCALEFACTOR
         if (scaleFactor != 1) mapIMG.stretch(scaleFactor, scaleFactor)
         if (RULES.PICTURE_BACKGROUND_CENTER) mapIMG.centeratV(RULES.PICTURE_BACKGROUND_CENTER)
-        game.add_drawable(mapIMG, 2)
+        // game.add_drawable(mapIMG, 2) //is now done by mapster
         game.mapIMG = mapIMG //save for game
 
         return mapIMG
