@@ -1,0 +1,54 @@
+********************************************************************************************************
+Conquest game:
+
+
+
+********************************************************************************************************
+Sugggestions that I plan to implement:
+- Attack reminders.
+- "Formula sheet" button.
+- Ranking displayed more clearly. Possibly with popups.
+- Maximum of 1 attempt submission allowed every 10 seconds to prevent guessing and spamming.
+-
+
+
+********************************************************************************************************
+Suggestions already implemented:
+- Pause and ceasefire features.
+- Better visibility, both for the conflict arrows and in displaying which territory can be attacked.
+- The max number of attacks / team at a time can now be changed from the SERVER, so that the game
+can be started at 1 attack/team and be scaled up once students get the hang of it.
+
+
+
+********************************************************************************************************
+Suggestions under consideration:
+- Consolation mechanic. After losing a battle its question can still be solved to receive some points.
+- Some catch-up mechanism to help kingdoms who have a very low score.
+
+
+
+********************************************************************************************************
+Notable changes:
+1.
+Failing to respond to a THREAT on time no longer results in a loss.
+If the timer runs out it will simply begin the battle instead.
+REASON: If the battle began as soon as the attacker clicked attack it would give them an advantage,
+which why the THREAT/response system exists. The earlier implementation was needlessly punitive.
+
+
+
+
+********************************************************************************************************
+Notable improvements:
+- SERVER-side ui added.
+- Load times.
+- Questions can now be invalidated from SERVER (in case they contain an error).
+
+
+********************************************************************************************************
+Known issues:
+- Some devices (usually laptops) may periodically disconnect.
+- Save/load system is unreliable.
+
+

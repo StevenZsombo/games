@@ -1,27 +1,14 @@
 Ideas and TODOs:
 
-Add many,many,many more territories
-Number of students * 1.5 minimum, preferably even double.
 
-Popup on ranking change
-Make circle when attack available
+
 Make blink when attack available
 
 
-Only 1 attack token at the beginning.
-Add MAXATTACK
-
 Consolation?
 
-Add SERVER commands
-Prevent spam
-
-Better connection visual
-Rounded corners on own territory
 
 
-Add PAUSE
-Add INVALIDATE
 
 Disconnect popup
 Verify disconnect state on {attempt}
