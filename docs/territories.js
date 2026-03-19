@@ -11,7 +11,7 @@ var RULES = Object.freeze({
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
-    NUMBER_OF_TERRITORIES: 24,
+    NUMBER_OF_TERRITORIES: 61,
     NUMBER_OF_TEAMS: 6,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
@@ -19,6 +19,12 @@ var RULES = Object.freeze({
         if (Number.isInteger(solution)) return attempt == solution
         //non-integers must be accurate to 3sf
         return (attempt == solution) || (+attempt.toPrecision(3) == solution)
+    },
+    CAPITAL_NAMING_FUNCTION: (capitalName, kingdomName) => {
+        return `${capitalName}\n${kingdomName}`
+    },
+    CAPITAL_NAMING_UNDO_FUNCTION: (capitalName) => {
+        return capitalName.split("\n")[0]
     },
 
 
@@ -28,24 +34,29 @@ var RULES = Object.freeze({
     SHOW_QUESTION_ID: true,
 
 
-    //EuropeSmall
-    PICTURE_BACKGROUND_MAP: "europeSmall.png", //null for no background //with extension
-    PICTURE_BACKGROUND_DIMENSIONS: [2767, 1509],
-    PICTURE_BACKGROUND_SCALEFACTOR: .6,
+    //Blake
+    PICTURE_BACKGROUND_MAP: "blake.bmp", //null for no background //with extension
+    PICTURE_BACKGROUND_DIMENSIONS: [1769, 1128], //useless
+    PICTURE_BACKGROUND_SCALEFACTOR: 1,
     PICTURE_BACKGROUND_CENTER: {
-        "x": 852.4150814154233,
-        "y": 442.08083182670555
+        "x": 802,
+        "y": 491
     },
     PROVINCE_NAMES:
-        ["Germany", "Estonia", "Hungary", "Spain", "Belgium", "Serbia", "Croatia", "Italy", "France", "Lithuania", "Romania", "Denmark", "Ireland", "North Sea", "Poland", "Sweden", "Norway", "Finland", "Netherlands", "Austria", "UK", "Switzerland", "Bulgaria", "Baltic sea"],
+        ["Alderreach", "Ashmere", "Briarfen", "Brindle", "Caelmoor", "Cindervale", "Corwyn", "Dawnmere", "Dunhollow", "Eldenwatch", "Emberfall", "Fairharbor", "Frostmere", "Glenward", "Goldmarsh", "Grayhaven", "Greenholt", "Highvale", "Ironmere", "Juniper", "Kestrel", "Kingshade", "Larkspur", "Lowfen", "Marrowind", "Moonmere", "Northpass", "Oakrest", "Palehaven", "Pinewatch", "Queenshollow", "Rainmere", "Redfield", "Rimeford", "Riverwake", "Rosefen", "Sablemoor", "Seabrook", "Silverden", "Southwatch", "Stonemere", "Sunreach", "Thornfield", "Timberrun", "Umberfall", "Valecrest", "Westmere", "Whitebarrow", "Wildmere", "Windrest", "Wolfden", "Yarrow", "Zephyr Vale", "Blackharbor", "Copperfen", "Dragonmere", "Eastcliff", "Foxhollow", "Hartmoor", "Mistwood", "Starfen"],
     PROVINCE_CAPITAL_IDS:
-        [22, 3, 6, 9, 12, 15],
+        null,
     PROVINCE_CONNECTIONS:
-        [[0, 21, 18, 19, 14, 11], [1, 17, 9, 10], [2, 5, 10, 14, 19], [3, 8], [4, 18, 21, 8], [5, 2, 22], [6, 19, 7], [7, 6, 19, 8], [8, 3, 4, 7, 21], [9, 1, 14, 23], [10, 1, 2, 22, 14], [11, 0, 16, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 0, 2, 9, 10, 23], [15, 11, 17, 16], [16, 11, 15, 13], [17, 1, 15, 23], [18, 0, 4, 13, 20], [19, 0, 2, 6, 7, 21], [20, 12, 13, 18], [21, 0, 4, 8, 19], [22, 5, 10], [23, 9, 11, 14, 17]],
+        null,
     PROVINCE_POSITIONS:
-        [[737.2140088778591, 386.9817631746404], [1184.7065001007347, 125.16503074436255], [1002.1097849948287, 646.2570118212822], [119.08142868856292, 741.6410795155434], [470.77651409645483, 472.60003767139784], [1104.8291775680777, 792.0264899804923], [876.4898239267231, 761.6195779345396], [688.6779513966698, 764.8636379020109], [416.827832986368, 721.2328116091794], [1049.628299133844, 232.76468738356618], [1222.5895913611394, 643.6379170546372], [668.6698252209144, 200.01590798280117], [60.378962879665124, 311.7806003318707], [457.3869749900348, 186.10387211493347], [1025.4290940133321, 432.29870637340883], [791.057094671127, 61.23217172373759], [604.5162880380033, 74.96092644934883], [998.0968002423044, 61.072314742250995], [517.3310814168656, 331.20792716568155], [865.4519458481152, 540.4850373486893], [308.09995240718285, 323.91555052772947], [615.1343942902904, 617.0960477287038], [1304.9933109784445, 767.4119166229419], [881.9632345020641, 227.1237662283968]],
+        [[1192, 119], [136, 133], [1290, 134], [905, 149], [382, 166], [38, 160], [804, 169], [589, 172], [1009, 199], [513, 184], [297, 217], [103, 214], [1240, 215], [1370, 226], [425, 254], [22, 251], [877, 264], [1097, 261], [720, 257], [582, 257], [224, 287], [499, 317], [987, 324], [368, 342], [827, 351], [737, 347], [1073, 360], [638, 363], [199, 380], [440, 408], [902, 425], [311, 445], [689, 445], [994, 439], [1152, 444], [557, 451], [793, 453], [204, 492], [440, 504], [1043, 523], [631, 531], [943, 535], [751, 544], [339, 547], [528, 564], [1290, 556], [1361, 595], [1019, 613], [427, 603], [1212, 610], [875, 616], [634, 628], [105, 625], [774, 635], [219, 667], [1313, 676], [518, 680], [89, 704], [1128, 706], [274, 713], [174, 749]],
     PROVINCE_OWNERSHIP:
-        [[5, 22, 10, 2], [3, 8, 4, 21], [6, 7, 19, 0], [9, 14, 23, 1], [12, 13, 18, 20], [15, 11, 16, 17]],
+        null,
+    PROVINCE_BUTTONS_TRANSPARENT:
+        true,
+    PROVINCE_SHOW_CONNECTIONS:
+        true,
+
 
     //to load in from localstorage
     ...(() => {
@@ -70,13 +81,15 @@ var GRAPHICS = Object.freeze({
     TERRITORY_SIZE_BASE_WIDTH: 140,
     TERRITORY_SIZE_BASE_HEIGHT: 80,
     TERRITORY_SIZE_CAPITAL_FACTOR: 1.3,
-    PROVINCE_FONTSIZE: 28,
+    PROVINCE_FONTSIZE: 24,
     CONNECTION_LINE_WIDTH: 4,
     SNIPPET_WIDTH: 180,
     SNIPPET_FONTSIZE: 28,
     QUESTION_FONTSIZE: 52,
     BORDER_COLOR: "linen",
     SIDE_SCORE_PANEL_WIDTH: 140, //or null
+    RIGHT: 360,
+    LEFT: 10,
 
     //to load in from localstorage
     ...(() => {
@@ -132,7 +145,7 @@ class Territory {
         this.button.height = GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT
         this.button.fontSize = GRAPHICS.PROVINCE_FONTSIZE
         this.button.outline = 2
-        this.button.dynamicText = () => `${this.name}\n${this.value}`
+        this.button.dynamicText = () => `${this.name}${this.value !== null ? "\n" + this.value : ""}`
         this.button.territory = this
         this.button.on_click = () => {
             Territory.on_click?.(this)
@@ -232,14 +245,14 @@ class Kingdom {
             //ditch previous capital
             this.capital.isCapital = false
             this.capital.value = RULES.TERRITORY_BASE_VALUE
-            this.capital.name = this.capital.name.split("\n")[0]
+            this.capital.name = RULES.CAPITAL_NAMING_UNDO_FUNCTION(this.capital.name)
             this.capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         }
         this.acquireTerritory(capital)
         this.capital = capital
         capital.isCapital = true
         capital.value = RULES.CAPITAL_BASE_VALUE
-        capital.name = `${capital.name}\n(${this.name})`
+        capital.name = RULES.CAPITAL_NAMING_FUNCTION(this.capital.name, this.kingdom.name)
         capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
@@ -512,11 +525,13 @@ class Gimmicks {
         const bot = Button.fromRect(game.rect.splitCell(-1, 1, 5.5, 1))
         const top = Button.fromRect(game.rect.splitCell(1, 1, 20, 1))
         const right = Button.fromRect(game.rect.splitCell(1, -1, 1, 5))
+        right.width = GRAPHICS.RIGHT
+        right.rightat(game.rect.right)
         right.topat(top.bottom)
         right.bottomstretchat(bot.top)
         const left = Button.fromButton(right)
         left.leftat(0)
-        left.width = 20
+        left.width = GRAPHICS.LEFT
             ;[bot, top, left, right].forEach(x => x.color = GRAPHICS.BORDER_COLOR)
         return { bot, top, right, left }
     }
@@ -533,9 +548,15 @@ class Gimmicks {
         const mapIMG = new Button()
         game.cropper.load_img(RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP, (t) => { mapIMG.img = t })
         const { left, right, top, bot } = Gimmicks.setupBorder()
-        mapIMG.resize(...RULES.PICTURE_BACKGROUND_DIMENSIONS)
-        mapIMG.centeratX((left.right + right.left) / 2)
-        mapIMG.centeratY((top.bottom + bot.top) / 2)
+        // mapIMG.resize(...RULES.PICTURE_BACKGROUND_DIMENSIONS)
+        // mapIMG.centeratX((left.right + right.left) / 2)
+        // mapIMG.centeratY((top.bottom + bot.top) / 2)
+        //experimental
+        mapIMG.resize(1000, 1000)
+        // mapIMG.imgScale = 1.5
+        mapIMG.imgScale = 1
+        mapIMG.outline = 0
+        Object.values(game.border).forEach(x => x.outline = 1)
         const scaleFactor = RULES.PICTURE_BACKGROUND_SCALEFACTOR
         if (scaleFactor != 1) mapIMG.stretch(scaleFactor, scaleFactor)
         if (RULES.PICTURE_BACKGROUND_CENTER) mapIMG.centeratV(RULES.PICTURE_BACKGROUND_CENTER)
@@ -545,9 +566,10 @@ class Gimmicks {
         return mapIMG
         //masterMode
         window.mapIMG = mapIMG //save for debug
-        // Button.make_draggable(mapIMG)
+        Button.make_draggable(mapIMG)
         game.territories.forEach(x => x.button.isBlocking = true)
         Gimmicks.setupBorderAndAddToGame(game, "lightblue")
+        return mapIMG
     }
 
 }

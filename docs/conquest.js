@@ -355,7 +355,10 @@ class Game extends GameCore {
                         })
             }
         }
-        this.add_drawable(connectionsDrawableObject, 4)
+        if (RULES.PROVINCE_SHOW_CONNECTIONS) {
+            this.add_drawable(connectionsDrawableObject, 4)
+            this.connectionsDrawableObject = connectionsDrawableObject
+        }
 
         const provinceNamesStored = RULES.PROVINCE_NAMES ?? []
         this.territories.slice(0, provinceNamesStored.length).forEach((x, i) => x.name = provinceNamesStored[i])
@@ -375,6 +378,7 @@ class Game extends GameCore {
         ownership.slice(0, kingdoms.length).forEach((x, i) => {
             x.forEach(u => territories[u] && kingdoms[i].acquireTerritory(territories[u]))
         })
+        this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
 
 
 
@@ -392,7 +396,7 @@ class Game extends GameCore {
 
         const bpos = RULES.PROVINCE_POSITIONS ?? JSON.parse(localStorage.getItem("bpos")) ?? []
         bpos.forEach((u, i) => {
-            buts[i].topleftat(...u)
+            buts[i]?.topleftat(...u)
         })
 
         //control tools
@@ -475,8 +479,8 @@ class Game extends GameCore {
         const statsBot = this.border.bot.copy
         statsBot.color = "linen"
         statsBot.outline = 0
-        statsBot.width = this.mapIMG.width + 4
-        statsBot.leftat(this.mapIMG.left - 2)
+        statsBot.width = this.border.right.left
+        statsBot.leftat(this.border.left.right)
         statsBot.font_font = "myMonospace"
         statsBot.fontSize = 28
         statsBot.textSettings = { textAlign: "left", textBaseline: "middle" }
@@ -588,6 +592,7 @@ class Game extends GameCore {
 
     exportRulesAndGraphics() {
         let r = {}
+        Object.assign(r, RULES)
         r.PICTURE_BACKGROUND_CENTER =
             this.mapIMG.center
         r.PICTURE_BACKGROUND_DIMENSIONS =
@@ -602,7 +607,12 @@ class Game extends GameCore {
             this.territories.map(x => [x.id, ...x.connections.values().map(y => y.id)])
         r.PROVINCE_OWNERSHIP =
             this.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
+        r.PROVINCE_POSITIONS =
+            this.territories.map(x => [x.button.x, x.button.y].map(Math.round))
+        r.PROVINCE_BUTTONS_TRANSPARENT =
+            this.territories[0]?.button.transparent
         let g = {}
+        Object.assign(g, GRAPHICS)
 
         return {
             RULES: r,

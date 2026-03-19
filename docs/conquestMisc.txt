@@ -21,3 +21,93 @@
         PICTURE_BACKGROUND_CENTER: { "x": 544.8571428571428, "y": 409.84676370992304 },
         PROVINCE_NAMES: `["Yunnan","Guangxi","Zhejiang","Shaanxi","Hunan","Guizhou","Fujian","Guangdong","Hubei","Shandong","Jiangxi","Heilongjiang","Xinjiang","Qinghai","Anhui","Jilin","Inner Mongolia","Liaoning","Tibet","Jiangsu","Gansu","Shanxi","Sichuan","Hebei"]`,
     */
+
+
+    ///EuropeSmall
+
+    var RULES = Object.freeze({
+    TERRITORY_BASE_VALUE: 300,
+    CAPITAL_BASE_VALUE: 1000,
+    DEFENSE_GAIN_VALUE: +50,
+    DEFENSE_GAIN_VALUE_FOR_CAPITAL: +100,
+    ATTACK_GAIN_VALUE: +100,
+    ATTACK_GAIN_VALUE_FOR_CAPITAL: +50,
+    get MAX_ATTACKS_ALLOWED() { return _RULES_MAX_ATTACKS_ALLOWED }, //maybe 3? maybe same as team size?
+    TIMEOUT_ON_ATTACK: 30 * 1000, //formerly 1 minute
+    TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
+    TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
+    TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
+    NUMBER_OF_TERRITORIES: 24,
+    NUMBER_OF_TEAMS: 6,
+    CAPITAL_PLUNDER_VALUE: 500,
+    ACCURACY_FUNCTION: (attempt, solution) => {
+        //integers must be exact
+        if (Number.isInteger(solution)) return attempt == solution
+        //non-integers must be accurate to 3sf
+        return (attempt == solution) || (+attempt.toPrecision(3) == solution)
+    },
+
+
+    //technical
+    PICTURE_PATH: "conquest/pictures/",
+    PICTURE_EXTENSION: ".png",
+    SHOW_QUESTION_ID: true,
+
+
+    //EuropeSmall
+    PICTURE_BACKGROUND_MAP: "europeSmall.png", //null for no background //with extension
+    PICTURE_BACKGROUND_DIMENSIONS: [2767, 1509],
+    PICTURE_BACKGROUND_SCALEFACTOR: .6,
+    PICTURE_BACKGROUND_CENTER: {
+        "x": 852.4150814154233,
+        "y": 442.08083182670555
+    },
+    PROVINCE_NAMES:
+        ["Germany", "Estonia", "Hungary", "Spain", "Belgium", "Serbia", "Croatia", "Italy", "France", "Lithuania", "Romania", "Denmark", "Ireland", "North Sea", "Poland", "Sweden", "Norway", "Finland", "Netherlands", "Austria", "UK", "Switzerland", "Bulgaria", "Baltic sea"],
+    PROVINCE_CAPITAL_IDS:
+        [22, 3, 6, 9, 12, 15],
+    PROVINCE_CONNECTIONS:
+        [[0, 21, 18, 19, 14, 11], [1, 17, 9, 10], [2, 5, 10, 14, 19], [3, 8], [4, 18, 21, 8], [5, 2, 22], [6, 19, 7], [7, 6, 19, 8], [8, 3, 4, 7, 21], [9, 1, 14, 23], [10, 1, 2, 22, 14], [11, 0, 16, 15, 23, 13], [12, 20], [13, 11, 20, 18, 16], [14, 0, 2, 9, 10, 23], [15, 11, 17, 16], [16, 11, 15, 13], [17, 1, 15, 23], [18, 0, 4, 13, 20], [19, 0, 2, 6, 7, 21], [20, 12, 13, 18], [21, 0, 4, 8, 19], [22, 5, 10], [23, 9, 11, 14, 17]],
+    PROVINCE_POSITIONS:
+        [[737.2140088778591, 386.9817631746404], [1184.7065001007347, 125.16503074436255], [1002.1097849948287, 646.2570118212822], [119.08142868856292, 741.6410795155434], [470.77651409645483, 472.60003767139784], [1104.8291775680777, 792.0264899804923], [876.4898239267231, 761.6195779345396], [688.6779513966698, 764.8636379020109], [416.827832986368, 721.2328116091794], [1049.628299133844, 232.76468738356618], [1222.5895913611394, 643.6379170546372], [668.6698252209144, 200.01590798280117], [60.378962879665124, 311.7806003318707], [457.3869749900348, 186.10387211493347], [1025.4290940133321, 432.29870637340883], [791.057094671127, 61.23217172373759], [604.5162880380033, 74.96092644934883], [998.0968002423044, 61.072314742250995], [517.3310814168656, 331.20792716568155], [865.4519458481152, 540.4850373486893], [308.09995240718285, 323.91555052772947], [615.1343942902904, 617.0960477287038], [1304.9933109784445, 767.4119166229419], [881.9632345020641, 227.1237662283968]],
+    PROVINCE_OWNERSHIP:
+        [[5, 22, 10, 2], [3, 8, 4, 21], [6, 7, 19, 0], [9, 14, 23, 1], [12, 13, 18, 20], [15, 11, 16, 17]],
+
+    //to load in from localstorage
+    ...(() => {
+        const mapDataTemp = localStorage.getItem("mapDataTemp")
+        if (!mapDataTemp) return {}
+        return JSON.parse(mapDataTemp).RULES
+    })()
+})
+var _RULES_MAX_ATTACKS_ALLOWED = 3
+//#region GRAPHICS.
+var GRAPHICS = Object.freeze({
+    ATTACK_BEFORE_RESPONSE_COLOR: "red",
+    ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
+    POPUP_ATTACK_SUCCESS: "bigBlue",
+    POPUP_ATTACK_FAIL: "bigBlue",
+    POPUP_DEFEND_SUCCESS: "bigBlue",
+    POPUP_DEFEND_FAIL: "bigBlue",
+    POPUP_SERVER_RESPONSE: "bigYellow",
+    POPUP_DEFENSE_WARNING: "bigRed",
+    POPUP_PATIENCE: "smallPink",
+    POPUP_START_DEFENSE: "bigBlue",
+    TERRITORY_SIZE_BASE_WIDTH: 140,
+    TERRITORY_SIZE_BASE_HEIGHT: 80,
+    TERRITORY_SIZE_CAPITAL_FACTOR: 1.3,
+    PROVINCE_FONTSIZE: 28,
+    CONNECTION_LINE_WIDTH: 4,
+    SNIPPET_WIDTH: 180,
+    SNIPPET_FONTSIZE: 28,
+    QUESTION_FONTSIZE: 52,
+    BORDER_COLOR: "linen",
+    SIDE_SCORE_PANEL_WIDTH: 140, //or null
+
+    //to load in from localstorage
+    ...(() => {
+        const mapDataTemp = localStorage.getItem("mapDataTemp")
+        if (!mapDataTemp) return {}
+        return JSON.parse(mapDataTemp).GRAPHICS
+    })()
+})
