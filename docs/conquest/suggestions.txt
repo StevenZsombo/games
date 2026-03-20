@@ -8,8 +8,7 @@ Sugggestions that I plan to implement:
 - Attack reminders.
 - "Formula sheet" button.
 - Ranking displayed more clearly. Possibly with popups.
-- Maximum of 1 attempt submission allowed every 10 seconds to prevent guessing and spamming.
--
+
 
 
 ********************************************************************************************************
@@ -18,6 +17,8 @@ Suggestions already implemented:
 - Better visibility, both for the conflict arrows and in displaying which territory can be attacked.
 - The max number of attacks / team at a time can now be changed from the SERVER, so that the game
 can be started at 1 attack/team and be scaled up once students get the hang of it.
+- If a student submits more than 3 answers within 20 seconds they will be forbidden to submit
+answers for the next 30 seconds to prevent spamming uninformed guesses.
 
 
 

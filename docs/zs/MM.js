@@ -151,7 +151,7 @@ class MM {
     //#region drawArrow
     /**@param {RenderingContext} ctx  */
     static drawArrow(ctx, x, y, u, w, { color = "black", width = 5, size = 10,
-        txt = null, fontSize = 32
+        txt = null, fontSize = 32, textSideFactor = 0.4
     } = {}) {
         ctx.strokeStyle = color
         ctx.fillStyle = color
@@ -178,9 +178,41 @@ class MM {
             ctx.textBaseline = "middle"
             ctx.font = `${fontSize}px mySerif`
             const halfDistVector = [u - x, w - y].map(u => u / 2)
-            const rotated = [halfDistVector[1], -halfDistVector[0]].map(u => u / 3) //close, 1/6 times
+            const rotated = [halfDistVector[1], -halfDistVector[0]].map(u => u * 2 * textSideFactor)
             ctx.fillText(txt, halfDistVector[0] + rotated[0] + x, halfDistVector[1] + rotated[1] + y)
         }
+    }
+    //#endregion
+
+
+    //#region MM.drawRoundedRect
+    static drawRoundedRect(ctx, x, y, width, height, radius, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
+        ctx.globalAlpha = 1 - opacity
+        const drawPath = () => {
+            ctx.beginPath()
+            ctx.moveTo(x + radius, y)
+            ctx.lineTo(x + width - radius, y)
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+            ctx.lineTo(x + width, y + height - radius)
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+            ctx.lineTo(x + radius, y + height)
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+            ctx.lineTo(x, y + radius)
+            ctx.quadraticCurveTo(x, y, x + radius, y)
+            ctx.closePath()
+        }
+        if (color) {
+            drawPath()
+            ctx.fillStyle = color
+            ctx.fill()
+        }
+        if (outline) {
+            drawPath()
+            ctx.strokeStyle = outline_color ?? color
+            ctx.lineWidth = outline
+            ctx.stroke()
+        }
+        ctx.globalAlpha = 1
     }
     //#endregion
     //#region MM.drawPolyLine
@@ -212,7 +244,8 @@ class MM {
         show_axes = true, axes_color = "plum", axes_width = 3,
         show_axes_labels = true, axes_labels_font = "24px mySerif",
         show_dotting = true, dottingDistance = [1, 1], show_grid = true, grid_width = 1, grid_color = "lightgray",
-        opacity = 0 } = {}) {
+        opacity = 0
+    } = {}) {
         density ??= rect.width
         if (show_grid || show_dotting || show_axes_labels) {
             screen.font = axes_labels_font
@@ -478,7 +511,7 @@ class MM {
         }
         return ret
     }
-    static *fibonacci() {
+    static * fibonacci() {
         yield 0n
         let [a, b] = [0n, 1n]
         while (true) {
@@ -1396,6 +1429,82 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         throw "not yet implemented"
     }
 
+
+    //#region vibe
+    /**@param {Array<[number,number]>} graph  @param {number} d - must divide graph.length !!! */
+    static graphRandomPartition(graph, d) {
+        const n = graph.length;
+        const used = new Array(n).fill(false);
+        const partitions = [];
+
+        // Helper: BFS to collect exactly d connected vertices
+        function collectConnected(start, targetSize) {
+            const component = [start];
+            const queue = [start];
+            const inComponent = new Set([start]);
+
+            while (queue.length && component.length < targetSize) {
+                const v = queue.shift();
+                // Shuffle neighbors for randomness
+                const neighbors = [...graph[v]];
+                for (let i = neighbors.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
+                }
+
+                for (const nb of neighbors) {
+                    if (!used[nb] && !inComponent.has(nb) && component.length < targetSize) {
+                        inComponent.add(nb);
+                        component.push(nb);
+                        queue.push(nb);
+                    }
+                }
+            }
+
+            return component;
+        }
+
+        // Try to build partitions greedily
+        for (let attempt = 0; attempt < 100; attempt++) {
+            used.fill(false);
+            partitions.length = 0;
+
+            for (let i = 0; i < n; i++) {
+                if (!used[i]) {
+                    let component = collectConnected(i, d);
+
+                    // If we couldn't get d, try a different starting point
+                    if (component.length < d) {
+                        // Find a better seed
+                        for (let j = 0; j < n && component.length < d; j++) {
+                            if (!used[j]) {
+                                component = collectConnected(j, d);
+                            }
+                        }
+                    }
+
+                    if (component.length === d) {
+                        component.forEach(v => used[v] = true);
+                        partitions.push(component);
+                    }
+                }
+            }
+
+            if (partitions.length === n / d) {
+                console.log(`Found valid partition after ${attempt + 1} attempts`);
+                return partitions;
+            }
+        }
+
+        console.log("Using fallback - some partitions may not be connected");
+        return partitions;
+    }
+
+
+
+
+
+
 }
 //#endregion
 
@@ -1652,7 +1761,8 @@ class GameEffects {
             posFrac: [.5, .9], sizeFrac: [.5, .1], direction: "bottom", travelTime: 500, floatTime: (seconds - .25) * 1000,
             moreButtonSettings: {
                 color: "orange",
-                fontSize: 40
+                fontSize: 40,
+                isBlocking: false
             },
             on_end: on_end
         })
@@ -1730,6 +1840,20 @@ class GameEffects {
         game.add_drawable(menu, 8)
         result.menuButtons = menu
         return result
+    }
+
+    static fullscreenTrickButton(verifyAfter = 3000) {
+        const invis = Button.fromRect(game.rect.copy)
+        invis.visible = false
+        invis.on_click = () => {
+            document.documentElement.requestFullscreen()
+            game.remove_drawable(invis)
+            if (verifyAfter) {
+                setTimeout(() => GameEffects.fullscreenTrickButton(0), verifyAfter)
+            }
+        }
+        game.add_drawable(invis)
+
     }
 
 }

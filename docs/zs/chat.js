@@ -34,7 +34,7 @@ class Chat {
         this.on_join_once = null
         this.on_disconnect = null
         this.on_error = null
-        this.on_issue = null
+        this.on_issue = null // means error or disconnect
 
         this.on_receive = null
         this.on_receive_more = null
@@ -211,34 +211,37 @@ class Chat {
         else if (message.target && message.target !== this.name) { return } //ignore by target (name)
         if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
 
-        if (message.SERVERnameAlreadyExists) this.resetName("A user has already joined with that name, please select a different name.")
-        if (message.SERVERnameOrderedToReset) this.resetName()
-        if (message.SERVERnameForceName) this.forceName(message.SERVERnameForceName)
+        if (message.SERVERnameAlreadyExists != null) this.resetName("A user has already joined with that name, please select a different name.")
+        if (message.SERVERnameOrderedToReset != null) this.resetName()
+        if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
 
-
-        if (message.eval) eval(message.eval)
-        if (message.log) console.log(message.log)
-        if (message.alert) alert(message.alert)
-        if (message.reload) this.silentReload()
-        if (message.orderReload) this.silentReload()
-        if (message.prompt) {
+        if (message.many != null) {
+            many.forEach(x => this.receiveMessage(x, { overrideTargetAndEcho: true }))
+            return
+        }
+        if (message.eval != null) eval(message.eval)
+        if (message.log != null) console.log(message.log)
+        if (message.alert != null) alert(message.alert)
+        if (message.reload != null) this.silentReload()
+        if (message.orderReload != null) this.silentReload()
+        if (message.prompt != null) {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
         }
-        if (message.present) this.sendMessage({ presentResponse: MM.time() })
-        if (message.popup) {
+        if (message.present != null) this.sendMessage({ presentResponse: MM.time() })
+        if (message.popup != null) {
             if (typeof message.popupSettings === 'string') GameEffects.popup(message.popup, {}, message.popupSettings)
             else GameEffects.popup(message.popup, message.popupSettings)
         }
-        if (message.echo) this.receiveEcho(message.echo)
-        if (message.request) this.sendMessage({ requestResponse: eval(message.request) })
+        if (message.echo != null) this.receiveEcho(message.echo)
+        if (message.request != null) this.sendMessage({ requestResponse: eval(message.request) })
 
-        if (message.demand) {
+        if (message.demand != null) {
             MM.require(message, "value")
             MM.setByPath(message.demand, message.value)
             //eval(`${message.demand} = ${message.value}`)
         }
-        if (message.shared) {//not sure if touching this was a good call.
+        if (message.shared != null) {//not sure if touching this was a good call.
             contest.shared[message.shared] = message.value
             contest.on_share?.(message.shared, message.value)
         }

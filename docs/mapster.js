@@ -300,9 +300,7 @@ class Mapster extends OptimizedRecolor {
 
     redrawProvince(provinceIndex, colorIndex) {
         // this.fillDepr(this.indices[provinceIndex], this.colors[colorIndex])
-        if (colorIndex === undefined) return
-        if (colorIndex === null) return
-        const color = this.colors[colorIndex]
+        if (colorIndex == null) return
         this._recolor(provinceIndex, this.imageData, ...this.colors[colorIndex])
         this.ctx.putImageData(this.imageData, 0, 0)
     }

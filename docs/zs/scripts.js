@@ -710,6 +710,18 @@ class Button extends Clickable {
 		}
 		return button
 	}
+	/**@param {Button} button */
+	static make_roundedRect(button) {
+		button.radius ??= Math.min(button.width, button.height) / 3
+		button.draw_background = function (screen) {
+			MM.drawRoundedRect(screen, this.x, this.y, this.width, this.height, this.radius, {
+				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
+			})
+		}
+		button.draw_outline = function () { }
+		//leave collidepoint, whatevs
+		return button
+	}
 
 	/**@param {Button} button @param {customFont} customFontInstance */
 	static make_pixelFont(button, customFontInstance) {

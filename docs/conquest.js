@@ -131,12 +131,14 @@ const PAUSE = () => {
     game.attacksAllowed = false
     spop("Paused.")
     POPUP("The game has been paused!")
+    chat.sendMessage({ eval: "game.pause()" })
 }
 const UNPAUSE = () => {
     game.isPaused = false
     game.attacksAllowed = true
     spop("Unpaused.")
     POPUP("The game continues!")
+    chat.sendMessage({ eval: "game.unpause()" })
 }
 const INVALIDATE = (id) => {
     game.invalidate(id)
@@ -167,7 +169,7 @@ listener.chat.on_join = () => {
 //#endregion
 
 
-
+//did not utilize at all
 const shared = { //can be inquired about if active
     isActive: true,    //false when starting out
 
@@ -207,18 +209,21 @@ const sharedFunc = {
     )),
     //#region conflictsData
     //CDhere
-    conflictsData: () => game.conflicts.filter(x => !x.alreadyResolved).map(/**@param {Conflict} x*/ x => (
-        {
-            from: x.attackingFrom.id,
-            to: x.territory.id,
-            justDeclared: x.justDeclared, //solving is implied
-            fromKD: x.attacker.id,
-            toKD: x.defender.id,
-            timeLeft: x.timeLeft,
-            id: x.id,
-            qID: x.question?.id ?? -1
-        }
-    )),
+    conflictsData: () =>
+        game.isPaused ? [] :
+            // game.conflicts.filter(x => !x.alreadyResolved).map(/**@param {Conflict} x*/ x => (
+            game.conflicts.filter(x => !x.alreadyResolved).map(/**@param {Conflict} x*/ x => (
+                {
+                    from: x.attackingFrom.id,
+                    to: x.territory.id,
+                    justDeclared: x.justDeclared, //solving is implied
+                    fromKD: x.attacker.id,
+                    toKD: x.defender.id,
+                    timeLeft: x.timeLeft,
+                    id: x.id,
+                    qID: x.question?.id ?? -1
+                }
+            )),
     rankingData: () => game.getRanking()
 }
 /**@param {Person} person */
@@ -259,23 +264,29 @@ const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
 const throttleList = new Set()
 window.throttleList = throttleList
 const throttleInterval = setInterval(() => {
-    throttleList.values().forEach(x => SHARE(x))
+    throttleList.values().forEach(x =>
+        x === "bunch" ? SHAREbunch(x) : SHARE(x)
+    )
     throttleList.clear()
 }, 1000)//recheck every second
+const throttleCheckNotTooRecent = (key) => {
+    //broadcast network throttle
+    const lastSent = lastBroadcastDate[key] ?? 0
+    if (Date.now() - lastSent < 600) //600 ms limit per share keyword
+    {
+        throttleList.add(key)
+        return false
+    }
+    lastBroadcastDate[key] = Date.now() //sent naturally, without throttle
+    return true
+}
 
 const SHARE = (key, target) => {
     if (!target) {
-        //broadcast network throttle
-        const lastSent = lastBroadcastDate[key] ?? 0
-        if (Date.now() - lastSent < 600) //600 ms limit per share keyword
-        {
-            throttleList.add(key)
-            return
-        }
-        lastBroadcastDate[key] = Date.now() //sent naturally, without throttle
+        if (!throttleCheckNotTooRecent(key)) return
     }
     const msg = { shared: key }
-    if (target) msg.target = target
+    if (target != null) msg.target = target
     if (shared[key] !== undefined) {
         msg.value = shared[key]
         chat.sendMessage(msg)
@@ -291,6 +302,15 @@ const HARDREFRESH = () => {
     SHARE("kingdomsFullData")
     spop("Hard refresh.")
 }
+const SHAREbunch = (target) => {
+    if (target != null && !throttleCheckNotTooRecent("bunch")) return
+    const list = ["conflictsData", "ownershipData", "valuesData", "rankingData"]
+
+    const msg = { many: list.map(x => ({ shared: sharedFunc[x]() })) }
+    if (target != null) msg.target = target
+    chat.sendMessage(msg)
+}
+
 
 class Game extends GameCore {
     //#region more
@@ -372,7 +392,7 @@ class Game extends GameCore {
         const kingdoms = Array(RULES.NUMBER_OF_TEAMS).fill().map((x, i) => new Kingdom(i))
         const provinceCapitals = RULES.PROVINCE_CAPITAL_IDS ?? []
         kingdoms.slice(0, provinceCapitals.length).forEach((x, i) => {
-            x !== null && territories[provinceCapitals[i]] && x.acquireCapital(territories[provinceCapitals[i]])
+            x != null && territories[provinceCapitals[i]] && x.acquireCapital(territories[provinceCapitals[i]])
         })
         this.kingdoms = kingdoms
         //color territories
@@ -457,7 +477,8 @@ class Game extends GameCore {
 
         const serverButton = switchModeButton.copy
         serverButton.txt = "SERVER"
-        serverButton.on_click = () => {
+        serverButton.on_click = null
+        serverButton.on_release = () => {
             SERVERBUTTON()
         }
         this.add_drawable(serverButton)
@@ -530,7 +551,7 @@ class Game extends GameCore {
                     this.isPaused ? UNPAUSE() : PAUSE()
                 }
             }
-            obj["MAXATTACKS"] = () => {
+            obj[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = () => {
                 GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
                     _RULES_MAX_ATTACKS_ALLOWED = x
                     chat.sendMessage({
@@ -549,7 +570,7 @@ class Game extends GameCore {
                     spop("no conflicts")
                     return
                 }
-                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => INVALIDATE(id)]))
+                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => `Q${INVALIDATE(id)}`]))
 
             }
             obj["DISPLAY"] = DISPLAY
@@ -567,7 +588,7 @@ class Game extends GameCore {
 
 
 
-            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 200, height: 80 })
+            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 250, height: 80 })
 
         }
 
@@ -600,6 +621,9 @@ class Game extends GameCore {
                                 MANAGER[x]()
                             }
                             ])]
+                    ).concat([[
+                        "localStorage.clear()", () => { localStorage.clear(); spop("Cleared.") }
+                    ]]
                     ), null, null, 2, { width: 400, height: 60, fontSize: 28 }
             )
 
@@ -658,7 +682,7 @@ class Game extends GameCore {
         r.PICTURE_BACKGROUND_SCALEFACTOR =
             this.mapIMG.width / this.mapIMG.img.width*/
         r.PROVINCE_NAMES =
-            this.territories.map(x => x.name.split("\n")[0])
+            this.territories.map(x => RULES.CAPITAL_NAMING_UNDO_FUNCTION?.(x.name) ?? x.name)
         r.PROVINCE_CAPITAL_IDS =
             this.kingdoms.map(x => x.capital?.id)
         r.PROVINCE_CONNECTIONS =
@@ -716,26 +740,22 @@ class Game extends GameCore {
         if (this.showingMap)
             for (const c of this.conflicts) {
                 if (c.alreadyResolved) continue
+                const { x, y } = c.attackingFrom.button.center
+                const { x: u, y: w } = c.territory.button.center
+                const v = [u - x, w - y]
+                const p = [x + v[0] * .3, y + v[1] * .3]
+                const q = [x + v[0] * .85, y + v[1] * .85]
                 MM.drawArrow(screen,
-                    c.attackingFrom.button.centerX - 10,
-                    c.attackingFrom.button.centerY - 10,
-                    c.territory.button.centerX + 10,
-                    c.territory.button.centerY + 10,
+                    p[0], p[1], q[0], q[1],
                     {
                         color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color),
-                        width: 10, size: 30,
+                        width: 5, size: 12,
                         txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null,
-                        fontSize: 28
+                        fontSize: 24
 
                     }
                 )
-                //debugging timer
-                /*MM.drawText(screen,
-                    MM.toMMSS(c.timeLeft), c.attackingFrom.button.copy.move(
-                        (c.territory.button.centerX - c.attackingFrom.button.centerX) * .3,
-                        (c.territory.button.centerY - c.attackingFrom.button.centerY) * .3
-                    ), { fontSize: 20, color: "red" }
-                )*/
+
 
             }
 
@@ -936,7 +956,18 @@ class Game extends GameCore {
         }
 
     }
-
+    /**
+    * @typedef {Object} SaveObj
+    * @property {number[]} territories - array of respective values
+    * @property {{seenQuestions:number[],territories:number[],name:string,color:string,membersNames:string}} kingdoms - membersNames is just for debugging
+    * @property {number} conflictsHistoryCount - important to restore conflicts to their original id
+    * @property {{attacker:number,territory:number,justDeclared:boolean,solving:boolean,question:number|null,alreadyResolved:boolean,timeLeft:number,id:number}} conflicts - id will NOT start from 0
+    * @property {number} MAX_ATTACKS_ALLOWED
+    * @property {Object} questionRecord from Question.records
+    * 
+    * @property {number} timestamp - for debugging
+    * @property {string} timestampHHMMSS - for debugging
+    */
     saveGame(saveName = "conquestManual",
         backups = 10 //write to text file instead?
     ) {
@@ -944,6 +975,7 @@ class Game extends GameCore {
         //kingdoms and territories will override
         //conflicts will be reconstructed
         //conflictsHistory may be lost, but whatever
+        /**@type {SaveObj}*/
         const saveObj = {
             territories: this.territories.map((x, i) => {
                 return {
@@ -982,7 +1014,10 @@ class Game extends GameCore {
 
                 }
             }),
-            questionRecord: Question.record
+            MAX_ATTACKS_ALLOWED: RULES.MAX_ATTACKS_ALLOWED,
+            questionRecord: Question.record,
+            timestamp: Date.now(),
+            timestampHHMMSS: MM.time()
         }
         const str = JSON.stringify(saveObj)
         try { localStorage.setItem(saveName, str) }
@@ -997,6 +1032,7 @@ class Game extends GameCore {
     }
 
     loadGame(saveName = "conquestManual") {
+        /**@type {SaveObj} */
         const saveObj = JSON.parse(localStorage.getItem(saveName))
         if (!saveObj) {
             console.error("No save was found", this)
@@ -1018,6 +1054,8 @@ class Game extends GameCore {
             // k.acquireCapital(this.territories[x.capital])//unchanging. so this is pointless!
         })
         this.conflictsHistoryCount = saveObj.conflictsHistoryCount //IMPORTANT
+        //ditch all current conflicts lol
+        this.conflicts.length = 0
         saveObj.conflicts.forEach((x, i) => {
             //beginAttack would probably have index issues, better override
             const c = new Conflict(
@@ -1032,6 +1070,7 @@ class Game extends GameCore {
             this.conflicts.push(c)
         })
         Question.record = saveObj.questionRecord
+        _RULES_MAX_ATTACKS_ALLOWED = saveObj.MAX_ATTACKS_ALLOWED
     }
 
 
@@ -1144,6 +1183,21 @@ const dev = {
                 get() { return x.connections.size }
             })
         })
+    },
+    randomize: () => {
+        game.territories.forEach(x => MM.choice(game.kingdoms).acquireTerritory(x))
+    },
+    randomConn: () => {
+        if (game.territories.length % game.kingdoms.length) throw "nr teams does not divide nr provinces"
+        const graph = game.territories.map(x => [...x.connections.values().map(x => x.id)])
+        const pieces = MM.graphRandomPartition(
+            graph
+            ,
+            game.territories.length / game.kingdoms.length
+        )
+        console.log(graph)
+        console.log(pieces)
+        pieces.forEach((x, i) => x.forEach(u => game.kingdoms[i].acquireTerritory(game.territories[u])))
     }
 
 }/// end of dev

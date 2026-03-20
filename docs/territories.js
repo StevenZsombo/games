@@ -11,8 +11,9 @@ var RULES = Object.freeze({
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
+    SUBMIT_COOLDOWN: 10 * 1000,
     NUMBER_OF_TERRITORIES: 60,
-    NUMBER_OF_TEAMS: 12,
+    NUMBER_OF_TEAMS: 8,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -21,10 +22,12 @@ var RULES = Object.freeze({
         return (attempt == solution) || (+attempt.toPrecision(3) == solution)
     },
     CAPITAL_NAMING_FUNCTION: (capitalName, kingdomName) => {
-        return `${capitalName}\n${kingdomName}`
+        return capitalName.toUpperCase()
+        // return `${capitalName}\n${kingdomName}`
     },
     CAPITAL_NAMING_UNDO_FUNCTION: (capitalName) => {
-        return capitalName.split("\n")[0]
+        return capitalName[0] + capitalName.slice(1).toLowerCase()
+        // return capitalName.split("\n")[0]
     },
 
 
@@ -134,7 +137,7 @@ const MANAGER = {
 }
 
 var MASTER = Object.freeze({
-    ALLOW_SCREENSHOTS: true,
+    ALLOW_SCREENSHOTS: false,
     ALLOW_PASTING: true
 })
 
@@ -254,7 +257,7 @@ class Kingdom {
 
     /**@param {Territory} capital  */
     acquireCapital(capital) {
-        if (this.capital !== null) {
+        if (this.capital != null) {
             //ditch previous capital
             this.capital.isCapital = false
             this.capital.value = RULES.TERRITORY_BASE_VALUE
@@ -269,6 +272,9 @@ class Kingdom {
         capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
+        // Make it rounded!
+        Button.make_roundedRect(capital.button)
+        capital.button.transparent = false
 
     }
 
@@ -336,7 +342,7 @@ class Conflict {
         this.solving = true
         const availableQuestions =
             Question.ALL.filter(x =>
-                Question.INVALID_IDS.has(x.id)
+                !Question.INVALID_IDS.has(x.id)
                 &&
                 !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
         if (!availableQuestions.length) {
@@ -430,7 +436,7 @@ class Conflict {
         }
         console.log(reason, this.attacker.name, this.territory.name)
         this.territory.value += RULES.ATTACK_GAIN_VALUE
-        this.attacker.capital.value += RULES.ATTACK_GAIN_VALUE_FOR_CAPITAL
+        this.attacker.capital && (this.attacker.capital.value += RULES.ATTACK_GAIN_VALUE_FOR_CAPITAL)
         this.attacker.acquireTerritory(this.territory)
         //notify attackers of victory
         const short = this.territory.nameShort
@@ -454,7 +460,7 @@ class Conflict {
     winDefend(reason) {
         console.log(reason, this.defender.name, this.territory.name)
         this.territory.value += RULES.DEFENSE_GAIN_VALUE
-        this.defender.capital.value += RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL
+        this.defender.capital && (this.defender.capital.value += RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL)
         //notify defenders of victory
         const short = this.territory.nameShort
         this.defender.members.forEach(x =>
@@ -476,7 +482,8 @@ class Conflict {
     }
 
     timeoutWithoutAccept() {
-        this.winAttack("timeout on attack")
+        // this.winAttack("timeout on attack") //no longer a win
+        this.accept()
 
     }
 
@@ -489,10 +496,7 @@ class Conflict {
         this.solving = false
         this.alreadyResolved = true
         this.territory.isUnderAttack = false
-        SHARE("conflictsData")
-        SHARE("ownershipData")
-        SHARE("valuesData")
-        SHARE("rankingData")
+        SHAREbunch()
     }
     /**
      * 
@@ -578,6 +582,7 @@ class Gimmicks {
         // mapIMG.imgScale = 1.5
         mapIMG.imgScale = 1
         mapIMG.outline = 0
+        mapIMG.tag = "mapIMG"
         Object.values(game.border).forEach(x => x.outline = 1)
         const scaleFactor = RULES.PICTURE_BACKGROUND_SCALEFACTOR
         if (scaleFactor != 1) mapIMG.stretch(scaleFactor, scaleFactor)

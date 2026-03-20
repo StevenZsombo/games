@@ -64,6 +64,19 @@ class Game extends GameCore {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
 
+    pause() {
+        setFocus("map")
+        const blocker = this.bot.copy
+        blocker.color = "white"
+        blocker.txt = "PAUSED".split("").join("  ")
+        blocker.isBlocking = true
+        this.add_drawable(blocker)
+    }
+
+    unpause() {
+        this.remove_drawable(this.blocker)
+    }
+
     kingdomSelect() {
         const top = Button.fromRect(game.rect.copy.splitCell(1, 1, 4, 1))
         top.txt = "Select your kingdom:"
@@ -159,6 +172,11 @@ class Game extends GameCore {
             //CDhere
             if (shared == "conflictsData") {
                 this.territoriesUnderAttack = new Set(value.map(x => x.to))//id of the place
+                console.log(this.territoriesUnderAttack)
+                this.canAttackList = Array.from(
+                    myKingdomObject.territories.values().flatMap(x => x.connections)//neighbouring
+                        .filter(x => !myKingdomObject.territories.has(x))//is not your own
+                        .filter(x => !this.territoriesUnderAttack.has(x.id)))
                 value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
@@ -215,7 +233,7 @@ class Game extends GameCore {
         chat.sendSecure({ inquire: "territoriesFullData" })
         chat.sendSecure({ inquire: "kingdomsFullData" })
 
-
+        //#region init_after_basics
         const init_after_basics = () => {
             let border = Gimmicks.setupBorder()
             const { top, bot, left, right } = border
@@ -255,7 +273,7 @@ class Game extends GameCore {
             Snippet.bgDefault.topat(bot.top)
             Snippet.bgDefault.leftat(bot.left + 20)
 
-            this.add_drawable(Object.values(border), 3)
+            this.add_drawable([bot, left, right, top, bot], 3)
             border.forEach(x => {
                 x.outline = 0
             })
@@ -301,6 +319,13 @@ class Game extends GameCore {
             QPane.calculatorSpaceDefault = right.copy
 
 
+            /*const fullscreenButton = new Button({ width: 150, height: 30, txt: "FULLSCREEN" })
+            fullscreenButton.bottomat(bot.top)
+            fullscreenButton.rightat(game.rect.right)
+            this.add_drawable(fullscreenButton)
+            fullscreenButton.on_click = () => MM.toggleFullscreen()
+*/
+
 
             mapster = new Mapster(
                 Kingdom.defaultRGBs.slice(0, RULES.NUMBER_OF_TEAMS),
@@ -313,6 +338,8 @@ class Game extends GameCore {
                 }
             )
             this.add_drawable(mapster, 2)
+
+            this.afterEverythingHasLoaded()
 
         }
 
@@ -329,6 +356,33 @@ class Game extends GameCore {
             }
         }
         this.add_drawable(connectionsDrawableObject, 4)
+        this.connectionsDrawableObject = connectionsDrawableObject
+        const arrowsDrawableObject = {
+            draw: (screen) => {
+                if (this.showingMap)
+                    if (this.territories?.length && this.kingdoms?.length && contest?.shared?.conflictsData)
+                        for (const c of contest?.shared?.conflictsData) {
+                            if (c.alreadyResolved) continue
+                            const { x, y } = this.territories[c.from].button.center
+                            const { x: u, y: w } = this.territories[c.to].button.center
+                            const v = [u - x, w - y]
+                            const p = [x + v[0] * .3, y + v[1] * .3]
+                            const q = [x + v[0] * .85, y + v[1] * .85]
+                            MM.drawArrow(screen,
+                                p[0], p[1], q[0], q[1],
+                                {
+                                    color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(this.kingdoms[c.fromKD].color),
+                                    width: 6, size: 24,
+                                    // txt: MM.toMMSS(c.timeLeft) //too buggy.
+                                }
+                            )
+
+                        }
+            }
+        }
+        this.arrowsDrawableObject = arrowsDrawableObject
+        this.add_drawable(arrowsDrawableObject)
+
         if (!RULES.PROVINCE_BUTTONS_TRANSPARENT) {
             const highlightOwnProvincesDrawableObject = {
                 lineWidth: 10, //interesting
@@ -373,15 +427,6 @@ class Game extends GameCore {
         this.snippetUpdateClockwork = setInterval(
             () => {
                 snippets.forEach(x => x.update(1000))
-                if (!myKingdomObject) return
-                this.canAttackList = Array.from(
-                    myKingdomObject.territories.values().flatMap(x => x.connections)//neighbouring
-                        .filter(x => !myKingdomObject.territories.has(x))//is not your own
-                        .filter(x => !this.territoriesUnderAttack.has(x)))//is not under attack
-                if (this.canAttackList.length > 0) {
-                    //animated circle via attackCircleDrawableObject
-
-                }
 
             },
             1000)
@@ -404,12 +449,12 @@ class Game extends GameCore {
             update: (dt) => {
                 if (!this.showingMap) return
                 attackCircleDrawableObject.size += dt * attackCircleDrawableObject.growthRate
-                if (attackCircleDrawableObject.size > 40 || attackCircleDrawableObject.size < 30)
+                if ((attackCircleDrawableObject.size > 40) || (attackCircleDrawableObject.size < 30))
                     attackCircleDrawableObject.growthRate *= -1
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
-        this.add_drawable(attackCircleDrawableObject)
+        this.add_drawable(attackCircleDrawableObject, 6)
 
 
         this._showingMap = true
@@ -424,6 +469,17 @@ class Game extends GameCore {
         this.buts.forEach(x => x.activeState = bool)
         this.attackButton.activeState = false //always false.
         return bool
+    }
+
+    afterEverythingHasLoaded() {
+        window.BROWSERshowLoading.remove()
+        window.BROWSERshowLoading = null
+
+        GameEffects.fullscreenTrickButton(5000)
+
+        //MM.toggleFullscreen(true)
+        //can only be initiated by user gesture, sadly.
+
     }
 
     //#endregion
@@ -454,26 +510,6 @@ class Game extends GameCore {
     //#region draw_more
 
     draw_more(screen) {
-        if (this.showingMap)
-            if (this.territories?.length && this.kingdoms?.length && contest?.shared?.conflictsData)
-                for (const c of contest?.shared?.conflictsData) {
-                    if (c.alreadyResolved) continue
-                    MM.drawArrow(screen,
-                        this.territories[c.from].button.centerX - 10,
-                        this.territories[c.from].button.centerY - 10,
-                        this.territories[c.to].button.centerX + 10,
-                        this.territories[c.to].button.centerY + 10,
-                        {
-                            color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(this.kingdoms[c.fromKD].color),
-                            width: 10, size: 30,
-                            // txt: MM.toMMSS(c.timeLeft) //too buggy.
-                        }
-                    )
-
-                }
-
-
-
 
 
 
@@ -586,8 +622,12 @@ class Snippet {
 
     update(dt) {
         this.confD.timeLeft -= dt
-        if (this.confD.timeLeft <= 0) {
+        /*if (this.confD.timeLeft <= 0) {
             this.destroy()
+            return
+        }*/
+        if (this.confD.timeLeft <= 0) { //for proper 0:00 display, no -0:01
+            this.confD.timeLeft = 0
             return
         }
         if (this.confD.justDeclared && this.confD.toKD === myKingdomID) //blink red if it is a threat!
@@ -702,8 +742,24 @@ class QPane extends Panel {
         this.components.push(...calculatorButtons)
 
 
+        this.submissionTimestamps = []
+        this.submissionCooldown = 1000
         ansSubmitButton.on_click = () => {
             if (this.guess == "") return //do not send empty
+
+            //prevent spam
+            if (Date.now() - this.submissionTimestamps.at(-1) < this.submissionCooldown) {
+                return
+            }
+            if (this.submissionTimestamps.length >= 2//third attempt
+                &&
+                Date.now() - this.submissionTimestamps.at(-2) < 20 * 1000) {//within 10s
+                this.submissionCooldown = 30 * 1000
+                GameEffects.countdown("Too many attempts in a short time.\nCannot make any more submissions for: ", 30,
+                    () => { this.submissionCooldown = 1000 }
+                )
+                return
+            }
             if (!chat.isConnected) {
                 GameEffects.popup(
                     `Unable to connect.\nAsk the teacher for help.`,
@@ -715,9 +771,8 @@ class QPane extends Panel {
                 guess: +this.guess //send as number
             })
 
-            this.guess = "" //to prevent spam a bit
-            //to prevent spam fully
-            game.animator.add_anim(Anim.setter(ansSubmitButton, 1000, ["txt", "interactable"], ["Submitting...", false]))
+            game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."]))
+
         }
 
         if (RULES.SHOW_QUESTION_ID) {

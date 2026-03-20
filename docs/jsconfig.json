@@ -12,6 +12,5 @@
         "./sketch*.js",
         "./zs/sketch*.js",
         "server.js",
-        "conquest.js"
     ]
 }
