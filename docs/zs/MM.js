@@ -1626,7 +1626,8 @@ class GameEffects {
         leftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
         leftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
         leftPink: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
-        redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 }
+        redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 },
+        sideError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .88], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 32 } }
 
 
     }

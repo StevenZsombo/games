@@ -486,7 +486,7 @@ class Game extends GameCore {
         statsBot.leftat(this.border.left.right)
         statsBot.font_font = "myMonospace"
         statsBot.fontSize =
-            RULES.NUMBER_OF_TEAMS <= 6 ? 48 : 22
+            RULES.NUMBER_OF_TEAMS <= 6 ? 36 : 22
         statsBot.textSettings = { textAlign: "left", textBaseline: "middle" }
         this.statsBot = statsBot
         this.add_drawable(statsBot, 4)
@@ -531,7 +531,7 @@ class Game extends GameCore {
                 }
             }
             obj["MAXATTACKS"] = () => {
-                GameEffects.dropDownMenu([1, 2, 3, 4, 5].map(x => [x, () => {
+                GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
                     _RULES_MAX_ATTACKS_ALLOWED = x
                     chat.sendMessage({
                         popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
@@ -558,7 +558,11 @@ class Game extends GameCore {
             obj["HARDREFRESH"] = HARDREFRESH
             obj["RELOAD"] = RELOAD
             if (this.attacksAllowed || this.isPaused) {
-                obj["END"] = () => GameEffects.dropDownMenu({ "Sure?": () => { }, "Yes": () => { hq.startContest(); spop("Contest started") } })
+                obj["END"] = () => GameEffects.dropDownMenu({
+                    "Sure?": () => { },
+                    "Yes": () => { hq.startContest(); spop("Contest started") },
+                    "No": () => { },
+                })
             }
 
 
@@ -908,14 +912,28 @@ class Game extends GameCore {
             v.bottomat(b.bottom + 150)
             v.dynamicText = null
             v.textSettings = null
-            v.dynamicText = () => this.getKingdomTotalValue(k)
+            v.dynamicText = () => `${k.name} ${this.getKingdomTotalValue(k)}`
             valCols.push(v)
 
         })
+        Rect.packArray(valCols, cols.map((x, i) =>
+            x.copy.resize(cols[i].width, valCols[i].height).stretch(1, .8).bottomat(cols[i].bottom)
+        ), true)
+
 
         sc.components.push(...cols, ...valCols)
         sc.deactivate()
         this.add_drawable(sc)
+
+        if (cols.length > 6) {
+            Rect.packArray(cols,
+                this.border.middle.copy.rightstretchat(this.rect.right).splitGrid(2, 6).flat(), true
+            )
+            cols.forEach(x => x.deflate(20, 20))
+            Rect.packArray(valCols, cols.map((x, i) =>
+                x.copy.resize(cols[i].width, valCols[i].height).stretch(1, .8).bottomat(cols[i].bottom)
+            ), true)
+        }
 
     }
 
@@ -969,7 +987,7 @@ class Game extends GameCore {
         const str = JSON.stringify(saveObj)
         try { localStorage.setItem(saveName, str) }
         catch (err) { console.error(err) }
-        try { Cropper.downloadText(str) }
+        try { Cropper.downloadText(str, saveName) }
         catch (err) { console.error(err) }
         try { if (backups) MM.localStorageBackup(saveName, backups) }
         catch (err) { console.error(err) }

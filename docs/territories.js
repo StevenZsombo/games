@@ -35,12 +35,12 @@ var RULES = Object.freeze({
 
 
     //Blake
-    PICTURE_BACKGROUND_MAP: "blake.bmp", //null for no background //with extension
-    PICTURE_BACKGROUND_DIMENSIONS: [1769, 1128], //useless
+    PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension
+    PICTURE_BACKGROUND_DIMENSIONS: [1560, 840],
     PICTURE_BACKGROUND_SCALEFACTOR: 1,
     PICTURE_BACKGROUND_CENTER: {
-        "x": 802,
-        "y": 491
+        "x": 785,
+        "y": 460
     },
     PROVINCE_NAMES:
         ["Alderreach", "Ashmere", "Briarfen", "Brindle", "Caelmoor", "Howder", "Corwyn", "Oakrest", "Dunhollow", "Warrel", "Emberfall", "Fairharbor", "Frostmere", "Glenward", "Goldmarsh", "Haven", "Greenholt", "Highvale", "Ironmere", "Juniper", "Kestrel", "Kingshade", "Larkspur", "Foxhollow", "Sunreach", "Northpass", "Dawnmere", "Palehaven", "Whitebarrow", "Quartz", "Rainmere", "Redfield", "Rimeford", "Riverwake", "Rosefen", "Sablemoor", "Seabrook", "Silverden", "Southwatch", "Stonemere", "Wolfden", "Thornfield", "Timberrun", "Umberfall", "Valecrest", "Haller", "Baden", "Wildmere", "Windrest", "Goldenbay", "Yarrow", "Mistwood", "Blackharbor", "Zawfen", "Dragonmere", "Eastcliff", "Lowfen", "Hartmoor", "Zephyr", "Starfen"],
@@ -83,6 +83,7 @@ var GRAPHICS = Object.freeze({
     POPUP_DEFENSE_WARNING: "bigRed",
     POPUP_PATIENCE: "smallPink",
     POPUP_START_DEFENSE: "bigBlue",
+    POPUP_ERROR: "sideError",
     TERRITORY_SIZE_BASE_WIDTH: 100,//140,
     TERRITORY_SIZE_BASE_HEIGHT: 60,//80,
     TERRITORY_SIZE_CAPITAL_FACTOR: 1,//its the hitbox only anyways
@@ -96,6 +97,7 @@ var GRAPHICS = Object.freeze({
     RIGHT: 360,
     LEFT: 10,
     TOP: 40,
+    BOT: 200,
 
     //to load in from localstorage
     ...(/**
@@ -535,6 +537,8 @@ class Gimmicks {
     static setupBorder() {
         const bot = Button.fromRect(game.rect.splitCell(-1, 1, 5.5, 1))
         const top = Button.fromRect(game.rect.splitCell(1, 1, 20, 1))
+        bot.height = GRAPHICS.BOT
+        bot.bottomat(game.rect.height)
         top.height = GRAPHICS.TOP
         const right = Button.fromRect(game.rect.splitCell(1, -1, 1, 5))
         right.width = GRAPHICS.RIGHT
@@ -545,7 +549,13 @@ class Gimmicks {
         left.leftat(0)
         left.width = GRAPHICS.LEFT
             ;[bot, top, left, right].forEach(x => x.color = GRAPHICS.BORDER_COLOR)
-        return { bot, top, right, left }
+        const middle = new Button()
+        middle.leftat(left.right)
+        middle.rightstretchat(right.left)
+        middle.topat(top.bottom)
+        middle.bottomstretchat(bot.top)
+
+        return { bot, top, right, left, middle }
     }
 
     static setupBorderAndAddToGame(game, color) {

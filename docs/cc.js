@@ -704,10 +704,17 @@ class QPane extends Panel {
 
         ansSubmitButton.on_click = () => {
             if (this.guess == "") return //do not send empty
+            if (!chat.isConnected) {
+                GameEffects.popup(
+                    `Unable to connect.\nAsk the teacher for help.`,
+                    GRAPHICS.POPUP_ERROR)
+                return
+            }
             chat.sendSecure({
                 attempt: this.id,
                 guess: +this.guess //send as number
             })
+
             this.guess = "" //to prevent spam a bit
             //to prevent spam fully
             game.animator.add_anim(Anim.setter(ansSubmitButton, 1000, ["txt", "interactable"], ["Submitting...", false]))

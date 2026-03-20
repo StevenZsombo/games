@@ -87,7 +87,7 @@ class Chat {
         }
     }
 
-    isConnected() {
+    get isConnected() {
         return this.socket.readyState === WebSocket.OPEN
     }
 
