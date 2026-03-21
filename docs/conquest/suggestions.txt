@@ -4,10 +4,12 @@ Conquest game:
 
 
 ********************************************************************************************************
-Sugggestions that I plan to implement:
+Sugggestions that I plan to implement + planned features:
 - Attack reminders.
-- "Formula sheet" button.
-- Ranking displayed more clearly. Possibly with popups.
+
+- Map editor.
+- Question bank verifier.
+- No-code post game analysis
 
 
 
@@ -17,15 +19,18 @@ Suggestions already implemented:
 - Better visibility, both for the conflict arrows and in displaying which territory can be attacked.
 - The max number of attacks / team at a time can now be changed from the SERVER, so that the game
 can be started at 1 attack/team and be scaled up once students get the hang of it.
-- If a student submits more than 3 answers within 20 seconds they will be forbidden to submit
-answers for the next 30 seconds to prevent spamming uninformed guesses.
+- If a student submits many attempts in a short time they will be forbidden to do so for 30 seconds.
+- Students will be notified of connection failure when submitting answers.
+- Loading screen added.
 
 
 
 ********************************************************************************************************
 Suggestions under consideration:
-- Consolation mechanic. After losing a battle its question can still be solved to receive some points.
+- Consolation mechanic. After losing a battle its question could still be solved to receive some points.
 - Some catch-up mechanism to help kingdoms who have a very low score.
+- Popups when rankings change. I am hesitant - it might be overwhelming. Also, the teacher can just
+make the announcement themselves, that is a lot more impactful than a popup block.
 
 
 
@@ -45,11 +50,33 @@ Notable improvements:
 - SERVER-side ui added.
 - Load times.
 - Questions can now be invalidated from SERVER (in case they contain an error).
+- Much more reliable load/save for both manual and autosaves.
+
+- More detailed bucket system.
+- Massively increased game stability: WSS issues should no longer cause game failure.
+
+- Graphics. I mean just look at them. Pretty.
+
+
+
+********************************************************************************************************
+Suggestions rejected:
+- Giving different questions on the same conflict to each team.
+REASON: technical limitations (my system was explicitly set up to assume that the two questions will be
+the same) + I believe it is unnnecessary for game balance. "There is bigger fish to fry", as in: the 
+strongest teams' optimal strategy is to attack each other because they are each other's greatest threat 
+to victory. Bullying those at the rear  end of the rankings would be a poor strategy eventually punished
+by losing lead dinamycally.
 
 
 ********************************************************************************************************
 Known issues:
-- Some devices (usually laptops) may periodically disconnect.
-- Save/load system is unreliable.
+- Some devices (usually laptops) may periodically disconnect. Fullscreen should help with this.
+- Attack circle animations stop when focus is lost. Feature, or bug?
+- Server privileges might be granted to anyone who joins the server URL.
+- Submission ban can be bypassed by switching to another question or reloading the game.
+
+
+
 
 

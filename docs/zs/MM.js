@@ -1332,12 +1332,13 @@ class MM {
     static exportJSON(data, filename = "data.json", alsoAlert = false) {
         if (alsoAlert)
             alert(`Your browser will now download a file called ${filename}.\nYou can later use this file to transfer all your data to a different device or browser.`)
-
-        const a = document.createElement("a")
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }))
-        a.download = filename
-        a.click()
-        a.remove()
+        try {
+            const a = document.createElement("a")
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }))
+            a.download = filename
+            a.click()
+            a.remove()
+        } catch (err) { console.error(err) }
     }
 
     static importJSON(alsoAlert = false) {

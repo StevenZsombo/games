@@ -138,7 +138,9 @@ const MANAGER = {
 
 var MASTER = Object.freeze({
     ALLOW_SCREENSHOTS: false,
-    ALLOW_PASTING: true
+    ALLOW_PASTING: true,
+    AUTOSAVE_INTERVAL_SECONDS: 59,
+    SCREENSHOT_INTERVAL_SECONDS: 19
 })
 
 
@@ -235,9 +237,10 @@ class Kingdom {
 
         /**@type {Set<Question} */
         this.seenQuestions = new Set()
+        /**@type {Set<Question} */
+        this.solvedQuestions = new Set()
         /**@type {Set<Person>} */
         this.members = new Set()
-        this.solvedCount = 0
 
     }
 
@@ -316,8 +319,22 @@ class Conflict {
         this.timeLeft = RULES.TIMEOUT_ON_ATTACK
         game.conflictsHistoryCount += 1
         this.id = game.conflictsHistoryCount
+
+        Conflict.record.push({ id: this.id, from: this.attacker.id, to: this.defender.id, where: this.territory.name, when: MM.time() })
         return this
     }
+
+    //Conflict.record
+    /**
+     * @type {{
+     * id:number,
+     * from:number,
+     * to:number,
+     * where:string
+     * when:number
+     * }[]} 
+     * */
+    static record = []
 
     static checkValidity(attacker, territory) {
         //attacker has a neighbouring territory to the target
@@ -334,38 +351,41 @@ class Conflict {
 
     }
 
+    pickQuestion() {
+        for (let bucket of Question.BUCKETS) {
+            const inthebucket = bucket.map(i => Question.ALL[i]) //BUCKET has id, here work with question
+            const unseenbyboth = inthebucket.filter(x =>
+                !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
+            if (unseenbyboth.length) return MM.choice(unseenbyboth)
+        }
+        //if no unseen question -> fallback to unsolved
+        for (let bucket of Question.BUCKETS) {
+            const inthebucket = bucket.map(i => Question.ALL[i])
+            const unsolvedbyboth = inthebucket.filter(x =>
+                !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x)
+            )
+            if (unsolvedbyboth.length) return MM.choice(unsolvedbyboth)
+        }
+        //if fully exhausted, return null. conflict.accept will resolve the conflict and send a message
+        return null
+    }
 
     /**@returns {Boolean} was accepting succesful? */
     accept() {
         if (this.solving) return false //can only accept once. then it is free game
         this.justDeclared = false
         this.solving = true
-        const availableQuestions =
-            Question.ALL.filter(x =>
-                !Question.INVALID_IDS.has(x.id)
-                &&
-                !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
-        if (!availableQuestions.length) {
+        const qSel = this.pickQuestion()
+        if (qSel === null) { //no question could be selected whatsover
             console.error("out of questions!!!!")
-            GameEffects.popup(`Out of questions: ${this.attacker.name} & ${this.defender.name}!` +
-                `\nSad.`, { floatTime: 10 * 1000, close_on_release: true },
+            GameEffects.popup(`Out of questions:\n ${this.attacker.name} & ${this.defender.name}!`
+                , { floatTime: 10 * 1000, close_on_release: true },
                 GameEffects.popupPRESETS.bigRed
             )
             this.resolve()
             return
         }
-        //grouped by modulo 10
-        const availableIDs = availableQuestions.map(x => x.id)
-        /**@type {Question} */
-        let qSel
-        for (let i = 0; i < 10; i++) {
-            const curr = availableIDs.filter(x => x % 10 == i)
-            if (curr.length) {
-                const selectedID = MM.choice(curr)
-                qSel = availableQuestions.find(x => x.id == selectedID)
-                break
-            }
-        }
+
         /**@type {Question} */
         this.question = qSel
         this.attacker.seenQuestions.add(this.question)
@@ -393,16 +413,18 @@ class Conflict {
         } else { //correct attempt
             Question.record.push({
                 id: this.question.id,
-                name: person?.name,
-                kingdom: who === this.attacker ? this.attacker.id : this.defender.id,
-                time: (RULES.TIMEOUT_ON_DEFENSE - this.timeLeft) / 1000,
+                ev: "solved",
+                player: person?.name,
+                kingdomID: who === this.attacker ? this.attacker.id : this.defender.id,
+                kingdomName: who === this.attacker ? this.attacker.name : this.defender.name,
+                timePassed: (RULES.TIMEOUT_ON_DEFENSE - this.timeLeft) / 1000,
                 conflict: this.id
             })
             if (who === this.attacker) {
-                this.attacker.solvedCount += 1
+                this.attacker.solvedQuestions.add(this.question)
                 this.winAttack("successful attack")
             } else {
-                this.defender.solvedCount += 1
+                this.defender.solvedQuestions.add(this.question)
                 this.winDefend("successful defense")
             }
             return true
@@ -483,12 +505,21 @@ class Conflict {
 
     timeoutWithoutAccept() {
         // this.winAttack("timeout on attack") //no longer a win
-        this.accept()
+        this.accept() //instead accepts automatically
 
     }
 
     timeoutWhileSolving() {
         this.winDefend("timeout on defend")
+        Question.record.push({
+            id: this.question.id,
+            ev: "timeout",
+            player: [this.attacker.membersStr(";"), this.defender.membersStr(";")].join(";"),
+            kingdomID: this.attacker.id + ";" + this.defender.id,
+            kingdomName: this.attacker.name + ";" + this.defender.name,
+            timePassed: (RULES.TIMEOUT_ON_DEFENSE - this.timeLeft) / 1000,
+            conflict: this.id
+        })
     }
 
     resolve() {
@@ -524,14 +555,27 @@ class Question {
         this.points = null //maybe?
     }
 
-    /**@type {Question[][]} */
-    static BUCKET = []
+    //Question.BUCKETS
+    /**@type {number[][]} */
+    static BUCKETS = [[2], [1, 3], [4, 5, 6]]
     /**@type {Question[]} */
     //Question.ALL
     static ALL =
         `343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;21;10;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.555;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414`
             .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
-    /**@type {Array<{id:number,name:string,kingdom:number,time:number,kingdom:number,conflict:number}>} */
+    /**
+     * @type {Array<{
+     * id:number,
+     * ev: string,
+     * player:string,
+     * kingdomID:number,
+     * kingdomName:string
+     * timePassed:number,
+     * kingdomID:number,
+     * conflict:number   
+     * }>}
+     *
+     * */
     static record = []
     /**@type {Set<Question} */
     static INVALID_IDS = new Set()

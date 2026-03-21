@@ -54,6 +54,19 @@ class Person extends Participant {
         game?.kingdoms?.forEach(x => x.members.delete(this))
         kingdom.members.add(this)
     }
+
+    verifyKingdomAssignedAlready() { //rejects connection if no kingdom, but contributing action
+        if (this.kingdom == null) {
+            chat.sendMessage({
+                target: this.name,
+                popup: `ERROR: Server rejected connection.\nIf this happens a lot, then\nask the teacher for help`,
+                popupSettings: GRAPHICS.POPUP_ERROR
+            })
+            //no notification for now, just silently ignore
+            console.error("Invalid wss attempt", person)
+            return false
+        } else { return true }
+    }
 }
 //#endregion
 
@@ -132,6 +145,8 @@ const PAUSE = () => {
     spop("Paused.")
     POPUP("The game has been paused!")
     chat.sendMessage({ eval: "game.pause()" })
+    game.isPauseBroadcastInterval =
+        setInterval(() => chat.sendMessage({ eval: "game.pause()" }), 2000)
 }
 const UNPAUSE = () => {
     game.isPaused = false
@@ -139,6 +154,10 @@ const UNPAUSE = () => {
     spop("Unpaused.")
     POPUP("The game continues!")
     chat.sendMessage({ eval: "game.unpause()" })
+    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 500) //just in case
+    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 1000) //just in case
+    clearInterval(game.isPauseBroadcastInterval)
+
 }
 const INVALIDATE = (id) => {
     game.invalidate(id)
@@ -233,24 +252,29 @@ listener.on_message = (obj, person) => {
         return
     }
     person = Person.check(person)
+    if (obj.kingdom !== undefined) {
+        person.assignKingdom(game.kingdoms[obj.kingdom])
+    }
+
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (obj.inquire == "bunch") SHAREbunch(person.name)
         else if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }
-    if (obj.kingdom !== undefined) {
-        person.assignKingdom(game.kingdoms[obj.kingdom])
-    }
+
+
     if (obj.attack !== undefined) {
-        if (!person.kingdom) console.error("Person without kingdom wants to attack", person, obj, this)
+        if (!person.verifyKingdomAssignedAlready()) return
         game.beginAttack(person.kingdom, game.territories[obj.attack], person)
     }
     if (obj.accept !== undefined) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
+        if (!person.verifyKingdomAssignedAlready()) return
         const c = game.conflicts.find(x => x.id === obj.accept)
         if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.name)
         else SHARE("conflictsData", person.name)
     }
     if (obj.attempt !== undefined) {
+        if (!person.verifyKingdomAssignedAlready()) return
         const c = game.conflicts.find(x => x.id === obj.attempt)
         if (c) c.attempt(person.kingdom, obj.guess, person)
         else { console.error("invalid conflict.id for attempt", this) }
@@ -529,7 +553,7 @@ class Game extends GameCore {
             const first = `Attacks: ${this.conflicts.length} current / ${this.conflictsHistoryCount} total`
             lines.push([`Teams:`].concat(this.kingdoms.map(x => x.name)))
             lines.push([`Questions seen:`].concat(this.kingdoms.map(x => x.seenQuestions.size)))
-            lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedCount)))
+            lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedQuestions.size)))
             lines.push([`Territories:`].concat(this.kingdoms.map(x => x.territories.size)))
             lines.push([`Points:`].concat(this.valCols.map(x => x.txt)))
             const linesStr = MM.tableStr(lines, null, 1)
@@ -618,10 +642,16 @@ class Game extends GameCore {
             if (this.attacksAllowed || this.isPaused) {
                 obj["END"] = () => GameEffects.dropDownMenu({
                     "Sure?": () => { },
-                    "Yes": () => { hq.startContest(); spop("Contest started") },
+                    "Yes": () => {
+                        hq.endContest()
+                        // ; spop("Contest ended.") //will be done in green anyways
+                    },
                     "No": () => { },
                 }, null, null, null, null, [this.overlay])
+                comm["END"] = "Ends the contest."
             }
+            obj["LOADSAVE"] = () => game.loadGameFromFile()
+            comm["LOADSAVE"] = "Loads a manual- or autosave from file."
 
 
 
@@ -726,9 +756,20 @@ class Game extends GameCore {
         }
         badness.forEach(x => x.resolve())
         Question.INVALID_IDS.add(id)
-        let report = badness.map(x => `${x.attacker.name} - ${x.defender.name} cancelled`).join("\n")
-        report += `Q${id} invalidated.`
+        let report = badness.map(x => `${x.attacker.name}&${x.defender.name} cancelled`).join("\n")
+        report += `\nQ${id} invalidated.`
         spop(report)
+
+        badness.forEach(x => Question.record.push(
+            {
+                id: x.question.id,
+                ev: "INVALIDATE",
+                kingdomID: [x.attacker.id, x.defender.id].join(";"),
+                kingdomName: [x.attacker.name, x.defender.name].join(";"),
+                player: [x.attacker.membersStr(";"), x.defender.membersStr(";")].join(";"),
+                timePassed: (RULES.TIMEOUT_ON_DEFENSE - x.timeLeft) / 1000,
+                conflict: x.id
+            }))
     }
 
     exportRulesAndGraphics() {
@@ -1022,7 +1063,8 @@ class Game extends GameCore {
     * @property {number} conflictsHistoryCount - important to restore conflicts to their original id
     * @property {{attacker:number,territory:number,justDeclared:boolean,solving:boolean,question:number|null,alreadyResolved:boolean,timeLeft:number,id:number}} conflicts - id will NOT start from 0
     * @property {number} MAX_ATTACKS_ALLOWED
-    * @property {Object} questionRecord from Question.records
+    * @property {Object} questionRecord from Question.record
+    * @property {Object} conflictRecord from Conflict.record
     * 
     * @property {number} timestamp - for debugging
     * @property {string} timestampHHMMSS - for debugging
@@ -1075,24 +1117,33 @@ class Game extends GameCore {
             }),
             MAX_ATTACKS_ALLOWED: RULES.MAX_ATTACKS_ALLOWED,
             questionRecord: Question.record,
+            conflictsRecord: Conflict.record,
             timestamp: Date.now(),
             timestampHHMMSS: MM.time()
         }
-        const str = JSON.stringify(saveObj)
-        try { localStorage.setItem(saveName, str) }
-        catch (err) { console.error(err) }
-        try { Cropper.downloadText(str, saveName) }
-        catch (err) { console.error(err) }
-        try { if (backups) MM.localStorageBackup(saveName, backups) }
-        catch (err) { console.error(err) }
-
-        return str
-
+        try {
+            try { MM.exportJSON(saveObj, (saveName + "_" + MM.time() + ".json").split(":").join("_")) }
+            catch (err) { console.error(err) }
+            const str = JSON.stringify(saveObj)
+            try { localStorage.setItem(saveName, str) }
+            catch (err) { console.error(err) }
+            try { if (backups) MM.localStorageBackup(saveName, backups) }
+            catch (err) { console.error(err) }
+            return str
+        } catch (err) { console.error(err) }
+        console.error("Something went wrong saving.")
+        return false
     }
 
-    loadGame(saveName = "conquestManual") {
+    loadGameFromFile() {
+        MM.importJSON().then(x => this.loadGame(null, { saveObjFromFile: x }))
+    }
+
+    loadGame(saveName = "conquestManual", { saveObjFromFile = null } = {}) {
         /**@type {SaveObj} */
-        const saveObj = JSON.parse(localStorage.getItem(saveName))
+        const saveObj = saveObjFromFile ? saveObjFromFile :
+            JSON.parse(localStorage.getItem(saveName))
+
         if (!saveObj) {
             console.error("No save was found", this)
             return
@@ -1112,6 +1163,8 @@ class Game extends GameCore {
             x.territories.forEach(u => k.acquireTerritory(this.territories[u]))
             // k.acquireCapital(this.territories[x.capital])//unchanging. so this is pointless!
         })
+        Question.record = saveObj.questionRecord
+        Conflict.record = saveObj
         this.conflictsHistoryCount = saveObj.conflictsHistoryCount //IMPORTANT
         //ditch all current conflicts lol
         this.conflicts.length = 0
@@ -1128,7 +1181,6 @@ class Game extends GameCore {
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
-        Question.record = saveObj.questionRecord
         _RULES_MAX_ATTACKS_ALLOWED = saveObj.MAX_ATTACKS_ALLOWED
     }
 
@@ -1292,25 +1344,37 @@ const hq = {
                 setInterval(() => {
                     Cropper.screenshot("timelapse")
                     console.log("Screenshot saved.")
-                }, 17 * 1000) //every 17 seconds
+                }, MASTER.SCREENSHOT_INTERVAL_SECONDS * 1000) //every 17 seconds
             )
         }
         //autosaves
-        game.saveGame("conquestAuto")
+        game.saveGame("conquestStart")
         console.log("Autosave created.")
         contestIntervals.push(
             setInterval(() => {
                 game.saveGame("conquestAuto")
                 console.log("Autosave created.")
 
-            }, 60 * 1000) //every 60 seconds
+            }, MASTER.AUTOSAVE_INTERVAL_SECONDS * 1000) //every 60 seconds
         )
         console.log("Timers/intervals started.")
     },
     endContest: () => {
         game.attacksAllowed = false
+        game.conflicts
+            .filter(x => x.solving)
+            .forEach(x => Question.record.push({
+                id: x.question.id,
+                ev: "cancelled due game ending",
+                kingdomID: [x.attacker.id, x.defender.id].join(";"),
+                kingdomName: [x.attacker.name, x.defender.name].join(";"),
+                player: [x.attacker.membersStr(";"), x.defender.membersStr(";")].join(";"),
+                timePassed: (RULES.TIMEOUT_ON_DEFENSE - x.timeLeft) / 1000,
+                conflict: x.id
+            }))
         game.conflicts.forEach(x => x.resolve()) //cut off all conflicts
         contestIntervals.forEach(x => clearInterval(x))
+        game.saveGame("conquestEnd")
         console.log("Timers/intervals cleared.")
         chat.sendMessage({
             popup: "The game has ended. Thank you for playing.\nStand by for results!",

@@ -294,10 +294,21 @@ class Game extends GameCore {
                 width: this.right.width * 0.8,
                 transparent: true
             }))
-            Rect.packCol(ranking, this.right, 0, "c")
+            Rect.packCol(ranking, this.right.copy.move(0, 20), 0, "c")
             ranking[0].txt = "Ranking:"
             this.ranking = ranking
             this.add_drawable(ranking)
+
+            const youButton = new Button({
+                width: this.right.width, height: this.top.height,
+                outline: 0
+            })
+            youButton.rightat(this.right.right)
+            youButton.topat(0)
+            youButton.color = myColor
+            youButton.txt = `You: ${chat.name} (${myKingdomObject.name})`
+            this.youButton = youButton
+            this.add_drawable(youButton)
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
@@ -763,7 +774,7 @@ class QPane extends Panel {
         const ansBunch = answerSpace.splitCol(.5, 1, .5, 1.5).map(x => Button.fromRect(x))
         const [ansLab, ansDisplayShow, ansSubmitButton, ansInfo] = ansBunch
         const ansInfoTxt = this.snippet.rows.slice(0, -1).map(x => x.txt).join(" ")
-        ansInfo.dynamicText = () => ansInfoTxt + " " + MM.toMMSS(this.snippet.confD.timeLeft)
+        ansInfo.dynamicText = () => this.snippet.rows.map(x => x.txt).join(" ")
         ansLab.txt = "Your answer:"
         ansSubmitButton.txt = "Submit"
         ansSubmitButton.color = myColor
@@ -832,25 +843,28 @@ class QPane extends Panel {
             }
             if (this.submissionTimestamps.length >= 2//third attempt
                 &&
-                Date.now() - this.submissionTimestamps.at(-2) < 20 * 1000) {//within 10s
+                Date.now() - this.submissionTimestamps.at(-3) < 20 * 1000) {//within 20s
                 this.submissionCooldown = 30 * 1000
-                GameEffects.countdown("Too many attempts in a short time.\nCannot make any more submissions for: ", 30,
+                GameEffects.countdown(
+                    "Too many attempts in a short time.\nCannot make any more submissions for: ", 30,
                     () => { this.submissionCooldown = 1000 }
                 )
                 return
             }
             if (!chat.isConnected) {
                 GameEffects.popup(
-                    `Unable to connect.\nAsk the teacher for help.`,
+                    `Failure to connect.\nAsk the teacher for help.`,
                     GRAPHICS.POPUP_ERROR)
                 return
             }
+            //if no issues:
             chat.sendSecure({
                 attempt: this.id,
                 guess: +this.guess //send as number
             })
-
-            game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."]))
+            this.submissionTimestamps.push(Date.now())
+            this.guess = "" //reset
+            game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."], { ditch: true }))
 
         }
 
