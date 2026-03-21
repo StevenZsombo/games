@@ -70,6 +70,7 @@ class Game extends GameCore {
         blocker.color = "white"
         blocker.txt = "PAUSED".split("").join("  ")
         blocker.isBlocking = true
+        this.blocker = blocker
         this.add_drawable(blocker)
     }
 
@@ -82,6 +83,7 @@ class Game extends GameCore {
         top.txt = "Select your kingdom:"
         top.fontSize = 48
         game.add_drawable(top)
+
 
         const ks = game.rect.copy.splitCell(3, 1, 4, 1, 1, 1)
             .splitGrid(RULES.NUMBER_OF_TEAMS <= 6 ? 1 : 2, RULES.NUMBER_OF_TEAMS <= 6 ? RULES.NUMBER_OF_TEAMS : 6)
@@ -104,6 +106,9 @@ class Game extends GameCore {
             }
         })
 
+        this._removeLoadingButton()
+        GameEffects.fullscreenTrickButton()
+
     }
     resetKingdom() {
         localStorage.removeItem("myKingdomID")
@@ -121,7 +126,17 @@ class Game extends GameCore {
                 return
             }
         }
-        chat.sendSecure({ kingdom: myKingdomID })
+
+        const entryInterval = setInterval(() => {
+            if (chat.isConnected) {
+                chat.sendSecure({ kingdom: myKingdomID })
+                chat.sendSecure({ inquire: "territoriesFullData" })
+                chat.sendSecure({ inquire: "kingdomsFullData" })
+                clearInterval(entryInterval)
+                return
+            } else
+                console.log("Waiting to enter.")
+        }, 500)
 
         /**@type {Kingdom[]} */
         const kingdoms = []
@@ -155,6 +170,10 @@ class Game extends GameCore {
                 // if (kingdoms.length) return
                 kingdoms.length = 0
                 kingdoms.push(...Kingdom.manyFromData(value))
+                myKingdomObject = kingdoms[myKingdomID]
+                myColor = myKingdomObject.color
+                //reset mapster just in case
+
                 waitCheckSyncState()
             }
             if (!syncReady) return
@@ -172,7 +191,6 @@ class Game extends GameCore {
             //CDhere
             if (shared == "conflictsData") {
                 this.territoriesUnderAttack = new Set(value.map(x => x.to))//id of the place
-                console.log(this.territoriesUnderAttack)
                 this.canAttackList = Array.from(
                     myKingdomObject.territories.values().flatMap(x => x.connections)//neighbouring
                         .filter(x => !myKingdomObject.territories.has(x))//is not your own
@@ -220,33 +238,36 @@ class Game extends GameCore {
         }
 
         const waitCheckSyncState = () => {
+            if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
-                chat.sendSecure({ inquire: "ownershipData" })
+                chat.sendSecure({ inquire: "bunch" })
+                /*chat.sendSecure({ inquire: "ownershipData" })
                 chat.sendSecure({ inquire: "valuesData" })
                 chat.sendSecure({ inquire: "conflictsData" })
-                chat.sendSecure({ inquire: "rankingData" })
+                chat.sendSecure({ inquire: "rankingData" })*/
                 init_after_basics()
                 syncReady = true
 
             }
         }
-        chat.sendSecure({ inquire: "territoriesFullData" })
-        chat.sendSecure({ inquire: "kingdomsFullData" })
 
         //#region init_after_basics
         const init_after_basics = () => {
             let border = Gimmicks.setupBorder()
-            const { top, bot, left, right } = border
+            const { top, bot, left, right, middle } = border
             border = Object.values(border)
             this.border = border
             this.top = top
             this.bot = bot
             this.left = left
             this.right = right
+            this.middle = middle
 
             myKingdomObject = kingdoms[myKingdomID]
             myColor = myKingdomObject.color
 
+
+            /*
             //first it label, last is status
             const ranking = top.splitGrid(1, RULES.NUMBER_OF_TEAMS + 3).flat().slice(0, -1).map(x => Button.fromRect(x))
             ranking.forEach(b => {
@@ -263,7 +284,20 @@ class Game extends GameCore {
 
             this.ranking = ranking
             top.color = "gray"
-            game.add_drawable(ranking)
+            game.add_drawable(ranking)*/
+
+            top.color = "gray"
+            const ranking = Array(RULES.NUMBER_OF_TEAMS + 1).fill().map(() => new Button({
+                height: 50,
+                outline: 1,
+                fontSize: 28,
+                width: this.right.width * 0.8,
+                transparent: true
+            }))
+            Rect.packCol(ranking, this.right, 0, "c")
+            ranking[0].txt = "Ranking:"
+            this.ranking = ranking
+            this.add_drawable(ranking)
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
@@ -281,7 +315,7 @@ class Game extends GameCore {
             const attackButton = new Button({ width: 200, height: 150 })
             attackButton.fontSize = 30
             // attackButton.bottomat(bot.top)
-            attackButton.topat(this.top.bottom + 50)
+            attackButton.bottomat(this.bot.top - 20)
             attackButton.centeratX(this.right.centerX)
 
             attackButton.color = "lightsalmon"
@@ -296,6 +330,9 @@ class Game extends GameCore {
                 attackButton.txt = `Attack\n${t.name}`
                 attackButton.activate()
                 attackButton.territory = t
+                this.animator.add_anim(Anim.stepper(
+                    attackButton, 800, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 3, ditch: true }
+                ))
             }
             attackButton.on_click = () => {
                 chat.sendMessage({ attack: attackButton.territory.id })
@@ -324,7 +361,43 @@ class Game extends GameCore {
             fullscreenButton.rightat(game.rect.right)
             this.add_drawable(fullscreenButton)
             fullscreenButton.on_click = () => MM.toggleFullscreen()
+
 */
+
+
+            //formulas pane for testing. it works, kinda.
+            /*
+            const formulasButton = new Button({ txt: "Formulas", fontSize: 28 })
+            formulasButton.x = 1570 //hacky //hardcoded
+            // formulasButton.rightstretchat(1790)
+            formulasButton.height = 100
+            formulasButton.topat(780)
+            formulasButton.resize(110, 60)
+            const formulasImgButton = new Button(middle.copyRect)
+            this.cropper.load_img(RULES.PICTURE_PATH + "formulas.png", (img) => (formulasImgButton.img = img))
+            this.formulasImg = formulasImgButton
+            const formulasPanel = new Panel(formulasImgButton)
+            const formulasPanelOldActivate = formulasPanel.activate.bind(formulasPanel)
+            formulasPanel.activate = () => {
+                this.ranking.forEach(x => x.activate())
+                formulasPanelOldActivate()
+            }
+            const formulasPanelOldDeactivate = formulasPanel.deactivate.bind(formulasPanel)
+            formulasPanel.deactivate = () => {
+                this.ranking.forEach(x => x.deactivate())
+                formulasPanelOldDeactivate()
+            }
+            formulasButton.on_release = () => {
+                setFocus("formulas")
+            }
+            panes.set("formulas", formulasPanel)
+            formulasPanel.deactivate()
+            this.add_drawable(formulasButton)
+            this.add_drawable(formulasPanel)
+            this.formulasButton = formulasButton
+            this.formulasPanel = formulasPanel
+*/
+
 
 
             mapster = new Mapster(
@@ -420,6 +493,7 @@ class Game extends GameCore {
             if (message.orderResetKingdom !== undefined) {
                 game.resetKingdom()
             }
+            if (message.present) GameEffects.fullscreenTrickButton(0)
         }
 
         //clockwork for snippet update 
@@ -467,18 +541,23 @@ class Game extends GameCore {
         if (bool === this._showingMap) return bool
         this._showingMap = bool
         this.buts.forEach(x => x.activeState = bool)
+        this.ranking.forEach(x => x.activeState = bool)
         this.attackButton.activeState = false //always false.
         return bool
     }
 
     afterEverythingHasLoaded() {
-        window.BROWSERshowLoading.remove()
-        window.BROWSERshowLoading = null
-
+        this._removeLoadingButton()
         GameEffects.fullscreenTrickButton(5000)
 
         //MM.toggleFullscreen(true)
         //can only be initiated by user gesture, sadly.
+
+    }
+
+    _removeLoadingButton() {
+        window.BROWSERshowLoading?.remove()
+        window.BROWSERshowLoading = null
 
     }
 

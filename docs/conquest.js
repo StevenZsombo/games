@@ -234,7 +234,8 @@ listener.on_message = (obj, person) => {
     }
     person = Person.check(person)
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
-        if (!SHARE(obj.inquire, person.name))
+        if (obj.inquire == "bunch") SHAREbunch(person.name)
+        else if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }
     if (obj.kingdom !== undefined) {
@@ -295,18 +296,21 @@ const SHARE = (key, target) => {
         msg.value = sharedFunc[key]()
         chat.sendMessage(msg)
         return true
-    } else return false
+    } else console.error("invalid SHARE")
 }
 const HARDREFRESH = () => {
     SHARE("territoriesFullData")
     SHARE("kingdomsFullData")
+    SHAREbunch()
+    // setTimeout(() => chat.sendCommand("mapster?.reset()"), 500)
+
     spop("Hard refresh.")
 }
 const SHAREbunch = (target) => {
     if (target != null && !throttleCheckNotTooRecent("bunch")) return
-    const list = ["conflictsData", "ownershipData", "valuesData", "rankingData"]
+    const list = ["rankingData", "valuesData", "ownershipData", "conflictsData"]
 
-    const msg = { many: list.map(x => ({ shared: sharedFunc[x]() })) }
+    const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
     if (target != null) msg.target = target
     chat.sendMessage(msg)
 }
@@ -422,6 +426,9 @@ class Game extends GameCore {
         })
 
         //control tools
+        this.overlay = new Clickable({ x: 0, y: 0, width: game.rect.width, height: game.rect.height })
+        this.overlay.draw = () => { }
+        game.add_drawable(this.overlay, 9)
 
         const switchModeButton = new Button({ txt: "Show\nBanners", widht: 120, height: 80 })
         this.switchModeButton = switchModeButton
@@ -446,9 +453,10 @@ class Game extends GameCore {
             if (!Object.keys(participants).length) return
             GameEffects.dropDownMenu(
                 Object.values(participants).map(x => [x.name, () => hq.orderResetKingdom(x.name)]),
-                null, null, null, { height: 35, fontSize: 24, width: 300 }
+                null, null, null, { height: 35, fontSize: 24, width: 300 }, [this.overlay]
             ) //adds to game automatically
         }
+        this.orderResetKingdomButton = orderResetKingdomButton
         this.add_drawable(orderResetKingdomButton)
 
         const orderChangeNameButton = orderResetKingdomButton.copy
@@ -458,9 +466,10 @@ class Game extends GameCore {
             if (!Object.keys(participants).length) return
             GameEffects.dropDownMenu(
                 Object.values(participants).map(x => [x.name, () => x.kick()]),
-                null, null, null, { height: 35, fontSize: 24, width: 300 }
+                null, null, null, { height: 35, fontSize: 24, width: 300 }, [this.overlay]
             )
         }
+        this.orderChangeNameButton = orderChangeNameButton
         this.add_drawable(orderChangeNameButton)
 
         const snapShotButton = orderChangeNameButton.copy
@@ -473,6 +482,7 @@ class Game extends GameCore {
             console.log("Snapshot & Save successful.")
             GameEffects.popup("Snapshot & Save successful.", GameEffects.popupPRESETS.topleftGreen)
         }
+        this.snapShotButton = snapShotButton
         this.add_drawable(snapShotButton)
 
         const serverButton = switchModeButton.copy
@@ -481,6 +491,7 @@ class Game extends GameCore {
         serverButton.on_release = () => {
             SERVERBUTTON()
         }
+        this.serverButton = serverButton
         this.add_drawable(serverButton)
 
         serverButton.topat(this.border.bot.top + 20)
@@ -542,14 +553,32 @@ class Game extends GameCore {
             }
 
 
+        this.devhelper = { draw() { } }
+        this.add_drawable(this.devhelper)
+        const inspector = new Inspector(new Button({
+            width: 850,
+            height: 120,
+            color: "moccasin",
+            outline: 3,
+            fontSize: 30,
+            //textSettings: { textBaseline: "top" }
+        }), game)
+        this.inspector = inspector
+
+
+
         const SERVERBUTTON = () => {
-            const obj = {}
-            if (!this.attacksAllowed && !this.isPaused)
+            const obj = new Map()
+            const comm = new Map()
+            if (!this.attacksAllowed && !this.isPaused) {
                 obj["START"] = () => { hq.startContest(); spop("Started.") }
+                comm["START"] = "Start the game."
+            }
             if (this.attacksAllowed || this.isPaused) {
                 obj[this.isPaused ? "UNPAUSE" : "PAUSE"] = () => {
                     this.isPaused ? UNPAUSE() : PAUSE()
                 }
+                comm["PAUSE"] = "Pause / unpause.\nPrevents solving questions too."
             }
             obj[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = () => {
                 GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
@@ -560,9 +589,11 @@ class Game extends GameCore {
 
                     })
                     spop(`Rule: ${RULES.MAX_ATTACKS_ALLOWED} attacks at time.`)
-                }]))
+                }]), null, null, null, null, [this.overlay])
             }
+            comm[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = "Set the maximum number of attacks per team at a time.\nConsider starting with the game with 1."
             obj["ATTENDANCE"] = ATTENDANCE
+            comm["ATTENDANCE"] = "Prompt client responses, and\n(attempt to) put them in fullscreen."
             obj["INVALIDATE"] = () => {
                 const currQuestions =
                     [...new Set(this.conflicts.filter(x => x.solving).map(x => x.question.id))].sort((x, y) => x - y)
@@ -570,26 +601,36 @@ class Game extends GameCore {
                     spop("no conflicts")
                     return
                 }
-                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => `Q${INVALIDATE(id)}`]))
-
+                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => `Q${INVALIDATE(id)}`]),
+                    null, null, null, null, [this.overlay])
             }
+            comm["INVALIDATE"] = `Remove a currently visible question from the question bank.`
             obj["DISPLAY"] = DISPLAY
+            comm["DISPLAY"] = "Share a screenshot of the server screen."
             obj["DOWNLOAD"] = DOWNLOAD
+            comm["DOWNLOAD"] = "Let students download a screenshot of the server screen."
             obj["CLIPBOARD"] = CLIPBOARD
+            comm["CLIPBOARD"] = "First, paste a picture onto the canvas. Then send to students."
             obj["HARDREFRESH"] = HARDREFRESH
+            comm["HARDREFRESH"] = "Fully synchronizes each connected student."
             obj["RELOAD"] = RELOAD
+            comm["RELOAD"] = "Reloads the browser page of each connected student."
             if (this.attacksAllowed || this.isPaused) {
                 obj["END"] = () => GameEffects.dropDownMenu({
                     "Sure?": () => { },
                     "Yes": () => { hq.startContest(); spop("Contest started") },
                     "No": () => { },
-                })
+                }, null, null, null, null, [this.overlay])
             }
 
 
 
-            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 250, height: 80 })
+            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 250, height: 80 },
+                [this.overlay], true, () => inspector.reset()
+            )
 
+            Object.values(comm).forEach((x, i) =>
+                inspector.addChild(dd.menuButtons[i], x))
         }
 
         //MAPBUTTON goes here. when i feel like it.
@@ -599,34 +640,52 @@ class Game extends GameCore {
         devButton.leftat(orderChangeNameButton.left)
         devButton.on_click = null
         devButton.on_release = () => {
-            GameEffects.dropDownMenu(
+            const ddm = GameEffects.dropDownMenu(
                 [...Object.keys(dev)
                     .filter(x => dev[x].length == 0 && x[0] !== "_").
                     map(x => [`${x}`,
                     () => {
-                        dev.resetOnClicks()
+                        dev._resetOnClicks()
                         dev[x]()
                     }])]
                     /*[...Object.keys(dev).map(x => [`dev.${x}`, () => {
                         console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
     
                     }])]*/
-                    .concat(
-                        [...Object.keys(MANAGER)
+                    .concat([
+                        /*[...Object.keys(MANAGER)
                             .filter(x => MANAGER[x].length == 0)
                             .filter(x => !"grab".split(" ").includes(x))
                             .map(x => [`MANAGER.${x}`,
                             () => {
-                                dev.resetOnClicks()
+                                dev._resetOnClicks()
                                 MANAGER[x]()
                             }
-                            ])]
-                    ).concat([[
-                        "localStorage.clear()", () => { localStorage.clear(); spop("Cleared.") }
+                            ])]*/
+                        //this is awesome, saved it in GameEffects!
+                        ["QUICKSAVE", () => { MANAGER.saveToLocal(); spop("Quicksaved.") }],
+                        ["SAVE MAP", MANAGER.saveToFile],
+                        ["LOAD MAP", MANAGER.loadFromFile]
+                    ]).concat([[
+                        "ERASE QUICKSAVES", () => { localStorage.clear(); spop("Cleared.") }
                     ]]
-                    ), null, null, 2, { width: 400, height: 60, fontSize: 28 }
+                    ), null, null, 2, { width: 400, height: 60, fontSize: 28 },
+                [this.overlay], true, inspector.reset.bind(inspector)
             )
+            //TODO
+            const tooltips =
+            {
 
+            }
+
+            Object.entries(tooltips).forEach(([k, v]) => {
+                const b = ddm.menuButtons.find(x => x.txt == k)
+                if (!b) return
+                inspector.addChild(b, v)
+            })
+
+
+            ddm.menuButtons.forEach(x => { })
         }
         this.add_drawable(devButton)
 
@@ -1082,24 +1141,29 @@ const dev = {
     k: id => game.kingdoms[id],
     n: name => game.kingdoms.find(x => x.name.includes(name)),
     t: name => game.territories.find(x => x.name.includes(name)),
-    members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
+    _members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
     renameTerritory: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
-    resetOnClicks: () => {
+    _resetOnClicks: () => {
         game.buts.forEach(x => {
             x.on_click = null
             x.on_release = null
             x.on_drag = null
         })
+        game.devhelper.draw = function () { }
+        game.inspector.reset()
     },
     clickToConnect: () => {
-        let S
+        let s
         game.buts.forEach(x => {
             x.on_drag = null
             x.on_click = function () {
-                if (S) { S.territory.connectWith(this.territory); S = null }
-                else S = this
+                if (s) { s.territory.connectWith(this.territory); s = null }
+                else s = this
             }
         })
+        game.devhelper.draw = (screen) => {
+            if (s) { MM.drawLinePos(screen, s.center, game.mouser.pos, { color: "purple", width: 10 }) }
+        }
     },
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
     clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
@@ -1110,20 +1174,22 @@ const dev = {
                 game.kingdoms.map(x => [x.name,
                 () => { x.acquireTerritory(territory) }
                 ]), null, 10, null,
-                { fontSize: 12, width: 60, height: 60, hover_color: null }
+                { fontSize: 12, width: 60, height: 60, hover_color: null },
+                [game.overlay], false
             )
             ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
             ddm.menuButtons.at(-1).color = "lightgray"
         }
         game.buts.forEach(x => x.on_click = () => colorPicker(x.territory))
     },
-    clickToAcquire: () => {
+    clickToColor: () => {
         let taker
         const ddm = GameEffects.dropDownMenu(
             game.kingdoms.map(x => [x.name,
             () => { taker = x }
             ]), null, 10, null,
-            { fontSize: 12, width: 60, height: 60, hover_color: null }
+            { fontSize: 12, width: 60, height: 60, hover_color: null },
+            [game.overlay]
         )
         ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
         ddm.menuButtons.at(-1).color = "lightgray"
@@ -1157,7 +1223,7 @@ const dev = {
         })
     },
     severALLConnections: () => { game.territories.forEach(x => x.connections.clear()) },
-    shareMembers: () => {
+    _shareMembers: () => {
         chat.sendMessage({
             popup: game.kingdoms.map(x => `${x.name}: ${x.membersStr(", ")}`).join("\n"),
             popupSettings: {
@@ -1187,8 +1253,12 @@ const dev = {
     randomize: () => {
         game.territories.forEach(x => MM.choice(game.kingdoms).acquireTerritory(x))
     },
-    randomConn: () => {
-        if (game.territories.length % game.kingdoms.length) throw "nr teams does not divide nr provinces"
+    randomizeConnected: () => {
+        if (game.territories.length % game.kingdoms.length) {
+            console.error("nr teams does not divide nr provinces")
+            spop(`Number of teams ${RULES.NUMBER_OF_TEAMS}\n does not divide ${RULES.NUMBER_OF_TERRITORIES}.`)
+            return
+        }
         const graph = game.territories.map(x => [...x.connections.values().map(x => x.id)])
         const pieces = MM.graphRandomPartition(
             graph

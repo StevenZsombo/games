@@ -1343,7 +1343,6 @@ class MM {
     static importJSON(alsoAlert = false) {
         if (alsoAlert)
             alert(`Your browser will now ask you to open a file.\nSelect a file you exported earlier to load in that data.`)
-
         return new Promise((resolve, reject) => {
             const input = document.createElement('input')
             input.type = "file"
@@ -1359,6 +1358,7 @@ class MM {
                     } catch (error) {
                         reject(new Error("Invalid JSON file"))
                     }
+                    input.remove()
                 }
                 reader.onerror = () => reject(new Error("Failed to read file"))
                 reader.readAsText(file)
@@ -1367,6 +1367,44 @@ class MM {
             input.click()
         })
     }
+
+    static importExcel(xlsxjsLocation) {
+        if (!window.XLSX) {
+            MM.loadScript(xlsxjsLocation ?? "./zs/xlsx.full.min.js", MM.importExcel)
+        }
+        return new Promise((resolve, reject) => {
+            try {
+                const input = document.createElement('input')
+                input.type = 'file'
+                input.accept = '.xlsx,.xls'
+                input.onchange = async (e) => {
+                    try {
+                        const data = await e.target.files[0].arrayBuffer()
+                        const wb = XLSX.read(data)
+                        const ws = wb.Sheets[wb.SheetNames[0]]
+                        const json = XLSX.utils.sheet_to_json(ws, { header: 1 }) //is actually an array
+                        resolve(json)
+                    } catch (err) { reject(err) }
+                    input.remove()
+                }
+                input.click()
+            } catch (err) { reject(err) }
+        })
+    }
+    /** @param {string[][]} array      */
+    static exportExcel(array, filename = "exportedExcel") {
+        if (!window.XLSX) {
+            MM.loadScript("./zs/xlsx.full.min.js", MM.importExcel)
+        }
+        const ws = XLSX.utils.aoa_to_sheet(array)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
+        XLSX.writeFile(wb, filename + ".xlsx")
+    }
+
+
+
+
     /**
      * Alternative to window.open() for tauri.
      * @param {string} str - What link to open.
@@ -1841,6 +1879,14 @@ class GameEffects {
         result.menuButtons = menu
         return result
     }
+    static debugFunctionsFromAnObject(object, allowParameters = true) {
+        return () => GameEffects.dropDownMenu(
+            [...Object.entries(object)
+                .filter(x => typeof x[1] === 'function')
+                .filter(x => allowParameters || x[1].length == 0)
+                .map(x => x[1].length == 0 ? x : [x[0], x[1].apply(x[1], Array(x[1].length).fill().map(prompt))])
+            ])
+    }
 
     static fullscreenTrickButton(verifyAfter = 3000) {
         const invis = Button.fromRect(game.rect.copy)
@@ -1855,6 +1901,40 @@ class GameEffects {
         game.add_drawable(invis)
 
     }
+    /**
+     * @param {function(string)} on_pressingEnter 
+     * @returns {HTMLInputElement}
+     * - clean up with .remove() 
+     * - has .value for its content
+     * */
+
+    static inputBox(x = 100, y = 100, width, height, on_pressingEnter) {
+        const input = document.createElement('input')
+        input.style.position = 'absolute'
+        input.id = "inputBox" //my own thing
+            ;
+        ({ x, y } = game.mouser.getDisplayedCoordV(x, y))
+        input.style.left = x + "px"
+        input.style.top = y + "px"
+        width && (input.style.width = width)
+        height && (input.style.height = height)
+        document.body.appendChild(input)
+
+        game.keyboarder.on_keydownDict["Enter"] = () => {
+            const value = input.value
+            game.keyboarder.on_keydownDict["Enter"] = null
+            input.remove()
+            on_pressingEnter?.(value)
+        }
+        return input
+    }
+    /**@param {Rect} @param {function(string)} on_pressingEnter  rect  */
+    static inputBoxFromRect(rect, on_pressingEnter) {
+        return GameEffects.inputBox(rect.x, rect.y, rect.width, rect.height, on_pressingEnter)
+    }
+
+
+
 
 }
 //#endregion

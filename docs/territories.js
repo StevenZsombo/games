@@ -13,7 +13,7 @@ var RULES = Object.freeze({
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
     SUBMIT_COOLDOWN: 10 * 1000,
     NUMBER_OF_TERRITORIES: 60,
-    NUMBER_OF_TEAMS: 8,
+    NUMBER_OF_TEAMS: 12,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -524,7 +524,8 @@ class Question {
         this.points = null //maybe?
     }
 
-
+    /**@type {Question[][]} */
+    static BUCKET = []
     /**@type {Question[]} */
     //Question.ALL
     static ALL =

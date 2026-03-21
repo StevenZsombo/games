@@ -216,7 +216,7 @@ class Chat {
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
 
         if (message.many != null) {
-            many.forEach(x => this.receiveMessage(x, { overrideTargetAndEcho: true }))
+            message.many.forEach(x => this.receiveMessage(x))
             return
         }
         if (message.eval != null) eval(message.eval)

@@ -305,6 +305,10 @@ class Mapster extends OptimizedRecolor {
         this.ctx.putImageData(this.imageData, 0, 0)
     }
 
+    reset() {
+        this.cached.fill(null)
+    }
+
     fillDepr(indicesOne, color) {
         const { data, ctx, imageData } = this
         for (let i of indicesOne) {

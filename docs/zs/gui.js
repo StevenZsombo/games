@@ -101,7 +101,7 @@ class Keyboarder {
 			this.held[e.key] = false
 			this.pressed[e.key] = false
 			this.on_keyup?.()
-			this.on_keydownDict[e.key]?.()
+			this.on_keyupDict[e.key]?.()
 			if (denybuttons) {
 				e.preventDefault()
 				e.stopPropagation()
@@ -218,6 +218,16 @@ class Mouser {
 			// this.released = !this._blockNextRelease
 			//do not want this.
 		}
+	}
+
+	getDisplayedCoordV(x, y) {
+		x ??= this.x
+		y ??= this.y
+		x /= this.scaleX
+		y /= this.scaleY
+		x += this.boundingRect.left
+		y += this.boundingRect.top
+		return { x, y }
 	}
 
 	addListeners(canvas) {
