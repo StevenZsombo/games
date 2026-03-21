@@ -697,7 +697,7 @@ class Game extends GameCore {
                         ["SAVE MAP", MANAGER.saveToFile],
                         ["LOAD MAP", MANAGER.loadFromFile]
                     ]).concat([[
-                        "ERASE QUICKSAVES", () => { localStorage.clear(); spop("Cleared.") }
+                        "ERASE QUICKSAVES", () => { localStorage.clear(); spop("Cleared."); chat.silentReload() }
                     ]]
                     ), null, null, 2, { width: 400, height: 60, fontSize: 28 },
                 [this.overlay], true, inspector.reset.bind(inspector)

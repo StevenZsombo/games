@@ -79,6 +79,8 @@ class Game extends GameCore {
     }
 
     kingdomSelect() {
+        this._removeLoadingButton()
+
         const top = Button.fromRect(game.rect.copy.splitCell(1, 1, 4, 1))
         top.txt = "Select your kingdom:"
         top.fontSize = 48
@@ -106,7 +108,7 @@ class Game extends GameCore {
             }
         })
 
-        this._removeLoadingButton()
+
         GameEffects.fullscreenTrickButton()
 
     }
