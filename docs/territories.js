@@ -644,4 +644,14 @@ class Gimmicks {
         return mapIMG
     }
 
+    static unwrapSaveToExcel() {
+        MM.importJSON().then(j => {
+            const r = j.questionRecord
+            if (!r.length) { alert("no data"); return }
+            const props = "id ev player kingdomID kingdomName timePassed conflict".split(" ")
+            const rows = r.map(x => props.map(u => x[u]))
+            MM.exportExcel([props].concat(rows))
+        })
+    }
+
 }
