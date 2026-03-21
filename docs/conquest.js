@@ -13,7 +13,7 @@ var univ = {
     on_first_run: null,
     on_next_game_once: null,
     on_beforeunload: null,
-    allowQuietReload: true,
+    allowQuietReload: false,
     acquireNameStr: "Your English name:", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
@@ -1229,8 +1229,9 @@ const dev = {
                 { fontSize: 12, width: 60, height: 60, hover_color: null },
                 [game.overlay], false
             )
-            ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
-            ddm.menuButtons.at(-1).color = "lightgray"
+            // ddm.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
+            // ddm.menuButtons.at(-1).color = "lightgray"
+            ddm.menuButtons.forEach((x, i) => x.color = game.kingdoms[i].color)
         }
         game.buts.forEach(x => x.on_click = () => colorPicker(x.territory))
     },

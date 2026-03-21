@@ -13,7 +13,7 @@ var RULES = Object.freeze({
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
     SUBMIT_COOLDOWN: 10 * 1000,
     NUMBER_OF_TERRITORIES: 60,
-    NUMBER_OF_TEAMS: 12,
+    NUMBER_OF_TEAMS: 5,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -38,7 +38,7 @@ var RULES = Object.freeze({
 
 
     //Blake
-    PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension
+    PICTURE_BACKGROUND_MAP: "blake5.png", //cannot null //with extension
     PICTURE_BACKGROUND_DIMENSIONS: [1560, 840],
     PICTURE_BACKGROUND_SCALEFACTOR: 1,
     PICTURE_BACKGROUND_CENTER: {
@@ -137,7 +137,7 @@ const MANAGER = {
 }
 
 var MASTER = Object.freeze({
-    ALLOW_SCREENSHOTS: false,
+    ALLOW_SCREENSHOTS: true,
     ALLOW_PASTING: true,
     AUTOSAVE_INTERVAL_SECONDS: 59,
     SCREENSHOT_INTERVAL_SECONDS: 19
@@ -248,9 +248,11 @@ class Kingdom {
     /**@param {Territory} territory  */
     acquireTerritory(territory) {
         if (territory.isCapital && !this.territories.has(territory)) {
+            /*
             console.error("Trying to acquire a capital!")
             GameEffects.popup("Cannot change teams for a capital", GameEffects.popupPRESETS.bigRed)
             return
+            */
         }
         game?.kingdoms?.forEach(x => x.territories.delete(territory))
         this.territories.add(territory)
@@ -276,8 +278,8 @@ class Kingdom {
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
         // Button.make_rhombus(capital.button)//bad idea, looks ugly
         // Make it rounded!
-        Button.make_roundedRect(capital.button)
-        capital.button.transparent = false
+        // Button.make_roundedRect(capital.button)
+        // capital.button.transparent = false //looks better, but stick to stars instead
 
     }
 
@@ -453,7 +455,6 @@ class Conflict {
                     popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
                 })
             )
-
             return this.resolve()
         }
         console.log(reason, this.attacker.name, this.territory.name)
@@ -557,7 +558,8 @@ class Question {
 
     //Question.BUCKETS
     /**@type {number[][]} */
-    static BUCKETS = [[2], [1, 3], [4, 5, 6]]
+    static BUCKETS =
+        [[102, 106, 109, 111, 112, 113, 118, 123, 127, 128, 129, 131], [103, 104, 120, 121, 122], [100, 101, 105, 108, 110, 114, 115], [116, 117, 124, 126, 130, 132, 133], [107, 119, 125, 134], [0, 10, 20, 30, 40, 50, 60, 70, 80, 90], [1, 11, 21, 31, 41, 51, 61, 71, 81, 91], [2, 12, 22, 32, 42, 52, 62, 72, 82, 92], [3, 13, 23, 33, 43, 53, 63, 73, 83, 93], [4, 14, 24, 34, 44, 54, 64, 74, 84, 94], [5, 15, 25, 35, 45, 55, 65, 75, 85, 95], [6, 16, 26, 36, 46, 56, 66, 76, 86, 96], [7, 17, 27, 37, 47, 57, 67, 77, 87, 97], [8, 18, 28, 38, 48, 58, 68, 78, 88, 98], [9, 19, 29, 39, 49, 59, 69, 79, 89, 99]]
     /**@type {Question[]} */
     //Question.ALL
     static ALL =

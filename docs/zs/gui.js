@@ -795,6 +795,7 @@ class Supabase {
 			(() => {
 				const nameID = MM.randomID()
 				localStorage.setItem("nameID", nameID)
+				localStorage.setItem("nameIDtimestamp", Date.now()) //leave timestamp to know when to erase
 				return nameID
 			})()
 		const name = localStorage.getItem('name') ||

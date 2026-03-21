@@ -168,6 +168,7 @@ class Chat {
             } else {
                 this.nameID = MM.randomID()
                 localStorage.setItem("nameID", this.nameID)
+                localStorage.setItem("nameIDtimestamp", Date.now()) //leave timestamp to know when to erase
             }
         }
         return this.nameID

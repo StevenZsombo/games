@@ -1470,72 +1470,114 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 
 
     //#region vibe
-    /**@param {Array<[number,number]>} graph  @param {number} d - must divide graph.length !!! */
     static graphRandomPartition(graph, d) {
         const n = graph.length;
-        const used = new Array(n).fill(false);
         const partitions = [];
+        const used = new Array(n).fill(false);
+        const vertices = [...Array(n).keys()];
 
-        // Helper: BFS to collect exactly d connected vertices
-        function collectConnected(start, targetSize) {
-            const component = [start];
+        const getComponent = (start, maxSize) => {
+            const component = [];
             const queue = [start];
-            const inComponent = new Set([start]);
-
-            while (queue.length && component.length < targetSize) {
+            const visited = new Set([start]);
+            while (queue.length && component.length < maxSize) {
                 const v = queue.shift();
-                // Shuffle neighbors for randomness
+                component.push(v);
                 const neighbors = [...graph[v]];
                 for (let i = neighbors.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
                 }
-
                 for (const nb of neighbors) {
-                    if (!used[nb] && !inComponent.has(nb) && component.length < targetSize) {
-                        inComponent.add(nb);
-                        component.push(nb);
+                    if (!used[nb] && !visited.has(nb) && component.length < maxSize) {
+                        visited.add(nb);
                         queue.push(nb);
                     }
                 }
             }
-
             return component;
-        }
+        };
 
-        // Try to build partitions greedily
-        for (let attempt = 0; attempt < 100; attempt++) {
+        const grow = (component, targetSize) => {
+            const set = new Set(component);
+            while (component.length < targetSize) {
+                const boundary = [];
+                for (const v of component) {
+                    for (const nb of graph[v]) {
+                        if (!used[nb] && !set.has(nb)) boundary.push(nb);
+                    }
+                }
+                if (!boundary.length) break;
+                const newV = boundary[Math.floor(Math.random() * boundary.length)];
+                component.push(newV);
+                set.add(newV);
+            }
+            return component;
+        };
+
+        for (let attempt = 0; attempt < 500; attempt++) {
             used.fill(false);
             partitions.length = 0;
-
-            for (let i = 0; i < n; i++) {
-                if (!used[i]) {
-                    let component = collectConnected(i, d);
-
-                    // If we couldn't get d, try a different starting point
-                    if (component.length < d) {
-                        // Find a better seed
-                        for (let j = 0; j < n && component.length < d; j++) {
-                            if (!used[j]) {
-                                component = collectConnected(j, d);
+            for (let i = vertices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [vertices[i], vertices[j]] = [vertices[j], vertices[i]];
+            }
+            let success = true;
+            for (const start of vertices) {
+                if (!used[start]) {
+                    let comp = getComponent(start, d);
+                    if (comp.length < d) comp = grow(comp, d);
+                    if (comp.length !== d) { success = false; break; }
+                    comp.forEach(v => used[v] = true);
+                    partitions.push(comp);
+                }
+            }
+            if (success && partitions.length === n / d) return partitions;
+            if (partitions.length === n / d - 1 && !success) {
+                const remaining = [];
+                for (let i = 0; i < n; i++) if (!used[i]) remaining.push(i);
+                if (remaining.length === d) {
+                    const visited = new Set();
+                    const stack = [remaining[0]];
+                    visited.add(remaining[0]);
+                    while (stack.length) {
+                        const v = stack.pop();
+                        for (const nb of graph[v]) {
+                            if (remaining.includes(nb) && !visited.has(nb)) {
+                                visited.add(nb);
+                                stack.push(nb);
                             }
                         }
                     }
-
-                    if (component.length === d) {
-                        component.forEach(v => used[v] = true);
-                        partitions.push(component);
+                    if (visited.size === d) {
+                        partitions.push(remaining);
+                        return partitions;
                     }
                 }
             }
-
-            if (partitions.length === n / d) {
-                console.log(`Found valid partition after ${attempt + 1} attempts`);
-                return partitions;
-            }
         }
 
-        console.log("Using fallback - some partitions may not be connected");
+        used.fill(false);
+        partitions.length = 0;
+        for (let i = 0; i < n; i++) {
+            if (!used[i]) {
+                const comp = [];
+                const queue = [i];
+                const visited = new Set([i]);
+                while (queue.length && comp.length < d) {
+                    const v = queue.shift();
+                    comp.push(v);
+                    for (const nb of graph[v]) {
+                        if (!used[nb] && !visited.has(nb) && comp.length < d) {
+                            visited.add(nb);
+                            queue.push(nb);
+                        }
+                    }
+                }
+                comp.forEach(v => used[v] = true);
+                partitions.push(comp);
+            }
+        }
         return partitions;
     }
 

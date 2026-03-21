@@ -119,7 +119,17 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        Question.ALL.forEach(x => x.sol = undefined)
+        Question.ALL.forEach(x => x.sol = undefined) //muhahahahahahaha
+
+        const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
+        if (!nameIDtimestamp || (nameIDtimestamp - Date.now() > 6 * 60 * 60 * 1000))//older than 6 hours or none
+        {
+            //both mean that this is NOT the current conquest session
+            localStorage.clear() //so flush everything
+            chat.acquireName() //ask for name again, which sets a recent timestamp
+            chat.silentReload() //clear everything
+        }
+
         if (myKingdomID === undefined) {
             const stored = localStorage.getItem("myKingdomID")
             if (stored) myKingdomID = +stored
