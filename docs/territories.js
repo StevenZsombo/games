@@ -650,11 +650,15 @@ class Gimmicks {
     }
 
     static unwrapSaveToExcel() {
+        let origNames = prompt("Original names, sep \\r\\n or ;\nor leave empty")?.split("\r\n").flatMap(x => x.split(";"))
+
         MM.importJSON().then(j => {
             const r = j.questionRecord
             if (!r.length) { alert("no data"); return }
-            const props = "id ev player kingdomID kingdomName timePassed conflict".split(" ")
-            const rows = r.map(x => props.map(u => x[u]))
+            let props = "fromfile id ev player kingdomID kingdomName timePassed conflict".split(" ")
+            r.forEach(x => x.fromfile = origNames[x.id])
+
+            const rows = r.map((x, i) => props.map(u => x[u]))
             MM.exportExcel([props].concat(rows))
         })
     }
