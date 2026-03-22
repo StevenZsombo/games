@@ -1,5 +1,8 @@
 //#region RULES.
 var RULES = Object.freeze({
+    NUMBER_OF_TEAMS: 5, //////////////////////////////////
+    NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
+    PICTURE_BACKGROUND_MAP: "blake5.png", //cannot null //with extension ///////////////////////////
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
     DEFENSE_GAIN_VALUE: +50,
@@ -12,8 +15,6 @@ var RULES = Object.freeze({
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
     SUBMIT_COOLDOWN: 10 * 1000,
-    NUMBER_OF_TERRITORIES: 60,
-    NUMBER_OF_TEAMS: 5,
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -38,7 +39,6 @@ var RULES = Object.freeze({
 
 
     //Blake
-    PICTURE_BACKGROUND_MAP: "blake5.png", //cannot null //with extension
     PICTURE_BACKGROUND_DIMENSIONS: [1560, 840],
     PICTURE_BACKGROUND_SCALEFACTOR: 1,
     PICTURE_BACKGROUND_CENTER: {
@@ -357,6 +357,7 @@ class Conflict {
         for (let bucket of Question.BUCKETS) {
             const inthebucket = bucket.map(i => Question.ALL[i]) //BUCKET has id, here work with question
             const unseenbyboth = inthebucket.filter(x =>
+                !Question.INVALID_IDS.has(x.id) &&
                 !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
             if (unseenbyboth.length) return MM.choice(unseenbyboth)
         }
@@ -364,6 +365,7 @@ class Conflict {
         for (let bucket of Question.BUCKETS) {
             const inthebucket = bucket.map(i => Question.ALL[i])
             const unsolvedbyboth = inthebucket.filter(x =>
+                !Question.INVALID_IDS.has(x.id) &&
                 !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x)
             )
             if (unsolvedbyboth.length) return MM.choice(unsolvedbyboth)

@@ -319,8 +319,10 @@ class Game extends GameCore {
             youButton.topat(0)
             youButton.color = myColor
             youButton.txt = `You: ${chat.name} (${myKingdomObject.name})`
+            youButton.on_click = () => document.documentElement.requestFullscreen()
             this.youButton = youButton
             this.add_drawable(youButton)
+            top.txt = "Conquest game"
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
