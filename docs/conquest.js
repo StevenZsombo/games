@@ -7,10 +7,30 @@ var univ = {
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
+    //BROKEN
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
+    //BROKEN
     filesList: "", //space-separated
     on_each_start: null,
     on_first_run: null,
+    on_first_run_blocking: (beforeMainPassedToBeCalled) => {
+        if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
+        fetch(RULES.MAPFILE)
+            .then(x => {
+                if (!x.ok) throw new Error("File not found.")
+                return x.json()
+            })
+            .then(fromFile => {
+                Object.assign(RULES, fromFile.RULES)
+                Object.assign(GRAPHICS, fromFile.GRAPHICS)
+                console.info("Map loaded successfully.")
+                beforeMainPassedToBeCalled()
+            })
+            .catch(x => {
+                console.info("No map data found or it failed to load.")
+                beforeMainPassedToBeCalled()
+            })
+    }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
     on_beforeunload: null,
     allowQuietReload: false,

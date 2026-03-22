@@ -31,8 +31,9 @@ window.onload = function () {
     }
     )
 
-
-    beforeMain(canvas)
+    if (univ.on_first_run_blocking) {
+        univ.on_first_run_blocking(beforeMain.bind(window, canvas))
+    } else beforeMain(canvas)
 }
 //#endregion
 
@@ -45,6 +46,8 @@ const beforeMain = function (canvas) {
     }
     univ.on_first_run?.()
 
+
+
     const filelist = null
     //filelist = `${univ.fontFile}${univ.fontFile && univ.filesList ? " " : ""}${univ.filesList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
@@ -52,7 +55,6 @@ const beforeMain = function (canvas) {
             if (univ.fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
             main(canvas)
         })
-
     } else {
         main(canvas)
     }

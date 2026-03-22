@@ -6,7 +6,9 @@ var univ = {
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
+    //BROKEN - fix later
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
+    //BROKEN = fix later
     filesList: "", //space-separated
     on_each_start: null,
     cacheInterval: 3 * 60 * 1000,//null for no caching
@@ -15,6 +17,7 @@ var univ = {
         if (existing) Object.assign(userSettings, JSON.parse(existing))
         if (univ.cacheInterval) Supabase.readAllWins = MM.timeCachedFunction(Supabase.readAllWins, univ.cacheInterval, true)
     },
+    on_first_run_blocking: null, //null or function. must call main(canvas) at the end
     on_next_game_once: null,
     on_beforeunload: () =>
         localStorage.setItem(stgs.localUserSettingsName, JSON.stringify({ ...userSettings, isDeveloper: false })),

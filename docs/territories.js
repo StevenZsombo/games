@@ -1,8 +1,9 @@
 //#region RULES.
-var RULES = Object.freeze({
+var RULES = ({
     NUMBER_OF_TEAMS: 5, //////////////////////////////////
     NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
     PICTURE_BACKGROUND_MAP: "blake5.png", //cannot null //with extension ///////////////////////////
+    MAPFILE: "./conquest/maps/map.json", //handled if missing. can be null
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
     DEFENSE_GAIN_VALUE: +50,
@@ -75,7 +76,7 @@ var RULES = Object.freeze({
 var _RULES_MAX_ATTACKS_ALLOWED = 3
 //#region GRAPHICS.
 
-var GRAPHICS = Object.freeze({
+var GRAPHICS = ({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
     ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
     POPUP_ATTACK_SUCCESS: "bigBlue",
