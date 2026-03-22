@@ -133,7 +133,7 @@ const DISPLAY = () => {
         )
         spop("Sent.")
     }
-    game.extras_temp.push(action)
+    setTimeout(action, 300) //hacky
 }
 const CLIPBOARD = () => {
     const action = () => {
@@ -143,12 +143,12 @@ const CLIPBOARD = () => {
             spop("No pasted picture found.")
             return
         }
-        GameEffects.popupPicture(d)
         chat.sendCommand(
             `GameEffects.popupPicture("${d}")`
         )
+        GameEffects.popupPicture(d)
     }
-    game.extras_temp.push(action)
+    setTimeout(action, 300) //hacky
 }
 const DOWNLOAD = () => {
     const action = () => {
@@ -159,7 +159,7 @@ const DOWNLOAD = () => {
         )
         spop("Sent.")
     }
-    game.extras_temp.push(action)
+    setTimeout(action, 300) //hacky
 }
 
 const COUNTDOWN = (text, seconds) => {
@@ -1316,7 +1316,7 @@ const dev = {
                 spop("Assign to a kingdom first.")
                 return
             }
-            k.acquireCapital(x.territory, {doNotOverrideValue:true})
+            k.acquireCapital(x.territory, { doNotOverrideValue: true })
         })
     },
     severConnections: (tgtName) => {

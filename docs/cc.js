@@ -890,9 +890,10 @@ class QPane extends Panel {
             if (this.submissionTimestamps.length >= 2//third attempt
                 &&
                 Date.now() - this.submissionTimestamps.at(-3) < 20 * 1000) {//within 20s
-                this.submissionCooldown = 30 * 1000
+                this.submissionCooldown = RULES.SPAM_SUBMIT_PENALTY_LENGTH
                 GameEffects.countdown(
-                    "Too many attempts in a short time.\nCannot make any more submissions for: ", 30,
+                    "Too many attempts in a short time.\nCannot make any more submissions for: ",
+                    RULES.SPAM_SUBMIT_PENALTY_LENGTH / 1000,
                     () => { this.submissionCooldown = 1000 }
                 )
                 return

@@ -2,7 +2,7 @@
 var RULES = ({
     NUMBER_OF_TEAMS: 5, //////////////////////////////////
     NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
-    PICTURE_BACKGROUND_MAP: "blake5.png", //cannot null //with extension ///////////////////////////
+    PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension ///////////////////////////
     MAPFILE: "./conquest/maps/map.json", //handled if missing. can be null
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
@@ -15,7 +15,9 @@ var RULES = ({
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
     TIMEOUT_ON_DEFENSE_TEXT: "ten minutes",
-    SUBMIT_COOLDOWN: 10 * 1000,
+    TIMEOUT_ON_DEFENSE_GAIN_VALUE: +50,
+    TIMEOUT_ON_DEFENSE_GAIN_VALUE_FOR_CAPITAL: +0,
+    SPAM_SUBMIT_PENALTY_LENGTH: 30 * 1000, //how long spam is penalized for
     CAPITAL_PLUNDER_VALUE: 500,
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -464,10 +466,12 @@ class Conflict {
         )
         this.resolve()
     }
-    winDefend(reason) {
+    winDefend(reason, { valueGainOverride = null, capitalValueGainOverride = null } = {}) {
         console.log(reason, this.defender.name, this.territory.name)
-        this.territory.value += RULES.DEFENSE_GAIN_VALUE
-        this.defender.capital && (this.defender.capital.value += RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL)
+        this.territory.value += (valueGainOverride ?? RULES.DEFENSE_GAIN_VALUE)
+        //for debugging there is a check for capital
+        this.defender.capital &&
+            (this.defender.capital.value += (capitalValueGainOverride ?? RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL))
         //notify defenders of victory
         const short = this.territory.nameShort
         this.defender.members.forEach(x =>
@@ -495,7 +499,11 @@ class Conflict {
     }
 
     timeoutWhileSolving() {
-        this.winDefend("timeout on defend")
+        this.winDefend("timeout on defend",
+            {
+                valueGainOverride: RULES.TIMEOUT_ON_DEFENSE_GAIN_VALUE,
+                capitalValueGainOverride: RULES.TIMEOUT_ON_DEFENSE_GAIN_VALUE_FOR_CAPITAL
+            })
         Question.record.push({
             id: this.question.id,
             ev: "timeout",
