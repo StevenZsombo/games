@@ -17,11 +17,11 @@ Sugggestions that I plan to implement + planned features:
 ********************************************************************************************************
 Suggestions already implemented:
 - Pause and ceasefire features.
-- Better visibility, both for the conflict arrows and in displaying which territory can be attacked.
+- Better visibility for conflict arrows and clear attack circles.
 - The max number of attacks / team at a time can now be changed from the SERVER, so that the game
 can be started at 1 attack/team and be scaled up once students get the hang of it.
 - If a student submits many attempts in a short time they will be forbidden to do so for 30 seconds.
-- Students will be notified of connection failure when submitting answers.
+- Students will be notified of connection failure when submitting answers. Top label shows connection state.
 - Loading screen added. Students will be prompted to wait while the game is downloading / server is stalling.
 - Clearer ranking window next to the map (instead of top of the page.)
 
@@ -50,12 +50,13 @@ which why the THREAT/response system exists. The earlier implementation was need
 ********************************************************************************************************
 Notable improvements:
 - SERVER-side ui added.
-- Load times.
+- Load times improved significantly!
 - Questions can now be invalidated from SERVER (in case they contain an error).
-- Much more reliable load/save for both manual and autosaves.
+- Much more reliable load/save for both manual and autosaves. RELOAD is called automatically on clients.
 
 - More detailed bucket system.
 - Massively increased game stability: WSS issues should no longer cause game failure.
+- Resolved several server-side issues (like giving GM privileges to non-localhost and path-revesal).
 
 - Graphics. I mean just look at them. Pretty.
 

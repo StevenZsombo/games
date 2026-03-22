@@ -24,10 +24,19 @@ var univ = {
                 Object.assign(RULES, fromFile.RULES)
                 Object.assign(GRAPHICS, fromFile.GRAPHICS)
                 console.info("Map loaded successfully.")
-                beforeMainPassedToBeCalled()
             })
             .catch(x => {
-                console.info("No map data found or it failed to load.")
+                console.info("No map data found or it failed to load.", x)
+            })
+            .finally(() => {
+                try {
+                    const ls = JSON.parse(localStorage.getItem("mapDataTemp"))
+                    if (ls) {
+                        Object.assign(RULES, ls.RULES)
+                        Object.assign(GRAPHICS, ls.GRAPHICS)
+                    }
+                }
+                catch (err) { console.error("Failed loading localStorage", err) }
                 beforeMainPassedToBeCalled()
             })
     }, //null or function. must call the beforeMainPassed() to proceed
@@ -277,7 +286,10 @@ listener.on_message = (obj, person) => {
     }
 
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
-        if (obj.inquire == "bunch") SHAREbunch(person.name)
+        if (obj.inquire === "bunch")
+            SHAREbunch(person.name)
+        else if (obj.inquire === "welcomeData")
+            SHAREmany(["kingdomsFullData", "territoriesFullData"], person.name) //so tidy
         else if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }
@@ -303,6 +315,7 @@ listener.on_message = (obj, person) => {
 
 const lastBroadcastDate = {}
 const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
+    //no need to manipulate here - on pause conflcitsData = [] by the sharer
     if (Date.now() - lastBroadcastDate["conflictsData"] > 5 * 1000) SHARE("conflictsData")
 }, 6 * 1000) //update every 6 seconds at least
 
@@ -327,7 +340,7 @@ const throttleCheckNotTooRecent = (key) => {
 }
 
 const SHARE = (key, target) => {
-    if (!target) {
+    if (target == null) {
         if (!throttleCheckNotTooRecent(key)) return
     }
     const msg = { shared: key }
@@ -351,12 +364,19 @@ const HARDREFRESH = () => {
     spop("Hard refresh.")
 }
 const SHAREbunch = (target) => {
-    if (target != null && !throttleCheckNotTooRecent("bunch")) return
+    if (target == null && !throttleCheckNotTooRecent("bunch")) return
     const list = ["rankingData", "valuesData", "ownershipData", "conflictsData"]
 
     const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
     if (target != null) msg.target = target
     chat.sendMessage(msg)
+}
+const SHAREmany = (list, target) => {
+    if (target == null && !throttleCheckNotTooRecent(list.join(";"))) return
+    const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
+    if (target != null) msg.target = target
+    chat.sendMessage(msg)
+
 }
 
 
@@ -576,7 +596,15 @@ class Game extends GameCore {
             lines.push([`Questions solved:`].concat(this.kingdoms.map((x, i) => x.solvedQuestions.size)))
             lines.push([`Territories:`].concat(this.kingdoms.map(x => x.territories.size)))
             lines.push([`Points:`].concat(this.valCols.map(x => x.txt)))
-            const linesStr = MM.tableStr(lines, null, 1)
+            //const linesStr = MM.tableStr(lines, null, 1) //rearrange by order!
+            const indicesRanked = lines.at(-1).slice(1)
+                .map((x, i) => [x, i])
+                .sort((a, b) => b[0] - a[0])
+                .map(x => x[1])
+            const linesRanked = lines.map(row =>
+                [row[0], ...indicesRanked.map(i => row[i + 1])]
+            )
+            const linesStr = MM.tableStr(linesRanked, null, 1)
             return first + "\n" + linesStr
 
         }
@@ -626,7 +654,7 @@ class Game extends GameCore {
             }
             obj[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = () => {
                 GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
-                    _RULES_MAX_ATTACKS_ALLOWED = x
+                    RULES.MAX_ATTACKS_ALLOWED = x //this sucks but whatevs
                     chat.sendMessage({
                         popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
                         popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
@@ -702,6 +730,18 @@ class Game extends GameCore {
                         console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
     
                     }])]*/
+                    .concat([
+                        [`kingdoms = ${RULES.NUMBER_OF_TEAMS}`, () => {
+                            RULES.NUMBER_OF_TEAMS = +prompt("how many kingdoms?")
+                            MANAGER.saveToLocal()
+                            chat.silentReload()
+                        }],
+                        [`territories = ${RULES.NUMBER_OF_TERRITORIES}`, () => {
+                            RULES.NUMBER_OF_TERRITORIES = +prompt("how many territories?")
+                            MANAGER.saveToLocal()
+                            chat.silentReload()
+                        }]
+                    ])
                     .concat([
                         /*[...Object.keys(MANAGER)
                             .filter(x => MANAGER[x].length == 0)
@@ -1090,7 +1130,7 @@ class Game extends GameCore {
     * @property {string} timestampHHMMSS - for debugging
     */
     saveGame(saveName = "conquestManual",
-        backups = 10 //write to text file instead?
+        backups = 5 //also writes to textfile
     ) {
         //assumption: territories, kingdoms and conflicts are all arrays
         //kingdoms and territories will override
@@ -1137,7 +1177,7 @@ class Game extends GameCore {
             }),
             MAX_ATTACKS_ALLOWED: RULES.MAX_ATTACKS_ALLOWED,
             questionRecord: Question.record,
-            conflictsRecord: Conflict.record,
+            conflictRecord: Conflict.record,
             timestamp: Date.now(),
             timestampHHMMSS: MM.time()
         }
@@ -1184,7 +1224,7 @@ class Game extends GameCore {
             // k.acquireCapital(this.territories[x.capital])//unchanging. so this is pointless!
         })
         Question.record = saveObj.questionRecord
-        Conflict.record = saveObj
+        Conflict.record = saveObj.conflictRecord
         this.conflictsHistoryCount = saveObj.conflictsHistoryCount //IMPORTANT
         //ditch all current conflicts lol
         this.conflicts.length = 0
@@ -1194,14 +1234,14 @@ class Game extends GameCore {
                 this.kingdoms[x.attacker],
                 this.territories[x.territory])
             c.id = x.id //SUPER IMPORTANT
-            if (x.question) c.question = Question.ALL[x.question]
+            if (x.question) c.question = Question.ALL[x.question] //by questionid
             c.justDeclared = x.justDeclared
             c.solving = x.solving
             c.alreadyResolved = x.alreadyResolved
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
-        _RULES_MAX_ATTACKS_ALLOWED = saveObj.MAX_ATTACKS_ALLOWED
+        RELOAD() //force all clients to reload, just in case.
     }
 
 
@@ -1276,7 +1316,7 @@ const dev = {
                 spop("Assign to a kingdom first.")
                 return
             }
-            k.acquireCapital(x.territory)
+            k.acquireCapital(x.territory, {doNotOverrideValue:true})
         })
     },
     severConnections: (tgtName) => {

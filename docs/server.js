@@ -55,36 +55,8 @@ const server = http.createServer((req, res) => {
 
 
 
-    if (cleanPath === '/listener' || cleanPath === '/listener.html') {
-        // serve the root listener.html
+    if (req.headers.host?.startsWith('localhost') && cleanPath === '/listener') {
         const filePath = path.join(__dirname, DEFAULT_LISTENER_PAGE_TO_SERVE)
-        return fs.readFile(filePath, (err, data) => {
-            if (err) { res.writeHead(404); res.end('Not found'); return }
-            res.writeHead(200, { 'Content-Type': 'text/html' })
-            res.end(data)
-        })
-    }
-
-    // if the path ends with '/listener' (but is not the root '/listener'), redirect to .html
-    if (cleanPath.endsWith('/listener')) {
-        const target = cleanPath + '.html'
-        res.writeHead(302, { 'Location': target })
-        return res.end()
-    }
-
-    // if requested file is named listener.html in some folder, attempt to serve it
-    if (path.basename(cleanPath) === 'listener.html') {
-        // strip leading slash to make a safe relative path
-        let requested = cleanPath
-        if (requested.startsWith('/')) requested = requested.slice(1)
-        const filePath = path.normalize(path.join(__dirname, requested))
-
-        // security: ensure the resolved path is inside the project directory
-        const root = path.normalize(__dirname + path.sep)
-        if (!filePath.startsWith(root)) {
-            res.writeHead(400); res.end('Bad request'); return
-        }
-
         return fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); res.end('Not found'); return }
             res.writeHead(200, { 'Content-Type': 'text/html' })
@@ -134,8 +106,11 @@ wss.on('connection', (ws, req) => {
     try { pathname = new URL(req.url, `http://${req.headers.host}`).pathname } catch (e) { pathname = req.url || '/' }
 
     // recognize listener websocket connections on any path that ends with '/listener'
-    // or whose basename is 'listener.html'
-    const isListener = pathname.endsWith('/listener') || path.basename(pathname) === 'listener.html'
+    // must also be joining from localhost!
+    const host = req.headers.host || ''
+    const isListener =
+        (pathname.endsWith('/listener') || path.basename(pathname) === 'listener.html')
+        && host.startsWith('localhost')
     ws._isListener = isListener
 
     if (isListener) {

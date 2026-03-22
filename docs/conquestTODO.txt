@@ -9,5 +9,4 @@ Consolation?
 
 
 Disconnect popup
-Verify disconnect state on {attempt}
 

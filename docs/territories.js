@@ -10,7 +10,7 @@ var RULES = ({
     DEFENSE_GAIN_VALUE_FOR_CAPITAL: +100,
     ATTACK_GAIN_VALUE: +100,
     ATTACK_GAIN_VALUE_FOR_CAPITAL: +50,
-    get MAX_ATTACKS_ALLOWED() { return _RULES_MAX_ATTACKS_ALLOWED }, //maybe 3? maybe same as team size?
+    MAX_ATTACKS_ALLOWED: 3, //maybe 3? maybe same as team size?
     TIMEOUT_ON_ATTACK: 30 * 1000, //formerly 1 minute
     TIMEOUT_ON_ATTACK_TEXT: "30 seconds",
     TIMEOUT_ON_DEFENSE: 10 * 60 * 1000,
@@ -59,23 +59,12 @@ var RULES = ({
     PROVINCE_BUTTONS_TRANSPARENT:
         true,
     PROVINCE_SHOW_CONNECTIONS:
-        false,
+        false
 
-
-    //to load in from localstorage
-    ...(/**
-     * @returns {{}}
-     */
-        () => {
-            const mapDataTemp = localStorage.getItem("mapDataTemp")
-            if (!mapDataTemp) return {}
-            return JSON.parse(mapDataTemp).RULES
-        })()
 })
 
-var _RULES_MAX_ATTACKS_ALLOWED = 3
-//#region GRAPHICS.
 
+//#region GRAPHICS.
 var GRAPHICS = ({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
     ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
@@ -103,18 +92,9 @@ var GRAPHICS = ({
     TOP: 40,
     BOT: 200,
 
-    //to load in from localstorage
-    ...(/**
-     * @returns {{}}
-     */
-        () => {
-            const mapDataTemp = localStorage.getItem("mapDataTemp")
-            if (!mapDataTemp) return {}
-            return JSON.parse(mapDataTemp).GRAPHICS
-        })()
 
 })
-
+//#region MANAGER.
 const MANAGER = {
     grab: () => {
         return game.exportRulesAndGraphics()
@@ -136,13 +116,13 @@ const MANAGER = {
 
     }
 }
-
-var MASTER = Object.freeze({
+//#region MASTER.
+var MASTER = {
     ALLOW_SCREENSHOTS: true,
     ALLOW_PASTING: true,
     AUTOSAVE_INTERVAL_SECONDS: 59,
     SCREENSHOT_INTERVAL_SECONDS: 19
-})
+}
 
 
 //#region Territory
@@ -262,18 +242,18 @@ class Kingdom {
     }
 
     /**@param {Territory} capital  */
-    acquireCapital(capital) {
+    acquireCapital(capital, { doNotOverrideValue = false } = {}) {
         if (this.capital != null) {
             //ditch previous capital
             this.capital.isCapital = false
-            this.capital.value = RULES.TERRITORY_BASE_VALUE
+            !doNotOverrideValue && (this.capital.value = RULES.TERRITORY_BASE_VALUE)
             this.capital.name = RULES.CAPITAL_NAMING_UNDO_FUNCTION(this.capital.name)
             this.capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         }
         this.acquireTerritory(capital)
         this.capital = capital
         capital.isCapital = true
-        capital.value = RULES.CAPITAL_BASE_VALUE
+        !doNotOverrideValue && (capital.value = RULES.CAPITAL_BASE_VALUE)
         capital.name = RULES.CAPITAL_NAMING_FUNCTION(this.capital.name, this.name)
         capital.button.resize(GRAPHICS.TERRITORY_SIZE_BASE_WIDTH, GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT)
         capital.button.stretch(GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR, GRAPHICS.TERRITORY_SIZE_CAPITAL_FACTOR) //just stretch
@@ -355,6 +335,7 @@ class Conflict {
     }
 
     pickQuestion() {
+        if (this.question) return //this may happen when a save was restored
         for (let bucket of Question.BUCKETS) {
             const inthebucket = bucket.map(i => Question.ALL[i]) //BUCKET has id, here work with question
             const unseenbyboth = inthebucket.filter(x =>

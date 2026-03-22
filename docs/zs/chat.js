@@ -213,7 +213,7 @@ class Chat {
         if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
 
         if (message.SERVERnameAlreadyExists != null) this.resetName("A user has already joined with that name, please select a different name.")
-        if (message.SERVERnameOrderedToReset != null) this.resetName()
+        else if (message.SERVERnameOrderedToReset != null) this.resetName(message.SERVERnameOrderedToReset)
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
 
         if (message.many != null) {

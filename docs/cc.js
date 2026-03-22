@@ -27,7 +27,7 @@ var univ = {
                 beforeMainPassedToBeCalled()
             })
             .catch(x => {
-                console.info("No map data found or it failed to load.")
+                console.error("No map data found or it failed to load.", x)
                 beforeMainPassedToBeCalled()
             })
     }, //null or function. must call the beforeMainPassed() to proceed
@@ -150,6 +150,7 @@ class Game extends GameCore {
             chat.silentReload() //clear everything
         }
 
+
         if (myKingdomID === undefined) {
             const stored = localStorage.getItem("myKingdomID")
             if (stored) myKingdomID = +stored
@@ -159,11 +160,20 @@ class Game extends GameCore {
             }
         }
 
+
+
+
+
+
+
         const entryInterval = setInterval(() => {
             if (chat.isConnected) {
                 chat.sendSecure({ kingdom: myKingdomID })
+                chat.sendSecure({ inquire: "welcomeData" })
+                /*
                 chat.sendSecure({ inquire: "territoriesFullData" })
                 chat.sendSecure({ inquire: "kingdomsFullData" })
+                */
                 clearInterval(entryInterval)
                 return
             } else
@@ -259,11 +269,12 @@ class Game extends GameCore {
                 Snippet.rearrange()
             }
             if (shared == "rankingData") {
-                const ranks = this.ranking.slice(1, -1)
-                ranks.forEach((x, i) => {
+                const ranks = this.ranking?.slice(1)
+                console.log(value, kingdoms, ranks)
+                ranks.forEach((b, i) => {
                     const [kID, kNAME, kSCORE] = value[i]
-                    x.txt = `${kNAME} (${kSCORE})`
-                    x.font_color = kingdoms[kID].color
+                    b.txt = `${kNAME} (${kSCORE})`
+                    b.font_color = kingdoms[kID].color
                 })
 
             }
@@ -319,7 +330,7 @@ class Game extends GameCore {
             game.add_drawable(ranking)*/
 
             top.color = "gray"
-            const ranking = Array(RULES.NUMBER_OF_TEAMS + 1).fill().map(() => new Button({
+            const ranking = Array(kingdoms.length + 1).fill().map(() => new Button({
                 height: 50,
                 outline: 1,
                 fontSize: 28,
@@ -342,7 +353,8 @@ class Game extends GameCore {
             youButton.on_click = () => document.documentElement.requestFullscreen()
             this.youButton = youButton
             this.add_drawable(youButton)
-            top.txt = "Conquest game"
+            // top.txt = "Conquest game"
+            top.dynamicText = () => `Conquest game` + (chat.isConnected ? "" : " (connecting...)")
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
@@ -446,7 +458,7 @@ class Game extends GameCore {
 
 
             mapster = new Mapster(
-                Kingdom.defaultRGBs.slice(0, RULES.NUMBER_OF_TEAMS),
+                Kingdom.defaultRGBs.slice(0, kingdoms.length),
                 RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
                 RULES.PICTURE_BACKGROUND_CENTER.x - RULES.PICTURE_BACKGROUND_DIMENSIONS[0] / 2,
                 RULES.PICTURE_BACKGROUND_CENTER.y - RULES.PICTURE_BACKGROUND_DIMENSIONS[1] / 2,
