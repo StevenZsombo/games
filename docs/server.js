@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_PAGE_TO_SERVE = '/cc.html'
-const DEFAULT_LISTENER_PAGE_TO_SERVE = 'zlistener/listener.html'
+const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html'
 
 const DOTS = {
     red: '\x1b[31m●\x1b[0m',
@@ -52,6 +52,8 @@ const server = http.createServer((req, res) => {
     // from that same path (so /foo/listener.html -> ./foo/listener.html and
     // /foo/listener -> ./foo/listener.html). Protect against path traversal.
     const cleanPath = urlPath.split('?')[0]
+
+
 
     if (cleanPath === '/listener' || cleanPath === '/listener.html') {
         // serve the root listener.html
@@ -92,6 +94,11 @@ const server = http.createServer((req, res) => {
 
     // otherwise serve requested file (index.html for '/'), or 404
     const filePath = path.join(__dirname, urlPath)
+    if (!filePath.startsWith(__dirname)) {
+        res.writeHead(403)
+        res.end('Forbidden')
+        return
+    }
     fs.readFile(filePath, (err, data) => {
         if (err) { res.writeHead(404); res.end('Not found'); return }
         const ext = path.extname(filePath)
@@ -112,9 +119,14 @@ const wss = new WebSocket.Server({ server })
 // track listener sockets separately from regular clients
 const listeners = new Set()
 
+const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' })//append
+writeStream.on('error', (err) => console.error(colorize("Failed to append record to file", "red"), err))
+
 function appendRecord(line) {
-    fs.appendFile(path.join(__dirname, 'record.txt'), line + '\n', (err) => { if (err) console.error('record append error', err) })
+    writeStream.write(line + '\n')
 }
+
+appendRecord(`Server started on ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`)
 
 wss.on('connection', (ws, req) => {
     // use pathname to distinguish listener vs client: ws://host:8000/listener
