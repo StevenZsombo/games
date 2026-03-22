@@ -6,6 +6,7 @@ Conquest game:
 ********************************************************************************************************
 Sugggestions that I plan to implement + planned features:
 - Attack reminders.
+- Subtle "Connection failure" icon.
 
 - Map editor.
 - Question bank verifier.
@@ -21,7 +22,8 @@ Suggestions already implemented:
 can be started at 1 attack/team and be scaled up once students get the hang of it.
 - If a student submits many attempts in a short time they will be forbidden to do so for 30 seconds.
 - Students will be notified of connection failure when submitting answers.
-- Loading screen added.
+- Loading screen added. Students will be prompted to wait while the game is downloading / server is stalling.
+- Clearer ranking window next to the map (instead of top of the page.)
 
 
 
