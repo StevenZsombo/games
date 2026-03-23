@@ -1329,6 +1329,10 @@ class MM {
         return str.replace(/\W/g, '')
     }
 
+    static lettersNumbersSpacesOnly(str) {
+        return str.replace(/[^\w\s]/g, '')
+    }
+
     static downloadFile(content, filename, mimeType = 'text/plain') {
         const blob = new Blob([content], { type: mimeType })
         const url = URL.createObjectURL(blob)

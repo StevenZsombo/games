@@ -67,6 +67,7 @@ class Person extends Participant {
         this.initialized = true
         console.log("joined:", this.name, this.nameID, this.connected)
     }
+    /**@returns {Person} */
     static to(nameOrPerson) {
         return typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
     }
@@ -119,10 +120,23 @@ const ATTENDANCE = () => {
     })
 }
 const ASK = (person, question) => {
-    person = Person.to(person)
-    if (!person) return
-    person.on_prompt_response = (txt) => { GameEffects.popup(`${person.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
-    chat.sendMessage({ target: person.name, prompt: question })
+    const personObj = Person.to(person)
+    if (!personObj) return
+    personObj.on_prompt_response_once =
+        (txt) => { GameEffects.popup(`${personObj.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
+    chat.sendMessage({ target: personObj.name, prompt: question })
+
+}
+const REQUEST = (person, command) => {
+    const personObj = Person.to(person)
+    if (!personObj) return
+    personObj.on_request_response_once =
+        (txt) => {
+            console.log(`${personObj.name} requestResponse:\n${txt}`)
+            GameEffects.popup(`${personObj.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen)
+        }
+    chat.sendMessage({ target: personObj.name, request: command })
+
 }
 const RELOAD = () => dev.orderReload()
 const DISPLAY = () => {
@@ -213,7 +227,7 @@ listener.chat.on_join = () => {
     connectionInfoButton.visible = false
     connectionInfoButton.color = "green"
     connectionInfoButton.txt = listener.chat.reconnections > 0 ? "Succesfully reconnected." : "Connected."
-    game.animator.add_anim(Anim.setter(connectionInfoButton, 1000, "visible", [true], { ditch: true }))
+    game?.animator.add_anim(Anim.setter(connectionInfoButton, 1000, "visible", [true], { ditch: true }))
 }
 //#endregion
 
@@ -295,6 +309,9 @@ listener.on_message = (obj, person) => {
             console.error("Invalid inquire made by", person.name, obj)
     }
 
+    if (obj.yell !== undefined) {
+        console.error(person.name + " YELL:\n" + obj.yell)
+    }
 
     if (obj.attack !== undefined) {
         if (!person.verifyKingdomAssignedAlready()) return
@@ -313,6 +330,11 @@ listener.on_message = (obj, person) => {
         else { console.error("invalid conflict.id for attempt", this) }
     }
 }
+
+
+
+
+
 
 const lastBroadcastDate = {}
 const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
@@ -550,6 +572,35 @@ class Game extends GameCore {
         this.snapShotButton = snapShotButton
         this.add_drawable(snapShotButton)
 
+
+        const arrowsDrawableObject = {
+            draw: (screen) => {
+                if (this.showingMap)
+                    for (const c of this.conflicts) {
+                        if (c.alreadyResolved) continue
+                        const { x, y } = c.attackingFrom.button.center
+                        const { x: u, y: w } = c.territory.button.center
+                        const v = [u - x, w - y]
+                        const p = [x + v[0] * .3, y + v[1] * .3]
+                        const q = [x + v[0] * .85, y + v[1] * .85]
+                        MM.drawArrow(screen,
+                            p[0], p[1], q[0], q[1],
+                            {
+                                color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color),
+                                width: 5, size: 12,
+                                txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null,
+                                fontSize: 24
+
+                            }
+                        )
+
+
+                    }
+            }
+        }
+        this.arrowsDrawableObject = arrowsDrawableObject
+        this.add_drawable(arrowsDrawableObject, 4)
+
         const serverButton = switchModeButton.copy
         serverButton.txt = "SERVER"
         serverButton.on_click = null
@@ -699,7 +750,12 @@ class Game extends GameCore {
                 }, null, null, null, null, [this.overlay])
                 comm["END"] = "Ends the contest."
             }
-            obj["LOADSAVE"] = () => game.loadGameFromFile()
+            obj["LOADSAVE"] = () => {
+                game.loadGameFromFile().then(x => {
+                    HARDREFRESH()
+                    SHAREbunch()
+                })
+            }
             comm["LOADSAVE"] = "Loads a manual- or autosave from file."
 
 
@@ -779,6 +835,7 @@ class Game extends GameCore {
             ddm.menuButtons.forEach(x => { })
         }
         this.add_drawable(devButton)
+
 
 
         mapster = new Mapster(
@@ -898,28 +955,7 @@ class Game extends GameCore {
 
     }
     draw_more(screen) {
-        //this stinks. convert to drawableObject
-        if (this.showingMap)
-            for (const c of this.conflicts) {
-                if (c.alreadyResolved) continue
-                const { x, y } = c.attackingFrom.button.center
-                const { x: u, y: w } = c.territory.button.center
-                const v = [u - x, w - y]
-                const p = [x + v[0] * .3, y + v[1] * .3]
-                const q = [x + v[0] * .85, y + v[1] * .85]
-                MM.drawArrow(screen,
-                    p[0], p[1], q[0], q[1],
-                    {
-                        color: c.justDeclared ? GRAPHICS.ATTACK_BEFORE_RESPONSE_COLOR : GRAPHICS.ATTACK_TEAM_COLOR_FUNCTION(c.attacker.color),
-                        width: 5, size: 12,
-                        txt: this.showTimeOnArrows ? MM.toMMSS(c.timeLeft) : null,
-                        fontSize: 24
 
-                    }
-                )
-
-
-            }
 
 
 
@@ -962,7 +998,7 @@ class Game extends GameCore {
         }
         if (typeof territory === 'number') territory = this.territories[territory]
         if (!Conflict.checkValidity(who, territory)) {
-            console.log("invalid conflict request", who, territory)
+            // console.log("invalid conflict request", who, territory)
             chat.sendMessage({
                 target: person.name,
                 popup: `Cannot attack ${territory.nameShort}.`,
@@ -1197,8 +1233,8 @@ class Game extends GameCore {
         return false
     }
 
-    loadGameFromFile() {
-        MM.importJSON().then(x => this.loadGame(null, { saveObjFromFile: x }))
+    async loadGameFromFile() {
+        return await MM.importJSON().then(x => this.loadGame(null, { saveObjFromFile: x }))
     }
 
     loadGame(saveName = "conquestManual", { saveObjFromFile = null } = {}) {
@@ -1243,7 +1279,6 @@ class Game extends GameCore {
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
-        RELOAD() //force all clients to reload, just in case.
     }
 
 
@@ -1402,7 +1437,7 @@ const hq = {
         //screenshots
         if (MASTER.ALLOW_SCREENSHOTS) {
             Cropper.screenshot("timelapse")
-            console.log("Screenshot saved.")
+            // console.log("Screenshot saved.")
             contestIntervals.push(
                 setInterval(() => {
                     Cropper.screenshot("timelapse")
@@ -1412,11 +1447,11 @@ const hq = {
         }
         //autosaves
         game.saveGame("conquestStart")
-        console.log("Autosave created.")
+        // console.log("Autosave created.")
         contestIntervals.push(
             setInterval(() => {
                 game.saveGame("conquestAuto")
-                console.log("Autosave created.")
+                // console.log("Autosave created.")
 
             }, MASTER.AUTOSAVE_INTERVAL_SECONDS * 1000) //every 60 seconds
         )
@@ -1438,6 +1473,7 @@ const hq = {
         game.conflicts.forEach(x => x.resolve()) //cut off all conflicts
         contestIntervals.forEach(x => clearInterval(x))
         game.saveGame("conquestEnd")
+        if (MASTER.ALLOW_SCREENSHOTS) Cropper.screenshot("conquestEnd")
         console.log("Timers/intervals cleared.")
         chat.sendMessage({
             popup: "The game has ended. Thank you for playing.\nStand by for results!",

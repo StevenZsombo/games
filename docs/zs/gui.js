@@ -802,7 +802,8 @@ class Supabase {
 			(() => {
 				let name
 				while (!name || name.length <= 3 || name.length > 25) {
-					name = prompt("Please tell me your name" + univ.acquireNameMoreStr);
+					//consistent with chat, but does not call MM.lettersNumbersSpacesOnly
+					name = prompt("Please tell me your name" + univ.acquireNameMoreStr).replace(/[^\w\s]/g, '')
 					localStorage.setItem("name", name)
 				}
 				return name

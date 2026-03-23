@@ -6,7 +6,6 @@ Conquest game:
 ********************************************************************************************************
 Sugggestions that I plan to implement + planned features:
 - Attack reminders.
-- Subtle "Connection failure" icon.
 
 - Map editor.
 - Question bank verifier.
@@ -20,7 +19,7 @@ Suggestions already implemented:
 - Better visibility for conflict arrows and clear attack circles.
 - The max number of attacks / team at a time can now be changed from the SERVER, so that the game
 can be started at 1 attack/team and be scaled up once students get the hang of it.
-- If a student submits many attempts in a short time they will be forbidden to do so for 30 seconds.
+- If a student submits too many attempts in a short time they will be forbidden to do so for 30 seconds.
 - Students will be notified of connection failure when submitting answers. Top label shows connection state.
 - Loading screen added. Students will be prompted to wait while the game is downloading / server is stalling.
 - Clearer ranking window next to the map (instead of top of the page.)
@@ -48,21 +47,6 @@ which why the THREAT/response system exists. The earlier implementation was need
 
 
 ********************************************************************************************************
-Notable improvements:
-- SERVER-side ui added.
-- Load times improved significantly!
-- Questions can now be invalidated from SERVER (in case they contain an error).
-- Much more reliable load/save for both manual and autosaves. RELOAD is called automatically on clients.
-
-- More detailed bucket system.
-- Massively increased game stability: WSS issues should no longer cause game failure.
-- Resolved several server-side issues (like giving GM privileges to non-localhost and path-revesal).
-
-- Graphics. I mean just look at them. Pretty.
-
-
-
-********************************************************************************************************
 Suggestions rejected:
 - Giving different questions on the same conflict to each team.
 REASON: technical limitations (my system was explicitly set up to assume that the two questions will be
@@ -74,10 +58,9 @@ by losing lead dinamycally.
 
 ********************************************************************************************************
 Known issues:
-- Some devices (usually laptops) may periodically disconnect. Fullscreen should help with this.
-- Attack circle animations stop when focus is lost. Feature, or bug?
-- Server privileges might be granted to anyone who joins the server URL.
-- Submission ban can be bypassed by switching to another question or reloading the game.
+- Some devices (usually laptops) periodically disconnect. Fullscreen should help with this.
+- Devices with low memory may fail to load entirely. I will eventually create a fallback.
+- Restarting after server failure requires students to manually reload the page.
 
 
 

@@ -390,7 +390,7 @@ class Conflict {
         if (this.alreadyResolved) { console.error("guess on already resolved", this); return }
         if (!RULES.ACCURACY_FUNCTION(guessValue, this.question.sol)) {
             //wrong attempt
-            console.log("wrong attempt", who.name)
+            // console.log("wrong attempt", who.name)
             if (person) {
                 chat.sendMessage({
                     target: person.name,
@@ -443,7 +443,7 @@ class Conflict {
             )
             return this.resolve()
         }
-        console.log(reason, this.attacker.name, this.territory.name)
+        // console.log(reason, this.attacker.name, this.territory.name)
         this.territory.value += RULES.ATTACK_GAIN_VALUE
         this.attacker.capital && (this.attacker.capital.value += RULES.ATTACK_GAIN_VALUE_FOR_CAPITAL)
         this.attacker.acquireTerritory(this.territory)
@@ -467,7 +467,7 @@ class Conflict {
         this.resolve()
     }
     winDefend(reason, { valueGainOverride = null, capitalValueGainOverride = null } = {}) {
-        console.log(reason, this.defender.name, this.territory.name)
+        // console.log(reason, this.defender.name, this.territory.name)
         this.territory.value += (valueGainOverride ?? RULES.DEFENSE_GAIN_VALUE)
         //for debugging there is a check for capital
         this.defender.capital &&

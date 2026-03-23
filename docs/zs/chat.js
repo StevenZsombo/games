@@ -152,7 +152,7 @@ class Chat {
                 this.name = name
             } else {
                 while (!name || name.length <= 3 || name.length > 25) {
-                    name = prompt(univ.acquireNameStr)
+                    name = prompt(univ.acquireNameStr).replace(/[^\w\s]/g, '')
                 }
                 localStorage.setItem("name", name)
                 this.name = name
@@ -212,8 +212,13 @@ class Chat {
         else if (message.target && message.target !== this.name) { return } //ignore by target (name)
         if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
 
-        if (message.SERVERnameAlreadyExists != null) this.resetName("A user has already joined with that name, please select a different name.")
-        else if (message.SERVERnameOrderedToReset != null) this.resetName(message.SERVERnameOrderedToReset)
+        if (message.SERVERnameAlreadyExists != null)
+        //this.resetName("A user has already joined with that name, please select a different name.") //this sucked
+        {
+            this.forceName(this.name + "#" + MM.randomInt(10000, 99999))
+            this.silentReload() //hopefully not creating a loop
+        }
+        else if (message.SERVERnameOrderedToReset != null) this.resetName()
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
 
         if (message.many != null) {
@@ -235,7 +240,10 @@ class Chat {
             else GameEffects.popup(message.popup, message.popupSettings)
         }
         if (message.echo != null) this.receiveEcho(message.echo)
-        if (message.request != null) this.sendMessage({ requestResponse: eval(message.request) })
+        if (message.request != null) this.sendMessage({
+            requestResponse:
+                (() => { try { return JSON.stringify(eval(message.request)) } catch (err) { return err.toString() } })()
+        })
 
         if (message.demand != null) {
             MM.require(message, "value")
@@ -278,10 +286,10 @@ class Participant {
         this.on_disconnect = null
         this.isConnected = true
 
-        this.on_request_response = null
+        this.on_request_response = null //takes message requestResponse
         this.on_request_response_once = null
-        this.on_prompt_response = null
-        this.on_request_response_once = null
+        this.on_prompt_response = null // takes message.promptResponse
+        this.on_prompt_response_once = null
     }
 }
 //#endregion
@@ -413,8 +421,8 @@ class Listener {
         //logging any requests
         if (message.promptResponse) {
             person.on_prompt_response?.(message.promptResponse)
-            person.on_request_response_once?.(message.promptResponse)
-            person.on_request_response_once = null
+            person.on_prompt_response_once?.(message.promptResponse)
+            person.on_prompt_response_once = null
         }
         if (message.requestResponse) {
             person.on_request_response?.(message.requestResponse)

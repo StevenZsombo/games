@@ -12,7 +12,14 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: null,
-    on_first_run: null,
+    on_first_run: () => {
+        window.onerror = (message, source, lineno, colno, error) => {
+            chat.sendMessage({ yell: error?.stack || `${message} at ${source}:${lineno}` })
+        }
+        /*window.addEventListener("error", (e) =>
+            chat.sendMessage({ yell: `${e.error.stack || `${e.message} at ${e.filename}:${e.lineno}`}` }))*/
+    },
+
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
         if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
         fetch(RULES.MAPFILE)
@@ -129,7 +136,7 @@ class Game extends GameCore {
         })
 
 
-        GameEffects.fullscreenTrickButton()
+        // GameEffects.fullscreenTrickButton()
 
     }
     resetKingdom() {
@@ -139,6 +146,7 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
+        wProgress?.("initalize_more()")
         Question.ALL.forEach(x => x.sol = undefined) //muhahahahahahaha
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
@@ -164,9 +172,9 @@ class Game extends GameCore {
 
 
 
-
-
-        const entryInterval = setInterval(() => {
+        wProgress('entryInterval()')
+        let entryInterval
+        const entryIntervalAction = () => {
             if (chat.isConnected) {
                 chat.sendSecure({ kingdom: myKingdomID })
                 chat.sendSecure({ inquire: "welcomeData" })
@@ -174,11 +182,13 @@ class Game extends GameCore {
                 chat.sendSecure({ inquire: "territoriesFullData" })
                 chat.sendSecure({ inquire: "kingdomsFullData" })
                 */
-                clearInterval(entryInterval)
+                entryInterval && clearInterval(entryInterval)
                 return
             } else
                 console.log("Waiting to enter.")
-        }, 500)
+        }
+        entryInterval = setInterval(entryIntervalAction, 500)
+        entryIntervalAction()
 
         /**@type {Kingdom[]} */
         const kingdoms = []
@@ -259,7 +269,7 @@ class Game extends GameCore {
                 })
                 const serverIDs = value.map(x => x.id)
                 snippets.filter(x => !serverIDs.includes(x.id)).forEach(x => {
-                    if (focus == x.id) setFocus("map")
+                    if (focusCurrent == x.id) setFocus("map")
                     if (panes.has(x.id)) {
                         panes.get(x.id).destroy()
                         panes.delete(x.id)
@@ -281,21 +291,18 @@ class Game extends GameCore {
         }
 
         const waitCheckSyncState = () => {
+            wProgress?.("waitCheckSyncState()")
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
-                chat.sendSecure({ inquire: "bunch" })
-                /*chat.sendSecure({ inquire: "ownershipData" })
-                chat.sendSecure({ inquire: "valuesData" })
-                chat.sendSecure({ inquire: "conflictsData" })
-                chat.sendSecure({ inquire: "rankingData" })*/
-                init_after_basics()
                 syncReady = true
-
+                chat.sendSecure({ inquire: "bunch" }) //I am an idiot.
+                init_after_basics()
             }
         }
 
         //#region init_after_basics
         const init_after_basics = () => {
+            wProgress?.("init_after_basics()")
             let border = Gimmicks.setupBorder()
             const { top, bot, left, right, middle } = border
             border = Object.values(border)
@@ -324,7 +331,7 @@ class Game extends GameCore {
             ranking.at(-1).txt = `You: ${chat.name} (${kingdoms[myKingdomID].name})`
             ranking.at(-1).color = myColor
             ranking.at(-1).transparent = false
-
+        
             this.ranking = ranking
             top.color = "gray"
             game.add_drawable(ranking)*/
@@ -413,13 +420,8 @@ class Game extends GameCore {
             QPane.calculatorSpaceDefault = right.copy
 
 
-            /*const fullscreenButton = new Button({ width: 150, height: 30, txt: "FULLSCREEN" })
-            fullscreenButton.bottomat(bot.top)
-            fullscreenButton.rightat(game.rect.right)
-            this.add_drawable(fullscreenButton)
-            fullscreenButton.on_click = () => MM.toggleFullscreen()
 
-*/
+
 
 
             //formulas pane for testing. it works, kinda.
@@ -453,10 +455,10 @@ class Game extends GameCore {
             this.add_drawable(formulasPanel)
             this.formulasButton = formulasButton
             this.formulasPanel = formulasPanel
-*/
+        */
 
 
-
+            wProgress?.("new Mapster")
             mapster = new Mapster(
                 Kingdom.defaultRGBs.slice(0, kingdoms.length),
                 RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
@@ -513,37 +515,8 @@ class Game extends GameCore {
         this.arrowsDrawableObject = arrowsDrawableObject
         this.add_drawable(arrowsDrawableObject)
 
-        if (!RULES.PROVINCE_BUTTONS_TRANSPARENT) {
-            const highlightOwnProvincesDrawableObject = {
-                lineWidth: 10, //interesting
-                growthRate: +0.1,
-                draw: (screen) => {
-                    if (this.showingMap)
-                        myKingdomObject.territories.forEach(
-                            /** @param {Territory} t */
-                            t => {
-                                MM.drawRect(screen,
-                                    t.button.x,
-                                    t.button.y,
-                                    t.button.width, t.button.height,
-                                    {
-                                        lineWidth: highlightOwnProvincesDrawableObject.lineWidth,
-                                        // lineWidth: 8,
-                                        color: "black"
-                                    }
-                                )
-                            })
-                },
-                update: (dt) => {
-                    highlightOwnProvincesDrawableObject.lineWidth += highlightOwnProvincesDrawableObject.growthRate
-                    if (highlightOwnProvincesDrawableObject.lineWidth > 14 ||
-                        highlightOwnProvincesDrawableObject.lineWidth < 8)
-                        highlightOwnProvincesDrawableObject.growthRate *= -1
 
-                }
-            }
-            this.add_drawable(highlightOwnProvincesDrawableObject, 4)
-        }
+
 
         chat.on_receive = (message) => {
             // console.log(message)
@@ -564,7 +537,7 @@ class Game extends GameCore {
 
         const attackCircleDrawableObject = {
             size: 30,
-            growthRate: 0.02,
+            growthRate: 1, //duplicated below
             draw: (screen) => {
                 if (!this.showingMap) return
                 this.canAttackList.forEach(x => MM.drawEllipse(
@@ -576,12 +549,15 @@ class Game extends GameCore {
                     { outline: 4, outline_color: "red", color: null }
                 )
                 )
-            },
-            update: (dt) => {
-                if (!this.showingMap) return
-                /*attackCircleDrawableObject.size += dt * attackCircleDrawableObject.growthRate
-                if ((attackCircleDrawableObject.size > 40) || (attackCircleDrawableObject.size < 30))
-                    attackCircleDrawableObject.growthRate *= -1*/
+            }
+        }
+        {
+            const a = attackCircleDrawableObject
+            a.update = (dt) => {
+                a.size += dt * a.growthRate * 0.008
+                if (a.size > 35) { a.growthRate = -1; a.size = 35; }
+                else if (a.size < 30) { a.growthRate = 1; a.size = 30 }
+                //beautiful, buttery smooth!
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
@@ -605,7 +581,7 @@ class Game extends GameCore {
 
     afterEverythingHasLoaded() {
         this._removeLoadingButton()
-        GameEffects.fullscreenTrickButton(5000)
+        GameEffects.fullscreenTrickButton(0)
 
         //MM.toggleFullscreen(true)
         //can only be initiated by user gesture, sadly.
@@ -614,7 +590,8 @@ class Game extends GameCore {
 
     _removeLoadingButton() {
         window.BROWSERshowLoading?.remove()
-        window.BROWSERshowLoading = null
+        delete window.BROWSERshowLoading
+        delete window.wProgress
 
     }
 
@@ -730,7 +707,7 @@ class Snippet {
                     GameEffects.popup("Wait for the opponent to respond.", {}, GRAPHICS.POPUP_PATIENCE)
                 else { //trying to defend
                     GameEffects.popup("Defense began!", {}, GRAPHICS.POPUP_START_DEFENSE)
-                    setFocus(confD.id) //will accept via invalid focus
+                    setFocus(confD.id) //will accept via invalid focusCurrent
                 }
             } else setFocus(confD.id)
 
@@ -752,6 +729,7 @@ class Snippet {
     destroy() {
         game.remove_drawables_batch(this.rows)
         game.remove_drawable(this.bg)
+        if (focusCurrent == this.id) { setFocus("map") }
         const index = snippets.findIndex(x => x === this)
         if (index != -1) snippets.splice(index, 1)
     }
@@ -900,7 +878,7 @@ class QPane extends Panel {
             }
             if (!chat.isConnected) {
                 GameEffects.popup(
-                    `Failure to connect.\nAsk the teacher for help.`,
+                    `Failure to connect.\nAsk the teacher for help.`, null,
                     GRAPHICS.POPUP_ERROR)
                 return
             }
@@ -943,13 +921,13 @@ class QPane extends Panel {
     }
 
 }
-//#region focus
+//#region focusCurrent
 /**@type {Map<number,QPane} */
 const panes = new Map()
-let focus = "map" //"map" or id of the QPane which is the same as conflict id
+let focusCurrent = "map" //"map" or id of the QPane which is the same as conflict id
 const setFocus = (tgt) => {
     //requesting a pane not yet available accepts the conflict
-    if (tgt == "map") {//focusing on map means closing all panes
+    if (tgt == "map") {//focusCurrenting on map means closing all panes
         panes.values().forEach(x => x.deactivate())
         game.showingMap = true
     } else if (tgt != "map" && !panes.has(tgt)) {
@@ -958,18 +936,18 @@ const setFocus = (tgt) => {
         tgt = "map"
         panes.values().forEach(x => x.deactivate())
         return //otherwise quit
-    } else if (focus == "map" && tgt != "map") {//switching away from map
+    } else if (focusCurrent == "map" && tgt != "map") {//switching away from map
         game.showingMap = false
         panes.get(tgt).activate()
-    } else if (focus != "map" && focus != tgt) {//switching between panes
-        panes.get(focus).deactivate()
+    } else if (focusCurrent != "map" && focusCurrent != tgt) {//switching between panes
+        panes.get(focusCurrent).deactivate()
         panes.get(tgt).activate()
-    } else if (focus == tgt && focus != "map") {//same pane means close pane
-        panes.get(focus).deactivate()
+    } else if (focusCurrent == tgt && focusCurrent != "map") {//same pane means close pane
+        panes.get(focusCurrent).deactivate()
         game.showingMap = true
         tgt = "map"
     }
-    focus = tgt
+    focusCurrent = tgt
 }
 
 

@@ -5,7 +5,7 @@ Download and install:
 
 Create two empty folders somewhere easy to find called:
 clipped
-docs
+games
 
 
 1. Then in cmd/terminal navigate to your newly created docs folder
