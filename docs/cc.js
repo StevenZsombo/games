@@ -39,7 +39,7 @@ var univ = {
                 if (localStorage.getItem("name")) return resolve()
 
                 const p = window.BROWSERshowLoading
-                const origLoadTextContest = p.textContent
+                const origLoadTextContent = p.textContent
                 p.textContent = ""
                 const div = document.createElement("div")
                 div.textContent = "Type in your name before joining:"
@@ -63,7 +63,7 @@ var univ = {
                         div.remove()
                         input.remove()
                         button.remove()
-                        p.textContent = origLoadTextContest
+                        p.textContent = origLoadTextContent
                         resolve()
                     }
                 }
@@ -221,7 +221,7 @@ class Game extends GameCore {
             } else
                 console.log("Waiting to enter.")
         }
-        entryInterval = setInterval(entryIntervalAction, 500)
+        entryInterval = setInterval(entryIntervalAction, 800)
         entryIntervalAction()
 
         /**@type {Kingdom[]} */
@@ -329,7 +329,8 @@ class Game extends GameCore {
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
                 syncReady = true
-                chat.sendSecure({ inquire: "bunch" }) //I am an idiot.
+                //chat.sendSecure({ inquire: "bunch" })
+                //have everything in the welcomeData
                 init_after_basics()
             }
         }

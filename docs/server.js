@@ -1,201 +1,204 @@
 /*
----local hosting---
-node this
-then join via ip:8000
-
-
----online hosting---
-first host locally, then:
-ngrok http 8000
-then join via url
+Minimal static + WebSocket server
+Serves any file without restricting Content-Type headers.
 */
 
 const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-const DEFAULT_PAGE_TO_SERVE = '/cc.html'
-const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html'
+const DEFAULT_PAGE_TO_SERVE = 'cc.html';
+const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html';
+const PORT = 8000;
 
-const DOTS = {
-    red: '\x1b[31m●\x1b[0m',
-    green: '\x1b[32m●\x1b[0m',
-    blue: '\x1b[34m●\x1b[0m',
-    yellow: '\x1b[33m●\x1b[0m',
-    white: '\x1b[37m●\x1b[0m'
-}
-const COLORS = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m',
-    reset: '\x1b[0m'
-}
-// Colorize text
+const ROOT_DIR = path.resolve(__dirname);
+
 const colorize = (text, color) => {
-    return COLORS[color] + text + COLORS.reset
+    const COLORS = {
+        red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m',
+        blue: '\x1b[34m', magenta: '\x1b[35m', cyan: '\x1b[36m',
+        white: '\x1b[37m', reset: '\x1b[0m'
+    };
+    return (COLORS[color] || '') + text + COLORS.reset;
+};
+
+// Helpers
+function safeResolve(...parts) {
+    const resolved = path.resolve(...parts);
+    // allow file equal to ROOT_DIR or inside it
+    if (resolved === ROOT_DIR || resolved.startsWith(ROOT_DIR + path.sep)) return resolved;
+    return null;
 }
 
-const PORT = 8000
+function isLocalHostHeader(hostHeader) {
+    if (!hostHeader) return false;
+    const hostOnly = hostHeader.split(':')[0].toLowerCase();
+    return hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly === '::1';
+}
 
-//#region HTTP server
-// Minimal static server: serve index.html to normal clients, listener.html to listener
-const server = http.createServer((req, res) => {
-    const urlPath = req.url === '/' ? DEFAULT_PAGE_TO_SERVE : req.url
-
-    // serve explicit listener page when the requested path's basename is listener.html
-    // or the path ends with '/listener'. In that case serve the listener.html file
-    // from that same path (so /foo/listener.html -> ./foo/listener.html and
-    // /foo/listener -> ./foo/listener.html). Protect against path traversal.
-    const cleanPath = urlPath.split('?')[0]
-
-
-
-    if (req.headers.host?.startsWith('localhost') && cleanPath === '/listener') {
-        const filePath = path.join(__dirname, DEFAULT_LISTENER_PAGE_TO_SERVE)
-        return fs.readFile(filePath, (err, data) => {
-            if (err) { res.writeHead(404); res.end('Not found'); return }
-            res.writeHead(200, { 'Content-Type': 'text/html' })
-            res.end(data)
-        })
-    }
-
-    // otherwise serve requested file (index.html for '/'), or 404
-    const filePath = path.join(__dirname, urlPath)
-    if (!filePath.startsWith(__dirname)) {
-        res.writeHead(403)
-        res.end('Forbidden')
-        return
-    }
-    fs.readFile(filePath, (err, data) => {
-        if (err) { res.writeHead(404); res.end('Not found'); return }
-        const ext = path.extname(filePath)
-        const contentType = ext === '.js' ? 'application/javascript' : ext === '.css' ? 'text/css' : 'text/html'
-        res.writeHead(200, { 'Content-Type': contentType })
-        res.end(data)
-    })
-})
-//#endregion
-
-
-
-
-//#region WebSocket server
-
-const wss = new WebSocket.Server({ server })
-
-// track listener sockets separately from regular clients
-const listeners = new Set()
-
-const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' })//append
-writeStream.on('error', (err) => console.error(colorize("Failed to append record to file", "red"), err))
-
+// Logging file
+const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' });
+writeStream.on('error', (err) => console.error('writeStream error', err));
 function appendRecord(line) {
-    writeStream.write(line + '\n')
+    try {
+        if (!writeStream.destroyed) writeStream.write(String(line) + '\n');
+    } catch (e) {
+        console.error('appendRecord error', e);
+    }
 }
+appendRecord(`Server started on ${new Date().toISOString()}`);
 
-appendRecord(`Server started on ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`)
+// HTTP server
+const server = http.createServer((req, res) => {
+    try {
+        const raw = req.url || '/';
+        const urlPath = raw === '/' ? '/' + DEFAULT_PAGE_TO_SERVE : raw;
+        const cleanPath = urlPath.split('?')[0];
+
+        const hostHeader = req.headers.host || '';
+
+        // Listener shortcut: /listener or /foo/listener or explicit listener.html
+        if (isLocalHostHeader(hostHeader) && (cleanPath.endsWith('/listener') || path.basename(cleanPath) === 'listener.html')) {
+            let dirPath;
+            if (cleanPath.endsWith('/listener')) {
+                dirPath = cleanPath.slice(0, -'/listener'.length) || '/';
+            } else {
+                dirPath = path.dirname(cleanPath);
+            }
+            const filePath = safeResolve(ROOT_DIR, '.' + dirPath, DEFAULT_LISTENER_PAGE_TO_SERVE);
+            if (!filePath) { res.writeHead(403); res.end('Forbidden'); return; }
+            return fs.readFile(filePath, (err, data) => {
+                if (err) { res.writeHead(404); res.end('Not found'); return; }
+                // Intentionally do not set Content-Type header -> serve raw bytes
+                res.writeHead(200);
+                res.end(data);
+            });
+        }
+
+        // Serve any requested file (no content-type restrictions)
+        const filePath = safeResolve(ROOT_DIR, '.' + cleanPath);
+        if (!filePath) { res.writeHead(403); res.end('Forbidden'); return; }
+        fs.readFile(filePath, (err, data) => {
+            if (err) { res.writeHead(404); res.end('Not found'); return; }
+            // Intentionally do not set Content-Type header -> serve raw bytes
+            res.writeHead(200);
+            res.end(data);
+        });
+    } catch (err) {
+        console.error('http handler error', err);
+        try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { /* ignore */ }
+    }
+});
+
+// Basic protections
+server.on('clientError', (err, socket) => {
+    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (e) { /* ignore */ }
+});
+
+// WebSocket server
+const wss = new WebSocket.Server({ server });
+wss.on('error', (err) => console.error('wss error', err));
+
+const listeners = new Set();
 
 wss.on('connection', (ws, req) => {
-    // use pathname to distinguish listener vs client: ws://host:8000/listener
-    let pathname = '/'
-    try { pathname = new URL(req.url, `http://${req.headers.host}`).pathname } catch (e) { pathname = req.url || '/' }
+    try {
+        let pathname = '/';
+        try { pathname = new URL(req.url, `http://${req.headers.host}`).pathname; } catch (e) { pathname = req.url || '/'; }
 
-    // recognize listener websocket connections on any path that ends with '/listener'
-    // must also be joining from localhost!
-    const host = req.headers.host || ''
-    const isListener =
-        (pathname.endsWith('/listener') || path.basename(pathname) === 'listener.html')
-        && host.startsWith('localhost')
-    ws._isListener = isListener
+        const host = req.headers.host || '';
+        const isListener = (pathname.endsWith('/listener') || path.basename(pathname) === 'listener.html') && isLocalHostHeader(host);
+        ws._isListener = isListener;
 
-    if (isListener) {
-        listeners.add(ws)
-        console.log('\x1b[34m● Listener connected\x1b[0m', req.socket.remoteAddress)
-    } else {
-        console.log('\x1b[32m● Client connected\x1b[0m', req.socket.remoteAddress)
-    }
-
-    // message processing helper
-    function processMessage(msg) {
-        appendRecord(msg)
-
-        if (ws._isListener) {
-            // message from listener -> broadcast to all regular clients
-            wss.clients.forEach(c => {
-                if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg)
-            })
-            console.log('Broadcast:', msg)
+        if (isListener) {
+            listeners.add(ws);
+            console.log(colorize('● Listener connected', 'blue'), req.socket.remoteAddress);
         } else {
-            // message from a client -> forward only to listeners
-            listeners.forEach(l => {
-                if (l.readyState === WebSocket.OPEN) l.send(msg)
-            })
-            console.log('Client:', msg)
+            console.log(colorize('● Client connected', 'green'), req.socket.remoteAddress);
         }
-    }
 
-    // Allow the socket to announce itself as a listener immediately after connect.
-    // Accepted first-message is: `"GM"`
-    // If the connection pathname already identified it as a listener, we skip this.
-    if (!ws._isListener) {
+        ws.on('error', (err) => {
+            console.error('ws error', err, req.socket.remoteAddress);
+        });
 
-        const initialHandler = (data) => {
-            const txt = (typeof data === 'string') ? data : data.toString()
-            // try raw token first
-            if (txt === `"GM"`) {
-                ws._isListener = true
-                listeners.add(ws)
-                console.log('\x1b[34m● Confirmed listener connected\x1b[0m', req.socket.remoteAddress)
-                return
-            } else {
-                const initialMsg = JSON.parse(txt)
-                initialMsg.connectedAddress = `${req.socket.remoteAddress}:${req.socket.remotePort}`
-                processMessage(JSON.stringify(initialMsg))
+        function processMessage(msg) {
+            try {
+                appendRecord(msg);
+                if (ws._isListener) {
+                    // broadcast to all non-listener clients
+                    wss.clients.forEach(c => {
+                        try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg); } catch (e) { /* ignore */ }
+                    });
+                    // console.log('Broadcast:', msg);
+                } else {
+                    // forward to listeners only
+                    listeners.forEach(l => {
+                        try { if (l.readyState === WebSocket.OPEN) l.send(msg); } catch (e) { /* ignore */ }
+                    });
+                    // console.log('Client:', msg);
+                }
+            } catch (e) {
+                console.error('processMessage error', e);
             }
-
-            // if not a registration message, process as normal
-            //            processMessage(txt)
         }
 
-        // use once to handle the first message specially
-        ws.once('message', initialHandler)
-
-        // subsequent messages
-        ws.on('message', (data) => {
-            const msg = (typeof data === 'string') ? data : data.toString()
-            processMessage(msg)
-        })
-    } else {
-        // already a listener by pathname — normal processing
-        ws.on('message', (data) => {
-            const msg = (typeof data === 'string') ? data : data.toString()
-            processMessage(msg)
-        })
-    }
-
-    ws.on('close', () => {
-        if (ws._isListener) {
-            listeners.delete(ws)
-            console.log('\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m\x1b[34m●\x1b[0m Listener disconnected', req.socket.remoteAddress)
+        if (!ws._isListener) {
+            const initialHandler = (data) => {
+                try {
+                    const txt = (typeof data === 'string') ? data : data.toString();
+                    if (txt === `"GM"` || txt === 'GM') {
+                        ws._isListener = true;
+                        listeners.add(ws);
+                        console.log(colorize('● Confirmed listener connected', 'blue'), req.socket.remoteAddress);
+                        return;
+                    }
+                    let parsed;
+                    try { parsed = JSON.parse(txt); } catch (parseErr) {
+                        console.warn('Invalid initial message (not JSON):', txt);
+                        return;
+                    }
+                    parsed.connectedAddress = `${req.socket.remoteAddress}:${req.socket.remotePort}`;
+                    processMessage(JSON.stringify(parsed));
+                } catch (err) {
+                    console.error('initialHandler error', err);
+                }
+            };
+            ws.once('message', initialHandler);
+            ws.on('message', (data) => {
+                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('message handler error', err); }
+            });
         } else {
-            console.log('\x1b[31m●\x1b[0m Client disconnected', req.socket.remoteAddress)
-            processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` }))
+            ws.on('message', (data) => {
+                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('listener message handler error', err); }
+            });
         }
-    })
-})
+
+        ws.on('close', () => {
+            try {
+                if (ws._isListener) {
+                    listeners.delete(ws);
+                    console.log(colorize('●●● Listener disconnected', 'blue'), req.socket.remoteAddress);
+                } else {
+                    console.log(colorize('● Client disconnected', 'red'), req.socket.remoteAddress);
+                    try { processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` })); } catch (_) { /* ignore */ }
+                }
+            } catch (e) { /* ignore */ }
+        });
+    } catch (err) {
+        console.error('connection handler error', err);
+        try { ws.close(); } catch (e) { /* ignore */ }
+    }
+});
+
+// process-level safety
+process.on('uncaughtException', (err) => console.error('uncaughtException', err));
+process.on('unhandledRejection', (reason) => console.error('unhandledRejection', reason));
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`)
-    const os = require('os')
-    const nets = os.networkInterfaces()
+    console.log(`Server running on port ${PORT}`);
+    const nets = os.networkInterfaces();
     Object.values(nets).flat().filter(i => i && i.family === 'IPv4' && !i.internal)
-        .forEach(i => console.log(colorize(`Join on: http://${i.address}:${PORT}/`, "yellow")))
-})
-
-
-//#endregion
+        .forEach(i => console.log(colorize(`Join on: http://${i.address}:${PORT}/`, 'yellow')));
+});

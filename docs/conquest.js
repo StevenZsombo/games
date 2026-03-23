@@ -304,7 +304,10 @@ listener.on_message = (obj, person) => {
         if (obj.inquire === "bunch")
             SHAREbunch(person.name)
         else if (obj.inquire === "welcomeData")
-            SHAREmany(["kingdomsFullData", "territoriesFullData"], person.name) //so tidy
+            SHAREmany([
+                "kingdomsFullData", "territoriesFullData",
+                "rankingData", "valuesData", "ownershipData", "conflictsData"
+            ], person.name) //so tidy
         else if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }
