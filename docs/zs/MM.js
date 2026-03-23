@@ -1326,11 +1326,11 @@ class MM {
     }
 
     static lettersAndNumberOnly(str) {
-        return str.replace(/\W/g, '')
+        return str ? str.replace(/\W/g, '') : ""
     }
 
     static lettersNumbersSpacesOnly(str) {
-        return str.replace(/[^\w\s]/g, '')
+        return str ? str.replace(/[^\w\s]/g, '') : ""
     }
 
     static downloadFile(content, filename, mimeType = 'text/plain') {

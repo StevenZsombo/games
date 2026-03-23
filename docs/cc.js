@@ -31,12 +31,46 @@ var univ = {
                 Object.assign(RULES, fromFile.RULES)
                 Object.assign(GRAPHICS, fromFile.GRAPHICS)
                 console.info("Map loaded successfully.")
-                beforeMainPassedToBeCalled()
+                return
             })
             .catch(x => {
                 console.error("No map data found or it failed to load.", x)
-                beforeMainPassedToBeCalled()
-            })
+            }).then(x => new Promise((resolve, reject) => {
+                if (localStorage.getItem("name")) return resolve()
+
+                const p = window.BROWSERshowLoading
+                const origLoadTextContest = p.textContent
+                p.textContent = ""
+                const div = document.createElement("div")
+                div.textContent = "Type in your name before joining:"
+                div.style.fontSize = p.style.fontSize
+                div.style.backgroundColor = "linen"
+                const input = document.createElement("input")
+                input.style.fontSize = p.style.fontSize
+                input.style.backgroundColor = "white"
+                const button = document.createElement("button")
+                button.textContent = "Join!"
+                button.style.fontSize = p.style.fontSize
+                button.style.backgroundColor = "linen"
+                p.appendChild(div)
+                p.appendChild(input)
+                p.appendChild(button)
+                button.onclick = () => {
+                    const name = MM.lettersNumbersSpacesOnly(input.value)
+                    if (name.length >= 3 && name.length <= 20) {
+                        chat = new Chat(null, name)
+                        localStorage.setItem("name", name)
+                        div.remove()
+                        input.remove()
+                        button.remove()
+                        p.textContent = origLoadTextContest
+                        resolve()
+                    }
+                }
+
+            }))
+            .catch(err => { throw err })
+            .finally(x => beforeMainPassedToBeCalled())
     }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
     on_beforeunload: null,
@@ -146,7 +180,7 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        wProgress?.("initalize_more()")
+        window.wProgress?.("initalize_more()")
         Question.ALL.forEach(x => x.sol = undefined) //muhahahahahahaha
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
@@ -172,7 +206,7 @@ class Game extends GameCore {
 
 
 
-        wProgress('entryInterval()')
+        window.wProgress?.('entryInterval()')
         let entryInterval
         const entryIntervalAction = () => {
             if (chat.isConnected) {
@@ -291,7 +325,7 @@ class Game extends GameCore {
         }
 
         const waitCheckSyncState = () => {
-            wProgress?.("waitCheckSyncState()")
+            window.wProgress?.("waitCheckSyncState()")
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
                 syncReady = true
@@ -302,7 +336,7 @@ class Game extends GameCore {
 
         //#region init_after_basics
         const init_after_basics = () => {
-            wProgress?.("init_after_basics()")
+            window.wProgress?.("init_after_basics()")
             let border = Gimmicks.setupBorder()
             const { top, bot, left, right, middle } = border
             border = Object.values(border)
@@ -458,7 +492,7 @@ class Game extends GameCore {
         */
 
 
-            wProgress?.("new Mapster")
+            window.wProgress?.("new Mapster")
             mapster = new Mapster(
                 Kingdom.defaultRGBs.slice(0, kingdoms.length),
                 RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,

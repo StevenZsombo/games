@@ -40,7 +40,7 @@ window.onload = function () {
 //#region beforeMain, main
 const beforeMain = function (canvas) {
     if (univ.isOnline) {
-        chat = new Chat()
+        chat ??= new Chat() //do not reset chat on new game()? not sure about this
         if (!univ.isOnline) chat = null
         contest = new ContestManager()
     }

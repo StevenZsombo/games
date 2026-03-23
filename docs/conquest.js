@@ -147,7 +147,7 @@ const DISPLAY = () => {
         )
         spop("Sent.")
     }
-    setTimeout(action, 300) //hacky
+    setTimeout(action, 100) //hacky
 }
 const CLIPBOARD = () => {
     const action = () => {
@@ -162,7 +162,7 @@ const CLIPBOARD = () => {
         )
         GameEffects.popupPicture(d)
     }
-    setTimeout(action, 300) //hacky
+    setTimeout(action, 100) //hacky
 }
 const DOWNLOAD = () => {
     const action = () => {
@@ -173,7 +173,7 @@ const DOWNLOAD = () => {
         )
         spop("Sent.")
     }
-    setTimeout(action, 300) //hacky
+    setTimeout(action, 100) //hacky
 }
 
 const COUNTDOWN = (text, seconds) => {
@@ -1436,7 +1436,7 @@ const hq = {
         })
         //screenshots
         if (MASTER.ALLOW_SCREENSHOTS) {
-            Cropper.screenshot("timelapse")
+            setTimeout(() => Cropper.screenshot("conquestStart"), 100)
             // console.log("Screenshot saved.")
             contestIntervals.push(
                 setInterval(() => {
@@ -1473,7 +1473,7 @@ const hq = {
         game.conflicts.forEach(x => x.resolve()) //cut off all conflicts
         contestIntervals.forEach(x => clearInterval(x))
         game.saveGame("conquestEnd")
-        if (MASTER.ALLOW_SCREENSHOTS) Cropper.screenshot("conquestEnd")
+        if (MASTER.ALLOW_SCREENSHOTS) setTimeout(() => Cropper.screenshot("conquestEnd"), 100)
         console.log("Timers/intervals cleared.")
         chat.sendMessage({
             popup: "The game has ended. Thank you for playing.\nStand by for results!",
