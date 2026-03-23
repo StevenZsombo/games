@@ -420,8 +420,8 @@ class MM {
         return matrix.map((row, i) => row.map((_, j) => matrix[j][i]))
     }
 
-    static transposeArray(arr) {
-        return arr[0].flatMap((_, col) => arr.map(row => row[col]))
+    static transposeArray(matrix) {
+        return matrix[0].map((_, col) => matrix.map(row => row[col]))
     }
 
     static gcd(a, b) {
@@ -1327,6 +1327,19 @@ class MM {
 
     static lettersAndNumberOnly(str) {
         return str.replace(/\W/g, '')
+    }
+
+    static downloadFile(content, filename, mimeType = 'text/plain') {
+        const blob = new Blob([content], { type: mimeType })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        setTimeout(() => {
+            URL.revokeObjectURL(url)
+            a.remove()
+        }, 3000)
     }
 
     static exportJSON(data, filename = "data.json", alsoAlert = false) {

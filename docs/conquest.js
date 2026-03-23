@@ -182,10 +182,11 @@ const UNPAUSE = () => {
     game.attacksAllowed = true
     spop("Unpaused.")
     POPUP("The game continues!")
-    chat.sendMessage({ eval: "game.unpause()" })
-    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 500) //just in case
-    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 1000) //just in case
+    /*setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 500) //just in case
+    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 1000) //just in case*/
     clearInterval(game.isPauseBroadcastInterval)
+    chat.sendMessage({ eval: "game.unpause()" })
+    RELOAD() //easiest solution = best
 
 }
 const INVALIDATE = (id) => {
@@ -897,6 +898,7 @@ class Game extends GameCore {
 
     }
     draw_more(screen) {
+        //this stinks. convert to drawableObject
         if (this.showingMap)
             for (const c of this.conflicts) {
                 if (c.alreadyResolved) continue

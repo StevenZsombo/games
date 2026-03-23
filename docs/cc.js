@@ -579,9 +579,9 @@ class Game extends GameCore {
             },
             update: (dt) => {
                 if (!this.showingMap) return
-                attackCircleDrawableObject.size += dt * attackCircleDrawableObject.growthRate
+                /*attackCircleDrawableObject.size += dt * attackCircleDrawableObject.growthRate
                 if ((attackCircleDrawableObject.size > 40) || (attackCircleDrawableObject.size < 30))
-                    attackCircleDrawableObject.growthRate *= -1
+                    attackCircleDrawableObject.growthRate *= -1*/
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
