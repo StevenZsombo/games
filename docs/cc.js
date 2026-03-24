@@ -150,8 +150,10 @@ class Game extends GameCore {
 
 
         const ks = game.rect.copy.splitCell(3, 1, 4, 1, 1, 1)
-            .splitGrid(RULES.NUMBER_OF_TEAMS <= 6 ? 1 : 2, RULES.NUMBER_OF_TEAMS <= 6 ? RULES.NUMBER_OF_TEAMS : 6)
-            .flat().map(x => Button.fromRect(x))
+            .splitGrid(RULES.NUMBER_OF_TEAMS <= 6 ? 1 : 2, RULES.NUMBER_OF_TEAMS <= 6 ? RULES.NUMBER_OF_TEAMS : Math.ceil(RULES.NUMBER_OF_TEAMS / 2))
+            .flat()
+            .slice(0, RULES.NUMBER_OF_TEAMS)
+            .map(x => Button.fromRect(x))
         game.add_drawable(ks)
 
         ks.forEach((b, i) => {
@@ -353,24 +355,6 @@ class Game extends GameCore {
             myColor = myKingdomObject.color
 
 
-            /*
-            //first it label, last is status
-            const ranking = top.splitGrid(1, RULES.NUMBER_OF_TEAMS + 3).flat().slice(0, -1).map(x => Button.fromRect(x))
-            ranking.forEach(b => {
-                b.outline = 0
-                // b.color = "gray"
-                b.transparent = true
-                b.fontSize = 28
-            })
-            ranking.at(-1).width *= 2
-            ranking[0].txt = "Teams:"
-            ranking.at(-1).txt = `You: ${chat.name} (${kingdoms[myKingdomID].name})`
-            ranking.at(-1).color = myColor
-            ranking.at(-1).transparent = false
-        
-            this.ranking = ranking
-            top.color = "gray"
-            game.add_drawable(ranking)*/
 
             top.color = "gray"
             const ranking = Array(kingdoms.length + 1).fill().map(() => new Button({
