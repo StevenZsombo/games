@@ -64,7 +64,8 @@ var univ = {
                         input.remove()
                         button.remove()
                         p.textContent = origLoadTextContent
-                        resolve()
+                        document.body.style.zoom = 1
+                        return resolve()
                     }
                 }
 
@@ -628,6 +629,7 @@ class Game extends GameCore {
         window.BROWSERshowLoading?.remove()
         delete window.BROWSERshowLoading
         delete window.wProgress
+        document.body.style.zoom = 1
 
     }
 

@@ -9,12 +9,56 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Configuration
+const DNS_SERVER_IP = '192.168.1.200';
 const DEFAULT_PAGE_TO_SERVE = 'cc.html';
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html';
-const PORT = 8000;
-
+const PORT = 80;
 const ROOT_DIR = path.resolve(__dirname);
 
+// DNS Server (port 53)
+{
+    const dgram = require('dgram');
+
+    const dnsServer = dgram.createSocket('udp4');
+
+    dnsServer.on('message', (msg, rinfo) => {
+        try {
+            if (msg.length < 12) return;
+
+            const response = Buffer.alloc(msg.length + 16);
+            msg.copy(response, 0, 0, 2);
+            response.writeUInt16BE(0x8400, 2);
+            msg.copy(response, 4, 4, 6);
+            response.writeUInt16BE(1, 6);
+            response.writeUInt16BE(0, 8);
+            response.writeUInt16BE(0, 10);
+
+            const questionLength = msg.length - 12;
+            if (questionLength > 0) {
+                msg.copy(response, 12, 12, msg.length);
+                const answerStart = 12 + questionLength;
+                response.writeUInt16BE(0xC00C, answerStart);
+                response.writeUInt16BE(1, answerStart + 2);
+                response.writeUInt16BE(1, answerStart + 4);
+                response.writeUInt32BE(60, answerStart + 6);
+                response.writeUInt16BE(4, answerStart + 10);
+                DNS_SERVER_IP.split('.').forEach((octet, i) => {
+                    response.writeUInt8(parseInt(octet), answerStart + 12 + i);
+                });
+            }
+
+            dnsServer.send(response, rinfo.port, rinfo.address);
+        } catch (err) {
+            // Silent fail
+        }
+    });
+
+    dnsServer.on('error', () => { });
+    dnsServer.bind(53, '0.0.0.0', () => console.log('DNS on port 53'));
+}
+
+// MIME types
 const mimeTypes = {
     '.js': 'application/javascript',
     '.mjs': 'application/javascript',
@@ -31,9 +75,9 @@ const mimeTypes = {
     '.txt': 'text/plain',
     '.xml': 'application/xml',
     '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    // Add more as needed
 };
 
+// Colorize console output
 const colorize = (text, color) => {
     const COLORS = {
         red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m',
@@ -43,10 +87,9 @@ const colorize = (text, color) => {
     return (COLORS[color] || '') + text + COLORS.reset;
 };
 
-// Helpers
+// Security helpers
 function safeResolve(...parts) {
     const resolved = path.resolve(...parts);
-    // allow file equal to ROOT_DIR or inside it
     if (resolved === ROOT_DIR || resolved.startsWith(ROOT_DIR + path.sep)) return resolved;
     return null;
 }
@@ -57,15 +100,13 @@ function isLocalHostHeader(hostHeader) {
     return hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly === '::1';
 }
 
-// Logging file
+// Logging
 const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' });
-writeStream.on('error', (err) => console.error('writeStream error', err));
+writeStream.on('error', () => { });
 function appendRecord(line) {
     try {
         if (!writeStream.destroyed) writeStream.write(String(line) + '\n');
-    } catch (e) {
-        console.error('appendRecord error', e);
-    }
+    } catch (e) { }
 }
 appendRecord(`Server started on ${new Date().toISOString()}`);
 
@@ -73,12 +114,45 @@ appendRecord(`Server started on ${new Date().toISOString()}`);
 const server = http.createServer((req, res) => {
     try {
         const raw = req.url || '/';
+        const host = req.headers.host || '';
+
+        // 1. Captive portal detection
+        const isCaptive = (
+            raw === '/generate_204' ||
+            raw === '/hotspot-detect.html' ||
+            raw === '/ncsi.txt' ||
+            raw === '/connecttest.txt' ||
+            raw === '/library/test/success.html' ||
+            raw === '/canonical.html' ||
+            raw === '/success.txt' ||
+            host === 'captive.apple.com' ||
+            host === 'connectivitycheck.android.com' ||
+            host === 'connectivitycheck.gstatic.com' ||
+            host.includes('msftconnecttest')
+        );
+
+        if (isCaptive) {
+            res.writeHead(204);
+            res.end();
+            return;
+        }
+
+        // 2. Domain to IP redirect (so DNS no longer needed after first request)
+        const hostWithoutPort = host.split(':')[0];
+        const isDomain = !hostWithoutPort.match(/^\d+\.\d+\.\d+\.\d+$/) && hostWithoutPort !== 'localhost';
+
+        if (isDomain) {
+            res.writeHead(302, { Location: `http://${DNS_SERVER_IP}${raw}` });
+            res.end();
+            return;
+        }
+
+        // 3. Handle IP-based requests
         const urlPath = raw === '/' ? '/' + DEFAULT_PAGE_TO_SERVE : raw;
         const cleanPath = urlPath.split('?')[0];
-
         const hostHeader = req.headers.host || '';
 
-        // Listener shortcut: /listener or /foo/listener or explicit listener.html
+        // Listener shortcut (only for localhost)
         if (isLocalHostHeader(hostHeader) && (cleanPath.endsWith('/listener') || path.basename(cleanPath) === 'listener.html')) {
             let dirPath;
             if (cleanPath.endsWith('/listener')) {
@@ -90,18 +164,16 @@ const server = http.createServer((req, res) => {
             if (!filePath) { res.writeHead(403); res.end('Forbidden'); return; }
             return fs.readFile(filePath, (err, data) => {
                 if (err) { res.writeHead(404); res.end('Not found'); return; }
-                // Intentionally do not set Content-Type header -> serve raw bytes
                 res.writeHead(200);
                 res.end(data);
             });
         }
 
-        // Serve any requested file (no content-type restrictions)
+        // Serve any requested file
         const filePath = safeResolve(ROOT_DIR, '.' + cleanPath);
         if (!filePath) { res.writeHead(403); res.end('Forbidden'); return; }
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); res.end('Not found'); return; }
-            // Intentionally do not set Content-Type header -> serve raw bytes
             const ext = path.extname(filePath);
             const mimeType = mimeTypes[ext] || 'application/octet-stream';
             res.setHeader('Content-Type', mimeType);
@@ -109,15 +181,14 @@ const server = http.createServer((req, res) => {
             res.end(data);
         });
     } catch (err) {
-        console.error('http handler error', err);
-        try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { /* ignore */ }
+        try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { }
     }
 });
 
-// Basic protections
 server.on('clientError', (err, socket) => {
-    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (e) { /* ignore */ }
+    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (e) { }
 });
+
 
 // WebSocket server
 const wss = new WebSocket.Server({ server });
@@ -149,21 +220,15 @@ wss.on('connection', (ws, req) => {
             try {
                 appendRecord(msg);
                 if (ws._isListener) {
-                    // broadcast to all non-listener clients
                     wss.clients.forEach(c => {
-                        try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg); } catch (e) { /* ignore */ }
+                        try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg); } catch (e) { }
                     });
-                    // console.log('Broadcast:', msg);
                 } else {
-                    // forward to listeners only
                     listeners.forEach(l => {
-                        try { if (l.readyState === WebSocket.OPEN) l.send(msg); } catch (e) { /* ignore */ }
+                        try { if (l.readyState === WebSocket.OPEN) l.send(msg); } catch (e) { }
                     });
-                    // console.log('Client:', msg);
                 }
-            } catch (e) {
-                console.error('processMessage error', e);
-            }
+            } catch (e) { }
         }
 
         if (!ws._isListener) {
@@ -173,27 +238,22 @@ wss.on('connection', (ws, req) => {
                     if (txt === `"GM"` || txt === 'GM') {
                         ws._isListener = true;
                         listeners.add(ws);
-                        console.log(colorize('● Confirmed listener connected', 'blue'), req.socket.remoteAddress);
+                        console.log(colorize('● Listener connected', 'blue'), req.socket.remoteAddress);
                         return;
                     }
                     let parsed;
-                    try { parsed = JSON.parse(txt); } catch (parseErr) {
-                        console.warn('Invalid initial message (not JSON):', txt);
-                        return;
-                    }
+                    try { parsed = JSON.parse(txt); } catch (parseErr) { return; }
                     parsed.connectedAddress = `${req.socket.remoteAddress}:${req.socket.remotePort}`;
                     processMessage(JSON.stringify(parsed));
-                } catch (err) {
-                    console.error('initialHandler error', err);
-                }
+                } catch (err) { }
             };
             ws.once('message', initialHandler);
             ws.on('message', (data) => {
-                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('message handler error', err); }
+                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { }
             });
         } else {
             ws.on('message', (data) => {
-                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('listener message handler error', err); }
+                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { }
             });
         }
 
@@ -204,20 +264,23 @@ wss.on('connection', (ws, req) => {
                     console.log(colorize('●●● Listener disconnected', 'blue'), req.socket.remoteAddress);
                 } else {
                     console.log(colorize('● Client disconnected', 'red'), req.socket.remoteAddress);
-                    try { processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` })); } catch (_) { /* ignore */ }
+                    try { processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` })); } catch (_) { }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { }
         });
     } catch (err) {
         console.error('connection handler error', err);
-        try { ws.close(); } catch (e) { /* ignore */ }
+        try { ws.close(); } catch (e) { }
     }
 });
 
-// process-level safety
-process.on('uncaughtException', (err) => console.error('uncaughtException', err));
-process.on('unhandledRejection', (reason) => console.error('unhandledRejection', reason));
 
+
+// Process safety
+process.on('uncaughtException', (err) => { console.error(err) });
+process.on('unhandledRejection', (err) => { console.error(err) });
+
+// Start server
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     const nets = os.networkInterfaces();

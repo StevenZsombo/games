@@ -9,9 +9,45 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+//dns test
+//dns test
+{
+    const dgram = require('dgram');
+    const DNS_SERVER_IP = '192.168.1.200';
+
+    // DNS Server (port 53) only
+    const dnsServer = dgram.createSocket('udp4');
+    dnsServer.on('message', (msg, rinfo) => {
+        try {
+            const response = Buffer.alloc(msg.length + 16);
+            msg.copy(response, 0, 0, 2);
+            response.writeUInt16BE(0x8400, 2);
+            msg.copy(response, 4, 4, 6);
+            response.writeUInt16BE(1, 6);
+            response.writeUInt16BE(0, 8);
+            response.writeUInt16BE(0, 10);
+            msg.copy(response, 12, 12, msg.length);
+            const answerStart = 12 + (msg.length - 12);
+            response.writeUInt16BE(0xC00C, answerStart);
+            response.writeUInt16BE(1, answerStart + 2);
+            response.writeUInt16BE(1, answerStart + 4);
+            response.writeUInt32BE(60, answerStart + 6);
+            response.writeUInt16BE(4, answerStart + 10);
+            DNS_SERVER_IP.split('.').forEach((octet, i) => {
+                response.writeUInt8(parseInt(octet), answerStart + 12 + i);
+            });
+            dnsServer.send(response, rinfo.port, rinfo.address);
+        }
+        catch (err) { console.error(err) }
+    });
+    dnsServer.bind(53, '0.0.0.0', () => console.log('DNS on port 53'));
+}
+//
+
 const DEFAULT_PAGE_TO_SERVE = 'cc.html';
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html';
 const PORT = 80;
+
 
 const ROOT_DIR = path.resolve(__dirname);
 
@@ -73,6 +109,15 @@ appendRecord(`Server started on ${new Date().toISOString()}`);
 const server = http.createServer((req, res) => {
     try {
         const raw = req.url || '/';
+
+        // Captive portal detection - return success immediately
+        if (raw === '/generate_204' || raw === '/hotspot-detect.html' ||
+            raw === '/ncsi.txt' || raw === '/connecttest.txt') {
+            res.writeHead(200);
+            res.end();
+            return;
+        }
+
         const urlPath = raw === '/' ? '/' + DEFAULT_PAGE_TO_SERVE : raw;
         const cleanPath = urlPath.split('?')[0];
 
