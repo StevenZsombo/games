@@ -179,15 +179,20 @@ or it will be exposed to the students.
 
 You can now download bucket.json. Rename it to something more descriptive and keep it safe!`)
     await but("Download")
+    //excels should be: id, origNam, sol, bucket
     const coll = currentBank.reduce((s, t) => ((s[t[3]] ??= []).push(t), s), {}) //t[3] is bucket
     console.log({ coll })
     const buckets = Object.keys(coll).filter(x =>
         x !== "" && x !== undefined && x !== null && x !== "undefined" && x !== "null"
     ).sort((x, y) => x - y)
     console.log({ buckets })
+    if (buckets.some(x => !Number.isFinite(+x))) throw "One of the bucket cells contains something other than a number."
     const arr = buckets.map(i => coll[i])
     console.log({ arr })
-    const j = JSON.stringify(arr)
+    const j = JSON.stringify({
+        arr,
+        BUCKETS: arr.map(x => x.map(u => u[0])),
+    })
     return MM.downloadFile(j, "bucket.json")
 }
 

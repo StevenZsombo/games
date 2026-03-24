@@ -88,20 +88,31 @@
 <body>
   <script>
     window.BROWSERshowLoading = document.createElement('div')
-    // window.BROWSERshowLoading.style.maxWidth = '800px'
+    window.BROWSERshowLoading.style.maxWidth = '600px'
     window.BROWSERshowLoading.style.whiteSpace = "pre-line"
     window.BROWSERshowLoading.style.textAlign = 'center'
     window.BROWSERshowLoading.style.position = 'fixed'
     window.BROWSERshowLoading.style.top = '50%'
     window.BROWSERshowLoading.style.left = '50%'
     window.BROWSERshowLoading.style.transform = 'translate(-50%,-50%)'
-    window.BROWSERshowLoading.style.fontSize = "24px"
+    window.BROWSERshowLoading.style.fontSize = "20px"
     window.BROWSERshowLoading.style.backgroundColor = "linen"
     // window.BROWSERshowLoading.innerHTML =
     // "Succesfully contacted the server.<br>Please wait while it is loading.<br>Enjoy the game! Best, Steven"
     window.BROWSERshowLoading.textContent = `Contacting server... Success! Loading...\n`
     document.body.appendChild(window.BROWSERshowLoading)
-    window.wProgress = (txt) => window.BROWSERshowLoading.textContent += txt + "\n"
+    window.wProgress = (txt) => window.BROWSERshowLoading.textContent += txt + " "
+    window.BROWSERshowLoading.clickCount = 0
+    window.BROWSERshowLoading.onclick = () => {
+      window.BROWSERshowLoading.clickCount++
+      if (window.BROWSERshowLoading.clickCount > 5)
+        wProgress("Click a bunch more to flush.")
+      if (window.BROWSERshowLoading.clickCount > 10) {
+        localStorage.clear()
+        window.onbeforeunload = null
+        window.location.href = "cc.html?t=" + Date.now() //finally lol
+      }
+    }
   </script>
   <canvas id="myCanvas" width="1920" height="1080"></canvas>
   <script src="zs/MM.js" defer onload="wProgress('MM.js')"></script>
@@ -111,7 +122,7 @@
   <script src="zs/chat.js" defer onload="wProgress('chat.js')"></script>
   <script src="zs/gameCore.js" defer onload="wProgress('gameCore.js')"></script>
   <script src="territories.js" defer onload="wProgress('territories.js')"></script>
-  <script src="mapster.js" defer onload="wProgress('mapster.js')"></script>
+  <script src="mapster.js" defer onload="wProgress('mapster.js\n')"></script>
   <script src="cc.js" defer onload="wProgress('cc.js')"></script>
 </body>
 

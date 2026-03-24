@@ -153,13 +153,13 @@ wss.on('connection', (ws, req) => {
                     wss.clients.forEach(c => {
                         try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msg); } catch (e) { /* ignore */ }
                     });
-                    // console.log('Broadcast:', msg);
+                    console.log('Broadcast:', msg);
                 } else {
                     // forward to listeners only
                     listeners.forEach(l => {
                         try { if (l.readyState === WebSocket.OPEN) l.send(msg); } catch (e) { /* ignore */ }
                     });
-                    // console.log('Client:', msg);
+                    console.log('Client:', msg);
                 }
             } catch (e) {
                 console.error('processMessage error', e);

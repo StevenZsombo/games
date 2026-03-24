@@ -22,14 +22,20 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
-    window.addEventListener('beforeunload', (e) => {
+    /*window.addEventListener('beforeunload', (e) => {
         univ.on_beforeunload?.()
         if (univ.allowQuietReload) return
         e.preventDefault()
         e.stopPropagation()
         //e.returnValue = ''
     }
-    )
+    )*/
+    window.onbeforeunload = (e) => {
+        univ.on_beforeunload?.()
+        if (univ.allowQuietReload) return
+        e.preventDefault()
+        e.returnValue = ""
+    }
 
     if (univ.on_first_run_blocking) {
         univ.on_first_run_blocking(beforeMain.bind(window, canvas))

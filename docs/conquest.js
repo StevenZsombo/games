@@ -298,16 +298,17 @@ listener.on_message = (obj, person) => {
     person = Person.check(person)
     if (obj.kingdom !== undefined) {
         person.assignKingdom(game.kingdoms[obj.kingdom])
+        SHAREmany([
+            "kingdomsFullData", "territoriesFullData",
+            "rankingData", "valuesData", "ownershipData", "conflictsData"
+        ], person.name)
+
     }
+
 
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (obj.inquire === "bunch")
             SHAREbunch(person.name)
-        else if (obj.inquire === "welcomeData")
-            SHAREmany([
-                "kingdomsFullData", "territoriesFullData",
-                "rankingData", "valuesData", "ownershipData", "conflictsData"
-            ], person.name) //so tidy
         else if (!SHARE(obj.inquire, person.name))
             console.error("Invalid inquire made by", person.name, obj)
     }

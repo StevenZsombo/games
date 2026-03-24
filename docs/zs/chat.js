@@ -116,6 +116,7 @@ class Chat {
         obj.name ??= this.name
         const message = JSON.stringify(obj)
         this.attemptToSendText(message)
+        return message
     }
 
 
@@ -129,6 +130,7 @@ class Chat {
         obj.id = MM.randomID()
         this.queue.push(obj)
         this.sendMessage(obj)
+        return obj
     }
 
     queueSend() {
@@ -215,8 +217,10 @@ class Chat {
         if (message.SERVERnameAlreadyExists != null)
         //this.resetName("A user has already joined with that name, please select a different name.") //this sucked
         {
-            this.forceName(this.name + "#" + MM.randomInt(10000, 99999))
-            this.silentReload() //hopefully not creating a loop
+            this.forceName( //just add a number at the end
+                Number.isFinite(+this.name.at(-1)) ? this.name.slice(0, -1) + (+this.name.at(-1) + 1) : this.name + "0"
+            )
+            this.silentReload() //this is a server response so it shouldn't create a loop
         }
         else if (message.SERVERnameOrderedToReset != null) this.resetName()
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
@@ -358,7 +362,6 @@ class Listener {
             obj[Listener.SERVER.SERVERnameAlreadyExists] = true
             obj.targetID = nameID
             this.chat.sendMessage(obj)
-            console.log("Rejected user", { name, nameID, connected }, "becase there is already a ", this.participants[name])
             return true
         }
         return false

@@ -41,16 +41,17 @@ var univ = {
                 const p = window.BROWSERshowLoading
                 const origLoadTextContent = p.textContent
                 p.textContent = ""
+                const fontSize = "28px"
                 const div = document.createElement("div")
                 div.textContent = "Type in your name before joining:"
-                div.style.fontSize = p.style.fontSize
+                div.style.fontSize = fontSize
                 div.style.backgroundColor = "linen"
                 const input = document.createElement("input")
-                input.style.fontSize = p.style.fontSize
+                input.style.fontSize = fontSize
                 input.style.backgroundColor = "white"
                 const button = document.createElement("button")
                 button.textContent = "Join!"
-                button.style.fontSize = p.style.fontSize
+                button.style.fontSize = fontSize
                 button.style.backgroundColor = "linen"
                 p.appendChild(div)
                 p.appendChild(input)
@@ -141,7 +142,8 @@ class Game extends GameCore {
     }
 
     kingdomSelect() {
-        this._removeLoadingButton()
+        const origTC = window.BROWSERshowLoading?.textContent
+        window.BROWSERshowLoading && (window.BROWSERshowLoading.textContent = "")
 
         const top = Button.fromRect(game.rect.copy.splitCell(1, 1, 4, 1))
         top.txt = "Select your kingdom:"
@@ -166,8 +168,9 @@ class Game extends GameCore {
             b.on_release = () => {
                 game.remove_drawables_batch(ks)
                 game.remove_drawable(top)
-                myKingdomID = i
+                myKingdomID = +i
                 localStorage.setItem("myKingdomID", i)
+                origTC && window.BROWSERshowLoading && (window.BROWSERshowLoading.textContent = origTC)
                 this.initialize_more()
             }
         })
@@ -183,7 +186,7 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        window.wProgress?.("initalize_more()")
+        window.wProgress?.("\ninitalize_more()")
         Question.ALL.forEach(x => x.sol = undefined) //muhahahahahahaha
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
@@ -204,28 +207,6 @@ class Game extends GameCore {
                 return
             }
         }
-
-
-
-
-
-        window.wProgress?.('entryInterval()')
-        let entryInterval
-        const entryIntervalAction = () => {
-            if (chat.isConnected) {
-                chat.sendSecure({ kingdom: myKingdomID })
-                chat.sendSecure({ inquire: "welcomeData" })
-                /*
-                chat.sendSecure({ inquire: "territoriesFullData" })
-                chat.sendSecure({ inquire: "kingdomsFullData" })
-                */
-                entryInterval && clearInterval(entryInterval)
-                return
-            } else
-                console.log("Waiting to enter.")
-        }
-        entryInterval = setInterval(entryIntervalAction, 800)
-        entryIntervalAction()
 
         /**@type {Kingdom[]} */
         const kingdoms = []
@@ -280,10 +261,10 @@ class Game extends GameCore {
             //CDhere
             if (shared == "conflictsData") {
                 this.territoriesUnderAttack = new Set(value.map(x => x.to))//id of the place
-                this.canAttackList = Array.from(
-                    myKingdomObject.territories.values().flatMap(x => x.connections)//neighbouring
+                this.canAttackList =
+                    Array.from(myKingdomObject.territories.values()).flatMap(x => x.connections)//neighbouring
                         .filter(x => !myKingdomObject.territories.has(x))//is not your own
-                        .filter(x => !this.territoriesUnderAttack.has(x.id)))
+                        .filter(x => !this.territoriesUnderAttack.has(x.id))
                 value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
@@ -327,13 +308,15 @@ class Game extends GameCore {
             }
         }
 
+
+
+
         const waitCheckSyncState = () => {
             window.wProgress?.("waitCheckSyncState()")
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
                 syncReady = true
                 //chat.sendSecure({ inquire: "bunch" })
-                //have everything in the welcomeData
                 init_after_basics()
             }
         }
@@ -495,7 +478,6 @@ class Game extends GameCore {
             this.afterEverythingHasLoaded()
 
         }
-
         const connectionsDrawableObject = { //could even be optimized
             draw: (screen) => {
                 if (this.showingMap && RULES.PROVINCE_SHOW_CONNECTIONS)
@@ -510,6 +492,7 @@ class Game extends GameCore {
         }
         this.add_drawable(connectionsDrawableObject, 4)
         this.connectionsDrawableObject = connectionsDrawableObject
+        window.wProgress?.("connectionsDrawable")
         const arrowsDrawableObject = {
             draw: (screen) => {
                 if (this.showingMap)
@@ -535,7 +518,7 @@ class Game extends GameCore {
         }
         this.arrowsDrawableObject = arrowsDrawableObject
         this.add_drawable(arrowsDrawableObject)
-
+        window.wProgress?.("arrowsDrawable")
 
 
 
@@ -546,6 +529,7 @@ class Game extends GameCore {
             }
             if (message.present) GameEffects.fullscreenTrickButton(0)
         }
+
 
         //clockwork for snippet update 
         //AND also attack reminders
@@ -582,11 +566,21 @@ class Game extends GameCore {
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
-        this.add_drawable(attackCircleDrawableObject, 6)
+        // this.add_drawable(attackCircleDrawableObject, 6)
+        window.wProgress?.("attackCircleDrawable")
 
 
         this._showingMap = true
+        window.wProgress?.("showingMap")
 
+        this.enter()
+
+    }
+
+    enter() {
+        window.wProgress?.("game.enter()")
+        const obj = chat.sendSecure({ kingdom: myKingdomID })
+        window.wProgress?.(`\nsendSecure(${obj.id})`)
     }
 
     _showingMap = false
@@ -795,27 +789,28 @@ class QPane extends Panel {
         bg.tag = "QPane bg"
         this.components.push(bg)
         const question = Question.ALL[qID]
-        const [imgB, latexB, txtB] = bg.splitRow(
+        /*const [imgB, latexB, txtB] = bg.splitRow(
             question.img !== undefined ? 7 : 0, //watch out for 0
-            question.latex ? 1 : 0,
-            question.txt ? 1 : 0
-        ).map(x => Button.fromRect(x))
+            //question.latex ? 1 : 0,
+            // question.txt ? 1 : 0
+        ).map(x => Button.fromRect(x))*/
+        const imgB = Button.fromRect(bg.copyRect)
         if (question.img !== undefined) {//watch out for 0
             cropper.load_img(RULES.PICTURE_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
             imgB.tag = "QPane imgB component"
             this.components.push(imgB)
         }
-        if (question.latex) {
+        /*if (question.latex) {
             Button.make_latex(latexB, question.latex, 0)
             latexB.tag = "QPane latexB component"
             this.components.push(latexB)
-        }
-        if (question.txt) {
+        }*/
+        /*if (question.txt) {
             txtB.txt = question.txt
             txtB.fontSize = GRAPHICS.QUESTION_FONTSIZE
             txtB.tag = "QPane txtB component"
             this.components.push(txtB)
-        }
+        }*/
         const answerSpace = QPane.answerSpaceDefault.copy
         const ansBunch = answerSpace.splitCol(.5, 1, .5, 1.5).map(x => Button.fromRect(x))
         const [ansLab, ansDisplayShow, ansSubmitButton, ansInfo] = ansBunch
@@ -950,13 +945,13 @@ let focusCurrent = "map" //"map" or id of the QPane which is the same as conflic
 const setFocus = (tgt) => {
     //requesting a pane not yet available accepts the conflict
     if (tgt == "map") {//focusCurrenting on map means closing all panes
-        panes.values().forEach(x => x.deactivate())
+        Array.from(panes.values()).forEach(x => x.deactivate())
         game.showingMap = true
     } else if (tgt != "map" && !panes.has(tgt)) {
         waitingQuestionsTrigger.add(tgt) //on waitlist so no need to double click
         chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
         tgt = "map"
-        panes.values().forEach(x => x.deactivate())
+        Array.from(panes.values()).forEach(x => x.deactivate())
         return //otherwise quit
     } else if (focusCurrent == "map" && tgt != "map") {//switching away from map
         game.showingMap = false
