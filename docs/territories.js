@@ -630,12 +630,7 @@ class Gimmicks {
         game.mapIMG = mapIMG //save for game
 
         return mapIMG
-        //masterMode
-        window.mapIMG = mapIMG //save for debug
-        Button.make_draggable(mapIMG)
-        game.territories.forEach(x => x.button.isBlocking = true)
-        Gimmicks.setupBorderAndAddToGame(game, "lightblue")
-        return mapIMG
+
     }
 
     static unwrapSaveToExcel() {

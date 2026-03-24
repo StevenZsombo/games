@@ -235,10 +235,15 @@ class Mapster extends OptimizedRecolor {
      * @param {Array<Array<number,number,number>>>} colors - RGB, used for filling
      * @param {string} imageSourceName 
      * @param {Territory[]} territories 
+     * @param {number} x 
+     * @param {number} y 
+     * @param {function(number):void} update 
+     * @param {Object} [options] - Optional parameters
+     * @param {number} [options.fillScale=1] - Fill scale factor
      */
-    constructor(colors, imageSourceName, x, y, territories, update) {
+    constructor(colors, imageSourceName, x, y, territories, update,
+        { fillScale = 1, } = {}) {
         super()
-
         this.colors = colors
         this.length = territories.length
         this.cached = Array(this.length).fill(null)
@@ -252,19 +257,20 @@ class Mapster extends OptimizedRecolor {
         this.ctx.imageSmoothingEnabled = false
         this.x = x
         this.y = y
+        this.fillScale = fillScale
 
         const img = new Image()
         img.crossOrigin = 'Anonymous'
         img.src = imageSourceName
         img.onload = () => {
-            this.canvas.width = img.width
-            this.canvas.height = img.height
-            this.ctx.drawImage(img, 0, 0)
-            this.imageData = this.ctx.getImageData(0, 0, img.width, img.height)
-            this.data = this.imageData.data
+            this.height = img.height / fillScale
+            this.width = img.width / fillScale
 
-            this.width = img.width
-            this.height = img.height
+            this.canvas.width = this.width
+            this.canvas.height = this.height
+            this.ctx.drawImage(img, 0, 0, this.width, this.height)
+            this.imageData = this.ctx.getImageData(0, 0, this.width, this.height)
+            this.data = this.imageData.data
 
             territories.forEach(t => {
                 const [bX, bY] = this.rectToCoord(t.button)
@@ -285,7 +291,7 @@ class Mapster extends OptimizedRecolor {
 
     draw(screen) {
         this.redrawWithCache()
-        screen.drawImage(this.canvas, this.x, this.y)
+        screen.drawImage(this.canvas, this.x, this.y, this.width * this.fillScale, this.height * this.fillScale)
     }
 
 
@@ -309,20 +315,9 @@ class Mapster extends OptimizedRecolor {
         this.cached.fill(null)
     }
 
-    fillDepr(indicesOne, color) {
-        const { data, ctx, imageData } = this
-        for (let i of indicesOne) {
-            data[i] = color[0]
-            data[i + 1] = color[1]
-            data[i + 2] = color[2]
-            //RGBA - so ignore A
-        }
-        ctx.putImageData(imageData, 0, 0)
-
-    }
 
     posToCoord(x, y) { //always integer
-        return [x - this.x, y - this.y].map(Math.round)
+        return [x - this.x, y - this.y].map(u => u / this.fillScale).map(Math.round)
     }
     rectToCoord(rect) {
         return this.posToCoord(rect.centerX, rect.centerY)

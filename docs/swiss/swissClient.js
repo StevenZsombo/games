@@ -271,8 +271,11 @@ class Game extends GameCore {
         const timerSet = new Button()
         timerSet.txt = "Set"
         timerSet.on_click = () => {
-            this.timeCount = prompt("Set timer for (minutes):") * 60 * 1000
+            //this.timeCount = prompt("Set timer for (minutes):") * 60 * 1000
+            const howlong = +prompt("Set timer for (minutes):") * 60 * 1000
+            chat.sendMessage({ want: `game.timeCount = ${howlong} ` })
         }
+
         timerSet.width = advance.width * .45
         timerSet.leftat(advance.left)
         timerSet.bottomat(this.rect.bottom)
@@ -282,6 +285,10 @@ class Game extends GameCore {
         timerStart.bottomat(this.rect.bottom)
         let timerIsRunning = false
         timerStart.on_click = () => {
+            chat.sendMessage({ want: `game.timerStartAction()` })
+        }
+
+        const timerStartAction = () => {
             if (timerIsRunning) return
             timerIsRunning = true
             const a = setInterval(() => {
@@ -293,6 +300,7 @@ class Game extends GameCore {
                 }
             }, 1000)
         }
+        this.timerStartAction = timerStartAction
         timer.width = 400
         timer.height = 400
         timer.bottomat(timerSet.top)
@@ -306,8 +314,9 @@ class Game extends GameCore {
 
         chat.on_receive = (msg) => {
             console.log(msg)
-            if (msg.receiveSwiss)
+            if (msg.receiveSwiss != null)
                 receive(msg.receiveSwiss)
+
         }
 
     }

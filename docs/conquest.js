@@ -849,7 +849,8 @@ class Game extends GameCore {
             territories,
             () => {
                 mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
-            }
+            },
+            { fillScale: 2 }
         )
         this.add_drawable(mapster, 2)
     }

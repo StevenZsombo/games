@@ -392,7 +392,7 @@ class Game extends GameCore {
             youButton.topat(0)
             youButton.color = myColor
             youButton.txt = `You: ${chat.name} (${myKingdomObject.name})`
-            youButton.on_click = () => document.documentElement.requestFullscreen()
+            // youButton.on_click = () => document.documentElement.requestFullscreen()
             this.youButton = youButton
             this.add_drawable(youButton)
             // top.txt = "Conquest game"
@@ -502,7 +502,8 @@ class Game extends GameCore {
                 territories,
                 () => {
                     mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
-                }
+                },
+                { fillScale: 4 }
             )
             this.add_drawable(mapster, 2)
 
