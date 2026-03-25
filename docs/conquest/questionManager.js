@@ -1,7 +1,7 @@
 //excels should be: id, origNam, sol, bucket
 const newdiv = (parent) => {
     const div = document.createElement("div")
-    div.style.whiteSpace = 'pre-line'
+    div.style.whiteSpace = 'pre'
     parent?.appendChild(div)
     return div
 }
@@ -166,8 +166,8 @@ const s4 = async () => {
     newQuestions.clear()
     //asks for new files. prints solution and assigns id
     log(`Create an empty subfolder in *clipped*.
-        Then COPY (do not move, COPY) the pictures of the questions you wish to add.
-        They must be named according to convention, for example 2.5s22p13hard.png`)
+Then COPY (do not move, COPY) the pictures of the questions you wish to add.
+They must be named according to convention, for example 2.5s22p13hard.png`)
     await but("I created an empty folder then copied (not moved!) my pictures to it.")
     log("Upload said folder.")
     await but("Upload")
@@ -200,7 +200,7 @@ const s4 = async () => {
                     } catch (err) { return reject(`Invalid filename (does not match convention): ${f.name}`) }
                 }
                 log(`Success. The new questions were assigned id ${starterID} to ${starterID + files.length}. 
-                    Please briefly review below. You will download a copy of this table in a later step.`)
+Please briefly review below. You will download a copy of this table in a later step.`)
                 feed("Extracted data:\n\n" + MM.tableStr(
                     [...newQuestions.values()].map(q => [q.id, q.origName, q.sol])
 
@@ -317,7 +317,7 @@ const fullProcess = async () => {
         while (1) {
             try {
                 await fn()
-                fn !== s9 ? step() : step(false,false)
+                fn !== s9 ? step() : step(false, false)
                 break
             }
             catch (err) {

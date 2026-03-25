@@ -906,7 +906,7 @@ class QPane extends Panel {
             )
             if (i < 9) {
                 x.txt = i + 1
-                x.on_click = () => this.guess += `${i + 1} `
+                x.on_click = () => this.guess += `${i + 1}`
             }
             if (i == 10) {
                 x.txt = 0

@@ -4,7 +4,7 @@
         "module": "commonjs"
     },
     "include": [
-        "./*.js",
+        "./verify.js",
         "../zs/*.js"
     ],
     "exclude": [

@@ -208,8 +208,12 @@ class GameCore {
         let blocked = false //inefficient but reliable.
         clicked && this.lastClicked.clear()
         this.lastHovered.clear()
-        for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
-            for (const item of layer.toReversed()) {//items processed backwards
+        //for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
+        //for (const item of layer.toReversed()) {//items processed backwards
+        for (let li = this.layers.length - 1; li >= 0; li--) {
+            const layer = this.layers[li]
+            for (let ii = layer.length - 1; ii >= 0; ii--) {
+                const item = layer[ii]
                 item.update?.(dt)
                 if (this.isAcceptingInputs) {
                     hit = item.check?.(x, y, clicked, released, held, wheel)

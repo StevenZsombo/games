@@ -1306,7 +1306,7 @@ class MM {
             row.map((x, i) => String(x).padEnd(longestLengths[i])).join(connector)
         ).join("\n")
         if (labels) {
-            const divisorLine = Array((longestLengths.length - 1) * spacing + longestLengths.reduce((s, t) => s + t)).fill("-").join("")
+            const divisorLine = Array(longestLengths.reduce((s, t) => s + t) + (longestLengths.length - 1) * spacing).fill("-").join("")
             res =
                 labels.map((x, i) => String(x).padEnd(longestLengths[i])).join(connector)
                 + "\n" + divisorLine
