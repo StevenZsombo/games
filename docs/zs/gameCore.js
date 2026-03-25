@@ -210,10 +210,10 @@ class GameCore {
         this.lastHovered.clear()
         //for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
         //for (const item of layer.toReversed()) {//items processed backwards
-        for (let li = this.layers.length - 1; li >= 0; li--) {
-            const layer = this.layers[li]
-            for (let ii = layer.length - 1; ii >= 0; ii--) {
-                const item = layer[ii]
+        for (let layerIndex = this.layers.length - 1; layerIndex >= 0; layerIndex--) {
+            const layer = this.layers[layerIndex]
+            for (let itemIndex = layer.length - 1; itemIndex >= 0; itemIndex--) {
+                const item = layer[itemIndex]
                 item.update?.(dt)
                 if (this.isAcceptingInputs) {
                     hit = item.check?.(x, y, clicked, released, held, wheel)

@@ -1,6 +1,6 @@
 Download and install:
 -Mozilla Firefox
--Notepadpp (Notepad++)
+-Notepadpp (Notepad++). Once downloaded, Plugins -> Plugins admin -> Search JSON viewer -> Install
 -Node.js
 
 Create two empty folders somewhere easy to find called:
@@ -8,7 +8,7 @@ clipped
 games
 
 
-1. Then in cmd/terminal navigate to your newly created docs folder
-2. Then run "npm install ws" (without the quotes) in that folder
+**skip this for now** 1. Then in cmd/terminal navigate to your newly created games folder
+**skip this for now** 2. Then run "npm install ws" (without the quotes) in that folder
 
 We will share the game files on USB at first. May integrate github later (it's finnicky)

@@ -147,13 +147,8 @@ const s2 = async () => {
 
 
 }
-/**
- * @typedef {Object} Bank
- * @property {{id:number,sol:number}[]} ALLdata img = id as a convention. let's roll with that, it worked well
- * @property {number[][]} BUCKETS
-*/
 
-let currentBank
+let currentBank //is an array from excel. id,origName,sol,bucket : all strings
 const s3 = async () => {
     //upload your current bank.xlsx
     log(`Please upload the corresponding bank excel file.
@@ -165,10 +160,11 @@ The bucket column's data will determine which bucket the question is in.`)
     log("Verifying...")
     let firstFourColumns = data.map(x => x.slice(0, 4))
     let matchingRows = firstFourColumns.filter(x => filesInQuestions.has(x[0]))
+    matchingRows.sort((x, y) => x[0] - y[0])
+    if (matchingRows.some((x, i) => i != +x[0])) throw ("Invalid or missing id in Excel")
     if (matchingRows.length != filesInQuestions.size) throw ("Missing a row in Excel.")
-    log(`Success! Found all questions with id 0 to ${matchingRows.length - 1}.`)
     currentBank = matchingRows
-    currentBank.sort((x, y) => x[0] - y[0])
+    log(`Success! Found all questions with id 0 to ${matchingRows.length - 1}.`)
     feed(MM.tableStr(currentBank, "id origName sol bucket".split(" "), 5))
     console.log({ currentBank })
     return

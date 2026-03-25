@@ -239,7 +239,7 @@ const shared = { //can be inquired about if active
 }
 const sharedFunc = {
     isActive: () => shared.isActive,
-    territoriesFullData: () => game.territories.map(x => (
+    territoriesFullData: () => game.territories.map(x => ( //dummy me. this is read from map.json
         {
             id: x.id,
             name: x.name,
@@ -299,7 +299,8 @@ listener.on_message = (obj, person) => {
     if (obj.kingdom !== undefined) {
         person.assignKingdom(game.kingdoms[obj.kingdom])
         SHAREmany([
-            "kingdomsFullData", "territoriesFullData",
+            "kingdomsFullData",
+            "territoriesFullData",
             "rankingData", "valuesData", "ownershipData", "conflictsData"
         ], person.name)
 
@@ -383,9 +384,13 @@ const SHARE = (key, target) => {
     } else console.error("invalid SHARE")
 }
 const HARDREFRESH = () => {
-    SHARE("territoriesFullData")
-    SHARE("kingdomsFullData")
-    SHAREbunch()
+    SHAREmany([
+        "territoriesFullData",
+        "kingdomsFullData",
+        "rankingData", "valuesData", "ownershipData", "conflictsData"
+    ], null, [{ eval: "mapster?.reset?.()" }])
+
+
     // setTimeout(() => chat.sendCommand("mapster?.reset()"), 500)
 
     spop("Hard refresh.")
@@ -398,9 +403,12 @@ const SHAREbunch = (target) => {
     if (target != null) msg.target = target
     chat.sendMessage(msg)
 }
-const SHAREmany = (list, target) => {
+const SHAREmany = (list, target, moreToManyArr) => {
     if (target == null && !throttleCheckNotTooRecent(list.join(";"))) return
     const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
+    if (moreToManyArr) {
+        msg.many.push(...moreToManyArr)
+    }
     if (target != null) msg.target = target
     chat.sendMessage(msg)
 
@@ -519,7 +527,7 @@ class Game extends GameCore {
         //control tools
         this.overlay = new Clickable({ x: 0, y: 0, width: game.rect.width, height: game.rect.height })
         this.overlay.draw = () => { }
-        game.add_drawable(this.overlay, 9)
+        game.add_drawable(this.overlay, 7)
 
         const switchModeButton = new Button({ txt: "Show\nBanners", widht: 120, height: 80 })
         this.switchModeButton = switchModeButton
@@ -897,13 +905,19 @@ class Game extends GameCore {
 
     exportRulesAndGraphics() {
         let r = {}
-        Object.assign(r, RULES)
+        // Object.assign(r, RULES) //this sucks donkey dicks
         /*r.PICTURE_BACKGROUND_CENTER =
             this.mapIMG.center
         r.PICTURE_BACKGROUND_DIMENSIONS =
             [this.mapIMG.img.width, this.mapIMG.img.height]
         r.PICTURE_BACKGROUND_SCALEFACTOR =
             this.mapIMG.width / this.mapIMG.img.width*/
+        r.NUMBER_OF_TEAMS =
+            RULES.NUMBER_OF_TEAMS
+        r.NUMBER_OF_TERRITORIES =
+            RULES.NUMBER_OF_TERRITORIES
+        r.PICTURE_BACKGROUND_MAP =
+            RULES.PICTURE_BACKGROUND_MAP
         r.PROVINCE_NAMES =
             this.territories.map(x => RULES.CAPITAL_NAMING_UNDO_FUNCTION?.(x.name) ?? x.name)
         r.PROVINCE_CAPITAL_IDS =
@@ -914,10 +928,9 @@ class Game extends GameCore {
             this.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
         r.PROVINCE_POSITIONS =
             this.territories.map(x => [x.button.centerX, x.button.centerY].map(Math.round))
-        r.PROVINCE_BUTTONS_TRANSPARENT =
-            this.territories[0]?.button.transparent
+
         let g = {}
-        Object.assign(g, GRAPHICS)
+        // Object.assign(g, GRAPHICS) //this sucks elephant dicks
 
         return {
             RULES: r,

@@ -33,8 +33,10 @@ var univ = {
                 console.info("Map loaded successfully.")
                 return
             })
-            .catch(x => {
+            .catch(x => { //?. so intellij won't whine about it
+                window?.wProgress("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
                 console.error("No map data found or it failed to load.", x)
+                alert("NO MAP FOUND. This is bad. Tell your teacher.")
             }).then(x => new Promise((resolve, reject) => {
                 if (localStorage.getItem("name")) return resolve()
 
@@ -227,22 +229,41 @@ class Game extends GameCore {
         contest.on_share = (shared, value) => {
             if (shared == "territoriesFullData") {
                 // if (territories.length) return
-                game.remove_drawables_batch(territories.map(x => x.button))
+                this.remove_drawables_batch(territories.map(x => x.button))
                 territories.length = 0
                 territories.push(...Territory.manyFromData(value))
-                game.add_drawable(territories.map(x => x.button))
+                this.add_drawable(territories.map(x => x.button))
                 this.buts = territories.map(x => x.button)
                 this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
 
+                window?.wProgress("territoriesFullData")
                 waitCheckSyncState()
             }
             if (shared == "kingdomsFullData") {
-                // if (kingdoms.length) return
                 kingdoms.length = 0
                 kingdoms.push(...Kingdom.manyFromData(value))
                 myKingdomObject = kingdoms[myKingdomID]
                 myColor = myKingdomObject.color
-                //reset mapster just in case
+                window?.wProgress("kingdomsFullData")
+
+                /*this.remove_drawables_batch(territories.map(x => x.button)) //in case this.buts gets "lost"
+                territories.length = 0
+                territories.push(
+                    ...RULES.PROVINCE_NAMES.map((name, id) => new Territory(id, name))
+                )
+                RULES.PROVINCE_CONNECTIONS.forEach((x, i) => {
+                    const t = this.territories[i]
+                    t.connections = new Set(x.slice(1).map(u => this.territories[u]))
+                    Object.assign(t.button, {
+                        x: RULES.PROVINCE_POSITIONS[i][0],
+                        y: RULES.PROVINCE_POSITIONS[i][1],
+                        width: GRAPHICS.TERRITORY_SIZE_BASE_WIDTH,
+                        height: GRAPHICS.TERRITORY_SIZE_BASE_HEIGHT
+                    })
+                })
+                this.buts = territories.map(x => x.button)
+                this.add_drawable(this.buts)
+                this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)*/
 
                 waitCheckSyncState()
             }
@@ -861,7 +882,7 @@ class QPane extends Panel {
         ).map(x => Button.fromRect(x))*/
         const imgB = Button.fromRect(bg.copyRect)
         if (question.img !== undefined) {//watch out for 0
-            cropper.load_img(RULES.PICTURE_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
+            cropper.load_img(RULES.QUESTION_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
             imgB.tag = "QPane imgB component"
             this.components.push(imgB)
         }
