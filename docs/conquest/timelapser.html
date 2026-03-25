@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Timelapse Creator</title>
+</head>
+
+<body>
+    <input type="file" id="fileInput" multiple accept="image/png">
+    <button id="createBtn">Create Timelapse</button>
+    <div id="info"></div>
+    <div>
+        <button id="fpsBtn">Framerate: 30 fps</button>
+        <button id="durationBtn">Duration: 0.00 sec</button>
+    </div>
+    <div id="progress">Progress: 0%</div>
+
+    <script>
+        let currentFPS = 30;
+        let currentDuration = 0;
+        let currentFileCount = 0;
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(img.src);
+                    resolve(img);
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        async function createTimelapse(pngFiles, fps = 30, onProgress) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const stream = canvas.captureStream(fps);
+            const recorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm'
+            });
+
+            const chunks = [];
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+
+            recorder.start();
+
+            for (let i = 0; i < pngFiles.length; i++) {
+                const img = await loadImage(pngFiles[i]);
+
+                if (i === 0) {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                }
+
+                ctx.drawImage(img, 0, 0);
+                await new Promise(resolve => setTimeout(resolve, 1000 / fps));
+
+                if (onProgress) {
+                    onProgress(i + 1, pngFiles.length);
+                }
+            }
+
+            recorder.stop();
+
+            return new Promise((resolve) => {
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    resolve(blob);
+                };
+            });
+        }
+
+        function updateInfo() {
+            currentDuration = currentFileCount / currentFPS;
+            document.getElementById('info').innerHTML = `${currentFileCount} files selected | ${currentFPS} fps | Duration: ${currentDuration.toFixed(2)} sec`;
+            document.getElementById('fpsBtn').innerHTML = `Framerate: ${currentFPS} fps`;
+            document.getElementById('durationBtn').innerHTML = `Duration: ${currentDuration.toFixed(2)} sec`;
+        }
+
+        document.getElementById('fileInput').onchange = () => {
+            currentFileCount = document.getElementById('fileInput').files.length;
+            updateInfo();
+        };
+
+        document.getElementById('fpsBtn').onclick = () => {
+            const newFPS = prompt('Enter target framerate (fps):', currentFPS);
+            if (newFPS && !isNaN(newFPS) && newFPS > 0) {
+                currentFPS = parseInt(newFPS);
+                updateInfo();
+            }
+        };
+
+        document.getElementById('durationBtn').onclick = () => {
+            const newDuration = prompt('Enter target duration (seconds):', currentDuration.toFixed(2));
+            if (newDuration && !isNaN(newDuration) && newDuration > 0) {
+                currentFPS = currentFileCount / parseFloat(newDuration);
+                if (currentFPS > 0) {
+                    updateInfo();
+                }
+            }
+        };
+
+        document.getElementById('createBtn').onclick = async () => {
+            const files = Array.from(document.getElementById('fileInput').files);
+            if (files.length === 0) return;
+
+            const progressDiv = document.getElementById('progress');
+            progressDiv.innerHTML = 'Progress: 0%';
+
+            const videoBlob = await createTimelapse(files, currentFPS, (current, total) => {
+                const percent = Math.round((current / total) * 100);
+                progressDiv.innerHTML = `Progress: ${percent}%`;
+            });
+
+            const url = URL.createObjectURL(videoBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'timelapse.webm';
+            a.click();
+
+            progressDiv.innerHTML = 'Progress: Done!';
+        };
+    </script>
+</body>
+
+</html>
