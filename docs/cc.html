@@ -9,13 +9,10 @@
     body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
       /* Disable scrolling */
+      overflow: hidden;
       width: 100%;
       height: 100%;
-    }
-
-    body {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -106,9 +103,9 @@
     window.BROWSERshowLoading.onclick = () => {
       window.BROWSERshowLoading.clickCount++
       if (window.BROWSERshowLoading.clickCount > 5)
-        wProgress("Click a bunch more to flush.")
+        wProgress("Click a bunch more to reset.")
       if (window.BROWSERshowLoading.clickCount > 10) {
-        localStorage.clear()
+        // localStorage.clear()
         window.onbeforeunload = null
         window.location.href = "cc.html?t=" + Date.now() //finally lol
       }

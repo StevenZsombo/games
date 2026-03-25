@@ -298,7 +298,7 @@ class Game extends GameCore {
             }
             if (shared == "rankingData") {
                 const ranks = this.ranking?.slice(1)
-                console.log(value, kingdoms, ranks)
+                // console.log(value, kingdoms, ranks)
                 ranks.forEach((b, i) => {
                     const [kID, kNAME, kSCORE] = value[i]
                     b.txt = `${kNAME} (${kSCORE})`
@@ -360,11 +360,18 @@ class Game extends GameCore {
             youButton.topat(0)
             youButton.color = myColor
             youButton.txt = `You: ${chat.name} (${myKingdomObject.name})`
-            // youButton.on_click = () => document.documentElement.requestFullscreen()
+            youButton.on_click = () => MM.toggleFullscreen(true)
             this.youButton = youButton
             this.add_drawable(youButton)
             // top.txt = "Conquest game"
             top.dynamicText = () => `Conquest game` + (chat.isConnected ? "" : " (connecting...)")
+            top.clickCount = 0
+            top.on_click = () => {
+                if (!top.clickCount) setTimeout(() => { top.clickCount = 0 }, 2000)
+                top.clickCount++
+                if (top.clickCount == 3)
+                    this.repositionCanvas()
+            }
 
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
@@ -458,10 +465,10 @@ class Game extends GameCore {
             this.add_drawable(formulasPanel)
             this.formulasButton = formulasButton
             this.formulasPanel = formulasPanel
-        */
+            */
 
 
-            window.wProgress?.("new Mapster")
+            window.wProgress?.("new Mapster()")
             mapster = new Mapster(
                 Kingdom.defaultRGBs.slice(0, kingdoms.length),
                 RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
@@ -473,6 +480,7 @@ class Game extends GameCore {
                 },
                 { fillScale: 4 }
             )
+
             this.add_drawable(mapster, 2)
 
             this.afterEverythingHasLoaded()
@@ -580,7 +588,7 @@ class Game extends GameCore {
     enter() {
         window.wProgress?.("game.enter()")
         const obj = chat.sendSecure({ kingdom: myKingdomID })
-        window.wProgress?.(`\nsendSecure(${obj.id})`)
+        window.wProgress?.(`\nsendSecure(${obj.id})\n`)
     }
 
     _showingMap = false
@@ -595,8 +603,9 @@ class Game extends GameCore {
     }
 
     afterEverythingHasLoaded() {
-        this._removeLoadingButton()
         GameEffects.fullscreenTrickButton(0)
+        if (location.hash == "#d") { this.debugMode() }
+        else { this._removeLoadingButton() }
 
         //MM.toggleFullscreen(true)
         //can only be initiated by user gesture, sadly.
@@ -609,6 +618,62 @@ class Game extends GameCore {
         delete window.wProgress
         document.body.style.zoom = 1
 
+    }
+
+    repositionCanvas() {
+        const w = new Rect(0, 0, window.innerWidth, window.innerHeight).deflate(40, 40)
+        const canvas = this.canvas
+        const c = new Rect(0, 0, this.rect.width, this.rect.height)
+        c.scaleWithinAnother(w)
+        canvas.style.width = c.width + "px"
+        canvas.style.height = c.height + "px"
+    }
+
+    debugMode() {
+        document.querySelectorAll("*").forEach(x => x.style.cssText = "")
+        document.body.style.cssText = ""
+        document.body.style.backgroundColor = "white"
+        document.body.style.overflow = "scroll"
+        const container = document.createElement("container")
+        const b = window.BROWSERshowLoading
+        b.style.whiteSpace = "pre-line"
+        const w = window.wProgress
+        w("\n")
+        b.parentNode.insertBefore(this.canvas, b)
+        document.body.style.display = 'block'
+        this.canvas.style.display = "block"
+        b.style.display = "block"
+        const j = (obj) => {
+            try { return JSON.stringify(obj) }
+            catch (err) { return obj.toString() }
+        }
+        const wrap = (fn, bi, name) => {
+            const old = fn
+            return (...args) => {
+                w(`\n${name}(${j(args)})\n`)
+                w(j(old.call(bi, ...args)))
+                w("\n")
+
+            }
+        }
+        window.onerror = wrap(window.onerror, window, "onerror")
+        chat.sendMessage = wrap(chat.sendMessage, chat, "sendMessage")
+        console.log = wrap(console.log, console, "log")
+        console.error = wrap(console.error, console, "error")
+        chat.on_receive = wrap(chat.on_receive, chat, "receive")
+
+        const rest = document.createElement("button")
+        rest.textContent = "Reset"
+        rest.onclick = () => b.textContent = ""
+        b.parentNode.insertBefore(rest, b)
+        const inp = document.createElement("input")
+        inp.type = "text"
+        inp.style.width = "400px"
+        b.parentNode.insertBefore(inp, b)
+        const ev = document.createElement("button")
+        ev.textContent = "eval"
+        b.parentNode.insertBefore(ev, b)
+        ev.onclick = () => { try { w(eval(inp.value)) } catch (err) { w(err) } }
     }
 
     //#endregion
@@ -841,7 +906,7 @@ class QPane extends Panel {
             )
             if (i < 9) {
                 x.txt = i + 1
-                x.on_click = () => this.guess += `${i + 1}`
+                x.on_click = () => this.guess += `${i + 1} `
             }
             if (i == 10) {
                 x.txt = 0

@@ -281,6 +281,19 @@ class Rect {
 		if (this.bottom > other.bottom) this.bottomat(other.bottom)
 		return this
 	}
+	/**@param {Rect} other  */
+	scaleWithinAnother(other) {
+		let { width, height } = this
+		width = width * other.height / height
+		height = other.height
+		if (width > other.width) {
+			height = height * other.width / width
+			width = other.width
+		}
+		this.width = width
+		this.height = height
+		this.centerinRect(other)
+	}
 
 	get copy() {
 		return new Rect(this.x, this.y, this.width, this.height)

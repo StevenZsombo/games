@@ -1248,14 +1248,16 @@ class MM {
     }
 
     static toggleFullscreen(whatToDo) {
-        if ((whatToDo === true || whatToDo === undefined) && !document.fullscreenElement) {
-            document.documentElement.requestFullscreen()
-            return true
-        }
-        if ((whatToDo === false || whatToDo === undefined) && document.fullscreenElement) {
-            document.exitFullscreen()
-            return false
-        }
+        try {
+            if ((whatToDo === true || whatToDo === undefined) && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen()
+                return true
+            }
+            if ((whatToDo === false || whatToDo === undefined) && document.fullscreenElement) {
+                document.exitFullscreen()
+                return false
+            }
+        } catch (err) { console.error("can't fullscreen", err) }
     }
 
 
@@ -1952,7 +1954,8 @@ class GameEffects {
         const invis = Button.fromRect(game.rect.copy)
         invis.visible = false
         invis.on_click = () => {
-            document.documentElement.requestFullscreen()
+            try { document.documentElement.requestFullscreen() }
+            catch (err) { console.error("can't fullscreen", err) }
             game.remove_drawable(invis)
             if (verifyAfter) {
                 setTimeout(() => GameEffects.fullscreenTrickButton(0), verifyAfter)
