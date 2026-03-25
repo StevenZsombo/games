@@ -95,10 +95,14 @@ const verify = async () => {
     fileinfo.length = 0
     newQuestions.clear()
     //asks for new files. prints solution and assigns id
-    log(`You can upload a set of pictures to see if you named them correctly.
-They must be named according to convention, for example 2.5s22p13hard.png`)
+    log(`You can "upload" a set of pictures to see if you named them correctly.
+They must be named according to convention, for example 2.5s22p13hard.png
 
-    await but("Upload")
+Nothing is sent to the server - but your device will use the same function
+to extract the solution from the filename as the script I actually use
+to load them into the question bank.`)
+
+    await but("Click here to verify filenames")
     return new Promise((resolve, reject) => {
         const input = document.createElement("input")
         input.type = "file"
@@ -140,13 +144,15 @@ They must be named according to convention, for example 2.5s22p13hard.png`)
 
                 feed("Extracted data:\n\n" + MM.tableStr(
                     fileinfo.map(q => [q.id, q.origName, q.sol])
-                    , ["id", "origName", "sol"], 5
+                    , ["#", "filename", "solution"], 5
                 ))
                 console.log(fileinfo)
-                log("\n\nYou can download this in Excel if you choose.")
+                log("\n\nYou can download the data found in Excel if you choose.")
                 but("Download .xlsx", () => MM.exportExcel(
                     fileinfo.map(q => [q.id, q.origName, q.sol])
                     , "questionsVerificationFromSteven.xlsx"), false)
+
+                log("You can refresh the page if you want to check again.")
                 return resolve()
             } catch (err) { return reject(err) }
         }
@@ -174,4 +180,7 @@ const fullProcess = async () => {
 step(false)
 fullProcess()
 */
-verify()
+(async () => {
+    // while (1)
+    await verify()
+})()

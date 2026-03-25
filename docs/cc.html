@@ -99,6 +99,9 @@
     window.BROWSERshowLoading.textContent = `Contacting server... Success! Loading...\n`
     document.body.appendChild(window.BROWSERshowLoading)
     window.wProgress = (txt) => window.BROWSERshowLoading.textContent += txt + " "
+    window.onerror = (message, source, lineno, colno, error) => {
+      window.wProgress?.(error?.stack || `${message} at ${source}:${lineno}`)
+    }
     window.BROWSERshowLoading.clickCount = 0
     window.BROWSERshowLoading.onclick = () => {
       window.BROWSERshowLoading.clickCount++
