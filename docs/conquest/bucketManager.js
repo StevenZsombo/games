@@ -164,10 +164,11 @@ The bucket column's data will determine which bucket the question is in.`)
     let data = await MM.importExcel()
     log("Verifying...")
     let firstFourColumns = data.map(x => x.slice(0, 4))
-    let matchingRows = firstFourColumns.filter(x => filesInQuestions.has(+x[0]))
-    if (matchingRows.length != filesInQuestions.size) throw ("The excel records do not match what's in your folder.")
+    let matchingRows = firstFourColumns.filter(x => filesInQuestions.has(x[0]))
+    if (matchingRows.length != filesInQuestions.size) throw ("Missing a row in Excel.")
     log(`Success! Found all questions with id 0 to ${matchingRows.length - 1}.`)
     currentBank = matchingRows
+    currentBank.sort((x, y) => x[0] - y[0])
     feed(MM.tableStr(currentBank, "id origName sol bucket".split(" "), 5))
     console.log({ currentBank })
     return
@@ -192,6 +193,7 @@ You can now download bucket.json. Rename it to something more descriptive and ke
     const j = JSON.stringify({
         arr,
         BUCKETS: arr.map(x => x.map(u => u[0])),
+        solStr: currentBank.map(x => x[2]).join(";")
     })
     return MM.downloadFile(j, "bucket.json")
 }
