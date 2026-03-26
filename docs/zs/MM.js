@@ -1950,16 +1950,13 @@ class GameEffects {
             ])
     }
 
-    static fullscreenTrickButton(verifyAfter = 3000) {
+    static fullscreenTrickButton() {
         const invis = Button.fromRect(game.rect.copy)
         invis.visible = false
         invis.on_click = () => {
             try { document.documentElement.requestFullscreen() }
-            catch (err) { console.error("can't fullscreen", err) }
+            catch (err) { console.errolog("can't fullscreen") }
             game.remove_drawable(invis)
-            if (verifyAfter) {
-                setTimeout(() => GameEffects.fullscreenTrickButton(0), verifyAfter)
-            }
         }
         game.add_drawable(invis)
 

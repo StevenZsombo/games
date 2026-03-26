@@ -110,13 +110,15 @@ const server = http.createServer((req, res) => {
         });
     } catch (err) {
         console.error('http handler error', err);
-        try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { /* ignore */ }
+        try { res.writeHead(500); res.end('Internal Server Error'); }
+        catch (err) { console.error("http failed res.end", err) }
     }
 });
 
 // Basic protections
 server.on('clientError', (err, socket) => {
-    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (e) { /* ignore */ }
+    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); }
+    catch (err) { console.error("clientError could not end socket", err) }
 });
 
 // WebSocket server
@@ -173,7 +175,8 @@ wss.on('connection', (ws, req) => {
                     if (txt === `"GM"` || txt === 'GM') {
                         ws._isListener = true;
                         listeners.add(ws);
-                        console.log(colorize('● Confirmed listener connected', 'blue'), req.socket.remoteAddress);
+                        console.log(colorize('● Confirmed listener connected', 'blue'),
+                            req.socket.remoteAddress);
                         return;
                     }
                     let parsed;
@@ -204,13 +207,14 @@ wss.on('connection', (ws, req) => {
                     console.log(colorize('●●● Listener disconnected', 'blue'), req.socket.remoteAddress);
                 } else {
                     console.log(colorize('● Client disconnected', 'red'), req.socket.remoteAddress);
-                    try { processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` })); } catch (_) { /* ignore */ }
+                    try { processMessage(JSON.stringify({ name: "WS", disconnectedAddress: `${req.socket.remoteAddress}:${req.socket.remotePort}` })); }
+                    catch (err) { console.error("ws failed to send disconnect msg", err) }
                 }
             } catch (e) { /* ignore */ }
         });
     } catch (err) {
         console.error('connection handler error', err);
-        try { ws.close(); } catch (e) { /* ignore */ }
+        try { ws.close(); } catch (err) { console.error("failed to close connection", err) }
     }
 });
 

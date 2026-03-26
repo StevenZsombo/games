@@ -40,6 +40,7 @@ var RULES = ({
     PICTURE_EXTENSION: ".png",
     SHOW_QUESTION_ID: true,
     QUESTION_PATH: "conquest/questions/",
+    MAPSTER_IMAGE_QUALITY: 4,
 
 
     //Blake
@@ -428,21 +429,21 @@ class Conflict {
             this.attacker.capital.value += plundered
             //notify attackers of victory
             const short = this.territory.nameShort
-            this.attacker.members.forEach(x =>
-                chat.sendMessage({
-                    targetID: x.nameID,
-                    popup: `You plundered ${short} for ${plundered} points.`,
-                    popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
-                })
-            )
+            // this.attacker.members.forEach(x =>
+            chat.sendMessage({
+                targetIDlist: this.attacker.members.values().map(x => x.nameID),
+                popup: `You plundered ${short} for ${plundered} points.`,
+                popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
+            })
+            // )
             //notify defenders of loss
-            this.defender.members.forEach(x =>
-                chat.sendMessage({
-                    targetID: x.nameID,
-                    popup: `Your capital lost ${plundered} points\nbecause you failed to defend it.`,
-                    popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
-                })
-            )
+            // this.defender.members.forEach(x =>
+            chat.sendMessage({
+                targetIDlist: this.defender.members.values().map(x => x.nameID),
+                popup: `Your capital lost ${plundered} points\nbecause you failed to defend it.`,
+                popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
+            })
+            // )
             return this.resolve()
         }
         // console.log(reason, this.attacker.name, this.territory.name)
@@ -451,21 +452,23 @@ class Conflict {
         this.attacker.acquireTerritory(this.territory)
         //notify attackers of victory
         const short = this.territory.nameShort
-        this.attacker.members.forEach(x =>
-            chat.sendMessage({
-                targetID: x.nameID,
-                popup: `You captured ${short}.`,
-                popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
-            })
-        )
+        // this.attacker.members.forEach(x =>
+        chat.sendMessage({
+            // targetID: x.nameID,
+            targetIDlist: this.attacker.members.values().map(x => x.nameID),
+            popup: `You captured ${short}.`,
+            popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
+        })
+        // )
         //notify defenders of lost territory
-        this.defender.members.forEach(x =>
-            chat.sendMessage({
-                targetID: x.nameID,
-                popup: `You lost ${short}.`,
-                popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
-            })
-        )
+        // this.defender.members.forEach(x =>
+        chat.sendMessage({
+            // targetID: x.nameID,
+            targetIDlist: this.defender.members.values().map(x => x.nameID),
+            popup: `You lost ${short}.`,
+            popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
+        })
+        // )
         this.resolve()
     }
     winDefend(reason, { valueGainOverride = null, capitalValueGainOverride = null } = {}) {
@@ -476,21 +479,23 @@ class Conflict {
             (this.defender.capital.value += (capitalValueGainOverride ?? RULES.DEFENSE_GAIN_VALUE_FOR_CAPITAL))
         //notify defenders of victory
         const short = this.territory.nameShort
-        this.defender.members.forEach(x =>
-            chat.sendMessage({
-                targetID: x.nameID,
-                popup: `You defended ${short}.`,
-                popupSettings: GRAPHICS.POPUP_DEFEND_SUCCESS
-            })
-        )
+        // this.defender.members.forEach(x =>
+        chat.sendMessage({
+            // targetID: x.nameID,
+            targetIDlist: this.defender.members.values().map(x => x.nameID),
+            popup: `You defended ${short}.`,
+            popupSettings: GRAPHICS.POPUP_DEFEND_SUCCESS
+        })
+        // )
         //notify attackers of failure
-        this.attacker.members.forEach(x =>
-            chat.sendMessage({
-                targetID: x.nameID,
-                popup: `You could not ${this.territory.isCapital ? "plunder" : "capture"} ${short}.`,
-                popupSettings: GRAPHICS.POPUP_ATTACK_FAIL
-            })
-        )
+        // this.attacker.members.forEach(x =>
+        chat.sendMessage({
+            // targetID: x.nameID,
+            targetIDlist: this.attacker.members.values().map(x => x.nameID),
+            popup: `You could not ${this.territory.isCapital ? "plunder" : "capture"} ${short}.`,
+            popupSettings: GRAPHICS.POPUP_ATTACK_FAIL
+        })
+        // )
         this.resolve()
     }
 

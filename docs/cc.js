@@ -1,6 +1,7 @@
 var univ = {
     isOnline: true,
     PORT: 80,
+    //has keys: d-debug, s-scroll, q-quality2, qq-quality1
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
@@ -22,6 +23,10 @@ var univ = {
         }*/
     },
     on_first_run: () => {
+        window.onhashchange = () => {
+            window.onbeforeunload = null
+            location.reload()
+        }
         window.onerror = (message, source, lineno, colno, error) => {
             chat.sendMessage({ yell: error?.stack || `${message} at ${source}:${lineno}` })
         }
@@ -30,6 +35,8 @@ var univ = {
     },
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
+        if (location.hash.includes("q")) RULES.MAPSTER_IMAGE_QUALITY = 2
+        if (location.hash.includes("qq")) RULES.MAPSTER_IMAGE_QUALITY = 1
         if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
         fetch(RULES.MAPFILE)
             .then(x => {
@@ -43,7 +50,7 @@ var univ = {
                 return
             })
             .catch(x => { //?. so intellij won't whine about it
-                window?.wProgress("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
+                window.wProgress?.("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
                 console.error("No map data found or it failed to load.", x)
                 alert("NO MAP FOUND. This is bad. Tell your teacher.")
             }).then(x => new Promise((resolve, reject) => {
@@ -245,7 +252,7 @@ class Game extends GameCore {
                 this.buts = territories.map(x => x.button)
                 this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
 
-                window?.wProgress("territoriesFullData")
+                window.wProgress?.("territoriesFullData")
                 waitCheckSyncState()
             }
             if (shared == "kingdomsFullData") {
@@ -253,7 +260,7 @@ class Game extends GameCore {
                 kingdoms.push(...Kingdom.manyFromData(value))
                 myKingdomObject = kingdoms[myKingdomID]
                 myColor = myKingdomObject.color
-                window?.wProgress("kingdomsFullData")
+                window.wProgress?.("kingdomsFullData")
 
                 /*this.remove_drawables_batch(territories.map(x => x.button)) //in case this.buts gets "lost"
                 territories.length = 0
@@ -292,9 +299,10 @@ class Game extends GameCore {
             if (shared == "conflictsData") {
                 this.territoriesUnderAttack = new Set(value.map(x => x.to))//id of the place
                 this.canAttackList =
-                    Array.from(myKingdomObject.territories.values()).flatMap(x => x.connections)//neighbouring
+                    Array.from(myKingdomObject.territories)
+                        .flatMap(x => Array.from(x.connections))//neighbouring
                         .filter(x => !myKingdomObject.territories.has(x))//is not your own
-                        .filter(x => !this.territoriesUnderAttack.has(x.id))
+                        .filter(x => !this.territoriesUnderAttack.has(x.id))//is not under attack
                 value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
@@ -356,7 +364,7 @@ class Game extends GameCore {
             window.wProgress?.("init_after_basics()")
             let border = Gimmicks.setupBorder()
             const { top, bot, left, right, middle } = border
-            border = Object.values(border)
+            border = Array.from(Object.values(border))
             this.border = border
             this.top = top
             this.bot = bot
@@ -508,7 +516,7 @@ class Game extends GameCore {
                 () => {
                     mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
                 },
-                { fillScale: 4 }
+                { fillScale: RULES.MAPSTER_IMAGE_QUALITY }
             )
 
             this.add_drawable(mapster, 2)
@@ -565,7 +573,7 @@ class Game extends GameCore {
             if (message.orderResetKingdom !== undefined) {
                 game.resetKingdom()
             }
-            if (message.present) GameEffects.fullscreenTrickButton(0)
+            if (message.present) GameEffects.fullscreenTrickButton()
         }
 
 
@@ -604,8 +612,9 @@ class Game extends GameCore {
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
-        // this.add_drawable(attackCircleDrawableObject, 6)
+        this.add_drawable(attackCircleDrawableObject, 6)
         window.wProgress?.("attackCircleDrawable")
+
 
 
         this._showingMap = true
@@ -621,7 +630,7 @@ class Game extends GameCore {
             const obj = chat.sendSecure({ kingdom: myKingdomID })
             window.wProgress?.(`\nsendSecure(${obj.id})\n`)
         }
-        if (chat.isConnected) enterAction
+        if (chat.isConnected) enterAction()
         else { chat.on_join_once = enterAction }
     }
 
@@ -637,8 +646,10 @@ class Game extends GameCore {
     }
 
     afterEverythingHasLoaded() {
-        GameEffects.fullscreenTrickButton(0)
-        if (location.hash == "#d") { this.debugMode() }
+        GameEffects.fullscreenTrickButton() //this kinda sucks
+
+        if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
+        if (location.hash.includes("d")) { this.debugMode() }
         else { this._removeLoadingButton() }
 
         //MM.toggleFullscreen(true)
@@ -820,7 +831,7 @@ class Snippet {
         // bg.deflate(-10, -10)
         bg.outline = 10
         game.add_drawable(bg, 4)
-        // bg.isBlocking = true
+        bg.isBlocking = true
         bg.on_click = () => {
             if (confD.question == -1) {
                 if (confD.fromKD === myKingdomID) //attacking

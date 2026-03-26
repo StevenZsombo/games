@@ -106,7 +106,7 @@
     window.BROWSERshowLoading.onclick = () => {
       window.BROWSERshowLoading.clickCount++
       if (window.BROWSERshowLoading.clickCount > 5)
-        wProgress("Click a bunch more to reset.")
+        wProgress?.("Click a bunch more to reset.")
       if (window.BROWSERshowLoading.clickCount > 10) {
         // localStorage.clear()
         window.onbeforeunload = null

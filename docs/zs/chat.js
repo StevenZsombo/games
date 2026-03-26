@@ -323,7 +323,7 @@ class ChatServer extends Chat {
         if (obj.targetID != null) { //target by name remains a legacy feature!
             prefix = `T@${obj.targetID}|`
         } else if (obj.targetIDlist != null) {
-            prefix = `T@${obj.targetIDlist.join(";")}|`
+            prefix = `T@${Array.from(obj.targetIDlist).join(";")}|`
         } else {
             //default to send to all = no prefix
         }
@@ -467,7 +467,7 @@ class Listener {
     participantHasJustDisconnected(address) {
         const person = Object.values(this.participants).find(x => x.connectedAddress === address)
         if (!person) {
-            console.error("A disconnected person could not be identified", address)
+            console.log("A disconnected person could not be identified", address)
             return
         }
         person.isConnected = false

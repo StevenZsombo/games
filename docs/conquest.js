@@ -71,7 +71,7 @@ class Person extends Participant {
     /**@returns {Person} */
     static to(nameOrPerson) {
         return typeof nameOrPerson === "string" ? (
-            participants[nameOrPerson] || participants.find(x => x.nameID == nameOrPerson)
+            participants[nameOrPerson] || Object.values(participants).find(x => x.nameID == nameOrPerson)
         ) : nameOrPerson
     }
     static check(person) {
@@ -96,7 +96,7 @@ class Person extends Participant {
                 popupSettings: GRAPHICS.POPUP_ERROR
             })
             //no notification for now, just silently ignore
-            console.error("Invalid wss attempt", person)
+            console.error("Invalid wss attempt", this)
             return false
         } else { return true }
     }
@@ -199,8 +199,6 @@ const UNPAUSE = () => {
     game.attacksAllowed = true
     spop("Unpaused.")
     POPUP("The game continues!")
-    /*setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 500) //just in case
-    setTimeout(() => chat.sendMessage({ eval: "game.unpause()" }), 1000) //just in case*/
     clearInterval(game.isPauseBroadcastInterval)
     chat.sendMessage({ eval: "game.unpause()" })
     RELOAD() //easiest solution = best
@@ -862,7 +860,7 @@ class Game extends GameCore {
             () => {
                 mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
             },
-            { fillScale: 2 }
+            { fillScale: 1 }//RULES.MAPSTER_IMAGE_QUALITY }
         )
         this.add_drawable(mapster, 2)
     }
@@ -1048,15 +1046,16 @@ class Game extends GameCore {
                     + `\n They have ${RULES.TIMEOUT_ON_ATTACK_TEXT} to respond.`,
                 popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
             })
-        c.defender.members.values().forEach(opponent => {
-            chat.sendMessage({
-                targetID: opponent.nameID,
-                popup:
-                    `${territory.nameShort} has been attacked by ${c.attacker.name}!`
-                    + `\n You have ${RULES.TIMEOUT_ON_ATTACK_TEXT} to respond.`,
-                popupSettings: GRAPHICS.POPUP_DEFENSE_WARNING
-            })
+        // c.defender.members.values().forEach(opponent => {
+        chat.sendMessage({
+            // targetID: opponent.nameID,
+            targetIDlist: c.defender.members.values().map(x => x.nameID),
+            popup:
+                `${territory.nameShort} has been attacked by ${c.attacker.name}!`
+                + `\n You have ${RULES.TIMEOUT_ON_ATTACK_TEXT} to respond.`,
+            popupSettings: GRAPHICS.POPUP_DEFENSE_WARNING
         })
+        // })
         SHARE("conflictsData")
         return c
     }
