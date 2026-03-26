@@ -60,7 +60,7 @@ class Person extends Participant {
     kick() {
         // game.remove_drawable(this.button) //no buttons
         game?.kingdoms.forEach(x => x.members.delete(this)) //but removed from kingdom
-        chat.orderResetName(this.name)
+        chat.orderResetName(this.nameID)
         delete participants[this.name]
     }
     initialize() {
@@ -114,7 +114,7 @@ const COMM = chat.sendCommand.bind(chat)
 const POPUP = (txt, settings) => chat.sendMessage({
     popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
 })
-const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftPink) }
+const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftLargePinkf) }
 const ATTENDANCE = () => {
     chat.orderAttendance()
     chat.sendMessage({
@@ -545,7 +545,7 @@ class Game extends GameCore {
         this.border.right.height = this.rect.height
         this.add_drawable([this.border.left, this.border.right], 3)
 
-        const orderResetKingdomButton = switchModeButton.copy
+        /*const orderResetKingdomButton = switchModeButton.copy
         orderResetKingdomButton.move(orderResetKingdomButton.width * -1.5, 0)
         orderResetKingdomButton.txt = "Switch\nKingdom"
         orderResetKingdomButton.on_click = null
@@ -557,9 +557,9 @@ class Game extends GameCore {
             ) //adds to game automatically
         }
         this.orderResetKingdomButton = orderResetKingdomButton
-        this.add_drawable(orderResetKingdomButton)
+        this.add_drawable(orderResetKingdomButton)*/
 
-        const orderChangeNameButton = orderResetKingdomButton.copy
+        /*const orderChangeNameButton = orderResetKingdomButton.copy
         orderChangeNameButton.move(orderChangeNameButton.width * -1.5, 0)
         orderChangeNameButton.txt = "Change\nName"
         orderChangeNameButton.on_release = () => {
@@ -570,9 +570,9 @@ class Game extends GameCore {
             )
         }
         this.orderChangeNameButton = orderChangeNameButton
-        this.add_drawable(orderChangeNameButton)
+        this.add_drawable(orderChangeNameButton)*/
 
-        const snapShotButton = orderChangeNameButton.copy
+        const snapShotButton = switchModeButton.copy
         snapShotButton.move(snapShotButton.width * -1.5, 0)
         snapShotButton.txt = "Snapshot\n& Save"
         snapShotButton.on_release = () => {
@@ -785,7 +785,7 @@ class Game extends GameCore {
         const devButton = serverButton.copy
         devButton.txt = "dev"
         // devButton.move(0, 120)
-        devButton.leftat(orderChangeNameButton.left)
+        devButton.leftat(switchModeButton.left)
         devButton.on_click = null
         devButton.on_release = () => {
             const ddm = GameEffects.dropDownMenu(
@@ -1090,6 +1090,8 @@ class Game extends GameCore {
         const valCols = []
         banners.forEach((b, i) => {
             const k = this.kingdoms[i]
+            b.kingdom = k
+            b.on_release = () => this.playerMenu(k)
             b.deflate(20, 20)
             if (GRAPHICS.SIDE_SCORE_PANEL_WIDTH)
                 b.width = GRAPHICS.SIDE_SCORE_PANEL_WIDTH
@@ -1123,6 +1125,7 @@ class Game extends GameCore {
         sc.components.push(...banners, ...valCols)
         this.sideScorePanel = sc
         this.add_drawable(sc)
+
 
     }
     initialize_scores() {
@@ -1174,6 +1177,70 @@ class Game extends GameCore {
         }
 
     }
+    /**@param {Kingdom} kingdom  */
+    playerMenu(kingdom) {
+        const players = Array.from(kingdom?.members ?? Object.values(participants))
+        if (!players.length) return
+        GameEffects.dropDownMenu(players.map(x => [x.name, () => this.individualMenu(x)]),
+            null, null, null,
+            // { fontSize: 20, width: 200, height: 80, color: kingdom?.color ?? "white", hover_color: "lightblue" },
+            //confusing colors
+            { fontSize: 20, width: 210, height: 70, color: "white", hover_color: "lightblue" },
+            this.overlay)
+
+    }
+    /**@param {Person} person */
+    individualMenu(person) {
+        const opts = [
+            ["Order to change kingdom",
+                () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
+            ],
+            ["Order to change name",
+                () => { person.kick(); spop(`Ordered.`) }
+            ],
+            ["Order to reload page",
+                () => { chat.sendMessage({ targetID: person.nameID, reload: 1 }); spop(`Ordered.`) }
+            ],
+            ["Order to set fullscreen",
+                () => { chat.sendMessage({ targetID: person.nameID, present: 1 }); spop(`Ordered. They should click now.`) }
+            ],
+            ["Rename",
+                () => {
+                    let nn = prompt("What shall their new name be?")
+                    if (nn.length < 4) nn += "1234"
+                    chat.orderForceName(person.nameID, nn)
+                    this.kingdoms.forEach(x => x.members.delete(person))
+                    spop(`Set.`)
+                }
+            ],
+            ["Reassign to kingdom",
+                () => {
+                    spop("Feature unavailable.\nTODO")
+                }
+            ]
+        ]
+        GameEffects.dropDownMenu(opts.map(x => [x[0], x[1]]),
+            null, null, null,
+            { fontSize: 20, width: 210, height: 70, color: "white", hover_color: "lightblue" },
+            this.overlay)
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
     * @typedef {Object} SaveObj
     * @property {number[]} territories - array of respective values

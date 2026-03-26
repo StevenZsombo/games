@@ -60,18 +60,22 @@ var univ = {
                 const p = window.BROWSERshowLoading
                 const origLoadTextContent = p.textContent
                 p.textContent = ""
+                p.style.touchAction = "manipulation"
                 const fontSize = "28px"
                 const div = document.createElement("div")
                 div.textContent = "Type in your name before joining:"
                 div.style.fontSize = fontSize
                 div.style.backgroundColor = "linen"
+                div.style.touchAction = "manipulation"
                 const input = document.createElement("input")
                 input.style.fontSize = fontSize
                 input.style.backgroundColor = "white"
+                input.style.touchAction = "manipulation"
                 const button = document.createElement("button")
                 button.textContent = "Join!"
                 button.style.fontSize = fontSize
                 button.style.backgroundColor = "linen"
+                button.style.touchAction = "manipulation"
                 p.appendChild(div)
                 p.appendChild(input)
                 p.appendChild(button)
@@ -675,7 +679,7 @@ class Game extends GameCore {
                 { width: window.visualViewport.width, height: window.visualViewport.height }
                 : { width: window.innerWidth, height: window.innerHeight }
         })()
-        const w = new Rect(0, 0, viewport.width, viewport.height).deflate(40, 40);
+        const w = new Rect(0, 0, viewport.width, viewport.height).stretch(.99, .99);
         const canvas = this.canvas;
         const c = new Rect(0, 0, this.rect.width, this.rect.height);
         c.scaleWithinAnother(w);

@@ -1835,6 +1835,7 @@ class GameEffects {
         leftGreen: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightgreen", fontSize: 32 } },
         leftBlue: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightblue", fontSize: 32 } },
         leftPink: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
+        leftLargePink: { sizeFrac: [.3, .15], posFrac: [.157, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 },
         sideError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .88], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 32 } }
 
@@ -1891,9 +1892,10 @@ class GameEffects {
         const on_clickList = Object.values(objTextAndOnRelease)
         const origOnReleases = [];
         const result = {}
+        alsoClosingButtons && (alsoClosingButtons = Array.isArray(alsoClosingButtons) ? alsoClosingButtons : [alsoClosingButtons])
         result.close = () => {
             game.remove_drawables_batch(menu)
-            alsoClosingButtons && [...alsoClosingButtons].forEach((b, i) => b.on_release = origOnReleases[i])
+            alsoClosingButtons && alsoClosingButtons.forEach((b, i) => b.on_release = origOnReleases[i])
             on_close?.()
         }
         //add logic here: if menu already exists then delete it
@@ -1904,7 +1906,7 @@ class GameEffects {
             ...moreButtonSettings,
             txt: x,
             tag: "dropDown",
-            on_release: () => (on_clickList?.[i]?.(), result.close()),
+            on_release: () => (result.close(), on_clickList?.[i]?.()),
             isBlocking: true,
         }))
         if (addCloseButton) {
@@ -1913,7 +1915,7 @@ class GameEffects {
             closeButton.on_release = () => result.close()
             menu.push(closeButton)
         }
-        alsoClosingButtons && [...alsoClosingButtons].forEach(b => {
+        alsoClosingButtons && alsoClosingButtons.forEach(b => {
             origOnReleases.push(b.on_release)
             b.on_release = result.close
 
