@@ -212,7 +212,10 @@ class Game extends GameCore {
         if (!nameIDtimestamp || (nameIDtimestamp - Date.now() > 6 * 60 * 60 * 1000))//older than 6 hours or none
         {
             //both mean that this is NOT the current conquest session
-            localStorage.clear() //so flush everything
+            //localStorage.clear() //so flush everything
+            const nameID = localStorage.getItem("nameID") //keep nameID?
+            localStorage.clear()
+            nameID && localStorage.setItem("nameID", nameID)
             chat.acquireName() //ask for name again, which sets a recent timestamp
             chat.silentReload() //clear everything
         }

@@ -653,7 +653,7 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         return JSON.parse(localStorage.getItem(stgs.localVictoriesName))?.includes(key)
     }
     static checkSaveData(key) {
-        return JSON.parse(localStorage.getItem(stgs.localDataName))[key]
+        return JSON.parse(localStorage.getItem(stgs.localDataName))?.[key]
     }
     static loadFromLocal(key) {
         try {
