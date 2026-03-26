@@ -2,7 +2,7 @@
 
 //#region Chat
 class Chat {
-    static RECONNECT_TIME = 2 * 1000 //default timeout is probably over a minute anyways
+    static RECONNECT_TIME = 2 * 1000
     static RESEND_TIME = 1500
     static BLINKING_TIME = 0 //feature no longer needed: disconnections are now handled via server.js and Listener
     static HOSTNAMES_INDICATING_OFFLINE = ['', 'stevenzsombo.github.io']
@@ -19,6 +19,7 @@ class Chat {
         this.reconnections = -1
         this.errorHandler = null
         this.queue = []
+        this.queueTimeout = 0
         this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
         this.secureIDsToIgnore = new Set()
         this.isServer = isServer
@@ -45,11 +46,10 @@ class Chat {
         if (this.socket?.readyState === WebSocket.OPEN || this.socket?.readyState === WebSocket.CONNECTING) {
             return
         }
-        const isHostedOnine = location.protocol === "https:"
-        let address = //whaaaaat
-            (isHostedOnine ? `wss://${location.hostname}/` : `ws://${location.host}/`)
+        const address = isServer
+            ? `ws://localhost${location.port ? `:${location.port}` : ''}/listener`
+            : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/`
         //figure out what the heck should i do instead
-        if (isServer) address = `ws://localhost:${univ.PORT}/listener`
         console.log("Adress:", address)
         try {
             this.socket = new WebSocket(address)
@@ -60,6 +60,7 @@ class Chat {
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
                 this.announceSelf() //only the server announces themselves.
+                this.queueSend() //in case this is a reconnect!
                 this.on_join?.()
                 this.on_join_once?.()
                 this.on_join_once = null
@@ -132,12 +133,15 @@ class Chat {
         }
         obj.name ??= this.name
         obj.id = MM.randomID()
+        obj.queuedAt = Date.now() //IMPORTANT
         this.queue.push(obj)
         this.sendMessage(obj)
         return obj
     }
 
     queueSend() {
+        if (!this.queue.length) return
+        this.queueTimeout && (this.queue = this.queue.filter(x => Date.now() - x.queuedAt < this.queueTimeout))
         this.queue.forEach(this.sendMessage.bind(this))
     }
 
@@ -283,10 +287,11 @@ class Chat {
 
 //#region Participant
 class Participant { // extend for Person
-    constructor(name, nameID, connected) {
+    constructor(name, nameID, connected, connectedAddress) {
         this.name = name
         this.nameID = nameID
-        this.connected = connected ?? "unknown"
+        this.connectedAddress = connectedAddress ?? "WS failed to send?"
+        this.connected = connected ?? "WS failed to send?"
         this.reconnections = 0
         this.initialized = false
 
@@ -299,6 +304,8 @@ class Participant { // extend for Person
         this.on_request_response_once = null
         this.on_prompt_response = null // takes message.promptResponse
         this.on_prompt_response_once = null
+        // this.on_recovery = null //TODO
+        // this.on_recovery_once = null //TODO
     }
 }
 //#endregion
@@ -310,6 +317,7 @@ class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
         this.receiveMessage = null//set to nothing, won't be needed anyways
+        this.isLoggingTargeting = true
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
@@ -327,6 +335,7 @@ class ChatServer extends Chat {
         } else {
             //default to send to all = no prefix
         }
+        this.isLoggingTargeting && prefix && console.log(prefix)
         this.attemptToSendText(prefix + message)
         return prefix + message
     }
@@ -365,8 +374,13 @@ class Listener {
 
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
+        this.chat.queueTimeout = 0 //reconsider first. system is unfinished.
+        console.log(`Server queueTimeout has been set to ${this.chat.queueTimeout || "infinite"}`)
         this.allowPriorJoin = true
         this.isLogging = false//true
+        // this.isLoggingRecovery = true
+        // /**@type {Map<string,Participant>} */
+        // this.recoveryQueue = new Map()
 
         this.chat.receiveMessageParse = this.messageParsing.bind(this)
 
@@ -375,70 +389,77 @@ class Listener {
         this.on_participant_reconnect = null //takes person
         this.on_participant_join = null //takes person
         this.on_participant_disconnect = null //takes person
+        // this.on_participant_recovery = null //takes person
 
     }
 
 
 
-    checkUserDuplicate(name, nameID, connected) {
-        if (this.participants[name] && this.participants[name]["nameID"] !== nameID) {
-            const obj = {}
-            obj[Listener.SERVER.SERVERnameAlreadyExists] = true
-            obj.targetID = nameID
-            this.chat.sendMessage(obj)
-            return true
-        }
-        return false
+    handleNameAlreadyExists(name, nameID) {
+        const obj = {}
+        obj[Listener.SERVER.SERVERnameAlreadyExists] = true//will force a new name
+        obj.targetID = nameID //different id, so this is the newer person trying to join
+        this.chat.sendMessage(obj) //just to be sure.
+        //participant will NOT be added. so their future messages will NOT be parsed
+    }
+    handleEarlyJoin(name, nameID) {
+        //by telling them to bugger off. won't be parsed.
+        this.chat.sendMessage({
+            targetID: nameID,
+            reload: 1
+        })
     }
 
-    addNewParticipant(name, nameID, connected) {
-        if (this.checkUserDuplicate(name, nameID, connected)) { return }
-        this.participants[name] = new Person(name, nameID, connected)
-
-    }
 
 
     messageParsing(messageText) {
         const message = JSON.parse(messageText)
-        if (!message.name || message.name == this.name) {
+        if (message.name == "WS") {
+            message.disconnectedAddress && this.participantHasJustDisconnected(message.disconnectedAddress)
+            //message.recoverFromWS && this.recoverFromWS(message.recoverFromWS)
+            return
+        }
+        if (!message.name || message.name == this.name || !message.nameID) {
             console.error("Received an unnamed message", message)
             return
         }
         const participants = this.participants
-        const { name, ...compact } = message
+        const { name, nameID, ...rest } = message
         //resolving connectivity concerns
-        if (name == "WS" && message.disconnectedAddress) {
-            this.participantHasJustDisconnected(message.disconnectedAddress)
-            return
-        }
-        if (message.connected && !this.checkUserDuplicate(name, message.nameID, message.connected)) {
-            if (participants[name]) {
-                participants[name].reconnections++
-                participants[name].isConnected = true
-                participants[name].on_reconnect?.()
-                this.on_participant_reconnect?.(participants[name])
-            } else {
-                MM.require(message, "nameID")
-                this.addNewParticipant(name, message.nameID, message.connected)
+        if (message.connected) {//sent only by node //also has connectedAddress, may differ?
+            if (!participants[name]) {//person with new name! the ghost can remain. why not?
+                participants[name] =
+                    typeof Person === 'function'
+                        ? new Person(name, nameID, message.connected, message.connectedAddress)
+                        : new Participant(name, nameID, message.connected, message.connectedAddress)
                 participants[name].isConnected = true
                 participants[name].on_join?.()
                 this.on_participant_join?.(participants[name])
+            } else if
+                (participants[name].nameID == nameID) { //existing person reconnecting
+                participants[name].reconnections++
+                participants[name].isConnected = true
+                participants[name].connectedAddress = message.connectedAddress ?? "WS failed to send connectedAddress??"
+                participants[name].on_reconnect?.()
+                this.on_participant_reconnect?.(participants[name])
+            } else {//here's the trouble: existing name but different ID:
+                this.handleNameAlreadyExists(name, nameID)
             }
+
         }
         if (!participants[name]) { //see if late joining is okay
-            this.addNewParticipant(name, "unknown")
-            console.log("A participant joined without a connect message!!!")
-            if (!this.allowPriorJoin) {
-                //throw "Joining in advance is not allowed" //bad idea
-                console.erroe("Joining in advance should NOT be allowed!")
-            }
-        }
-        if (message.connectedAddress) participants[name].connectedAddress = message.connectedAddress
+            //hell no. they can just reload
+            this.handleEarlyJoin(name, nameID)
+            return
 
+        }
 
         this.isLogging && console.log(name, compact) //log is approved
-
         const person = participants[name]
+        if (!person) {
+            console.error("participants[name] does not exist???")
+            return
+        }
         person.lastSpoke = Date.now()
 
         //safe receiving
@@ -473,6 +494,13 @@ class Listener {
         person.isConnected = false
         person.on_disconnect?.()
         this.on_participant_disconnect?.(person)
+    }
+    recoverFromWS(recoveryData) {
+        const p = this.participants[name]
+    }
+    recoverFromWSrequest(nameID) {
+        this.isLoggingRecovery && console.log(`R@${nameID}`)
+        this.chat.attemptToSendText(`R@${nameID}`) //no pipe, one at a time
     }
 
     getNamelist() {

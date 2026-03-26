@@ -185,149 +185,191 @@ server.on('clientError', (err, socket) => {
 
 /**@param {string} str  */
 function extractTargets(str) {
-    if (str[0] == "T") {//this is how I know there are targets!
-        const pipepos = str.indexOf("|")
-        if (str[1] !== "@" || pipepos == -1) {
-            myError("malformed targeting!", str)
-            return null
-        }
-        //always start with T@
-        const targets = str.slice(2, pipepos).split(";")
-        const msgJSONstr = str.slice(pipepos + 1)
-        return { targets, msgJSONstr }
+    if (str[0] != "T") {
+        myError("Invalid str to extractTargets", str)
+        return null
+    } //this is how I know there are targets!
+    const pipepos = str.indexOf("|")
+    if (str[1] !== "@" || pipepos == -1) {
+        myError("malformed targeting!", str)
+        return null
     }
-    myError("Invalid str to extractTargets", str)
-    return null
+    //always start with T@
+    const targets = str.slice(2, pipepos).split(";")
+    const msgJSONstr = str.slice(pipepos + 1)
+    return { targets, msgJSONstr }
+
+}
+function recoverFromWS(str) {
+    if (str[0] != "R" || str[1] != "@") {
+        myError("Invalid recovery request!")
+        return null
+    }
+    //uses clients which is not great but oaky I guess
+    try {
+        const nameID = str.slice(2)
+        if (!clients.has(nameID)) { console.log(colorize(`No recovery data for ${nameID}`, "yellow")) }
+        const c = clients.get(nameID)
+        return {
+            recoverFromWS: {
+                nameID: c._nameID,
+                connectedAddress: c._connectedAddress,
+            }
+        }
+    }
+    catch (err) { myError(err); return null; }
 }
 
 // WebSocket server
 const wss = new WebSocket.Server({ server });
 wss.on('error', (err) => myError('wss error', err))
 
+/**@type {Set<WebSocket>} */
 const listeners = new Set()
+/**@type {Map<string,CustomWebSocket>} */
 const clients = new Map()
 
-wss.on('connection', (ws, req) => {
-    try {
+wss.on('connection',
+    /**
+     * @typedef {WebSocket.WebSocket & {
+     *   _nameID: string,
+     *   _isListener: boolean,
+     *   _connectedAddress: string
+     * }} CustomWebSocket
+     */
+    /**
+     * @param {CustomWebSocket} ws 
+     * @param {http.IncomingMessage} req
+     */
+    (ws, req) => {
+        try {
 
-        const isListener = req.headers.host && //may fail for malformed request, but then GM announcement resets
-            (req.headers.host.startsWith("localhost:") || req.headers.host == "localhost");
-        ws._isListener = isListener;
+            const isListener = req.headers.host && //may fail for malformed request, but then GM announcement resets
+                (req.headers.host.startsWith("localhost:") || req.headers.host == "localhost");
+            ws._isListener = isListener;
 
-        if (isListener) {
-            listeners.add(ws);
-            console.log(colorize('●●● Listener connected', 'blue'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
-        } else {
-            console.log(colorize('● Client connected', 'green'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
-        }
+            if (isListener) {
+                listeners.add(ws); //so no need to add again below
+                console.log(colorize('● Listener connected', 'blue'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
+            } else {
+                console.log(colorize('● Client connected', 'green'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
+            }
 
-        ws.on('error', (err) => {
-            myError('ws error', err, req.socket.remoteAddress);
-        });
+            ws.on('error', (err) => {
+                myError('ws error', err, ws._connectedAddress ?? `${req.socket.remoteAddress}:${req.socket.remotePort}NOINITIALMESSAGE`);
+            });
 
 
-        function processMessage(str) {
-            try {
-                appendRecord(str);
-                if (ws._isListener) {
-                    // broadcast to all non-listener clients
-                    if (str[0] == "T") {
-                        const sep = extractTargets(str)
-                        if (!sep) { return; } //error logged by function already
-                        const { targets, msgJSONstr } = sep
-                        targets && targets.forEach(x => {
-                            if (!clients.has(x)) return //fail silently.
-                            const c = clients.get(x)
-                            try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msgJSONstr); }
-                            catch (e) { /* ignore */ }
+            function processMessage(str) {
+                try {
+                    appendRecord(str);
+                    if (ws._isListener) {
+                        // broadcast to all non-listener clients
+                        if (str[0] == "T") {
+                            const sep = extractTargets(str)
+                            if (!sep) { return; } //error logged by function already
+                            const { targets, msgJSONstr } = sep
+                            targets && targets.forEach(x => {
+                                if (!clients.has(x)) return //fail silently.
+                                const c = clients.get(x)
+                                try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msgJSONstr); }
+                                catch (e) { /* ignore */ }
 
-                        })
-                    } else {
-                        wss.clients.forEach(c => {
-                            try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(str); }
+                            })
+                        } else if (str[0] == "R") { //for recovery
+                            const recoveryData = recoverFromWS(str)
+
+                        } else {
+                            wss.clients.forEach(c => {
+                                try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(str); }
+                                catch (e) { /* ignore */ }
+                            });
+                        }
+                        // console.log('Broadcast:', str);
+                    } else {//not listener = client = they upload unconditionally
+                        listeners.forEach(l => {
+                            try { if (l.readyState === WebSocket.OPEN) l.send(str); }
                             catch (e) { /* ignore */ }
                         });
+                        // console.log('Client:', str);
                     }
-                    // console.log('Broadcast:', str);
-                } else {
-                    listeners.forEach(l => {
-                        try { if (l.readyState === WebSocket.OPEN) l.send(str); }
-                        catch (e) { /* ignore */ }
-                    });
-                    // console.log('Client:', str);
+                } catch (e) {
+                    myError('processMessage error', e);
                 }
-            } catch (e) {
-                myError('processMessage error', e);
             }
-        }
 
-        if (!ws._isListener) {//not listener by virtue of not having sent "GM" yet
-            const initialHandler = (data) => {
-                try {
-                    //data is always string
-                    let txt = (typeof data === 'string') ? data : data.toString();
-                    if (txt === `"GM"` || txt === 'GM') {//only GM sends GM
-                        ws._isListener = true;
-                        listeners.add(ws);
-                        console.log(colorize('● Confirmed listener connected', 'blue'),
-                            `${req.socket.remoteAddress}:${req.socket.remotePort}`)
-                        return;
-                    } else { //everyone else sends a JSON
-                        const obj = JSON.parse(txt)
-                        if (obj.nameID == null) { myError("no nameID in initial message", obj) }
-                        clients.set(obj.nameID, ws)
-                        ws._nameID = obj.nameID
-                        obj.connected =
-                            Date.now()
-                        obj.connectedAddress =
-                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`
-                        txt =
-                            JSON.stringify(obj)
-                        console.log(colorize('● Confirmed client connected', 'green'),
-                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`)
-                    }
-                    processMessage(txt);
-
-                    ws.on('message', (data) => {
-                        try {
-                            const msg = (typeof data === 'string') ? data : data.toString();
-                            processMessage(msg);
-                        } catch (err) { myError('message handler error', err); }
-                    });
-                } catch (err) {
-                    myError('initialHandler error', err);
-                }
-            };
-            ws.once('message', initialHandler); //track first message
-        } else { //already marked as listener
-            ws.on('message', (data) => {
-                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { myError('listener message handler error', err); }
-            });
-        }
-
-        ws.on('close', () => {
-            try {
-                if (ws._isListener) {
-                    listeners.delete(ws);
-                    console.log(colorize('●●● Listener disconnected', 'blue'), req.socket.remoteAddress);
-                } else {
-                    console.log(colorize('● Client disconnected', 'red'), req.socket.remoteAddress);
+            if (!ws._isListener) {//not listener by virtue of not having sent "GM" yet
+                const initialHandler = (data) => {
                     try {
-                        clients.delete(ws._nameID)
-                        processMessage(JSON.stringify({
-                            name: "WS",
-                            disconnectedAddress:
-                                `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`
-                        }));
-                    } catch (err) { myError("failed to close connection to client", err) }
-                }
-            } catch (err) { myError("failed to close connection", err) }
-        });
-    } catch (err) {
-        myError('connection handler error', err);
-        try { ws.close(); } catch (err) { myError("handler faield to close miserably", err) }
-    }
-});
+                        //data is always string
+                        let txt = (typeof data === 'string') ? data : data.toString();
+                        if (txt === `"GM"` || txt === 'GM') {//only GM sends GM
+                            ws._isListener = true;
+                            listeners.add(ws);
+                            console.log(colorize('● Confirmed listener connected', 'blue'),
+                                `${req.socket.remoteAddress}:${req.socket.remotePort}`)
+                            return;
+                        } else { //everyone else sends a JSON
+                            const obj = JSON.parse(txt)
+                            if (obj.nameID == null) { myError("no nameID in initial message", obj) }
+                            clients.set(obj.nameID, ws)
+                            ws._nameID = obj.nameID
+                            obj.connected = //SUPER IMPORTANT
+                                Date.now() //actually tells listener that this is a new connection
+                            ws._connectedAddress =
+                                `${req.socket.remoteAddress}:${req.socket.remotePort};${Date.now()};nameID:${ws._nameID}`
+                            obj.connectedAddress =
+                                ws._connectedAddress
+                            txt =
+                                JSON.stringify(obj)
+                            console.log(colorize('● Confirmed client connected', 'green'),
+                                ws._connectedAddress)
+                        }
+                        processMessage(txt);
+
+                        ws.on('message', (data) => {
+                            try {
+                                const msg = (typeof data === 'string') ? data : data.toString();
+                                processMessage(msg);
+                            } catch (err) { myError('message handler error', err); }
+                        });
+                    } catch (err) {
+                        myError('initialHandler error', err);
+                    }
+                };
+                ws.once('message', initialHandler); //track first message
+            } else { //already marked as listener
+                ws.on('message', (data) => {
+                    try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { myError('listener message handler error', err); }
+                });
+            }
+
+            ws.on('close', () => {
+                try {
+                    if (ws._isListener) {
+                        listeners.delete(ws);
+                        console.log(colorize('●●● Listener disconnected', 'blue'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
+                    } else {
+                        console.log(colorize('● Client disconnected', 'red'),
+                            ws._nameID ?? `${req.socket.remoteAddress}:${req.socket.remotePort}NOINITIALMESSAGE`);
+                        try {
+                            clients.delete(ws._nameID)
+                            processMessage(JSON.stringify({
+                                name: "WS", //needs no ID
+                                disconnectedAddress:
+                                    ws._connectedAddress ?? "Lost connection before first message.",
+                                disconnectedID:
+                                    ws._nameID
+                            }));
+                        } catch (err) { myError("failed to close connection to client", err) }
+                    }
+                } catch (err) { myError("failed to close connection", err) }
+            });
+        } catch (err) {
+            myError('connection handler error', err);
+            try { ws.close(); } catch (err) { myError("handler faield to close miserably", err) }
+        }
+    });
 
 
 server.listen(PORT, '0.0.0.0', () => {

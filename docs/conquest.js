@@ -52,8 +52,8 @@ var univ = {
 
 //#region Person
 class Person extends Participant {
-    constructor(name, nameID, connected) {
-        super(name, nameID, connected)
+    constructor(...args) {
+        super(...args)
         //initialized by Listener, actually.
         this.kingdom = null
     }
@@ -66,7 +66,7 @@ class Person extends Participant {
     initialize() {
         if (this.initialized) return //redundant but whatever
         this.initialized = true
-        console.log("joined:", this.name, this.nameID, this.connected)
+        console.log("joined:", this.name, this.nameID)
     }
     /**@returns {Person} */
     static to(nameOrPerson) {
@@ -669,7 +669,7 @@ class Game extends GameCore {
             const linesRanked = lines.map(row =>
                 [row[0], ...indicesRanked.map(i => row[i + 1])]
             )
-            const linesStr = MM.tableStr(linesRanked, null, 1)
+            const linesStr = MM.tableStr(linesRanked, null, 3)
             return first + "\n" + linesStr
 
         }
