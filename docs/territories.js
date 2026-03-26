@@ -395,7 +395,7 @@ class Conflict {
             // console.log("wrong attempt", who.name)
             if (person) {
                 chat.sendMessage({
-                    target: person.name,
+                    targetID: person.nameID,
                     popup: `Your answer of ${guessValue} is incorrect.`,
                     popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
                 })
@@ -430,7 +430,7 @@ class Conflict {
             const short = this.territory.nameShort
             this.attacker.members.forEach(x =>
                 chat.sendMessage({
-                    target: x.name,
+                    targetID: x.nameID,
                     popup: `You plundered ${short} for ${plundered} points.`,
                     popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
                 })
@@ -438,7 +438,7 @@ class Conflict {
             //notify defenders of loss
             this.defender.members.forEach(x =>
                 chat.sendMessage({
-                    target: x.name,
+                    targetID: x.nameID,
                     popup: `Your capital lost ${plundered} points\nbecause you failed to defend it.`,
                     popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
                 })
@@ -453,7 +453,7 @@ class Conflict {
         const short = this.territory.nameShort
         this.attacker.members.forEach(x =>
             chat.sendMessage({
-                target: x.name,
+                targetID: x.nameID,
                 popup: `You captured ${short}.`,
                 popupSettings: GRAPHICS.POPUP_ATTACK_SUCCESS
             })
@@ -461,7 +461,7 @@ class Conflict {
         //notify defenders of lost territory
         this.defender.members.forEach(x =>
             chat.sendMessage({
-                target: x.name,
+                targetID: x.nameID,
                 popup: `You lost ${short}.`,
                 popupSettings: GRAPHICS.POPUP_DEFEND_FAIL
             })
@@ -478,7 +478,7 @@ class Conflict {
         const short = this.territory.nameShort
         this.defender.members.forEach(x =>
             chat.sendMessage({
-                target: x.name,
+                targetID: x.nameID,
                 popup: `You defended ${short}.`,
                 popupSettings: GRAPHICS.POPUP_DEFEND_SUCCESS
             })
@@ -486,7 +486,7 @@ class Conflict {
         //notify attackers of failure
         this.attacker.members.forEach(x =>
             chat.sendMessage({
-                target: x.name,
+                targetID: x.nameID,
                 popup: `You could not ${this.territory.isCapital ? "plunder" : "capture"} ${short}.`,
                 popupSettings: GRAPHICS.POPUP_ATTACK_FAIL
             })

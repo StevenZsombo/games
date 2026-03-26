@@ -46,10 +46,8 @@ class Chat {
             return
         }
         const isHostedOnine = location.protocol === "https:"
-        let address = //whaaaaat
-            (isHostedOnine ? `wss://${location.hostname}/` : `ws://${location.host}/`)
-        //figure out what the heck should i do instead
-        if (isServer) address = `ws://localhost:${univ.PORT}/listener`
+        let address = isHostedOnine ? `wss://${location.hostname}/` : `ws://${location.host}/`
+        if (isServer) address = "ws://localhost:8000/listener"
         console.log("Adress:", address)
         try {
             this.socket = new WebSocket(address)
@@ -59,7 +57,7 @@ class Chat {
                 this.reconnections++
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
-                this.announceSelf() //only the server announces themselves.
+                this.announceSelf()
                 this.on_join?.()
                 this.on_join_once?.()
                 this.on_join_once = null
@@ -110,14 +108,12 @@ class Chat {
 
     announceSelf() {
         this.isServer && this.attemptToSendText(`"GM"`)
-        // this.sendMessage({ name: this.name, connected: MM.time(), nameID: this.nameID })
-        // will be extracted automatically from the first message sent.
+        this.sendMessage({ name: this.name, connected: MM.time(), nameID: this.nameID })
     }
 
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
         obj.name ??= this.name
-        obj.nameID ??= this.nameID
         const message = JSON.stringify(obj)
         this.attemptToSendText(message)
         return message
@@ -126,7 +122,7 @@ class Chat {
 
     sendSecure(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
-        if (this.isServer && obj.target == null && obj.targetID == null) {
+        if (this.isServer && obj.target === undefined) {
             console.error("The server cannot send untargeted secure messages.")
             return
         }
@@ -206,14 +202,13 @@ class Chat {
     checkIfReceivedAlready(message) {//safe receiving
         if (message.id) {
             const processedAlready = this.secureIDsToIgnore.has(message.id)
-            this.sendMessage({ echo: message.id, targetID: message.nameID, processedAlready: processedAlready }) //will echo anyways
+            this.sendMessage({ echo: message.id, target: message.name, processedAlready: processedAlready }) //will echo anyways
             if (processedAlready) { return true } //but won't process twice
             this.secureIDsToIgnore.add(message.id)
         }
         return false
     }
     //#region receiveMessage
-    /**@param {Object} message  */
     receiveMessage(message) {
         if (message.targetID && message.targetID !== this.nameID) { return } //ignore by targetID
         else if (message.target && message.target !== this.name) { return } //ignore by target (name)
@@ -282,7 +277,7 @@ class Chat {
 
 
 //#region Participant
-class Participant { // extend for Person
+class Participant { // for Listener to be used
     constructor(name, nameID, connected) {
         this.name = name
         this.nameID = nameID
@@ -311,43 +306,24 @@ class ChatServer extends Chat {
         super(ip, name, true)
         this.receiveMessage = null//set to nothing, won't be needed anyways
     }
-    sendMessage(obj) {
-        if (typeof obj === "string") { obj = { str: obj } }
-        const message = JSON.stringify(obj)
-        if (obj.target != null) {
-            console.error("target is depr", obj)
-        }
-        //target format is: T@nameID;nameID;nameID|{JSON.stringify(obj)}
-        //server will truncate from |
-        let prefix = ""
-        if (obj.targetID != null) { //target by name remains a legacy feature!
-            prefix = `T@${obj.targetID}|`
-        } else if (obj.targetIDlist != null) {
-            prefix = `T@${obj.targetIDlist.join(";")}|`
-        } else {
-            //default to send to all = no prefix
-        }
-        this.attemptToSendText(prefix + message)
-        return prefix + message
-    }
     sendCommand(code) {
         this.sendMessage({ eval: code })
     }
-    /**@param {String} targetID  */
-    orderResetName(targetID) {
+    /**@param {String} target  */
+    orderResetName(target) {
         const obj = {}
         obj[Listener.SERVER.SERVERnameOrderedToReset] = true
-        obj.targetID = targetID
+        obj.target = target
         this.sendMessage(obj, true)
     }
     //**param {String} target */
-    orderReload(targetID) {
-        this.sendMessage({ targetID: targetID, reload: true }, true)
+    orderReload(target) {
+        this.sendMessage({ target: target, reload: true }, true)
     }
-    orderForceName(targetID, forcedName) {
+    orderForceName(target, forcedName) {
         const obj = {}
         obj[Listener.SERVER.SERVERnameForceName] = forcedName
-        obj.targetID = targetID
+        obj.target = target
         this.sendMessage(obj)
     }
     orderAttendance() {

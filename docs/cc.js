@@ -1,5 +1,6 @@
 var univ = {
     isOnline: true,
+    PORT: 80,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
@@ -11,7 +12,15 @@ var univ = {
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     //BROKEN
     filesList: "", //space-separated
-    on_each_start: null,
+    on_each_start: () => {
+        /*
+        //monkey
+        const omg = chat.receiveMessage
+        chat.receiveMessage = function (...args) {
+            console.log(...args)
+            omg.call(chat, ...args)
+        }*/
+    },
     on_first_run: () => {
         window.onerror = (message, source, lineno, colno, error) => {
             chat.sendMessage({ yell: error?.stack || `${message} at ${source}:${lineno}` })
@@ -608,8 +617,12 @@ class Game extends GameCore {
 
     enter() {
         window.wProgress?.("game.enter()")
-        const obj = chat.sendSecure({ kingdom: myKingdomID })
-        window.wProgress?.(`\nsendSecure(${obj.id})\n`)
+        const enterAction = () => {
+            const obj = chat.sendSecure({ kingdom: myKingdomID })
+            window.wProgress?.(`\nsendSecure(${obj.id})\n`)
+        }
+        if (chat.isConnected) enterAction
+        else { chat.on_join_once = enterAction }
     }
 
     _showingMap = false
@@ -642,12 +655,17 @@ class Game extends GameCore {
     }
 
     repositionCanvas() {
-        const w = new Rect(0, 0, window.innerWidth, window.innerHeight).deflate(40, 40)
-        const canvas = this.canvas
-        const c = new Rect(0, 0, this.rect.width, this.rect.height)
-        c.scaleWithinAnother(w)
-        canvas.style.width = c.width + "px"
-        canvas.style.height = c.height + "px"
+        const viewport = (() => {
+            return window.visualViewport ? //old ass browsers may not have this
+                { width: window.visualViewport.width, height: window.visualViewport.height }
+                : { width: window.innerWidth, height: window.innerHeight }
+        })()
+        const w = new Rect(0, 0, viewport.width, viewport.height).deflate(40, 40);
+        const canvas = this.canvas;
+        const c = new Rect(0, 0, this.rect.width, this.rect.height);
+        c.scaleWithinAnother(w);
+        canvas.style.width = c.width + "px";
+        canvas.style.height = c.height + "px";
     }
 
     debugMode() {

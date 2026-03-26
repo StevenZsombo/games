@@ -1,5 +1,6 @@
 var univ = {
     isOnline: false,
+    PORT: 80,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
@@ -69,7 +70,9 @@ class Person extends Participant {
     }
     /**@returns {Person} */
     static to(nameOrPerson) {
-        return typeof nameOrPerson === "string" ? participants[nameOrPerson] : nameOrPerson
+        return typeof nameOrPerson === "string" ? (
+            participants[nameOrPerson] || participants.find(x => x.nameID == nameOrPerson)
+        ) : nameOrPerson
     }
     static check(person) {
         person = Person.to(person)
@@ -88,7 +91,7 @@ class Person extends Participant {
     verifyKingdomAssignedAlready() { //rejects connection if no kingdom, but contributing action
         if (this.kingdom == null) {
             chat.sendMessage({
-                target: this.name,
+                targetID: this.nameID,
                 popup: `ERROR: Server rejected connection.\nIf this happens a lot, then\nask the teacher for help`,
                 popupSettings: GRAPHICS.POPUP_ERROR
             })
@@ -124,7 +127,7 @@ const ASK = (person, question) => {
     if (!personObj) return
     personObj.on_prompt_response_once =
         (txt) => { GameEffects.popup(`${personObj.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen) }
-    chat.sendMessage({ target: personObj.name, prompt: question })
+    chat.sendMessage({ targetID: personObj.nameID, prompt: question })
 
 }
 const REQUEST = (person, command) => {
@@ -135,7 +138,7 @@ const REQUEST = (person, command) => {
             console.log(`${personObj.name} requestResponse:\n${txt}`)
             GameEffects.popup(`${personObj.name}: ${txt}`, GameEffects.popupPRESETS.leftGreen)
         }
-    chat.sendMessage({ target: personObj.name, request: command })
+    chat.sendMessage({ targetID: personObj.nameID, request: command })
 
 }
 const RELOAD = () => dev.orderReload()
@@ -302,16 +305,16 @@ listener.on_message = (obj, person) => {
             "kingdomsFullData",
             "territoriesFullData",
             "rankingData", "valuesData", "ownershipData", "conflictsData"
-        ], person.name)
+        ], person.nameID)
 
     }
 
 
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (obj.inquire === "bunch")
-            SHAREbunch(person.name)
-        else if (!SHARE(obj.inquire, person.name))
-            console.error("Invalid inquire made by", person.name, obj)
+            SHAREbunch(person.nameID)
+        else if (!SHARE(obj.inquire, person.nameID))
+            console.error("Invalid inquire made by", person.name, person.nameID, obj)
     }
 
     if (obj.yell !== undefined) {
@@ -325,8 +328,8 @@ listener.on_message = (obj, person) => {
     if (obj.accept !== undefined) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
         if (!person.verifyKingdomAssignedAlready()) return
         const c = game.conflicts.find(x => x.id === obj.accept)
-        if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.name)
-        else SHARE("conflictsData", person.name)
+        if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.nameID)
+        else SHARE("conflictsData", person.nameID)
     }
     if (obj.attempt !== undefined) {
         if (!person.verifyKingdomAssignedAlready()) return
@@ -367,12 +370,12 @@ const throttleCheckNotTooRecent = (key) => {
     return true
 }
 
-const SHARE = (key, target) => {
-    if (target == null) {
+const SHARE = (key, targetID) => {
+    if (targetID == null) {
         if (!throttleCheckNotTooRecent(key)) return
     }
     const msg = { shared: key }
-    if (target != null) msg.target = target
+    if (targetID != null) msg.targetID = targetID
     if (shared[key] !== undefined) {
         msg.value = shared[key]
         chat.sendMessage(msg)
@@ -395,21 +398,21 @@ const HARDREFRESH = () => {
 
     spop("Hard refresh.")
 }
-const SHAREbunch = (target) => {
-    if (target == null && !throttleCheckNotTooRecent("bunch")) return
+const SHAREbunch = (targetID) => {
+    if (targetID == null && !throttleCheckNotTooRecent("bunch")) return
     const list = ["rankingData", "valuesData", "ownershipData", "conflictsData"]
 
     const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
-    if (target != null) msg.target = target
+    if (targetID != null) msg.targetID = targetID
     chat.sendMessage(msg)
 }
-const SHAREmany = (list, target, moreToManyArr) => {
-    if (target == null && !throttleCheckNotTooRecent(list.join(";"))) return
+const SHAREmany = (list, targetID, moreToManyArr) => {
+    if (targetID == null && !throttleCheckNotTooRecent(list.join(";"))) return
     const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
     if (moreToManyArr) {
         msg.many.push(...moreToManyArr)
     }
-    if (target != null) msg.target = target
+    if (targetID != null) msg.targetID = targetID
     chat.sendMessage(msg)
 
 }
@@ -551,7 +554,7 @@ class Game extends GameCore {
         orderResetKingdomButton.on_release = () => {
             if (!Object.keys(participants).length) return
             GameEffects.dropDownMenu(
-                Object.values(participants).map(x => [x.name, () => hq.orderResetKingdom(x.name)]),
+                Object.values(participants).map(x => [x.name, () => hq.orderResetKingdom(x.nameID)]),
                 null, null, null, { height: 35, fontSize: 24, width: 300 }, [this.overlay]
             ) //adds to game automatically
         }
@@ -1008,7 +1011,7 @@ class Game extends GameCore {
     beginAttack(who, territory, person) {
         if (!this.attacksAllowed) {
             person && chat.sendMessage({
-                target: person.name,
+                targetID: person.nameID,
                 popup: "Contest did not start yet - cannot attack.",
                 popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
             })
@@ -1018,7 +1021,7 @@ class Game extends GameCore {
         if (!Conflict.checkValidity(who, territory)) {
             // console.log("invalid conflict request", who, territory)
             chat.sendMessage({
-                target: person.name,
+                targetID: person.nameID,
                 popup: `Cannot attack ${territory.nameShort}.`,
                 popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
             })
@@ -1026,7 +1029,7 @@ class Game extends GameCore {
         }
         if (this.conflicts.filter(x => x.attacker === who).length >= RULES.MAX_ATTACKS_ALLOWED) {
             chat.sendMessage({
-                target: person.name,
+                targetID: person.nameID,
                 popup:
                     `Your kingdom is already attacking ${RULES.MAX_ATTACKS_ALLOWED} territories,`
                     + `\nso you cannot attack ${territory.nameShort}.`,
@@ -1039,7 +1042,7 @@ class Game extends GameCore {
         //conflict succesfully created
         if (person)
             chat.sendMessage({
-                target: person.name,
+                targetID: person.nameID,
                 popup:
                     `You launch an attack on ${territory.nameShort}.`
                     + `\n They have ${RULES.TIMEOUT_ON_ATTACK_TEXT} to respond.`,
@@ -1047,7 +1050,7 @@ class Game extends GameCore {
             })
         c.defender.members.values().forEach(opponent => {
             chat.sendMessage({
-                target: opponent.name,
+                targetID: opponent.nameID,
                 popup:
                     `${territory.nameShort} has been attacked by ${c.attacker.name}!`
                     + `\n You have ${RULES.TIMEOUT_ON_ATTACK_TEXT} to respond.`,
@@ -1401,7 +1404,7 @@ const dev = {
     },
     orderReload: (tgt) => {
         const msg = { orderReload: 1 }
-        if (tgt) msg.target = Person.to(tgt).name
+        if (tgt) msg.targetID = Person.to(tgt).nameID
         chat.sendMessage(msg)
         spop("Ordered reload.")
     },
@@ -1506,12 +1509,12 @@ const hq = {
     orderResetKingdom: (name) => {
         if (!name) { console.log("use dev.resetAllKingdom instead"); return; }
         game.kingdoms.forEach(x => x.members.delete(Person.to(name)))
-        chat.sendMessage({ orderResetKingdom: true, target: Person.to(name).name })
+        chat.sendMessage({ orderResetKingdom: true, targetID: Person.to(name).nameID })
     },
     resetNames: () => COMM(`chat.resetName("Your name has been reset by the server:")`),
     cheat: (nameOrPerson) => {
         chat.sendMessage({
-            target: Person.check(nameOrPerson).name,
+            targetID: Person.check(nameOrPerson).nameID,
             popup: game.conflicts
                 .filter(x => x.involves(Person.check(nameOrPerson).kingdom))
                 .filter(x => x.solving)

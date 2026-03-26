@@ -11,6 +11,6 @@
         "node_modules",
         "./sketch*.js",
         "./zs/sketch*.js",
-        "server.js",
+        "server*.js",
     ]
 }
