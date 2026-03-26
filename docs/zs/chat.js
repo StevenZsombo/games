@@ -445,13 +445,11 @@ class Listener {
             } else {//here's the trouble: existing name but different ID:
                 this.handleNameAlreadyExists(name, nameID)
             }
-
         }
         if (!participants[name]) { //see if late joining is okay
             //hell no. they can just reload
             this.handleEarlyJoin(name, nameID)
             return
-
         }
 
         this.isLogging && console.log(name, compact) //log is approved
