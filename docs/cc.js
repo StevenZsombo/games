@@ -35,8 +35,9 @@ var univ = {
     },
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
-        if (location.hash.includes("q")) RULES.MAPSTER_IMAGE_QUALITY = 2
-        if (location.hash.includes("qq")) RULES.MAPSTER_IMAGE_QUALITY = 1
+        if (location.hash.includes("l")) RULES.MAPSTER_IMAGE_QUALITY = 4
+        if (location.hash.includes("m")) RULES.MAPSTER_IMAGE_QUALITY = 2
+        if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY = 1
         if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
         fetch(RULES.MAPFILE)
             .then(x => {

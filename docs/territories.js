@@ -40,7 +40,7 @@ var RULES = ({
     PICTURE_EXTENSION: ".png",
     SHOW_QUESTION_ID: true,
     QUESTION_PATH: "conquest/questions/",
-    MAPSTER_IMAGE_QUALITY: 4,
+    MAPSTER_IMAGE_QUALITY: 2,
 
 
     //Blake

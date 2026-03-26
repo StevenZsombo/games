@@ -1,22 +1,54 @@
-/*
-Minimal static + WebSocket server
-Serves any file without restricting Content-Type headers.
-*/
+const COLORS = {
+    red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m',
+    blue: '\x1b[34m', magenta: '\x1b[35m', cyan: '\x1b[36m',
+    white: '\x1b[37m', reset: '\x1b[0m'
+};
+const colorize = (text, color) => {
+
+    return (COLORS[color] || '') + text + COLORS.reset;
+};
+const myError = (...args) => { console.log(colorize(args.join(" "), "magenta")); }
+
+
+const origExit = process.exit; //safekeeping
+process.exit = (code) => {
+    console.log(colorize(`Attempted to exit with code: ${code} but terminal stays open.`, "red"));
+};
 
 process.on('uncaughtException', (err) => {
-    console.error('\n=========================================');
-    console.error('ERROR:', err.message);
-    console.error(err.stack);
-    console.error('=========================================\n');
+    myError('\n=========================================');
+    myError('ERROR:', err.message);
+    myError(err.stack);
+    myError('=========================================\n');
     // Keep process alive indefinitely
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('\n=========================================');
-    console.error('UNHANDLED REJECTION:', reason);
-    console.error('=========================================\n');
+    myError('\n=========================================');
+    myError('UNHANDLED REJECTION:', reason);
+    myError('=========================================\n');
     // Keep process alive indefinitely
 });
+
+process.on('SIGINT', () => {
+    const sto = setTimeout(() => process.exit(1), 1000);
+    wss.close(() => {
+        server.close(() => {
+            writeStream?.end(() => { clearTimeout(sto); process.exit(0) });
+        });
+    });
+});
+
+process.on('SIGTERM', () => {
+    const sto = setTimeout(() => process.exit(1), 1000);
+    wss.close(() => {
+        server.close(() => {
+            writeStream?.end(() => { clearTimeout(sto); process.exit(0) });
+        });
+    });
+});
+
+
 
 const WebSocket = require('ws');
 const http = require('http');
@@ -49,14 +81,7 @@ const mimeTypes = {
     // Add more as needed
 };
 
-const colorize = (text, color) => {
-    const COLORS = {
-        red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m',
-        blue: '\x1b[34m', magenta: '\x1b[35m', cyan: '\x1b[36m',
-        white: '\x1b[37m', reset: '\x1b[0m'
-    };
-    return (COLORS[color] || '') + text + COLORS.reset;
-};
+
 
 // Helpers
 function safeResolve(...parts) {
@@ -73,18 +98,25 @@ function isLocalHostHeader(host) {
 
 // Logging file
 const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' });
-writeStream.on('error', (err) => console.error('writeStream error', err));
+writeStream.on('error', (err) => myError('writeStream error', err));
 function appendRecord(line) {
     try {
         if (!writeStream.destroyed) writeStream.write(String(line) + '\n');
     } catch (e) {
-        console.error('appendRecord error', e);
+        myError('appendRecord error', e);
     }
 }
 appendRecord(`Server started on ${new Date().toISOString()}`);
 
 // HTTP server
 const server = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
     try {
         const raw = req.url || '/';
         const urlPath = raw === '/' ? '/' + DEFAULT_PAGE_TO_SERVE : raw;
@@ -123,7 +155,7 @@ const server = http.createServer((req, res) => {
             res.end(data);
         });
     } catch (err) {
-        console.error('http handler error', err);
+        myError('http handler error', err);
         try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { /* ignore */ }
     }
 });
@@ -148,9 +180,29 @@ server.on('clientError', (err, socket) => {
 
 
 
+
+
+
+/**@param {string} str  */
+function extractTargets(str) {
+    if (str[0] == "T") {//this is how I know there are targets!
+        const pipepos = str.indexOf("|")
+        if (str[1] !== "@" || pipepos == -1) {
+            myError("malformed targeting!", str)
+            return null
+        }
+        //always start with T@
+        const targets = str.slice(2, pipepos).split(";")
+        const msgJSONstr = str.slice(pipepos + 1)
+        return { targets, msgJSONstr }
+    }
+    myError("Invalid str to extractTargets", str)
+    return null
+}
+
 // WebSocket server
 const wss = new WebSocket.Server({ server });
-wss.on('error', (err) => console.error('wss error', err))
+wss.on('error', (err) => myError('wss error', err))
 
 const listeners = new Set()
 const clients = new Map()
@@ -164,29 +216,15 @@ wss.on('connection', (ws, req) => {
 
         if (isListener) {
             listeners.add(ws);
-            console.log(colorize('● Listener connected', 'blue'), req.socket.remoteAddress);
+            console.log(colorize('●●● Listener connected', 'blue'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
         } else {
-            console.log(colorize('● Client connected', 'green'), req.socket.remoteAddress);
+            console.log(colorize('● Client connected', 'green'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
         }
 
         ws.on('error', (err) => {
-            console.error('ws error', err, req.socket.remoteAddress);
+            myError('ws error', err, req.socket.remoteAddress);
         });
-        /**@param {string} str  */
-        function extractTargets(str) {
-            if (str[0] == "T") {//this is how I know there are targets!
-                const pipepos = str.indexOf("|")
-                if (str[1] !== "@" || pipepos == -1) {
-                    console.error("malformed targeting!", str)
-                }
-                //always start with T@
-                const targets = str.slice(2, pipepos).split(";")
-                const msgJSONstr = str.slice(pipepos + 1)
-                return { targets, msgJSONstr }
-            }
-            console.error("Invalid call to extractTargets", this)
 
-        }
 
         function processMessage(str) {
             try {
@@ -194,8 +232,10 @@ wss.on('connection', (ws, req) => {
                 if (ws._isListener) {
                     // broadcast to all non-listener clients
                     if (str[0] == "T") {
-                        const { targets, msgJSONstr } = extractTargets(str)
-                        targets.forEach(x => {
+                        const sep = extractTargets(str)
+                        if (!sep) { return; } //error logged by function already
+                        const { targets, msgJSONstr } = sep
+                        targets && targets.forEach(x => {
                             if (!clients.has(x)) return //fail silently.
                             const c = clients.get(x)
                             try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msgJSONstr); }
@@ -217,7 +257,7 @@ wss.on('connection', (ws, req) => {
                     // console.log('Client:', str);
                 }
             } catch (e) {
-                console.error('processMessage error', e);
+                myError('processMessage error', e);
             }
         }
 
@@ -233,30 +273,35 @@ wss.on('connection', (ws, req) => {
                             `${req.socket.remoteAddress}:${req.socket.remotePort}`)
                         return;
                     } else { //everyone else sends a JSON
-                        obj = JSON.parse(txt)
-                        if (obj.nameID == null) { console.error("no nameID in initial message", obj) }
+                        const obj = JSON.parse(txt)
+                        if (obj.nameID == null) { myError("no nameID in initial message", obj) }
                         clients.set(obj.nameID, ws)
+                        ws._nameID = obj.nameID
                         obj.connected =
                             Date.now()
                         obj.connectedAddress =
-                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${obj.nameID}`
+                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`
                         txt =
                             JSON.stringify(obj)
                         console.log(colorize('● Confirmed client connected', 'green'),
-                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${obj.nameID}`)
+                            `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`)
                     }
                     processMessage(txt);
+
+                    ws.on('message', (data) => {
+                        try {
+                            const msg = (typeof data === 'string') ? data : data.toString();
+                            processMessage(msg);
+                        } catch (err) { myError('message handler error', err); }
+                    });
                 } catch (err) {
-                    console.error('initialHandler error', err);
+                    myError('initialHandler error', err);
                 }
             };
-            ws.once('message', initialHandler);
+            ws.once('message', initialHandler); //track first message
+        } else { //already marked as listener
             ws.on('message', (data) => {
-                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('message handler error', err); }
-            });
-        } else {
-            ws.on('message', (data) => {
-                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { console.error('listener message handler error', err); }
+                try { const msg = (typeof data === 'string') ? data : data.toString(); processMessage(msg); } catch (err) { myError('listener message handler error', err); }
             });
         }
 
@@ -268,18 +313,19 @@ wss.on('connection', (ws, req) => {
                 } else {
                     console.log(colorize('● Client disconnected', 'red'), req.socket.remoteAddress);
                     try {
+                        clients.delete(ws._nameID)
                         processMessage(JSON.stringify({
                             name: "WS",
                             disconnectedAddress:
-                                `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${obj.nameID}`
+                                `${req.socket.remoteAddress}:${req.socket.remotePort};nameID:${ws._nameID}`
                         }));
-                    } catch (_) { /* ignore */ }
+                    } catch (err) { myError("failed to close connection to client", err) }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (err) { myError("failed to close connection", err) }
         });
     } catch (err) {
-        console.error('connection handler error', err);
-        try { ws.close(); } catch (e) { /* ignore */ }
+        myError('connection handler error', err);
+        try { ws.close(); } catch (err) { myError("handler faield to close miserably", err) }
     }
 });
 
