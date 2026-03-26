@@ -1906,7 +1906,7 @@ class GameEffects {
             ...moreButtonSettings,
             txt: x,
             tag: "dropDown",
-            on_release: () => (result.close(), on_clickList?.[i]?.()),
+            on_release: () => (on_clickList?.[i]?.(), result.close()),
             isBlocking: true,
         }))
         if (addCloseButton) {
