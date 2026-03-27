@@ -376,5 +376,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     const nets = os.networkInterfaces();
     Object.values(nets).flat().filter(i => i && i.family === 'IPv4' && !i.internal)
-        .forEach(i => console.log(colorize(`Join on: http://${i.address}:${PORT}/`, 'yellow')));
+        .forEach(i => console.log(colorize(`Join on: http://${i.address}${PORT == 80 ? "" : ":" + PORT + "/"}`, 'yellow')));
 });

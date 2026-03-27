@@ -1,22 +1,36 @@
 Download and install:
--Mozilla Firefox
--Notepadpp (Notepad++). Once downloaded, Plugins -> Plugins admin -> Search JSON viewer -> Install
--Node.js
-
-Create two empty folders somewhere easy to find called:
-clipped
-games
+1. Firefox or Opera, whichever you do not already use. 
+   This will be a fallback for debugging if something goes haywire.
+2. Notepadpp (Notepad++). Once downloaded, go to
+   Plugins -> Plugins admin -> Search for JSTool -> Install it
+3. Create an empty folder called "games" somewhere easy to find.
 
 
-**skip this for now** 1. Then in cmd/terminal navigate to your newly created games folder
-**skip this for now** 2. Then run "npm install ws" (without the quotes) in that folder
-
-We will share the game files on USB at first. May integrate github later (it's finnicky)
 
 
+
+
+
+
+
+
+ignore everything below
+************************************************************************************************
+
+Known issues (for later reference)
 
 Windows:
 admin privileges must be granted to node to be stable
 iis might be using port 80. Kill it with:
 iisreset /stop
 OR: net stop was /y OR: net stop w3svc /y
+otherwise: netstat -ano | findstr :80 and kill whatever's causing trouble
+
+Mac:
+sudo lsof -i :80
+If it's httpd / Apache:
+sudo apachectl stop
+(full prevent) sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist
+sudo kill <PID>
+sudo kill -9 <PID>
+
