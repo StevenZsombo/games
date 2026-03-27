@@ -48,7 +48,7 @@ class Chat {
         }
         const address = isServer
             ? `ws://localhost${location.port ? `:${location.port}` : ''}/listener`
-            : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/`
+            : `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/` //default to unsecure
         //figure out what the heck should i do instead
         console.log("Adress:", address)
         try {

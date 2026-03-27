@@ -24,6 +24,7 @@ npm install electron --save-dev
 ### Step 4: Create `main.js`
 ```javascript
 const { app, BrowserWindow } = require('electron');
+const path = require('path');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -34,8 +35,10 @@ function createWindow() {
             contextIsolation: true
         }
     });
+    //BrowserWindow has resizable: true and fullscreenable: true by default
     // Menu.setApplicationMenu(null) //remove menus entirely
     win.loadFile('index.html');
+    win.loadFile(path.join('src', 'index.html'));
     win.webContents.openDevTools(); // Uncomment for DevTools
     //  win.webContents.on('devtools-opened', () => { win.webContents.closeDevTools(); }); //to clumsily disable devtools
     // webPreferences: { devTools: false  //This completely disables DevTools  } //add above to completely disable
