@@ -1,0 +1,109 @@
+## Minimal Electron Setup for Existing Browser App
+
+### Step 1: Create Project Folder
+```bash
+mkdir my-app
+cd my-app
+```
+
+### Step 2: Copy Your Files
+```
+my-app/
+├── index.html      # Your main HTML
+├── script.js       # Your JS scripts (or folder)
+├── style.css       # Your CSS
+└── ...             # Any other assets
+```
+
+### Step 3: Initialize & Install
+```bash
+npm init -y
+npm install electron --save-dev
+```
+
+### Step 4: Create `main.js`
+```javascript
+const { app, BrowserWindow } = require('electron');
+
+function createWindow() {
+    const win = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
+    // Menu.setApplicationMenu(null) //remove menus entirely
+    win.loadFile('index.html');
+    win.webContents.openDevTools(); // Uncomment for DevTools
+    //  win.webContents.on('devtools-opened', () => { win.webContents.closeDevTools(); }); //to clumsily disable devtools
+    // webPreferences: { devTools: false  //This completely disables DevTools  } //add above to completely disable
+}
+
+app.whenReady().then(createWindow);
+```
+
+### Step 5: Update `package.json`
+```json
+{
+    "name": "my-app",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "electron ."
+    },
+    "devDependencies": {
+        "electron": "^28.0.0"
+    }
+}
+```
+
+### Step 6: Run
+```bash
+npm start
+```
+
+---
+
+## Optional: Package for Distribution
+
+```bash
+npm install electron-builder --save-dev
+```
+
+Add to `package.json`:
+```json
+{
+    "scripts": {
+        "start": "electron .",
+        "dist": "electron-builder"
+    },
+    "build": {
+        "appId": "com.your.app",
+        "productName": "MyApp",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "**/*",
+            "!node_modules/.cache"
+        ]
+    }
+}
+```
+
+Build:
+```bash
+npm run dist
+```
+
+---
+
+## That's It!
+
+| Command | Purpose |
+|---------|---------|
+| `npm start` | Run your app |
+| `npm run dist` | Create .exe/.dmg/.AppImage |
+
+Your existing HTML/JS/CSS works exactly as in a browser, but now runs as a desktop app with no background throttling.
