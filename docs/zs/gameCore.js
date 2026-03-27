@@ -112,6 +112,7 @@ class GameCore {
         this.dtUpperLimit = univ.dtUpperLimit
         this.animator = new Animator()
         this.cropper = new Cropper()
+        this.clockTotal = 0
 
         this.extras_on_update = []
         this.extras_on_draw = []
@@ -196,6 +197,7 @@ class GameCore {
 
     update(dt) {
         //update
+        this.clockTotal += dt
         const now = Date.now()
         this.keyboarder.update(dt, now)
         this.update_drawables(dt)

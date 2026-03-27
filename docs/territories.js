@@ -80,6 +80,7 @@ var GRAPHICS = ({
     POPUP_DEFENSE_WARNING: "bigRed",
     POPUP_PATIENCE: "smallPink",
     POPUP_START_DEFENSE: "bigBlue",
+    POPUP_BATTLE_START: "bigBlue",
     POPUP_ERROR: "sideError",
     TERRITORY_SIZE_BASE_WIDTH: 100,//140,
     TERRITORY_SIZE_BASE_HEIGHT: 60,//80,
@@ -308,6 +309,8 @@ class Conflict {
         game.conflictsHistoryCount += 1
         this.id = game.conflictsHistoryCount
 
+        this.assignQuestion() //immediately after creation so it would be cached!
+
         Conflict.record.push({ id: this.id, from: this.attacker.id, to: this.defender.id, where: this.territory.name, when: MM.time() })
         return this
     }
@@ -360,12 +363,7 @@ class Conflict {
         //if fully exhausted, return null. conflict.accept will resolve the conflict and send a message
         return null
     }
-
-    /**@returns {Boolean} was accepting succesful? */
-    accept() {
-        if (this.solving) return false //can only accept once. then it is free game
-        this.justDeclared = false
-        this.solving = true
+    assignQuestion() {
         const qSel = this.pickQuestion()
         if (qSel === null) { //no question could be selected whatsover
             console.error("out of questions!!!!")
@@ -376,12 +374,25 @@ class Conflict {
             this.resolve()
             return
         }
-
         /**@type {Question} */
         this.question = qSel
         this.attacker.seenQuestions.add(this.question)
         this.defender.seenQuestions.add(this.question)
+    }
+
+    /**@returns {Boolean} was accepting succesful? */
+    accept() {
+        if (this.solving) return false //can only accept once. then it is free game
+        this.justDeclared = false
+        this.solving = true
+
         this.timeLeft = RULES.TIMEOUT_ON_DEFENSE
+        chat.sendMessage({
+            targetIDlist:
+                [...this.attacker.members, ...this.defender.members].map(x => x.nameID),
+            popup: `The battle for ${this.territory.nameShort} begins!`,
+            popupSettings: GRAPHICS.POPUP_BATTLE_START
+        })
         SHARE("conflictsData")
         return true
     }

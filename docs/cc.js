@@ -114,8 +114,6 @@ var myKingdomObject
 /**@type {Set<number>} */
 let waitingQuestionsTrigger = new Set() //by conflictID
 
-
-
 class Game extends GameCore {
     //#region more
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,9 +319,9 @@ class Game extends GameCore {
                             //new pane created when necessary
                             if (!panes.has(x.id)) { //by conflict id
                                 panes.set(x.id, new QPane(x.qID, x.id))
-                                if (waitingQuestionsTrigger.has(x.id)) {
+                                if (!x.justDeclared && waitingQuestionsTrigger.has(x.id)) {
                                     waitingQuestionsTrigger.delete(x.id)
-                                    setFocus(x.id)
+                                    setFocus(x.id) // no focus allowed un
                                 }
                             }
                         }
@@ -386,6 +384,7 @@ class Game extends GameCore {
 
 
             top.color = "gray"
+            top.rightstretchat(middle.right)
             const ranking = Array(kingdoms.length + 1).fill().map(() => new Button({
                 height: 50,
                 outline: 1,
@@ -461,13 +460,7 @@ class Game extends GameCore {
                 this.animator.add_anim(Anim.delay(500, { on_end: () => attackButton.deactivate() }))
             }
 
-            const mapArea = new Button()
-            mapArea.leftat(left.right)
-            mapArea.topat(top.bottom)
-            mapArea.bottomstretchat(bot.top)
-            mapArea.rightstretchat(right.left)
-            this.mapArea = mapArea
-            QPane.bgDefault = mapArea.copy
+            QPane.bgDefault = middle.copy
             QPane.bgDefault.height -= 100
             const answerArea = QPane.bgDefault.copy
             answerArea.height = 100
@@ -750,7 +743,6 @@ class Game extends GameCore {
 
 
 
-
     }
 
     //#endregion
@@ -800,7 +792,7 @@ const dev = {
 
 }/// end of dev
 
-//#region 
+//#region Snippet
 class Snippet {
     static bgDefault = new Button()
     /**@param {Button} bg  */
@@ -827,9 +819,12 @@ class Snippet {
             // rows[2].color = color
         }
         rows[3].dynamicText = () => MM.toMMSS(this.confD.timeLeft)
+        bg.color = color
         rows.forEach(x => {
             x.outline = 0
-            x.color = color
+            // x.color = color
+            x.color = "red"
+            x.transparent = true
             x.fontSize = GRAPHICS.SNIPPET_FONTSIZE
         })
         this.recenter()
@@ -841,7 +836,7 @@ class Snippet {
         game.add_drawable(bg, 4)
         bg.isBlocking = true
         bg.on_click = () => {
-            if (confD.question == -1) {
+            if (confD.justDeclared) { //no focusing allowed before solving=true!!!
                 if (confD.fromKD === myKingdomID) //attacking
                     GameEffects.popup("Wait for the opponent to respond.", {}, GRAPHICS.POPUP_PATIENCE)
                 else { //trying to defend
@@ -851,9 +846,38 @@ class Snippet {
             } else setFocus(confD.id)
 
         }
+
+        const fg = bg.copy
+        fg.color = "white"
+        fg.opacity = 0.7
+        fg.transparent = true
+        fg.outline = 0
+        fg.visible = false
+        fg.bottomstretchat(rows[2].bottom)
+        if (this.confD.fromKD === myKingdomID) fg.visible = true
+        this.fg = fg
+
+        fg.draw_more =
+            /**@param {RenderingContext} screen*/
+            (screen) => {
+                if (!fg.visible) return
+                screen.beginPath()
+                screen.strokeStyle = "gray"//myColor
+                screen.lineWidth = 20
+                screen.arc(fg.centerX, fg.centerY, 40, game.clockTotal / 800, game.clockTotal / 800 + 5)
+                screen.stroke()
+                screen.closePath()
+            }
+
+        game.add_drawable(fg, 6)
+
+
+        rows.concat(fg).forEach(x => x.check = null)
+        this.update(0)
     }
     recenter() {
         Rect.packCol(this.rows, this.bg, 0, "c", true)
+        this.fg?.topleftatV(this.bg.topleft)
     }
     static rearrange() {
         const gapSizeIfPossible = 20
@@ -866,8 +890,7 @@ class Snippet {
     }
 
     destroy() {
-        game.remove_drawables_batch(this.rows)
-        game.remove_drawable(this.bg)
+        game.remove_drawables_batch(this.rows.concat(this.bg, this.fg))
         if (focusCurrent == this.id) { setFocus("map") }
         const index = snippets.findIndex(x => x === this)
         if (index != -1) snippets.splice(index, 1)
@@ -885,8 +908,13 @@ class Snippet {
         }
         if (this.confD.justDeclared && this.confD.toKD === myKingdomID) //blink red if it is a threat!
             game.animator.add_anim(
-                Anim.setter(this.rows[0], 500, "color", "red", { ditch: true }))
+                // Anim.setter(this.rows[0], 500, "color", "red", { ditch: true }))
+                Anim.setter(this.rows[0], 500, "transparent", false, { ditch: true }))
+        if (!this.confD.justDeclared)
+            this.fg.visible = false
+
     }
+
 }
 
 /**@type {Snippet[]} */
@@ -1025,7 +1053,8 @@ class QPane extends Panel {
             //if no issues:
             chat.sendSecure({
                 attempt: this.id,
-                guess: +this.guess //send as number
+                guess: +this.guess, //send as number
+                // kingdom: myKingdomID  //do not send kingdom lol
             })
             this.submissionTimestamps.push(Date.now())
             this.guess = "" //reset
@@ -1055,6 +1084,9 @@ class QPane extends Panel {
 
         this.deactivate()
         this.components.forEach(x => x.tag = "QPanePart")
+        this.components.filter(
+            x => x !== ansSubmitButton && x !== backToMapButton && x !== delButton
+                && !calculatorButtons.includes(x)).forEach(x => x.check = null)
         game.add_drawable(this)
 
 

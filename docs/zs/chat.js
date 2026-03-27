@@ -321,7 +321,6 @@ class ChatServer extends Chat {
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
-        const message = JSON.stringify(obj)
         if (obj.target != null) {
             console.error("target is depr", obj)
         }
@@ -331,11 +330,17 @@ class ChatServer extends Chat {
         if (obj.targetID != null) { //target by name remains a legacy feature!
             prefix = `T@${obj.targetID}|`
         } else if (obj.targetIDlist != null) {
-            prefix = `T@${Array.from(obj.targetIDlist).join(";")}|`
+            if (!Array.isArray(obj.targetIDlist)) { //consume iterators, maps, sets
+                obj.targetIDlist = Array.from(obj.targetIDlist)
+            }
+            if (obj.targetIDlist.length == 0) { } //for logging
+            //                                    empty list should not even send otherwise
+            prefix = `T@${obj.targetIDlist.join(";")}|`
         } else {
             //default to send to all = no prefix
         }
-        this.isLoggingTargeting && prefix && console.log(prefix)
+        this.isLoggingTargeting && prefix && console.log(prefix, { obj })
+        const message = JSON.stringify(obj) //could remove targeting info from obj, keep for logging for now
         this.attemptToSendText(prefix + message)
         return prefix + message
     }

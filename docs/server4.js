@@ -7,7 +7,12 @@ const colorize = (text, color) => {
 
     return (COLORS[color] || '') + text + COLORS.reset;
 };
-const myError = (...args) => { console.log(colorize(args.join(" "), "magenta")); }
+const myError = (...args) => {
+    console.log(colorize(args.join(" "), "magenta"));
+    try {
+        appendRecord(`WSERROR: ${JSON.stringify(args)}`)
+    } catch (err) { console.log("Failed to record WSERROR in file.") }
+}
 
 
 const origExit = process.exit; //safekeeping
@@ -156,13 +161,13 @@ const server = http.createServer((req, res) => {
         });
     } catch (err) {
         myError('http handler error', err);
-        try { res.writeHead(500); res.end('Internal Server Error'); } catch (e) { /* ignore */ }
+        try { res.writeHead(500); res.end('Internal Server Error'); } catch (err) { myError(err) }
     }
 });
 
 // Basic protections
 server.on('clientError', (err, socket) => {
-    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (e) { /* ignore */ }
+    try { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); } catch (err) { myError(err) }
 });
 
 
@@ -273,7 +278,7 @@ wss.on('connection',
                                 if (!clients.has(x)) return //fail silently.
                                 const c = clients.get(x)
                                 try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(msgJSONstr); }
-                                catch (e) { /* ignore */ }
+                                catch (err) { myError(err) }
 
                             })
                         } else if (str[0] == "R") { //for recovery
@@ -282,14 +287,14 @@ wss.on('connection',
                         } else {
                             wss.clients.forEach(c => {
                                 try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(str); }
-                                catch (e) { /* ignore */ }
+                                catch (err) { myError(err) }
                             });
                         }
                         // console.log('Broadcast:', str);
                     } else {//not listener = client = they upload unconditionally
                         listeners.forEach(l => {
                             try { if (l.readyState === WebSocket.OPEN) l.send(str); }
-                            catch (e) { /* ignore */ }
+                            catch (err) { myError(err) }
                         });
                         // console.log('Client:', str);
                     }

@@ -163,6 +163,11 @@ class Rect {
 		this.centerat(x, y)
 		return this
 	}
+	putOver(rect) {
+		const { x, y, width, height } = rect
+		Object.assign(this, { x, y, width, height })
+		return this
+	}
 
 	draw(screen, color = 'purple', fill = true) {
 		if (fill) {

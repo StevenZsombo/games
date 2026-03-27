@@ -83,6 +83,7 @@ class Person extends Participant {
     }
 
     assignKingdom(kingdom) {
+        /**@type {Kingdom} */
         this.kingdom = kingdom
         game?.kingdoms?.forEach(x => x.members.delete(this))
         kingdom.members.add(this)
@@ -297,7 +298,10 @@ listener.on_message = (obj, person) => {
         return
     }
     person = Person.check(person)
-    if (obj.kingdom !== undefined) {
+    if (obj.kingdom !== undefined) {//watch out for 0  //convert to number just in case
+        //BADNESS
+        // if (+obj.kingdom === person.kingdom?.id) return //can safely resend kingdom!
+        //idiot.
         person.assignKingdom(game.kingdoms[obj.kingdom])
         SHAREmany([
             "kingdomsFullData",
@@ -351,10 +355,15 @@ const lastBroadcastConflictsFailSafeInterval = setInterval(() => {
 const throttleList = new Set()
 window.throttleList = throttleList
 const throttleInterval = setInterval(() => {
-    throttleList.values().forEach(x =>
-        x === "bunch" ? SHAREbunch(x) : SHARE(x)
-    )
+    const items = [...throttleList]
     throttleList.clear()
+    items.forEach(x => {
+        // x === "bunch" ? SHAREbunch(x) : SHARE(x)
+        if (x === "bunch") SHAREbunch()
+        else if (x.includes(";")) SHAREmany(x.split(";"))
+        else SHARE(x)
+    }
+    )
 }, 1000)//recheck every second
 const throttleCheckNotTooRecent = (key) => {
     //broadcast network throttle
@@ -625,7 +634,7 @@ class Game extends GameCore {
 
         serverButton.topat(this.border.bot.top + 20)
         serverButton.bottomstretchat(snapShotButton.top - 20)
-        serverButton.leftat(snapShotButton.left)
+        serverButton.leftat(snapShotButton.left - (switchModeButton.left - snapShotButton.left) + 30)
 
         // this.mapIMG = Gimmicks.createBackground(this)
         this.initialize_scores()
@@ -773,7 +782,8 @@ class Game extends GameCore {
 
 
 
-            const dd = GameEffects.dropDownMenu(obj, null, null, null, { fontSize: 24, width: 250, height: 80 },
+            const dd = GameEffects.dropDownMenu(obj, null, null, null,
+                { fontSize: 24, width: 250, height: 80 },
                 [this.overlay], true, () => inspector.reset()
             )
 
@@ -785,7 +795,8 @@ class Game extends GameCore {
         const devButton = serverButton.copy
         devButton.txt = "dev"
         // devButton.move(0, 120)
-        devButton.leftat(switchModeButton.left)
+        // devButton.leftat(serverButton.left + (switchModeButton.left - snapShotButton.left))
+        devButton.leftat(snapShotButton.left)
         devButton.on_click = null
         devButton.on_release = () => {
             const ddm = GameEffects.dropDownMenu(
@@ -1181,16 +1192,18 @@ class Game extends GameCore {
     playerMenu(kingdom) {
         const players = Array.from(kingdom?.members ?? Object.values(participants))
         if (!players.length) return
-        GameEffects.dropDownMenu(players.map(x => [x.name, () => this.individualMenu(x)]),
+        const btStgs =
+            { fontSize: 28, width: 360, height: 70, color: kingdom?.color ?? "white", hover_color: "red" }
+        GameEffects.dropDownMenu(players.map(x => [x.name, () => this.individualMenu(x, btStgs)]),
             null, null, null,
             // { fontSize: 20, width: 200, height: 80, color: kingdom?.color ?? "white", hover_color: "lightblue" },
             //confusing colors
-            { fontSize: 20, width: 210, height: 70, color: "white", hover_color: "lightblue" },
+            btStgs,//, color: "white", hover_color: "lightblue" },
             this.overlay)
 
     }
     /**@param {Person} person */
-    individualMenu(person) {
+    individualMenu(person, btStgs) {
         const opts = [
             ["Order to change kingdom",
                 () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
@@ -1221,7 +1234,7 @@ class Game extends GameCore {
         ]
         GameEffects.dropDownMenu(opts.map(x => [x[0], x[1]]),
             null, null, null,
-            { fontSize: 20, width: 210, height: 70, color: "white", hover_color: "lightblue" },
+            btStgs ?? { fontSize: 28, width: 360, height: 70, },// color: "white", hover_color: "lightblue" },
             this.overlay)
     }
 
@@ -1566,6 +1579,7 @@ const hq = {
             popup: "The game has ended. Thank you for playing.\nStand by for results!",
             popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
         })
+        HARDREFRESH()
         GameEffects.popup("Contest ended.", GameEffects.popupPRESETS.topleftGreen)
     },
     resetAllKingdoms: () => {
