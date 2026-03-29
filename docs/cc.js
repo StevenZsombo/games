@@ -255,6 +255,7 @@ class Game extends GameCore {
         this.territoriesUnderAttack = new Set()
         /**@type {Territory[]} */
         this.canAttackList = []
+        this.currentAttackCount = 0
 
         contest.on_share = (shared, value) => {
             if (shared == "territoriesFullData") {
@@ -318,6 +319,7 @@ class Game extends GameCore {
                         .filter(x => !myKingdomObject.territories.has(x))//is not your own
                         .filter(x => !this.territoriesUnderAttack.has(x.id))//is not under attack
                 value = value.filter(x => (x.fromKD === myKingdomID) || (x.toKD === myKingdomID))
+                this.currentAttackCount = value.filter(x => x.fromKD === myKingdomID).length
                 value.forEach(x => {
                     const match = snippets.find(u => u.id === x.id)
                     if (match) {
@@ -429,6 +431,17 @@ class Game extends GameCore {
             bot.txt = "BATTLES".split("").join("  ")
             bot.fontSize = 48
             bot.color = myColor || "white"
+            const botAttackCounter = new Button({
+                width: GRAPHICS.SNIPPET_WIDTH,
+                height: 50,
+                fontSize: 24,
+                transparent: true
+            })
+            botAttackCounter.topat(bot.top)
+            botAttackCounter.rightat(bot.right)
+            botAttackCounter.check = null
+            botAttackCounter.dynamicText = () => "Attacks: " + this.currentAttackCount
+            this.add_drawable(botAttackCounter)
 
             Snippet.bgDefault.resize(GRAPHICS.SNIPPET_WIDTH, bot.height - 20)
             Snippet.bgDefault.topat(bot.top)
