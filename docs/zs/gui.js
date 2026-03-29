@@ -285,17 +285,33 @@ class Mouser {
 			//this.x = null
 			//this.y = null
 		})*/
+		const dblclick = (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+		}
+		const notouch = (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+		}
 
 		canvas.addEventListener('pointermove', pointermove)
 		canvas.addEventListener('pointerdown', pointerdown)
 		canvas.addEventListener('pointerup', pointerup)
 		canvas.addEventListener('pointercancel', pointercancel)
 		canvas.addEventListener('wheel', wheel, { passive: false }) //added removal manually
+		canvas.addEventListener('dblclick', dblclick)
 		canvasHandlers.pointermove = pointermove
 		canvasHandlers.pointerdown = pointerdown
 		canvasHandlers.pointerup = pointerup
 		canvasHandlers.pointercancel = pointercancel
 		canvasHandlers.wheel = wheel
+		canvasHandlers.dblclick = dblclick
+		canvas.addEventListener('touchstart', notouch, { passive: false });
+		canvas.addEventListener('touchmove', notouch, { passive: false });
+		canvas.addEventListener('touchend', notouch, { passive: false });
+		canvasHandlers.notouch = notouch
+		canvas.addEventListener('dragstart', notouch)
+		canvasHandlers.dragstart = notouch //matches last line!
 
 		const resize = (e) => { this.whereIsCanvas() }
 		const scroll = (e) => { this.whereIsCanvas() }

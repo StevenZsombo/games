@@ -1,3 +1,11 @@
+/*
+hash codes #
+hml - image quality
+s - scrolling
+d - debug mode
+f - framerate shown
+u - framerate shown and unlocked
+*/
 var univ = {
     isOnline: true,
     PORT: 80,
@@ -35,9 +43,9 @@ var univ = {
     },
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
-        if (location.hash.includes("l")) RULES.MAPSTER_IMAGE_QUALITY = 4
-        if (location.hash.includes("m")) RULES.MAPSTER_IMAGE_QUALITY = 2
-        if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY = 1
+        if (location.hash.includes("l")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 4
+        if (location.hash.includes("m")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 2
+        if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 1
         if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
         fetch(RULES.MAPFILE)
             .then(x => {
@@ -216,7 +224,7 @@ class Game extends GameCore {
     //#region initialize_more
     initialize_more() {
         window.wProgress?.("\ninitalize_more()")
-        Question.ALL.forEach(x => x.sol = undefined) //muhahahahahahaha
+
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
         if (!nameIDtimestamp || (nameIDtimestamp - Date.now() > 6 * 60 * 60 * 1000))//older than 6 hours or none
@@ -256,6 +264,9 @@ class Game extends GameCore {
         /**@type {Territory[]} */
         this.canAttackList = []
         this.currentAttackCount = 0
+
+        if (location.hash.includes("f") || location.hash.includes("u")) this.framerate.isRunning = true
+        if (location.hash.includes("u")) this.toggleFramerateUnlocked() //for true
 
         contest.on_share = (shared, value) => {
             if (shared == "territoriesFullData") {
@@ -538,7 +549,7 @@ class Game extends GameCore {
                 () => {
                     mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
                 },
-                { fillScale: RULES.MAPSTER_IMAGE_QUALITY }
+                { fillScale: RULES.MAPSTER_IMAGE_QUALITY_CLIENT }
             )
 
             this.add_drawable(mapster, 2)
@@ -961,14 +972,14 @@ class QPane extends Panel {
         bg ??= QPane.bgDefault.copy
         bg.tag = "QPane bg"
         this.components.push(bg)
-        const question = Question.ALL[qID]
+        const question = Question.CLIENT(qID)
         /*const [imgB, latexB, txtB] = bg.splitRow(
             question.img !== undefined ? 7 : 0, //watch out for 0
             //question.latex ? 1 : 0,
             // question.txt ? 1 : 0
         ).map(x => Button.fromRect(x))*/
         const imgB = Button.fromRect(bg.copyRect)
-        if (question.img !== undefined) {//watch out for 0
+        if (question.img != null) {//watch out for 0
             cropper.load_img(RULES.QUESTION_PATH + question.img + RULES.PICTURE_EXTENSION, (t) => imgB.img = t)
             imgB.tag = "QPane imgB component"
             this.components.push(imgB)
