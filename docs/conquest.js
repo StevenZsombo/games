@@ -115,7 +115,7 @@ const COMM = chat.sendCommand.bind(chat)
 const POPUP = (txt, settings) => chat.sendMessage({
     popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
 })
-const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftLargePinkf) }
+const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftLargePink) }
 const ATTENDANCE = () => {
     chat.orderAttendance()
     chat.sendMessage({
@@ -775,7 +775,6 @@ class Game extends GameCore {
             obj["LOADSAVE"] = () => {
                 game.loadGameFromFile().then(x => {
                     HARDREFRESH()
-                    SHAREbunch()
                 })
             }
             comm["LOADSAVE"] = "Loads a manual- or autosave from file."
@@ -834,6 +833,18 @@ class Game extends GameCore {
                             }
                             ])]*/
                         //this is awesome, saved it in GameEffects!
+                        [`mapIMG = ${RULES.PICTURE_BACKGROUND_MAP}`, () => {
+                            spop("Feature unavailable, TODO.\nFor now, just change in the map.json file.")
+                            /*alert("Select a picture. Must be from the pictures folder.")
+                            const pick = document.createElement("input")
+                            pick.type = "file"
+                            pick.accept = ".png"
+                            pick.onchange = (ev) => {
+                                const f = ev.target.files[0]
+                                RULES.PICTURE_BACKGROUND_MAP = f.name
+                                
+                            }*/
+                        }],
                         ["QUICKSAVE", () => { MANAGER.saveToLocal(); spop("Quicksaved.") }],
                         ["SAVE MAP", MANAGER.saveToFile],
                         ["LOAD MAP", MANAGER.loadFromFile]
@@ -1205,11 +1216,11 @@ class Game extends GameCore {
     /**@param {Person} person */
     individualMenu(person, btStgs) {
         const opts = [
-            ["Order to change kingdom",
-                () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
-            ],
             ["Order to change name",
                 () => { person.kick(); spop(`Ordered.`) }
+            ],
+            ["Order to change kingdom",
+                () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
             ],
             ["Order to reload page",
                 () => { chat.sendMessage({ targetID: person.nameID, reload: 1 }); spop(`Ordered.`) }
@@ -1256,7 +1267,7 @@ class Game extends GameCore {
 
     /**
     * @typedef {Object} SaveObj
-    * @property {number[]} territories - array of respective values
+    * @property {{value:number}[]} territories - array of respective values
     * @property {{seenQuestions:number[],territories:number[],name:string,color:string,membersNames:string}} kingdoms - membersNames is just for debugging
     * @property {number} conflictsHistoryCount - important to restore conflicts to their original id
     * @property {{attacker:number,territory:number,justDeclared:boolean,solving:boolean,question:number|null,alreadyResolved:boolean,timeLeft:number,id:number}} conflicts - id will NOT start from 0
@@ -1277,18 +1288,20 @@ class Game extends GameCore {
         /**@type {SaveObj}*/
         const saveObj = {
             territories: this.territories.map((x, i) => {
-                return {
+                return ({ value: x.value })
+                /*return {
                     value: x.value,
                     // isUnderAttack: x.isUnderAttack //handled by conflict
                     //names are unchanging
                     //connections are unchanging
                     //isCapital is set by kingdom
-                }
+                }*/
             }),
             kingdoms: this.kingdoms.map((x, i) => {
                 return {
-                    seenQuestions: Array.from(x.seenQuestions.values().map(x => x.id)),
-                    territories: Array.from(x.territories.values().map(x => x.id)),
+                    seenQuestions: Array.from(x.seenQuestions.values()).map(x => x.id),
+                    solvedQuestions: Array.from(x.solvedQuestions.values()).map(x => x.id),
+                    territories: Array.from(x.territories.values()).map(x => x.id),
                     // capital: x.capital.id,//unchanging
                     name: x.name, //no harm in saving
                     color: x.color, //no harm in saving
@@ -1356,6 +1369,7 @@ class Game extends GameCore {
             k.name = x.name
             k.color = x.color
             x.seenQuestions.forEach(u => k.seenQuestions.add(Question.ALL[u]))
+            x.solvedQuestions.forEach(u => k.solvedQuestions.add(Question.ALL[u]))
             console.log(x.territories)
             console.log(x.territories.map(u => this.territories[u]))
             x.territories.forEach(u => k.acquireTerritory(this.territories[u]))
@@ -1363,6 +1377,7 @@ class Game extends GameCore {
         })
         Question.record = saveObj.questionRecord
         Conflict.record = saveObj.conflictRecord
+        RULES.MAX_ATTACKS_ALLOWED = saveObj.MAX_ATTACKS_ALLOWED
         this.conflictsHistoryCount = saveObj.conflictsHistoryCount //IMPORTANT
         //ditch all current conflicts lol
         this.conflicts.length = 0

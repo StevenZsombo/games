@@ -12,5 +12,6 @@
         "./sketch*.js",
         "./zs/sketch*.js",
         "server*.js",
+        "cc.html",
     ]
 }

@@ -88,8 +88,16 @@ var univ = {
                         input.remove()
                         button.remove()
                         p.textContent = origLoadTextContent
+                        window.onkeyup = null
+                        try { document.documentElement.requestFullscreen }
+                        catch (err) { console.log("Failed to fullscreen.", err) }
                         document.body.style.zoom = 1
                         return resolve()
+                    }
+                }
+                window.onkeyup = (ev) => {
+                    if (ev.key === "Enter") {
+                        button.onclick()
                     }
                 }
 
@@ -902,8 +910,9 @@ class Snippet {
             this.destroy()
             return
         }*/
-        if (this.confD.timeLeft <= 0) { //for proper 0:00 display, no -0:01
-            this.confD.timeLeft = 0
+        if (!this.confD.justDeclared && (this.confD.timeLeft <= -500)) {
+            // this.confD.timeLeft = 0
+            this.destroy()
             return
         }
         if (this.confD.justDeclared && this.confD.toKD === myKingdomID) //blink red if it is a threat!
