@@ -66,6 +66,7 @@ const DEFAULT_LISTENER_PAGE_TO_SERVE = 'conquest.html';
 const PORT = 80;
 
 const ROOT_DIR = path.resolve(__dirname);
+//path.join(os.homedir(), 'Documents', 'Steven', 'games', 'docs');
 
 const mimeTypes = {
     '.js': 'application/javascript',
