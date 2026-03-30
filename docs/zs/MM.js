@@ -1423,9 +1423,11 @@ class MM {
     }
 
     static exportJSONtoExcel(json, filename = "excelFromJSON") {
-        const arr = Array.from(Object.entries(json).map(([key, val]) => [key, JSON.stringify(val)]))
+        const s = val => typeof val === 'function'
+            ? val.toString()
+            : JSON.stringify(val)
+        const arr = Array.from(Object.entries(json).map(([key, val]) => [key, s(val)]))
         MM.exportExcel(arr, filename)
-
     }
 
 
