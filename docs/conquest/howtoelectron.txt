@@ -3,18 +3,13 @@ mainWindow.on('unmaximize', () => {
 });
 
 
-
-
 // main.js
 const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
-
-const ROOT_DIR = '/your/root/directory'; // Set your root directory here
-
+const ROOT_DIR = '/your/root/directory';
 const preloadScript = `
   const { contextBridge, ipcRenderer } = require('electron');
-  
   contextBridge.exposeInMainWorld('fileAPI', {
     readdir: (relativePath) => ipcRenderer.invoke('fs:readdir', relativePath),
     rename: (oldRelativePath, newRelativePath) => ipcRenderer.invoke('fs:rename', oldRelativePath, newRelativePath),
@@ -22,11 +17,9 @@ const preloadScript = `
     delete: (relativePath) => ipcRenderer.invoke('fs:delete', relativePath)
   });
 `;
-
 function getAbsolutePath(relativePath) {
   return path.join(ROOT_DIR, relativePath);
 }
-
 function createWindow() {
   const win = new BrowserWindow({
     width: 800,
@@ -37,51 +30,26 @@ function createWindow() {
       preload: `data:text/javascript,${encodeURIComponent(preloadScript)}`
     }
   });
-
   ipcMain.handle('fs:readdir', async (_, relativePath) => {
-    try {
-      const absolutePath = getAbsolutePath(relativePath);
-      return await fs.readdir(absolutePath);
-    } catch (error) {
-      return { error: error.message };
-    }
+    const absolutePath = getAbsolutePath(relativePath);
+    return await fs.readdir(absolutePath);
   });
-
   ipcMain.handle('fs:rename', async (_, oldRelativePath, newRelativePath) => {
-    try {
-      const oldAbsolutePath = getAbsolutePath(oldRelativePath);
-      const newAbsolutePath = getAbsolutePath(newRelativePath);
-      await fs.rename(oldAbsolutePath, newAbsolutePath);
-      return { success: true };
-    } catch (error) {
-      return { error: error.message };
-    }
+    const oldAbsolutePath = getAbsolutePath(oldRelativePath);
+    const newAbsolutePath = getAbsolutePath(newRelativePath);
+    await fs.rename(oldAbsolutePath, newAbsolutePath);
   });
-
   ipcMain.handle('fs:copy', async (_, srcRelativePath, destRelativePath) => {
-    try {
-      const srcAbsolutePath = getAbsolutePath(srcRelativePath);
-      const destAbsolutePath = getAbsolutePath(destRelativePath);
-      await fs.cp(srcAbsolutePath, destAbsolutePath, { recursive: true });
-      return { success: true };
-    } catch (error) {
-      return { error: error.message };
-    }
+    const srcAbsolutePath = getAbsolutePath(srcRelativePath);
+    const destAbsolutePath = getAbsolutePath(destRelativePath);
+    await fs.cp(srcAbsolutePath, destAbsolutePath, { recursive: true });
   });
-
   ipcMain.handle('fs:delete', async (_, relativePath) => {
-    try {
-      const absolutePath = getAbsolutePath(relativePath);
-      await fs.rm(absolutePath, { recursive: true, force: true });
-      return { success: true };
-    } catch (error) {
-      return { error: error.message };
-    }
+    const absolutePath = getAbsolutePath(relativePath);
+    await fs.rm(absolutePath, { recursive: true, force: true });
   });
-
   win.loadFile('index.html');
 }
-
 app.whenReady().then(createWindow);
 
 
