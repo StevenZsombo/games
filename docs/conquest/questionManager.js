@@ -178,7 +178,7 @@ They must be named according to convention, for example 2.5s22p13hard.png`)
         input.multiple = true
         input.onchange = (ev) => {
             try {
-                const files = Array.from(ev.target.files)
+                const files = MM.shuffle(Array.from(ev.target.files))
                 console.log(files)
                 log(`Found ${files.length} files. Extracting data...`)
                 for (let i = 0; i < files.length; i++) {
