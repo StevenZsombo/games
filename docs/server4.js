@@ -205,7 +205,7 @@ function extractTargets(str) {
     return { targets, msgJSONstr }
 
 }
-function recoverFromWS(str) {
+function recoverFromWS(str) {//unused for now
     if (str[0] != "R" || str[1] != "@") {
         myError("Invalid recovery request!")
         return null
@@ -265,7 +265,7 @@ wss.on('connection',
             });
 
 
-            function processMessage(str) {
+            function processMessage(str) {//only gets called once _nameID was given
                 try {
                     appendRecord(str);
                     if (ws._isListener) {
@@ -281,12 +281,15 @@ wss.on('connection',
                                 catch (err) { myError(err) }
 
                             })
-                        } else if (str[0] == "R") { //for recovery
+                        }
+                        /*else if (str[0] == "R") { //for recovery
                             const recoveryData = recoverFromWS(str)
-
-                        } else {
-                            wss.clients.forEach(c => {
-                                try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(str); }
+                                
+                        }*/
+                        else {
+                            clients.forEach(c => {
+                                // try { if (!c._isListener && c.readyState === WebSocket.OPEN) c.send(str); }
+                                try { if (c.readyState === WebSocket.OPEN) c.send(str); }
                                 catch (err) { myError(err) }
                             });
                         }
