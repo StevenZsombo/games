@@ -103,7 +103,7 @@ function isLocalHostHeader(host) {
 }
 
 // Logging file
-const writeStream = fs.createWriteStream(path.join(__dirname, 'record.txt'), { flags: 'a' });
+const writeStream = fs.createWriteStream(path.join(ROOT_DIR, 'record.txt'), { flags: 'a' });
 writeStream.on('error', (err) => myError('writeStream error', err));
 function appendRecord(line) {
     try {
