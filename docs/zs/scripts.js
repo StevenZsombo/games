@@ -1374,3 +1374,44 @@ class Panel extends Malleable {
 
 
 }
+//#endregion
+
+
+//#region Observeable
+class Observeable {
+	_value = null
+	constructor(value) { this._value = value }
+	get value() { return this._value }
+	set value(newValue) {
+		if (newValue === this._value) return
+		this.refresh(newValue)
+		this._value = newValue
+	}
+	/**@type {Set<Function(newValue,oldValue)>} */
+	callbacks = new Set()
+	/**
+	 * 
+	 * @param {Function(newValue,oldValue)} callback 
+	 * @param {boolean} [immediate=true] should it also execute?
+	 * @returns the unsubscribe function
+	 */
+	subscribe(callback, immediate = true) {
+		this.callbacks.add(callback)
+		if (immediate) callback(this._value, null)
+		return () => this.unsubscribe(callback)
+	}
+	unsubscribe(callback) {
+		this.callbacks.delete(callback)
+	}
+	refresh(newValue) {
+		this.callbacks.forEach(fn => fn(newValue, this._value))
+	}
+	monkeyPatch(obj, propertyKey) {
+		const me = this
+		Object.defineProperty(obj, propertyKey, {
+			get() { return me.value },
+			set(newValue) { me.value = newValue }
+		})
+	}
+}
+//#endregion
