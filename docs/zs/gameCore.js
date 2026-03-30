@@ -9,6 +9,7 @@ window.onload = function () {
     //canvas.tabIndex = 0
     //canvas.focus()
     document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'manipulate'
     canvas.style.touchAction = 'none'
     canvas.style.userSelect = 'none'
     canvas.style.webkitUserDrag = 'none'
@@ -72,6 +73,10 @@ const flushListeners = function (canvas) {
     Object.entries(canvasHandlers).forEach(([str, handler]) => canvas.removeEventListener(str, handler))
     Object.entries(windowHandlers).forEach(([str, handler]) => window.removeEventListener(str, handler))
     canvas.removeEventListener("wheel", canvasHandlers.wheel, { passive: false })
+    canvas.removeEventListener('touchstart', canvasHandlers.notouch, { passive: false })
+    canvas.removeEventListener('touchmove', canvasHandlers.notouch, { passive: false })
+    canvas.removeEventListener('touchend', canvasHandlers.notouch, { passive: false })
+    //no point in removing, will be overridden anyways
 }
 
 const main = function (canvas) {

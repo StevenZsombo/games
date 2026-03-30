@@ -356,7 +356,7 @@ wss.on('connection',
                         console.log(colorize('●●● Listener disconnected', 'blue'), `${req.socket.remoteAddress}:${req.socket.remotePort}`);
                     } else {
                         console.log(colorize('● Client disconnected', 'red'),
-                            ws._nameID ?? `${req.socket.remoteAddress}:${req.socket.remotePort}NOINITIALMESSAGE`);
+                            ws._connectedAddress ?? `${req.socket.remoteAddress}:${req.socket.remotePort}NOINITIALMESSAGE`);
                         try {
                             clients.delete(ws._nameID)
                             processMessage(JSON.stringify({
