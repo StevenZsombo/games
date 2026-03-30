@@ -4,8 +4,7 @@ const COLORS = {
     white: '\x1b[37m', reset: '\x1b[0m'
 };
 const colorize = (text, color) => {
-
-    return (COLORS[color] || '') + text + COLORS.reset;
+    return (COLORS[color] || '') + text + (color ? COLORS.reset : '');
 };
 const myError = (...args) => {
     console.log(colorize(args.join(" "), "magenta"));

@@ -1,3 +1,70 @@
+mainWindow.on('unmaximize', () => {
+    mainWindow.setSize(240, 135);
+});
+
+
+// main.js
+const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs').promises;
+
+const preloadScript = `
+  const { contextBridge, ipcRenderer } = require('electron');
+  
+  contextBridge.exposeInMainWorld('fileAPI', {
+    readdir: (path) => ipcRenderer.invoke('fs:readdir', path),
+    rename: (oldPath, newPath) => ipcRenderer.invoke('fs:rename', oldPath, newPath),
+    delete: (path) => ipcRenderer.invoke('fs:delete', path)
+  });
+`;
+
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: `data:text/javascript,${encodeURIComponent(preloadScript)}`
+    }
+  });
+
+  ipcMain.handle('fs:readdir', async (_, path) => {
+    try {
+      return await fs.readdir(path);
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle('fs:rename', async (_, oldPath, newPath) => {
+    try {
+      await fs.rename(oldPath, newPath);
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  ipcMain.handle('fs:delete', async (_, path) => {
+    try {
+      await fs.rm(path, { recursive: true, force: true });
+      return { success: true };
+    } catch (error) {
+      return { error: error.message };
+    }
+  });
+
+  win.loadFile('index.html');
+}
+
+app.whenReady().then(createWindow);
+
+
+
+
+
+
+
 ## Minimal Electron Setup for Existing Browser App
 
 ### Step 1: Create Project Folder
