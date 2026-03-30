@@ -1414,12 +1414,18 @@ class MM {
     /** @param {string[][]} array      */
     static exportExcel(array, filename = "exportedExcel") {
         if (!window.XLSX) {
-            MM.loadScript("./zs/xlsx.full.min.js", MM.importExcel)
+            throw "XLSX not loaded!"
         }
         const ws = XLSX.utils.aoa_to_sheet(array)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
         XLSX.writeFile(wb, filename + ".xlsx")
+    }
+
+    static exportJSONtoExcel(json, filename = "excelFromJSON") {
+        const arr = Array.from(Object.entries(json).map(([key, val]) => [key, JSON.stringify(val)]))
+        MM.exportExcel(arr, filename)
+
     }
 
 
