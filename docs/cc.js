@@ -554,6 +554,14 @@ class Game extends GameCore {
 
             this.add_drawable(mapster, 2)
 
+            chat.on_join = () => {
+                if (myKingdomID == null) { //should be impossible, but just to be safe
+                    GameEffects.popup("ERROR: myKingdomID is somehow null,\n ask the teacher for help.", undefined, GRAPHICS.POPUP_ERROR)
+                    throw new Error("Kingdom is somehow undefined when trying to send it!")
+                }
+                chat.sendMessage({ kingdom: myKingdomID }) //re-announce kingdom on each reconnect!
+            }
+
             this.afterEverythingHasLoaded()
 
         }
@@ -1079,7 +1087,7 @@ class QPane extends Panel {
             }
             if (!chat.isConnected) {
                 GameEffects.popup(
-                    `Failure to connect.\nAsk the teacher for help.`, null,
+                    `Failure to connect. Waiting to reconnect...\nIf this happens a lot, ask the teacher for help.`, undefined,
                     GRAPHICS.POPUP_ERROR)
                 return
             }
@@ -1087,7 +1095,9 @@ class QPane extends Panel {
             chat.sendSecure({
                 attempt: this.id,
                 guess: +this.guess, //send as number
-                // kingdom: myKingdomID  //do not send kingdom lol
+                //kingdom: myKingdomID  //this has always been an ill-conceived idea.
+                //connection is checked for, so this is only ever sent if already connected and sent kingdom
+
             })
             this.submissionTimestamps.push(Date.now())
             this.guess = "" //reset
