@@ -11,7 +11,8 @@
         "node_modules",
         "./sketch*.js",
         "./zs/sketch*.js",
-        "server*.js",
-        "conquest.js",
+        "./server*.js",
+        "./cc.js",
+        "./game.js"
     ]
 }

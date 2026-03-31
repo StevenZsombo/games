@@ -1,7 +1,0 @@
-Ideas and TODOs:
-
-
-
-Make blink when attack available
-
-
