@@ -4,13 +4,13 @@
         "module": "commonjs"
     },
     "include": [
-        "./verify.js",
-        "../zs/*.js"
+        "./electronManager.js",
+        "./../zs/*.js"
     ],
     "exclude": [
         "node_modules",
         "./sketch*.js",
-        "./zs/sketch*.js",
+        "./../zs/sketch*.js",
         "*server*.js",
     ]
 }
