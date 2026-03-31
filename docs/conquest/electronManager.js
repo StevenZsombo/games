@@ -52,7 +52,7 @@ const but = async (txt, onclick, disableAfterClick = true) => {
             try {
                 onclick?.()
                 disableAfterClick && (b.onclick = null)
-                resolve("asd")
+                resolve(b)
             } catch (err) { return reject(`Button failure\n${err}`) }
         }
     })
@@ -300,7 +300,7 @@ addProcess.push(async () => {
     await fileAPI.writeBuffer('secrets/bank.xlsx', excelBuffer)
     log("Success! Make sure you DO NOT share the contents of the secrets folder with the students.")
     log("Make sure you DO NOT copy the contents of the secrets folder into the games folder.")
-    log("You may not quit the app.")
+    log("Please now quit the app.")
 })
 
 
@@ -354,9 +354,29 @@ const createOrRestoreBankXLSX = async () => {
 
 const optionsMenu = async () => {
     log("What would you like to do?")
-    but("Add more questions to the bank.", () => fullProcess(addProcess))
-    but("Create/restore bank.xlsx", () => createOrRestoreBankXLSX())
-    but("Organize buckets.", () => { log("TODO.") })
+    const ob = []
+    ob.push(["Add more questions to the bank.", () => fullProcess(addProcess)])
+    ob.push(["Create/restore bank.xlsx", () => createOrRestoreBankXLSX()])
+    ob.push(["Organize buckets.", () => { log("TODO.") }])
+    const buttons = []
+    for (let i = 0; i < ob.length; i++) {
+        const btn = document.createElement("button")
+        btn.textContent = ob[i][0]
+        divs.at(-1).appendChild(btn)
+        const fn = ob[i][1]
+        btn.onclick = () => {
+            // Disable all buttons
+            for (let j = 0; j < buttons.length; j++) {
+                buttons[j].onclick = null
+                buttons[j].remove()
+            }
+            // Run this button's function
+            fn()
+
+        }
+
+        buttons.push(btn)
+    }
 }
 
 optionsMenu()
