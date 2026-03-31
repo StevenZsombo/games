@@ -1415,3 +1415,49 @@ class Observeable {
 	}
 }
 //#endregion
+
+//#region Observatory
+class Observatory {
+	/**@type {Set<Function>[]} */
+	on_changeCallables = new Map()
+	/**@type {Set<Function>[]} */
+	on_setCallables = new Map()
+	/**@type {Set<Function>[]} */
+	on_getCallables = new Map()
+	items = new Map()
+
+	createItem(key, value) {
+		this.items.set(key, value)
+	}
+	setItem(key, value) {
+		const oldValue = this.items.get(key)
+		if (oldValue !== value) this.on_changeCallables.get(key)?.forEach(fn => fn(value, oldValue))
+		this.on_setCallables.get(key)?.forEach(fn => fn(value))
+		this.items.set(key, value)
+	}
+	getItem(key) {
+		const value = this.items.get(key)
+		this.on_getCallables.get(key)?.forEach(fn => fn(value))
+		return value
+	}
+	removeItem(key) {
+		this.on_changeCallables.delete(key)
+		this.on_setCallables.delete(key)
+		this.on_getCallables.delete(key)
+		this.items.delete(key)
+	}
+	on_change(key, callable) {
+		if (!this.on_changeCallables.has(key)) this.on_changeCallables.set(key, new Set())
+		this.on_changeCallables.get(key).add(callable)
+	}
+	on_set(key, callable) {
+		if (!this.on_setCallables.has(key)) this.on_setCallables.set(key, new Set())
+		this.on_setCallables.get(key).add(callable)
+	}
+	on_get(key, callable) {
+		if (!this.on_getCallables.has(key)) this.on_getCallables.set(key, new Set())
+		this.on_getCallables.get(key).add(callable)
+	}
+
+}
+//#endregion
