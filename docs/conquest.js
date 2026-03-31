@@ -1268,7 +1268,8 @@ class Game extends GameCore {
     /**
     * @typedef {Object} SaveObj
     * @property {{value:number}[]} territories - array of respective values
-    * @property {{seenQuestions:number[],territories:number[],name:string,color:string,membersNames:string}} kingdoms - membersNames is just for debugging
+    * @property {{seenQuestions:number[],solvedQuestions:number[],activeQuestions:number[],
+    * territories:number[],name:string,color:string,membersNames:string}} kingdoms - membersNames is just for debugging
     * @property {number} conflictsHistoryCount - important to restore conflicts to their original id
     * @property {{attacker:number,territory:number,justDeclared:boolean,solving:boolean,question:number|null,alreadyResolved:boolean,timeLeft:number,id:number}} conflicts - id will NOT start from 0
     * @property {number} MAX_ATTACKS_ALLOWED
@@ -1301,6 +1302,7 @@ class Game extends GameCore {
                 return {
                     seenQuestions: Array.from(x.seenQuestions.values()).map(x => x.id),
                     solvedQuestions: Array.from(x.solvedQuestions.values()).map(x => x.id),
+                    activeQuestions: Array.from(x.activeQuestions.values()).map(x => x.id),
                     territories: Array.from(x.territories.values()).map(x => x.id),
                     // capital: x.capital.id,//unchanging
                     name: x.name, //no harm in saving
@@ -1370,6 +1372,7 @@ class Game extends GameCore {
             k.color = x.color
             x.seenQuestions.forEach(u => k.seenQuestions.add(Question.ALL[u]))
             x.solvedQuestions.forEach(u => k.solvedQuestions.add(Question.ALL[u]))
+            x.activeQuestions.forEach(u => k.activeQuestions.add(Question.ALL[u]))
             console.log(x.territories)
             console.log(x.territories.map(u => this.territories[u]))
             x.territories.forEach(u => k.acquireTerritory(this.territories[u]))
