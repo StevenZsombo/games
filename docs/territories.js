@@ -227,6 +227,8 @@ class Kingdom {
         this.seenQuestions = new Set()
         /**@type {Set<Question} */
         this.solvedQuestions = new Set()
+        /**@type {Set<Question} */
+        this.activeQuestions = new Set()
         /**@type {Set<Person>} */
         this.members = new Set()
 
@@ -349,7 +351,8 @@ class Conflict {
             const inthebucket = bucket.map(i => Question.ALL[i]) //BUCKET has id, here work with question
             const unseenbyboth = inthebucket.filter(x =>
                 !Question.INVALID_IDS.has(x.id) &&
-                !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x))
+                !this.attacker.seenQuestions.has(x) && !this.defender.seenQuestions.has(x) &&
+                !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x))
             if (unseenbyboth.length) return MM.choice(unseenbyboth)
         }
         //if no unseen question -> fallback to unsolved
@@ -357,8 +360,8 @@ class Conflict {
             const inthebucket = bucket.map(i => Question.ALL[i])
             const unsolvedbyboth = inthebucket.filter(x =>
                 !Question.INVALID_IDS.has(x.id) &&
-                !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x)
-            )
+                !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x) &&
+                !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x))
             if (unsolvedbyboth.length) return MM.choice(unsolvedbyboth)
         }
         //if fully exhausted, return null. conflict.accept will resolve the conflict and send a message
@@ -377,6 +380,8 @@ class Conflict {
         }
         /**@type {Question} */
         this.question = qSel
+        this.attacker.activeQuestions.add(this.question)
+        this.defender.activeQuestions.add(this.question)
         this.attacker.seenQuestions.add(this.question)
         this.defender.seenQuestions.add(this.question)
     }
@@ -539,6 +544,8 @@ class Conflict {
         this.solving = false
         this.alreadyResolved = true
         this.territory.isUnderAttack = false
+        this.question && this.attacker.activeQuestions.delete(this.question)
+        this.question && this.defender.activeQuestions.delete(this.question)
         SHAREbunch()
     }
     /**
