@@ -352,6 +352,133 @@ const createOrRestoreBankXLSX = async () => {
     }
 }
 
+
+const bucketProcess = []
+
+
+bucketProcess.push(async () => {
+    log("Welcome to my bucket manager. Please follow the instructions carefully.")
+    await but("Understood")
+    log(`Reminders about the bucket system:
+- The game will exhaust buckets in ascending order.
+- First, questions neither team has seen are prioritized.
+- If no such question is available, the game loops through the buckets again
+and looks for questions neither team has solved instead.
+
+Reminders about editing the bank.xlsx file:
+- NEVER modify the content of the first three columns.
+- You can reorder rows.
+- The value in the bucket row determines which bucket the question goes in.
+- If the bucket cell is left empty, the question will NEVER be given.
+- Anything you write in column 5 and after is fully ignored.`)
+})
+
+let filesInQuestionsBucket = new Map()
+bucketProcess.push(async () => {
+    log("First, we will verify the contents of the questions folder.")
+    await but("Verify")
+    return new Promise((resolve, reject) => {
+        try {
+            fileAPI.readdir("games/docs/conquest/questions").then(
+                (filesNamesFromFS) => {
+                    filesInQuestionsBucket.clear()
+                    const files = Array.from(filesNamesFromFS).map(x => ({ name: x }))
+                    console.log(files)
+                    if (files.length == 0) {
+                        log("The folder is empty. Status: OK.")
+                        return resolve()
+                    }
+                    files.forEach(x => {
+                        const spl = x.name.split(".")
+                        if (spl.length != 2 || spl[1] != "png" || !Number.isInteger(+spl[0]) || (+spl[0] < 0))
+                            return reject(`Invalid file ${x.name}`)
+                    })
+
+                    feed("Files in folder:\n\n" + MM.tableStr(
+                        MM.transposeArray(
+                            [files.map(x => x.name)]
+                        )
+                    ), "files")
+
+                    files.forEach(x => {
+                        const withoutPNG = x.name.split(".").slice(0, -1).join(".")
+                        filesInQuestionsBucket.set(+withoutPNG, {})
+                    })
+                    log(`Verifying, looking for questions with id 0 to ${files.length - 1}.`)
+                    for (let i = 0; i < files.length; i++) {
+                        if (!filesInQuestionsBucket.has(i)) return reject(`Could not find ${i}.png.`)
+                    }
+                    log(`Success! Found questions with id 0 to ${files.length - 1}.`)
+                    return resolve()
+                })
+        }
+        catch (err) { reject(err) }
+    })
+})
+
+let currentBankBucket //is an array from excel. id,origName,sol,bucket : all strings
+bucketProcess.push(async () => {
+    //upload your current bank.xlsx
+    log(`Please upload the corresponding bank excel file.
+Only the first 4 columns will be read (id, origName, sol, bucket) and they can be in any order.
+
+The bucket column's data will determine which bucket the question is in.
+Empty cell = no bucket = question will not be included in the game.`)
+    await but("Upload Excel")
+    let data = await MM.importExcel()
+    log("Verifying...")
+    let firstFourColumns = data.map(x => x.slice(0, 4))
+    let matchingRows = firstFourColumns.filter(x => filesInQuestionsBucket.has(x[0]))
+    matchingRows.sort((x, y) => x[0] - y[0])
+    if (matchingRows.some((x, i) => i != +x[0])) throw ("Invalid or missing id in Excel")
+    if (matchingRows.length != filesInQuestionsBucket.size) throw ("Missing a row in Excel.")
+    currentBankBucket = matchingRows
+    log(`Success! Found all questions with id 0 to ${matchingRows.length - 1}.`)
+    feed(MM.tableStr(currentBankBucket, "id origName sol bucket".split(" "), 5))
+    console.log({ currentBankBucket })
+    return
+})
+bucketProcess.push(async () => {
+    log(`You may review the data below. Preparing downloadable file...`)
+    await but("Prepare file.")
+    //excels should be: id, origNam, sol, bucket
+    const coll = currentBankBucket.reduce((s, t) => ((s[t[3]] ??= []).push(t), s), {}) //t[3] is bucket
+    console.log({ coll })
+    const buckets = Object.keys(coll).filter(x =>
+        x !== "" && x !== undefined && x !== null && x !== "undefined" && x !== "null"
+    ).sort((x, y) => x - y)
+    console.log({ buckets })
+    if (buckets.some(x => !Number.isFinite(+x))) throw "One of the bucket cells contains something other than a number."
+    const arr = buckets.map(i => coll[i])
+    console.log({ arr })
+    const j = JSON.stringify({
+        arr, //safekeeping
+        BUCKETS: arr.map(x => x.map(u => u[0])),
+        solStr: currentBankBucket.map(x => x[2]).join(";"),
+        solArr: currentBankBucket.map(x => x[2])
+    })
+    await but("Download")
+    log(`Reminder: NEVER put either the bank.xlsx or bucket.json in the games/docs folder,
+or it will be exposed to the students.
+
+You can now download bucket.json. Rename it to something more descriptive and keep it safe!`)
+    // MM.downloadFile(j, "bucket.json")
+    await fileAPI.write(`secrets/bucket${MM.lettersAndNumberOnly(MM.dateAndTime())}.json`,
+        j)
+    log(`Success, bucket.json downloaded to the secrets folder.
+ You may now close the app.`)
+
+})
+
+
+
+
+
+
+
+
+
+
 const optionsMenu = async () => {
     log("What would you like to do?")
     const ob = []
