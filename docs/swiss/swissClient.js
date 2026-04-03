@@ -236,21 +236,29 @@ class Game extends GameCore {
         const setPlayers = new Button()
         setPlayers.txt = "Add players"
         setPlayers.width = RIGHT
-        setPlayers.on_release = () => {
-            const list = prompt("Player names copied from Excel, \n or separated by commas and semicolons")
-            if (!list) return
-            players.push(...list
-                .split("\r").join("")
-                .split("\n")
-                .flatMap(x => x.split(","))
-                .flatMap(x => x.split(";"))
-                .map(x => new Player(x)))
+
+        this.setPlayersAction = (overrideNameList = null) => {
+            if (!overrideNameList) {
+                const list =
+                    prompt("Player names copied from Excel, \n or separated by commas and semicolons")
+                if (!list) return
+                players.push(...list
+                    .split("\r").join("")
+                    .split("\n")
+                    .flatMap(x => x.split(","))
+                    .flatMap(x => x.split(";"))
+                    .map(x => new Player(x)))
+            } else {
+                players.push(...overrideNameList.map(x => new Player(x)))
+            }
             players.forEach((x, i) => x.id = i)
             if (!round) {
                 this.rearrange()
                 share(players)
             }
         }
+
+        setPlayers.on_release = this.setPlayersAction.bind(this)
         setPlayers.rightat(this.rect.right)
         setPlayers.topat(0)
         this.add_drawable(setPlayers)
@@ -383,6 +391,18 @@ class Game extends GameCore {
 //#region dev options
 /// dev options
 const dev = {
-
+    save: () => {
+        MM.exportJSON(
+            players.map(x => [x.name, x.score])
+            , "Swiss" + MM.lettersAndNumberOnly(MM.dateAndTime())) + ".json"
+    },
+    load: () => { //for some reason this sucks.
+        MM.importJSON().then(j => {
+            game.setPlayersAction(j.map(x => x[0]))
+            console.log(j)
+            console.log(players)
+            players.forEach((p, i) => p.score = j[i])
+        })
+    }
 
 }/// end of dev
