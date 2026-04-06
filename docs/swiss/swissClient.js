@@ -75,7 +75,7 @@ class Player {
     }
     _tie() {
         this.scoreToBeGained = SCORE_ON_TIE
-        this.button.color = SCORE_ON_TIE
+        this.button.color = TIE_COLOR
         this.resolved = true
     }
     rest() {
@@ -238,7 +238,7 @@ class Game extends GameCore {
         setPlayers.width = RIGHT
 
         this.setPlayersAction = (overrideNameList = null) => {
-            if (!overrideNameList) {
+            if (overrideNameList == null) {
                 const list =
                     prompt("Player names copied from Excel, \n or separated by commas and semicolons")
                 if (!list) return
@@ -252,7 +252,7 @@ class Game extends GameCore {
                 players.push(...overrideNameList.map(x => new Player(x)))
             }
             players.forEach((x, i) => x.id = i)
-            if (!round) {
+            if (!round && overrideNameList == null) {
                 this.rearrange()
                 share(players)
             }
@@ -276,6 +276,7 @@ class Game extends GameCore {
         timer.fontSize = 200
         timer.transparent = true
         timer.dynamicText = () => MM.toMMSS(this.timeCount)
+        this.timer = timer
         const timerSet = new Button()
         timerSet.txt = "Set"
         timerSet.on_click = () => {
@@ -305,6 +306,8 @@ class Game extends GameCore {
                     this.timeCount = 0
                     timerIsRunning = false
                     clearInterval(a)
+                    this.animator.add_anim(Anim.stepper(this.timer, 1000, "rad", 0, TWOPI,
+                        { ditch: true, repeat: 10, lerp: Anim.l.smootherstep }))
                 }
             }, 1000)
         }
@@ -401,8 +404,11 @@ const dev = {
             game.setPlayersAction(j.map(x => x[0]))
             console.log(j)
             console.log(players)
-            players.forEach((p, i) => p.score = j[i])
+            players.forEach((p, i) => p.score = +(j[i][1]))
+            game.rearrange()
+            share(players)
         })
-    }
+    },
+    share: () => { share(players); game.rearrange() }
 
 }/// end of dev
