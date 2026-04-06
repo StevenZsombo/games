@@ -71,7 +71,7 @@ class Player {
     }
     _tie() {
         this.scoreToBeGained = SCORE_ON_TIE
-        this.button.color = SCORE_ON_TIE
+        this.button.color = TIE_COLOR
         this.resolved = true
     }
     rest() {
@@ -259,6 +259,9 @@ class Game extends GameCore {
                     this.timeCount = 0
                     timerIsRunning = false
                     clearInterval(a)
+                    this.animator.add_anim(Anim.stepper(timer, 1000, "rad", 0, TWOPI,
+                        { ditch: true, repeat: 10, lerp: Anim.l.smootherstep }))
+
                 }
             }, 1000)
         }
