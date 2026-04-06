@@ -832,6 +832,7 @@ class Supabase {
 
 	static SUPABASE_URL = 'https://mmkukvludjvnvfokdqia.supabase.co';
 	static SUPABASE_KEY = 'sb_publishable_de7_OBQ3K3HrwcPWYlnSIQ_q-X_JH5t';
+	static BUCKET_NAME = 'pngBucket';
 	/** @param {*} callback - Called as callback(event,data) */
 	static async addRow(event, data, callback) {
 		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
@@ -902,6 +903,36 @@ class Supabase {
 	}
 
 
+	static async uploadImage(file, fileName) { //awesome!
+		const url =
+			`${Supabase.SUPABASE_URL}/storage/v1/object/${Supabase.BUCKET_NAME}/uploads/${fileName ?? Date.now()}.png`
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"apikey": Supabase.SUPABASE_KEY,
+				"Authorization": `Bearer ${Supabase.SUPABASE_KEY}`,
+				"Content-Type": file.type
+			},
+			body: file
+		})
+		if (!response.ok) throw new Error(await response.text())
+		return await response.json()
+	}
+
+	static async uploadImageWithPicker(fileName, alertMsg, promptMsg) {
+		const input = document.createElement("input")
+		input.type = "file"
+		input.accept = "image/png"
+		input.onchange = async (e) => {
+			const file = e.target.files[0]
+			if (!file) return
+			return await Supabase.uploadImage(file, fileName)
+		}
+		if (alertMsg) alert(alertMsg)
+		if (promptMsg) fileName = prompt(promptMsg)
+		input.click()
+		input.remove()
+	}
 
 }
 //#endregion
