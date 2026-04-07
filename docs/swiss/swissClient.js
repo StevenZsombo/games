@@ -273,7 +273,8 @@ class Game extends GameCore {
 
         const ping = advance.copy
         ping.move(0, ping.height * 1.5)
-        ping.txt = "Ping"
+        ping.dynamicText = () => chat.isConnected ? "good" : "DISCONNECTED: ping"
+        ping.dynamicColor = () => chat.isConnected ? "lightgray" : "red"
         ping.on_release = () => chat.sendMessage({ want: "GameEffects.popup('pong')" })
         this.ping = ping
         this.add_drawable(ping)
