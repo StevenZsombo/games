@@ -237,8 +237,9 @@ class Game extends GameCore {
         setPlayers.txt = "Add players"
         setPlayers.width = RIGHT
 
-        this.setPlayersAction = (overrideNameList = null) => {
-            if (overrideNameList == null) {
+        this.setPlayersAction = (overrideNameList) => {
+            console.log({ overrideNameList })
+            if (overrideNameList == null || overrideNameList == undefined) {
                 const list =
                     prompt("Player names copied from Excel, \n or separated by commas and semicolons")
                 if (!list) return
@@ -258,7 +259,7 @@ class Game extends GameCore {
             }
         }
 
-        setPlayers.on_release = this.setPlayersAction.bind(this)
+        setPlayers.on_release = () => this.setPlayersAction()
         setPlayers.rightat(this.rect.right)
         setPlayers.topat(0)
         this.add_drawable(setPlayers)
@@ -269,6 +270,13 @@ class Game extends GameCore {
         advance.txt = "Next round"
         advance.on_release = this.nextRound.bind(this)
         this.add_drawable(advance)
+
+        const ping = advance.copy
+        ping.move(0, ping.height * 1.5)
+        ping.txt = "Ping"
+        ping.on_release = () => chat.sendMessage({ want: "GameEffects.popup('pong')" })
+        this.ping = ping
+        this.add_drawable(ping)
 
 
         this.timeCount = 6 * 60 * 1000
@@ -329,6 +337,10 @@ class Game extends GameCore {
                 receive(msg.receiveSwiss)
 
         }
+        if (chat.isConnected)
+            chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
+        else chat.on_join_once = () =>
+            chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
 
     }
 
