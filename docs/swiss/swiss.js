@@ -208,8 +208,12 @@ class Game extends GameCore {
         const setPlayers = new Button()
         setPlayers.txt = "Add players"
         setPlayers.width = RIGHT
-        setPlayers.on_release = () => {
-            const list = prompt("Player names copied from Excel, \n or separated by commas and semicolons")
+
+
+        this.setPlayersAction = (overrideNameList) => {
+            const list =
+                overrideNameList ??
+                prompt("Player names copied from Excel, \n or separated by commas and semicolons")
             if (!list) return
             players.push(...list
                 .split("\r").join("")
@@ -220,8 +224,11 @@ class Game extends GameCore {
             if (!round) this.rearrange()
             players.forEach((x, i) => x.id = i)
         }
+
+        setPlayers.on_release = () => this.setPlayersAction()
         setPlayers.rightat(this.rect.right)
         setPlayers.topat(0)
+        this.setPlayers = setPlayers
         this.add_drawable(setPlayers)
 
 
@@ -333,8 +340,23 @@ class Game extends GameCore {
 } //this is the last closing brace for class Game
 
 //#region dev options
-/// dev options
+/// dev. options
 const dev = {
-
+    save: () => { //this sucks enourmous donkey dicks
+        MM.exportJSON(
+            players.map(x => [x.name, x.score])
+            , "Swiss" + MM.lettersAndNumberOnly(MM.dateAndTime())) + ".json"
+    },
+    load: () => { //for some reason this sucks too.
+        MM.importJSON().then(j => {
+            game.setPlayersAction.call(
+                game,
+                (j.map(x => x[0]).join(";")))
+            console.log(j)
+            console.log(players)
+            players.forEach((p, i) => p.score = +(j[i][1]))
+            game.rearrange()
+        })
+    },
 
 }/// end of dev
