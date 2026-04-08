@@ -559,7 +559,7 @@ class Game extends GameCore {
                     GameEffects.popup("ERROR: myKingdomID is somehow null,\n ask the teacher for help.", undefined, GRAPHICS.POPUP_ERROR)
                     throw new Error("Kingdom is somehow undefined when trying to send it!")
                 }
-                chat.sendMessage({ kingdom: myKingdomID }) //re-announce kingdom on each reconnect!
+                chat.sendMessage({ presentResponse: myKingdomID }) //re-announce kingdom on each reconnect!
             }
 
             this.afterEverythingHasLoaded()
@@ -669,7 +669,7 @@ class Game extends GameCore {
         window.wProgress?.("game.enter()")
         const enterAction = () => {
             const obj = chat.sendSecure({ kingdom: myKingdomID })
-            window.wProgress?.(`\nsendSecure(${obj.id})\n`)
+            window.wProgress?.(`\nsendSecure(${chat.nameID})\n`)
         }
         if (chat.isConnected) enterAction()
         else { chat.on_join_once = enterAction }

@@ -1,9 +1,62 @@
-Download and install:
-1. Firefox or Opera, whichever you do not already use. 
-   This will be a fallback for debugging if something goes haywire.
-2. Notepadpp (Notepad++). Once downloaded, go to
-   Plugins -> Plugins admin -> Search for JSTool -> Install it
-3. Create an empty folder called "games" somewhere easy to find.
+Before starting the game:
+1.  Make sure that the correct map.json file is loaded.
+    It is in Steven/games/docs/conquest/maps.
+2.  Run the server executable.
+    It will tell you the IP address students can connect to LATER.
+3.  Run the Electron application BEFORE students start joining.
+    It should load the game.
+4.  dev -> ERASE QUICKSAVES (important!)
+5.  SERVER -> MAXATTACKS -> 1 to start with.
+    Can increase later.
+
+
+Students can now start joining to the IP address.
+6.  If a student has an (X) next to their name then they lost connection.
+    Small handheld devices may lose connection repeatedly. It is not an issue in general.
+    The students might be annoyed (the page will refresh 
+    instead of submitting their answers so they will need to type it in again).
+7.  SERVER -> START to begin the game.
+
+Student management:
+Click on team side banner (small one, next to the map), then you can pick a student and
+order them to change their name or kingdom if necessary.
+
+During the game:
+SERVER -> INVALIDATE -> QUESTIONID to erase a faulty question from the question bank.
+Gradually increase SERVER -> MAXATTACKS throughout the game. Use your judgement.
+
+Ending the game:
+9.  SERVER -> END -> Yes to end the game.
+10. SERVER -> DISPLAY to show students the server screen.
+11. SERVER -> DOWNLOAD to let students download a copy of the server screen.
+
+After the game:
+12. Close both the Electron and the server app.
+13. Send me a copy of:
+- Steven/clipped/conquestEnd(numbers).json
+- Steven/games/docs/record.txt
+- You can make a timelapse out of the "timelapse" pictures in the clipped folder 
+  if you wish on https://sisik.eu/images-to-video
+
+
+
+Client (student)-side issues & fixes:
+Image won't center or is too zoomed in - tap the gray header "Conquest game" several times.
+Can't enter fullscreen - tap the student's name in the right-upper corner.
+If neither works, add #s at the end of the URL to enable "scrolling" and zooming.
+
+Stuck on loading screen - tap the text several times to flush and refresh.
+
+Suspect memory issues (on very low end devices), add #l at the end of the URL to force "low" map quality.
+(The opposite is #h for "high" map quality if you want to show the game on the smart board.)
+
+Anything else: add #d at the end of the URL to allow "debug" info to be printed on the page,
+then call me for help or take pictures of the errors log.
+
+
+
+
+
 
 
 

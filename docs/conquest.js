@@ -84,11 +84,11 @@ class Person extends Participant {
 
     assignKingdom(kingdom) {
         /**@type {Kingdom} */
-        if (this.kingdom === kingdom) return false
+        let isNew = this.kingdom !== kingdom
         this.kingdom = kingdom
-        game?.kingdoms?.forEach(x => x.members.delete(this))
+        game?.kingdoms?.forEach(x => x.members.delete(this)) //this busywork is not an issue
         kingdom.members.add(this)
-        return true
+        return isNew
     }
 
     verifyKingdomAssignedAlready() { //rejects connection if no kingdom, but contributing action
@@ -305,7 +305,7 @@ listener.on_message = (obj, person) => {
         // if (+obj.kingdom === person.kingdom?.id) return //can safely resend kingdom!
         //idiot.
         const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom])
-        if (newlyJoined)
+        if (true || newlyJoined)// for now
             SHAREmany([
                 "kingdomsFullData",
                 "territoriesFullData",

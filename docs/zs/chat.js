@@ -317,7 +317,7 @@ class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
         this.receiveMessage = null//set to nothing, won't be needed anyways
-        this.isLoggingTargeting = true
+        this.isLoggingTargeting = false
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
