@@ -718,80 +718,116 @@ class Game extends GameCore {
 
 
         const SERVERBUTTON = () => {
-            const obj = new Map()
-            const comm = new Map()
+            const parr = []
             if (!this.attacksAllowed && !this.isPaused) {
-                obj["START"] = () => { hq.startContest(); spop("Started.") }
-                comm["START"] = "Start the game."
+                if (Question.ALL.length) {
+                    parr.push(
+                        ["START", () => { hq.startContest(); spop("Started.") }, "Start the game"]
+                    )
+                } else {
+                    parr.push(
+                        ["BUCKETS", () => {
+                            Question.importBuckets()
+                                .then(x => {
+                                    spop(`Buckets set!`
+                                        + `\nQuestion.ALL.length = ${Question.ALL.length}`
+                                        + `\nQuestion.BUCKETS.length = ${Question.BUCKETS.length}`
+                                    )
+                                    console.log("Question.ALL.length=", Question.ALL.length)
+                                    console.table(Question.BUCKETS)
+                                    console.log({ BUCKETS: Question.BUCKETS })
+                                })
+                                .catch(err => {
+                                    console.error("Can't load buckets." + err)
+                                    spop("ERROR LOADING BUCKETS.")
+                                })
+                        }, "Set buckets for the game."]
+                    )
+                }
             }
             if (this.attacksAllowed || this.isPaused) {
-                obj[this.isPaused ? "UNPAUSE" : "PAUSE"] = () => {
-                    this.isPaused ? UNPAUSE() : PAUSE()
-                }
-                comm["PAUSE"] = "Pause / unpause.\nPrevents solving questions too."
+                parr.push(
+                    [this.isPaused ? "UNPAUSE" : "PAUSE",
+                    () => {
+                        this.isPaused ? UNPAUSE() : PAUSE()
+                    }, "Pause or unpause.\nPrevents solving questions too."
+                    ]
+                )
             }
-            obj[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = () => {
-                GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
-                    RULES.MAX_ATTACKS_ALLOWED = x //this sucks but whatevs
-                    chat.sendMessage({
-                        popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
-                        popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+            parr.push(
+                [`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`
+                    ,
+                () => {
+                    GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
+                        RULES.MAX_ATTACKS_ALLOWED = x //this sucks but whatevs
+                        chat.sendMessage({
+                            popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
+                            popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
 
+                        })
+                        spop(`Rule: ${RULES.MAX_ATTACKS_ALLOWED} attacks at time.`)
+                    }]), null, null, null, null, [this.overlay])
+                }
+                    ,
+                    "Set the maximum number of attacks per team at a time.\nConsider starting with the game with 1."
+                ]
+            )
+            parr.push(["ATTENDANCE", ATTENDANCE, "Prompt client responses, and\n(attempt to) put them in fullscreen."])
+
+            parr.push(["INVALIDATE"
+                ,
+                () => {
+                    const currQuestions =
+                        [...new Set(this.conflicts.filter(x => x.solving).map(x => x.question.id))].sort((x, y) => x - y)
+                    if (!currQuestions.length) {
+                        spop("no conflicts")
+                        return
+                    }
+                    GameEffects.dropDownMenu(currQuestions.map(id => [id, () => `Q${INVALIDATE(id)}`]),
+                        null, null, null, null, [this.overlay])
+                }
+                ,
+                `Remove a currently visible question from the question bank.`
+            ])
+            parr.push(["DISPLAY", DISPLAY, "Share a screenshot of the server screen."])
+            parr.push(["DOWNLOAD", DOWNLOAD, "Let students download a screenshot of the server screen."])
+            parr.push(["CLIPBOARD", CLIPBOARD, "First, paste a picture onto the canvas. Then send to students."])
+            parr.push(["HARDREFRESH", HARDREFRESH, "Fully synchronizes each connected student."])
+            parr.push(["RELOAD", RELOAD, "Reloads the browser page of each connected student."])
+
+            if (this.attacksAllowed || this.isPaused) {
+                parr.push(["END"
+                    ,
+                    () => GameEffects.dropDownMenu({
+                        "Sure?": () => { },
+                        "Yes": () => {
+                            hq.endContest()
+                            // ; spop("Contest ended.") //will be done in green anyways
+                        },
+                        "No": () => { },
+                    }, null, null, null, null, [this.overlay])
+                    ,
+                    "Ends the contest.\nRequires confirmation."
+                ])
+            }
+            parr.push(["LOADSAVE"
+                ,
+                () =>
+                    game.loadGameFromFile().then(x => {
+                        HARDREFRESH()
                     })
-                    spop(`Rule: ${RULES.MAX_ATTACKS_ALLOWED} attacks at time.`)
-                }]), null, null, null, null, [this.overlay])
-            }
-            comm[`MAXATTACKS=${RULES.MAX_ATTACKS_ALLOWED}`] = "Set the maximum number of attacks per team at a time.\nConsider starting with the game with 1."
-            obj["ATTENDANCE"] = ATTENDANCE
-            comm["ATTENDANCE"] = "Prompt client responses, and\n(attempt to) put them in fullscreen."
-            obj["INVALIDATE"] = () => {
-                const currQuestions =
-                    [...new Set(this.conflicts.filter(x => x.solving).map(x => x.question.id))].sort((x, y) => x - y)
-                if (!currQuestions.length) {
-                    spop("no conflicts")
-                    return
-                }
-                GameEffects.dropDownMenu(currQuestions.map(id => [id, () => `Q${INVALIDATE(id)}`]),
-                    null, null, null, null, [this.overlay])
-            }
-            comm["INVALIDATE"] = `Remove a currently visible question from the question bank.`
-            obj["DISPLAY"] = DISPLAY
-            comm["DISPLAY"] = "Share a screenshot of the server screen."
-            obj["DOWNLOAD"] = DOWNLOAD
-            comm["DOWNLOAD"] = "Let students download a screenshot of the server screen."
-            obj["CLIPBOARD"] = CLIPBOARD
-            comm["CLIPBOARD"] = "First, paste a picture onto the canvas. Then send to students."
-            obj["HARDREFRESH"] = HARDREFRESH
-            comm["HARDREFRESH"] = "Fully synchronizes each connected student."
-            obj["RELOAD"] = RELOAD
-            comm["RELOAD"] = "Reloads the browser page of each connected student."
-            if (this.attacksAllowed || this.isPaused) {
-                obj["END"] = () => GameEffects.dropDownMenu({
-                    "Sure?": () => { },
-                    "Yes": () => {
-                        hq.endContest()
-                        // ; spop("Contest ended.") //will be done in green anyways
-                    },
-                    "No": () => { },
-                }, null, null, null, null, [this.overlay])
-                comm["END"] = "Ends the contest."
-            }
-            obj["LOADSAVE"] = () => {
-                game.loadGameFromFile().then(x => {
-                    HARDREFRESH()
-                })
-            }
-            comm["LOADSAVE"] = "Loads a manual- or autosave from file."
+                ,
+                "Loads a manual- or autosave from file."
+            ])
 
 
 
-            const dd = GameEffects.dropDownMenu(obj, null, null, null,
+            const dd = GameEffects.dropDownMenu(parr.map(x => [x[0], x[1]]), null, null, null,
                 { fontSize: 24, width: 250, height: 80 },
                 [this.overlay], true, () => inspector.reset()
             )
-
-            Object.values(comm).forEach((x, i) =>
-                inspector.addChild(dd.menuButtons[i], x))
+            parr.forEach((x, i) =>
+                inspector.addChild(dd.menuButtons[i], x[2]))
         }
 
         //MAPBUTTON goes here. when i feel like it.
@@ -812,7 +848,7 @@ class Game extends GameCore {
                     }])]
                     /*[...Object.keys(dev).map(x => [`dev.${x}`, () => {
                         console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
-    
+         
                     }])]*/
                     .concat([
                         [`kingdoms = ${RULES.NUMBER_OF_TEAMS}`, () => {

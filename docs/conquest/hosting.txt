@@ -6,16 +6,17 @@ Before starting the game:
 3.  Run the Electron application BEFORE students start joining.
     It should load the game.
 4.  dev -> ERASE QUICKSAVES (important!)
-5.  SERVER -> MAXATTACKS -> 1 to start with.
+5.  SERVER -> BUCKETS to set the buckets file (is in Steven/secrets)
+6.  SERVER -> MAXATTACKS -> 1 to start with.
     Can increase later.
 
 
 Students can now start joining to the IP address.
-6.  If a student has an (X) next to their name then they lost connection.
+7.  If a student has an (X) next to their name then they lost connection.
     Small handheld devices may lose connection repeatedly. It is not an issue in general.
     The students might be annoyed (the page will refresh 
     instead of submitting their answers so they will need to type it in again).
-7.  SERVER -> START to begin the game.
+8.  SERVER -> START to begin the game.
 
 Student management:
 Click on team side banner (small one, next to the map), then you can pick a student and

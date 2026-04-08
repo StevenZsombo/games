@@ -355,16 +355,26 @@ class Conflict {
                 !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x))
             if (unseenbyboth.length) return MM.choice(unseenbyboth)
         }
-        //if no unseen question -> fallback to unsolved
+        //if no unseen question -> fallback to seen but unsolved
         for (let bucket of Question.BUCKETS) {
             const inthebucket = bucket.map(i => Question.ALL[i])
-            const unsolvedbyboth = inthebucket.filter(x =>
+            const unsolvedbybothwhileseenbybothorneither = inthebucket.filter(x =>
+                !Question.INVALID_IDS.has(x.id) &&
+                !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x) &&
+                !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x)) &&
+                (this.attacker.seenQuestions.has(x) == this.defender.seenQuestions.has(x))
+            if (unsolvedbybothwhileseenbybothorneither.length) return MM.choice(unsolvedbybothwhileseenbybothorneither)
+        }
+        //if no "fair question" -> fallback to unsolved
+        for (let bucket of Question.BUCKETS) {
+            const inthebucket = bucket.map(i => Question.ALL[i])
+            const unsolvedbybothbutseenbyjustone = inthebucket.filter(x =>
                 !Question.INVALID_IDS.has(x.id) &&
                 !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x) &&
                 !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x))
-            if (unsolvedbyboth.length) return MM.choice(unsolvedbyboth)
+            if (unsolvedbybothbutseenbyjustone.length) return MM.choice(unsolvedbybothbutseenbyjustone)
         }
-        //if fully exhausted, return null. conflict.accept will resolve the conflict and send a message
+        //if fully exhausted, return null. conflict.accept will instead resolve the conflict and send a message
         return null
     }
     assignQuestion() {
@@ -580,10 +590,23 @@ class Question {
         [[102, 106, 109, 111, 112, 113, 118, 123, 127, 128, 129, 131], [103, 104, 120, 121, 122], [100, 101, 105, 108, 110, 114, 115], [116, 117, 124, 126, 130, 132, 133], [107, 119, 125, 134], [9, 19, 29, 39, 49, 59, 69, 79, 89, 99], [8, 18, 28, 38, 48, 58, 68, 78, 88, 98], [7, 17, 27, 37, 47, 57, 67, 77, 87, 97], [6, 16, 26, 36, 46, 56, 66, 76, 86, 96], [5, 15, 25, 35, 45, 55, 65, 75, 85, 95], [4, 14, 24, 34, 44, 54, 64, 74, 84, 94], [3, 13, 23, 33, 43, 53, 63, 73, 83, 93], [2, 12, 22, 32, 42, 52, 62, 72, 82, 92], [1, 11, 21, 31, 41, 51, 61, 71, 81, 91], [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]]
     /**@type {Question[]} */
     //Question.ALL
-    static ALL =
-        "343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;10;21;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.556;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414;-768;0.042;0.723;0.724;0.75;1.5;1.57;10.8;13;18;19.5;2;2;2;2;2.11;2.5;28;6;3;30;4;4;4;4;43.7;48.2;5;5;5;5;8.33;5.1;7;94.5"
-            .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
+    static ALL = []
+    //nastyness removed!
+    //"343;2.5;6.32;7;13;20;2.8;0.6;0.4;14.3;2.5;0.667;4.25;7.11;-0.31;3;1.5;3.38;0.286;2;33;0.25;5;1.4;-10;-1.2;-5;0.25;3.5;2.04;2.56;16;1.33;-1;10;21;0.105;0.096;1.33;942;1.33;8;-10;3;6;3;1.75;45;2.25;3;-0.0741;13;13;20;11;-1.33;2.5;7.35;30.5;3.08;-45;4.29;21;18;4;234;2.43;465;1;11;70;78.125;2.09;35;107000;7;17;-54.5;10.8;-20;-3.75;288;675;3;560;140;5.25;-1.125;2;0.556;756;116.6;290;2.36;305.3;278.1;43;28;0.983;414;-768;0.042;0.723;0.724;0.75;1.5;1.57;10.8;13;18;19.5;2;2;2;2;2.11;2.5;28;6;3;30;4;4;4;4;43.7;48.2;5;5;5;5;8.33;5.1;7;94.5"
+    //  .split(";").map(Number).map((x, i) => new Question(i, { img: i, sol: x }))
     static CLIENT = (qID) => ({ img: qID })
+
+    static async importBuckets() { //let it throw!
+        // try { 
+        const json = await MM.importJSON()
+        if (!json) throw "empty json"
+        Question.ALL = json.solArr.map(Number) // just in case, tho worrisome
+            .map((x, i) => new Question(i, { img: i, sol: x }))
+        Question.BUCKETS = json.BUCKETS
+        // } catch (err) { console.error("Can't import buckets", err) }
+    }
+
+
     /**
      * @type {Array<{
      * id:number,

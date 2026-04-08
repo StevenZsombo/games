@@ -427,9 +427,10 @@ Empty cell = no bucket = question will not be included in the game.`)
     await but("Upload Excel")
     let data = await MM.importExcel()
     log("Verifying...")
-    let firstFourColumns = data.map(x => x.slice(0, 4))
+    let firstFourColumns = data.map(x => x.slice(0, 4)).map(x => [+x[0], x[1], +x[2], +x[3]])
     let matchingRows = firstFourColumns.filter(x => filesInQuestionsBucket.has(x[0]))
     matchingRows.sort((x, y) => x[0] - y[0])
+    console.log({ filesInQuestionsBucket, firstFourColumns, matchingRows })
     if (matchingRows.some((x, i) => i != +x[0])) throw ("Invalid or missing id in Excel")
     if (matchingRows.length != filesInQuestionsBucket.size) throw ("Missing a row in Excel.")
     currentBankBucket = matchingRows
@@ -445,10 +446,18 @@ bucketProcess.push(async () => {
     const coll = currentBankBucket.reduce((s, t) => ((s[t[3]] ??= []).push(t), s), {}) //t[3] is bucket
     console.log({ coll })
     const buckets = Object.keys(coll).filter(x =>
-        x !== "" && x !== undefined && x !== null && x !== "undefined" && x !== "null"
+        x !== "" &&
+        x !== undefined &&
+        x !== null &&
+        x !== "undefined" &&
+        x !== "null" &&
+        Number.isFinite(+x)
     ).sort((x, y) => x - y)
     console.log({ buckets })
-    if (buckets.some(x => !Number.isFinite(+x))) throw "One of the bucket cells contains something other than a number."
+    if (buckets.some(x => !Number.isFinite(+x))) {
+        console.error("bad", buckets.filter(x => !Number.isFinite(+x)))
+        throw "One of the bucket cells contains something other than a number."
+    }
     const arr = buckets.map(i => coll[i])
     console.log({ arr })
     const j = JSON.stringify({
@@ -457,6 +466,7 @@ bucketProcess.push(async () => {
         solStr: currentBankBucket.map(x => x[2]).join(";"),
         solArr: currentBankBucket.map(x => x[2])
     })
+    log("Download is ready!")
     await but("Download")
     log(`Reminder: NEVER put either the bank.xlsx or bucket.json in the games/docs folder,
 or it will be exposed to the students.
@@ -484,7 +494,7 @@ const optionsMenu = async () => {
     const ob = []
     ob.push(["Add more questions to the bank.", () => fullProcess(addProcess)])
     ob.push(["Create/restore bank.xlsx", () => createOrRestoreBankXLSX()])
-    ob.push(["Organize buckets.", () => { log("TODO.") }])
+    ob.push(["Organize buckets.", () => { fullProcess(bucketProcess) }])
     const buttons = []
     for (let i = 0; i < ob.length; i++) {
         const btn = document.createElement("button")
