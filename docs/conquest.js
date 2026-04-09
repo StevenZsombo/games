@@ -105,6 +105,15 @@ class Person extends Participant {
     }
 }
 //#endregion
+const asyncprompt = (txt) => {
+    return new Promise((resolve, reject) => {
+        if (!game) reject("asyncprompt: no game")
+        const rect = new Rect(game.mouser.x - 105, game.mouser.y, 210, 140).fitWithinAnother(game.rect)
+        const ib = GameEffects.inputBoxFromRect(rect, (val) => resolve(val))
+        ib.textContent = txt
+        ib.focus()
+    })
+}
 
 const listener = new Listener()
 listener.on_participant_join = Person.check
@@ -638,7 +647,7 @@ class Game extends GameCore {
 
         serverButton.topat(this.border.bot.top + 20)
         serverButton.bottomstretchat(snapShotButton.top - 20)
-        serverButton.leftat(snapShotButton.left - (switchModeButton.left - snapShotButton.left) + 30)
+        serverButton.leftat(snapShotButton.left - (switchModeButton.left - snapShotButton.left) * 1)
 
         // this.mapIMG = Gimmicks.createBackground(this)
         this.initialize_scores()
@@ -772,7 +781,7 @@ class Game extends GameCore {
                     "Set the maximum number of attacks per team at a time.\nConsider starting with the game with 1."
                 ]
             )
-            parr.push(["ATTENDANCE", ATTENDANCE, "Prompt client responses, and\n(attempt to) put them in fullscreen."])
+            parr.push(["ATTENDANCE", ATTENDANCE, "Ping client responses, and\n(attempt to) put them in fullscreen."])
 
             parr.push(["INVALIDATE"
                 ,
@@ -846,20 +855,25 @@ class Game extends GameCore {
                         dev._resetOnClicks()
                         dev[x]()
                     }])]
-                    /*[...Object.keys(dev).map(x => [`dev.${x}`, () => {
+                    /*[...Object.keys(dev).map(x => [`dev.${x}`, () => { //CLEVER BUT NOT NEEDED
                         console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
          
                     }])]*/
                     .concat([
                         [`kingdoms = ${RULES.NUMBER_OF_TEAMS}`, () => {
-                            RULES.NUMBER_OF_TEAMS = +prompt("how many kingdoms?")
-                            MANAGER.saveToLocal()
-                            chat.silentReload()
+
+                            asyncprompt("how many kingdoms?").then(val => {
+                                RULES.NUMBER_OF_TEAMS = +val
+                                MANAGER.saveToLocal()
+                                chat.silentReload()
+                            })
                         }],
                         [`territories = ${RULES.NUMBER_OF_TERRITORIES}`, () => {
-                            RULES.NUMBER_OF_TERRITORIES = +prompt("how many territories?")
-                            MANAGER.saveToLocal()
-                            chat.silentReload()
+                            asyncprompt("how many territories?").then(val => {
+                                RULES.NUMBER_OF_TERRITORIES = +val
+                                MANAGER.saveToLocal()
+                                chat.silentReload()
+                            })
                         }]
                     ])
                     .concat([
@@ -1207,6 +1221,7 @@ class Game extends GameCore {
                     x => x.name + (x.isConnected ? "" : " (X)"))).join("\n")
             }
             b.color = k.color
+            b.on_release = () => this.playerMenu(k)
             b.bottomat(this.border.bot.top)
             b.height -= 150
             b.textSettings = { textBaseline: "top" }
@@ -1270,11 +1285,13 @@ class Game extends GameCore {
             ],
             ["Rename",
                 () => {
-                    let nn = prompt("What shall their new name be?")
-                    if (nn.length < 4) nn += "1234"
-                    chat.orderForceName(person.nameID, nn)
-                    this.kingdoms.forEach(x => x.members.delete(person))
-                    spop(`Set.`)
+                    asyncprompt("What shall their new name be?").then(nn => {
+                        if (nn.length < 4) nn += "1234"
+                        chat.orderForceName(person.nameID, nn)
+                        this.kingdoms.forEach(x => x.members.delete(person))
+                        spop(`Set.`)
+
+                    })
                 }
             ],
             ["Reassign to kingdom",
@@ -1449,7 +1466,7 @@ const dev = {
     n: name => game.kingdoms.find(x => x.name.includes(name)),
     t: name => game.territories.find(x => x.name.includes(name)),
     _members: () => console.table(game.kingdoms.map(x => [x.name, ...x.members.values().map(x => x.name)])),
-    renameTerritory: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
+    renameTerritoryDEPR: (newName) => Territory.LCP.name = newName ?? prompt("newName:"),
     _resetOnClicks: () => {
         game.buts.forEach(x => {
             x.on_click = null
@@ -1473,8 +1490,11 @@ const dev = {
         }
     },
     dragToMove: () => game.buts.forEach(x => Button.make_draggable(x)),
-    clickToRename: () => game.buts.forEach(x => x.on_click = function () { this.territory.name = prompt() }),
-    _clickToAcquire: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
+    clickToRename: () => game.buts.forEach(x => x.on_click = function () {
+        //this.territory.name = prompt()
+        asyncprompt().then(val => x.territory.name = val)
+    }),
+    _clickToAcquireDEPR: () => game.buts.forEach(x => x.on_click = function () { dev.n(prompt()).acquireTerritory(this.territory) }),
     clickToReassign: () => {
         const colorPicker = (territory) => {
             const ddm = GameEffects.dropDownMenu(
@@ -1550,6 +1570,9 @@ const dev = {
     },
     showConnections: () => {
         game.showConnections ^= 1
+    },
+    showButtons: () => {
+        game.buts.forEach(x => x.transparent ^= 1)
     },
     showValencyAsValue: () => {
         game.territories.forEach(x => {
