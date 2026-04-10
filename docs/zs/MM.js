@@ -1965,7 +1965,7 @@ class GameEffects {
         invis.visible = false
         invis.on_click = () => {
             try { document.documentElement.requestFullscreen() }
-            catch (err) { console.errolog("can't fullscreen") }
+            catch (err) { console.error("can't fullscreen") }
             game.remove_drawable(invis)
         }
         game.add_drawable(invis)

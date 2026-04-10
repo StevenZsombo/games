@@ -361,8 +361,8 @@ class Conflict {
             const unsolvedbybothwhileseenbybothorneither = inthebucket.filter(x =>
                 !Question.INVALID_IDS.has(x.id) &&
                 !this.attacker.solvedQuestions.has(x) && !this.defender.solvedQuestions.has(x) &&
-                !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x)) &&
-                (this.attacker.seenQuestions.has(x) == this.defender.seenQuestions.has(x))
+                !this.attacker.activeQuestions.has(x) && !this.defender.activeQuestions.has(x) &&
+                (this.attacker.seenQuestions.has(x) == this.defender.seenQuestions.has(x)))
             if (unsolvedbybothwhileseenbybothorneither.length) return MM.choice(unsolvedbybothwhileseenbybothorneither)
         }
         //if no "fair question" -> fallback to unsolved
