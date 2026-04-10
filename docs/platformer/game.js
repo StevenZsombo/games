@@ -6,7 +6,7 @@ const showFramerate = true
 const imageSmoothingEnabled = true
 const imageSmoothingQuality = "high" // options: "low", "medium", "high"
 const canvasStyleImageRendering = "smooth"
-const fontFile = "resources/victoriabold.png" //set to null otherwise
+const fontFile = "../resources/victoriabold.png" //set to null otherwise
 const filesList = "" //space-separated
 
 //#region window.onload
@@ -78,7 +78,7 @@ class Game {
         }
         /**@type {Rect}*/
         this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
-        this.BGCOLOR = stgs.BGCOLOR ?? "linen"
+        this.BGCOLOR = "linen"
         //null for transparent
         this.CENTER = {
             x: this.SIZE.x / 2,
