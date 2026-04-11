@@ -83,7 +83,11 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
             }
         }
         this.add_drawable(linesDrawable, 4)
-
+        const ppp = {
+            posFrac: [.75, .8],
+            floatTime: 3000,
+            close_on_release: true
+        }
 
 
         //images
@@ -147,11 +151,13 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
 
         const swapRecord = []
         let wonAlready = false
-        const checkVictory = () => {
-            if (swapRecord.length && curr.entries().every(([k, v]) => k == v)) {
+        const checkVictory = (forced = false) => {
+            if (forced || (
+                swapRecord.length && curr.entries().every(([k, v]) => k == v)
+            )) {
                 //victory!!!
                 GameEffects.fireworksShow()
-                const p = GameEffects.popup("VICTORY!!!", { floatTime: 10000, close_on_release: true })
+                const p = GameEffects.popup("VICTORY!!!", { ...ppp, floatTime: 10000, close_on_release: true })
                 GameEffects.victorySpin(p)
                 wonAlready = true
             }
@@ -174,20 +180,21 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
         const pairings = new Set() //"body0,body1" pairs (in BOTH orders)
         const swap = (pair, animT = animTswap) => {
             if (!allowSwap) {
-                GameEffects.popup("Wait for the animation to finish!")
+                GameEffects.popup("Wait for the animation to finish!", ppp)
                 return
             }
             if (pairings.has(pair.join(","))) {
                 if (pairings.size == MM.binom(len, 2) * 2) {
                     GameEffects.popup("All possible pairs of bodies have already been swapped.\nNo more swaps can be made, game over."
-                        , { close_on_release: true, floatTime: 30000 }
+                        , { close_on_release: true, floatTime: 30000, ...ppp }
                     )
                     return
                 }
-                GameEffects.popup("Those two bodies have already swapped,\nthey cannot swap again!")
+                GameEffects.popup("Those two bodies have already swapped,\nthey cannot swap again!", ppp)
                 return
             }
             swapRecord.push(pair)
+            if (swapRecord.length > 28) recordLab.fontSize = 14
             pairings.add(pair.join(","))
             pairings.add([pair[1], pair[0]].join(","))
             allowSwap = false
@@ -233,10 +240,19 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
             draw(ctx) {
                 if (!intBut) return
                 MM.drawLine(ctx, intBut.centerX, intBut.centerY, game.mouser.pos.x, game.mouser.pos.y,
-                    { color: INTBUTCOLOR, width: 3 })
+                    { color: INTBUTCOLOR, width: 10 })
             }
         }
         this.add_drawable(intButDrawable, 6)
+        const underlay = Button.fromRect(game.rect.copy)
+        underlay.visible = false
+        underlay.on_release = () => {
+            if (intBut) {
+                bods.forEach(x => x.outline = 0)
+                intBut = null
+            }
+        }
+        this.add_drawable(underlay, 1)
         bods.forEach(
             /**@param {Button} b  */
             b => {
@@ -244,20 +260,24 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                     if (!allowClicking) return
                     if (!intBut) {
                         intBut = b
-                        b.outline = 10
-                    } else { //if (intBut)
+                        b.outline = 20
+                    }
+                }
+                b.on_release = () => {
+                    if (!allowClicking) return
+                    if (intBut) {//if (intBut)
                         bods.forEach(x => x.outline = 0)
                         if (intBut !== b) swap([intBut.tag, b.tag])
                         intBut = null
+
                     }
                 }
             })
 
-
         Object.assign(window,
             {
                 swap, bods, minds, bodsMap, mindsMap, curr, lines, allowSwap, pairings, nicks, labs, stage,
-                recordLab, swapRecord
+                recordLab, swapRecord, underlay, checkVictory
             })
 
     }
