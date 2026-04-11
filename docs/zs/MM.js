@@ -1687,15 +1687,15 @@ class GameEffects {
     }
     /**@returns {Array<Anim>} the sequence that WILL be played*/
     static victorySpin(lab, { scaleFactor = 1.6, repeat = 5 } = {}) {
-        const origSize = lab.fontsize
+        const origSize = lab.fontSize
         const newSize = origSize * scaleFactor
-        const a = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: origSize, endVal: newSize })
+        const a = () => new Anim(lab, 300, "step", { varName: "fontSize", startVal: origSize, endVal: newSize })
         const b = () => new Anim(lab, 600, "stepMany", {
-            varNames: ["rad", "fontsize"],
+            varNames: ["rad", "fontSize"],
             endVals: [TWOPI, newSize],
             startVals: [0, newSize]
         })
-        const c = () => new Anim(lab, 300, "step", { varName: "fontsize", startVal: newSize, endVal: origSize })
+        const c = () => new Anim(lab, 300, "step", { varName: "fontSize", startVal: newSize, endVal: origSize })
         const seq = []
         MM.forr(repeat, () => seq.push(a(), b(), c()))
         game.animator.add_sequence(seq)
@@ -1735,16 +1735,7 @@ class GameEffects {
         Object.assign(cp, newParamsForCopy)
         cp.interactable = false
         game.add_drawable(cp)
-        /*
-        game.animator.add_anim(cp, time, "moveTo", {
-            x: tgt.centerX - cp.width / 4,
-            y: tgt.centerY - cp.height / 4,
-            on_end: () => { game.remove_drawable(cp) },
-            noLock: true
-        })
-        game.animator.add_anim(cp, time, Anim.f.scaleToFactor, { scaleFactor: .5, noLock: true })
-        game.animator.add_anim(Anim.stepper(cp, time, "fontsize", cp.fontsize, cp.fontsize / 2, { noLock: true }))
-        */
+
         const startX = cp.centerX
         const startY = cp.centerY
         const targetX = tgt.centerX
