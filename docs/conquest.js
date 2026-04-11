@@ -126,7 +126,12 @@ const COMM = chat.sendCommand.bind(chat)
 const POPUP = (txt, settings) => chat.sendMessage({
     popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
 })
-const spop = (str) => { GameEffects.popup(str, GameEffects.popupPRESETS.leftLargePink) }
+const spop = (str, moreStgs) => {
+    GameEffects.popup(str,
+        moreStgs
+            ? { ...moreStgs, ...GameEffects.popupPRESETS.leftLargePink }
+            : GameEffects.popupPRESETS.leftLargePink)
+}
 const ATTENDANCE = () => {
     chat.orderAttendance()
     chat.sendMessage({
@@ -594,8 +599,8 @@ class Game extends GameCore {
         this.orderChangeNameButton = orderChangeNameButton
         this.add_drawable(orderChangeNameButton)*/
 
-        const snapShotButton = switchModeButton.copy
-        snapShotButton.move(snapShotButton.width * -1.5, 0)
+        const snapShotButton = Button.fromRect(switchModeButton.copyRect)
+        snapShotButton.move(snapShotButton.width * -1.35, 0)
         snapShotButton.txt = "Snapshot\n& Save"
         snapShotButton.on_release = () => {
             game.saveGame()
@@ -636,7 +641,7 @@ class Game extends GameCore {
         this.arrowsDrawableObject = arrowsDrawableObject
         this.add_drawable(arrowsDrawableObject, 4)
 
-        const serverButton = switchModeButton.copy
+        const serverButton = Button.fromRect(switchModeButton.copyRect)
         serverButton.txt = "SERVER"
         serverButton.on_click = null
         serverButton.on_release = () => {
@@ -662,7 +667,7 @@ class Game extends GameCore {
         )
         this.showTimeOnArrows = true
 
-        const statsBot = this.border.bot.copy
+        const statsBot = Button.fromRect(this.border.bot.copyRect)
         statsBot.color = "linen"
         statsBot.outline = 0
         statsBot.width = this.border.right.left
@@ -737,18 +742,20 @@ class Game extends GameCore {
                     parr.push(
                         ["BUCKETS", () => {
                             Question.importBuckets()
-                                .then(x => {
+                                .then(() => {
                                     spop(`Buckets set!`
                                         + `\nQuestion.ALL.length = ${Question.ALL.length}`
                                         + `\nQuestion.BUCKETS.length = ${Question.BUCKETS.length}`
-                                    )
+                                        + `\nQuestions in play = ${new Set(Question.BUCKETS.flat()).size}`
+                                        , { floatTime: 5000, close_on_release: true })
                                     console.log("Question.ALL.length=", Question.ALL.length)
                                     console.table(Question.BUCKETS)
                                     console.log({ BUCKETS: Question.BUCKETS })
                                 })
                                 .catch(err => {
                                     console.error("Can't load buckets." + err)
-                                    spop("ERROR LOADING BUCKETS.")
+                                    // spop("ERROR LOADING BUCKETS.")
+                                    GameEffects.popup("Can't load buckets.\n" + err, { close_on_release: true }, GameEffects.popupPRESETS.sideError)
                                 })
                         }, "Set buckets for the game."]
                     )
@@ -781,7 +788,8 @@ class Game extends GameCore {
                     "Set the maximum number of attacks per team at a time.\nConsider starting with the game with 1."
                 ]
             )
-            parr.push(["ATTENDANCE", ATTENDANCE, "Ping client responses, and\n(attempt to) put them in fullscreen."])
+            // parr.push(["ATTENDANCE", ATTENDANCE, "Ping client responses, and\n(attempt to) put them in fullscreen."])
+
 
             parr.push(["INVALIDATE"
                 ,
@@ -840,7 +848,7 @@ class Game extends GameCore {
         }
 
         //MAPBUTTON goes here. when i feel like it.
-        const devButton = serverButton.copy
+        const devButton = Button.fromRect(serverButton.copyRect)
         devButton.txt = "dev"
         // devButton.move(0, 120)
         // devButton.leftat(serverButton.left + (switchModeButton.left - snapShotButton.left))
@@ -1294,11 +1302,11 @@ class Game extends GameCore {
                     })
                 }
             ],
-            ["Reassign to kingdom",
+            /*["Reassign to kingdom",
                 () => {
                     spop("Feature unavailable.\nTODO")
                 }
-            ]
+            ]*/
         ]
         GameEffects.dropDownMenu(opts.map(x => [x[0], x[1]]),
             null, null, null,

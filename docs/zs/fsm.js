@@ -180,9 +180,9 @@ class State {
     */
     trans(nextState) {
         const st = this.manager.to(nextState)
-        if (!this.canLeave?.()) return false
-        if (!this.canTransTo?.(st)) return false
-        if (this === st) return false //no need
+        if (this.canLeave && !this.canLeave?.()) return false
+        if (this.canTransTo && !this.canTransTo?.(st)) return false
+        if (this === st) return false //no need to refresh
         //successful transition begins here
         return this.uncheckedTrans(st)
     }

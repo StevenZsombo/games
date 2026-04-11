@@ -41,7 +41,7 @@ var RULES = ({
     SHOW_QUESTION_ID: true,
     QUESTION_PATH: "conquest/questions/",
     MAPSTER_IMAGE_QUALITY_CLIENT: 2,
-    MAPSTER_IMAGE_QUALITY_SERVER: 2,
+    MAPSTER_IMAGE_QUALITY_SERVER: 1,
 
 
     //Blake
