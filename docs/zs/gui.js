@@ -194,6 +194,11 @@ class Mouser {
 		this._blockNextClick = false
 		this._blockNextRelease = false
 
+		/**@type {?function(Mouser)}*/ this.on_click = null
+		/**@type {?function(Mouser)}*/ this.on_click_once = null
+		/**@type {?function(Mouser)}*/ this.on_release = null
+		/**@type {?function(Mouser)}*/ this.on_release_once = null
+
 		this.canvas = canvas
 		this.canvasRect = new Rect(0, 0, canvas.width, canvas.height)
 		this.addListeners(canvas)
@@ -241,8 +246,13 @@ class Mouser {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
-			this.clicked = !this._blockNextClick
-			this.blockNextClick = false
+			if (!this._blockNextClick) {
+				this.clicked = true
+				this.on_click?.(this)
+				this.on_click_once && (this.on_click_once(this), this.on_click_once = null)
+			} else {
+				this._blockNextClick = false
+			}
 			this.down = true //updates nevertheless? might be an issue
 			this.lastClickedTime = Date.now()
 			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.setPointerCapture(e.pointerId) }
@@ -254,8 +264,13 @@ class Mouser {
 			e.preventDefault()
 			e.stopPropagation()
 			this.whereAmI(e)
-			this.released = !this._blockNextRelease
-			this._blockNextRelease = false
+			if (!this._blockNextRelease) {
+				this.released = true
+				this.on_release?.(this)
+				this.on_release_once && (this.on_release_once(this), this.on_release_once = null)
+			} else {
+				this._blockNextRelease = false
+			}
 			this.down = false
 			this.lastReleasedTime = Date.now()
 			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.releasePointerCapture(e.pointerId) }
