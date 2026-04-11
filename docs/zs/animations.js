@@ -111,7 +111,6 @@ class Animator {
 		this.locked.delete(anim.obj)
 		return chains
 	}
-	//draw() {	}//wtf
 
 }
 
