@@ -61,30 +61,35 @@ class Game extends GameCore {
         //default, fast, nba, slow, empty
         if (stage == "default") location.hash = "fast"
 
-        const swaps = (stage != "empty") ? `Amy,Prof
+        const swaps = (stage != "empty") ? `Amy,Professor
 Amy,Bender
-Prof,Leela
+Professor,Leela
 Bucket,Amy
 Fry,Zoidberg
 Bucket,Emperor
 Hermes,Leela`.split("\n").map(x => x.split(",")) : []
         const nicks = [
-            "Amy", "Prof", "Bender", "Leela", "Bucket", "Fry", "Zoidberg", "Emperor", "Hermes"
+            "Amy", "Professor", "Bender", "Leela", "Bucket", "Fry", "Zoidberg", "Emperor", "Hermes"
         ]
-        if (stage == "nba" || stage == "slow") nicks.push("Clyde", "Bubblegum")
+        // if (stage == "nba" || stage == "slow")
+        nicks.push("Clyde", "Bubblegum")
         const curr = new Map(nicks.map(x => [x, x])) //body -> mind map
         console.log(Array.from(curr).map(x => x.join(":")).join(";"))
-        const lines = []
+        const lines = [] //x,y,u,w,width,color
         const linesDrawable = {
             draw(ctx) {
-                lines.forEach(([x, y, u, w]) => {
-                    MM.drawLine(ctx, x, y, u, w, { color: "red", width: 3 })
+                lines.forEach(([x, y, u, w, width, color]) => {
+                    MM.drawLine(ctx, x, y, u, w, { color: color ?? "red", width: width ?? 3 })
                 })
+                this.draw_more?.(ctx)
+            },
+            draw_more(ctx) {
+                //unused
             }
         }
         this.add_drawable(linesDrawable, 4)
         const ppp = {
-            posFrac: [.75, .8],
+            posFrac: [.75, .85],
             floatTime: 3000,
             close_on_release: true
         }
@@ -135,15 +140,20 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
             const pY = cY + Math.sin(angi) * radius
             bods[i].centerat(pX, pY)
         }
-        if (stage == "nba" || stage == "slow") {
-            bods[9].topleftat(1250, 350)
-            bods[10].topleftat(1250, 650)
-        }
+        bods[9].topleftat(1250, 350)
+        bods[10].topleftat(1250, 650)
         for (let i = 0; i < nicks.length; i++) {
             minds[i].leftat(bods[i].left - BS * .4)
             minds[i].bottomat(bods[i].bottom + BS * .4)
             labs[i].centerat(bods[i].centerX)
             labs[i].bottomat(bods[i].top)
+        }
+        const basketball = [bods[9], bods[10], minds[9], minds[10], labs[9], labs[10]]
+        if (!(stage == "nba" || stage == "slow" || stage == "empty")) {
+            basketball.forEach(x => {
+                x.interactable = false
+                x.visible = false
+            })
         }
 
         this.add_drawable([...bods, ...minds, ...labs])
@@ -156,7 +166,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 swapRecord.length && curr.entries().every(([k, v]) => k == v)
             )) {
                 //victory!!!
-                GameEffects.fireworksShow()
+                GameEffects.fireworksShow(20)
                 const p = GameEffects.popup("VICTORY!!!", { ...ppp, floatTime: 10000, close_on_release: true })
                 GameEffects.victorySpin(p)
                 wonAlready = true
@@ -168,13 +178,13 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
         })
         recordLab.textSettings = { textAlign: "left", textBaseline: "top" }
         recordLab.dynamicText = () =>
-            "Bodies swapped:\n------------------\n"
+            "Bodies swapped:\n----------------------\n"
             + MM.tableStr(swapRecord, null, 3)
             + (wonAlready ? "\n\nVICTORY!!!" : "")
         this.add_drawable(recordLab)
 
         const animTswap = 600
-        const animTdelay = animTswap + 200
+        const animTdelay = animTswap + 400
         let allowSwap = true
         let allowClicking = true
         const pairings = new Set() //"body0,body1" pairs (in BOTH orders)
@@ -183,14 +193,32 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 GameEffects.popup("Wait for the animation to finish!", ppp)
                 return
             }
+            if (pair[0] == pair[1]) return
             if (pairings.has(pair.join(","))) {
-                if (pairings.size == MM.binom(len, 2) * 2) {
+                /*if (pairings.size == MM.binom(len, 2) * 2) {
                     GameEffects.popup("All possible pairs of bodies have already been swapped.\nNo more swaps can be made, game over."
                         , { close_on_release: true, floatTime: 30000, ...ppp }
                     )
                     return
-                }
+                }*/
                 GameEffects.popup("Those two bodies have already swapped,\nthey cannot swap again!", ppp)
+                const b0 = bodsMap.get(pair[0])
+                const b1 = bodsMap.get(pair[1])
+                const bgs = [b0, b1].map(x => Button.fromRect(x.copyRect))
+                bgs.forEach(x => { x.outline = 20, x.outline_color = "red" })
+                this.add_drawable(bgs, 4)
+                const blinkLine = [b0.centerX, b0.centerY, b1.centerX, b1.centerY, 3, "red"]
+                lines.push(blinkLine)
+                this.animator.add_anim(Anim.custom(blinkLine, 500, (t, obj) => {
+                    obj[4] = Anim.interpol(8, 14, Anim.l.vee(t))
+                    bgs.forEach(x => x.outline = Anim.interpol(14, 18, Anim.l.vee(t)))
+                }, undefined, {
+                    repeat: 4,
+                    on_end: () => {
+                        lines.splice(lines.findIndex(x => x === blinkLine), 1)
+                        this.remove_drawables_batch(bgs)
+                    }
+                }))
                 return
             }
             swapRecord.push(pair)
@@ -244,7 +272,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
             }
         }
         this.add_drawable(intButDrawable, 6)
-        const underlay = Button.fromRect(game.rect.copy)
+        /*const underlay = Button.fromRect(game.rect.copy)
         underlay.visible = false
         underlay.on_release = () => {
             if (intBut) {
@@ -252,7 +280,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 intBut = null
             }
         }
-        this.add_drawable(underlay, 1)
+        this.add_drawable(underlay, 1)*/
         bods.forEach(
             /**@param {Button} b  */
             b => {
@@ -261,6 +289,14 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                     if (!intBut) {
                         intBut = b
                         b.outline = 20
+                    }
+                    this.mouser.on_release_once = () => {
+                        this.extras_temp.push(() => {
+                            if (intBut) {
+                                bods.forEach(x => x.outline = 0)
+                                intBut = null
+                            }
+                        })
                     }
                 }
                 b.on_release = () => {
@@ -274,10 +310,43 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 }
             })
 
+        const corners = Array(4).fill().map(x => new Button({
+            width: 150, height: 150,
+            visible: false
+        }))
+        const cornerTaps = Array(4).fill(false)
+        corners[0].topleftat(0, 0)
+        corners[1].topat(0)
+        corners[1].rightat(this.rect.right)
+        corners[2].bottomat(this.rect.height)
+        corners[2].leftat(0)
+        corners[3].bottomat(this.rect.height)
+        corners[3].rightat(this.rect.right)
+
+        corners.forEach((x, i) => x.on_click = () => {
+            if (cornerTaps[i]) return
+            console.log("tap" + i)
+            cornerTaps[i] = true
+            if (cornerTaps.every(x => x)) {
+                location.hash = "nba"
+                basketball.forEach(u => (u.interactable = true, u.visible = true))
+            }
+        })
+
+        this.add_drawable(corners)
+
+        const mathologer = "https://www.youtube.com/watch?v=J65GNFfL94c"
+        const resvideo = "19:36"
+        const fandom = "https://futurama.fandom.com/wiki/The_Prisoner_of_Benda"
+        const explanation = "03:22 - 03:34 - 03:55"
+        const infosphere = "https://theinfosphere.org/Futurama_theorem"
+        const wiki = "https://en.wikipedia.org/wiki/The_Prisoner_of_Benda"
+
         Object.assign(window,
             {
                 swap, bods, minds, bodsMap, mindsMap, curr, lines, allowSwap, pairings, nicks, labs, stage,
-                recordLab, swapRecord, underlay, checkVictory
+                recordLab, swapRecord, checkVictory, corners, cornerTaps, basketball,
+                mathologer, resvideo, fandom, explanation, infosphere, wiki
             })
 
     }
