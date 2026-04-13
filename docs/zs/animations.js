@@ -16,7 +16,7 @@ class Animator {
 		if (objoranim.ditch) { //ditch all existing animations of the object
 			this.animations.forEach(x => { if (x.obj === objoranim.obj) { x.time = -1 } })
 		} else if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
-			console.error(this); console.error(objoranim.obj); throw "Object is locked"
+			console.error(this); console.error(objoranim.obj); throw new Error("Object is locked")
 		}
 		objoranim.obj != null && this.locked.add(objoranim.obj)
 		this.animations.push(objoranim)
@@ -105,8 +105,8 @@ class Animator {
 		}
 		//chain even when repeat
 		const chains = [...(anim.chainMany ?? []), ...(anim.chain != null ? [anim.chain] : [])]
-		for (anim of chains) {
-			anim.animate()
+		for (const animItem of chains) {
+			animItem.animate()
 		}
 		this.locked.delete(anim.obj)
 		return chains
@@ -330,7 +330,7 @@ class Anim {
 			this.origH = this.obj.height
 			this.scaleFactorX ??= this.scaleFactor
 			this.scaleFactorY ??= this.scaleFactor
-			this.append = function () { obj.resize(this.origW, this.origH) }
+			this.append = function () { this.obj.resize(this.origW, this.origH) }
 
 		}
 		const { obj, time, totTime, scaleFactorX, scaleFactorY, origW, origH } = this
@@ -506,6 +506,8 @@ class Anim {
 	}
 
 
+	/*
+	erased - it is useless.
 	rotate() {//BIG TODO? seems useless tho
 		//startRad OR endRad on Anim (not on obj)
 		// obj must have draw & center
@@ -519,7 +521,7 @@ class Anim {
 			this.obj.draw = null //TODO
 			this.append = () => { this.obj.draw = this.origDrawFunction }
 		}
-	}
+	}*/
 
 	typingCentered() {
 		if (!this.init) {

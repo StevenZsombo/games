@@ -271,7 +271,7 @@ class GameCore {
     }
     close() {
         this.isRunning = false
-        setTimeout(x => game.screen.fillRect(0, 0, game.WIDTH, game.HEIGHT), 100)
+        setTimeout(() => this.screen.fillRect(0, 0, this.WIDTH, this.HEIGHT), 100)
 
     }
     add_drawable(items, layer = 5) {
@@ -375,11 +375,11 @@ class ContestManager {
 
 
     startAfter(seconds) {
-        GameEffects.countdown("Contest will start in:", seconds, this.startContest())
+        GameEffects.countdown("Contest will start in:", seconds, this.startContest.bind(this))
     }
 
     endAfter(seconds) {
-        GameEffects.countdown("Contest will end in:", seconds, this.endContest())
+        GameEffects.countdown("Contest will end in:", seconds, this.endContest.bind(this))
     }
 
 

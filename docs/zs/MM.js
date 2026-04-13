@@ -116,7 +116,7 @@ class MM {
     //#endregion
     //#region MM.drawEllipse
     static drawEllipse(ctx, x, y, rX, rY, { color = "black", outline = null, outline_color, opacity = 0 } = {}) {
-        screen.globalAlpha = 1 - opacity
+        ctx.globalAlpha = 1 - opacity
         if (color) {
             ctx.beginPath()
             ctx.ellipse(x, y, rX, rY, 0, 0, TWOPI) // x, y, radiusX, radiusY, rotation, startAngle, endAngle
@@ -130,7 +130,7 @@ class MM {
             ctx.lineWidth = outline
             ctx.stroke()
         }
-        screen.globalAlpha = 1
+        ctx.globalAlpha = 1
     }
     //#endregion
     //#region MM.drawLine
@@ -373,7 +373,7 @@ class MM {
         MM.require(obj, "center")
         screen.save()
         const { x: cx, y: cy } = obj.center
-        const { x: nx, y: ny } = RectRotatedExperimental.rotatePointAroundOrigin(cx, cy, rad)
+        const { x: nx, y: ny } = MM.rotatePointAroundOrigin(cx, cy, rad)
         const [diffx, diffy] = [cx - nx, cy - ny]
         screen.translate(diffx, diffy)
         screen.rotate(rad)
@@ -570,7 +570,7 @@ class MM {
     }
 
     static matrixTimesVector(matrix, vector) {
-        return matrix.map(row => row.reduce((sum, val, j) => sum + val * vector[j]), 0)
+        return matrix.map(row => row.reduce((sum, val, j) => sum + val * vector[j], 0))
     }
 
     static vectorPlusVector(v, w) {
@@ -714,7 +714,7 @@ class MM {
                     name,
                     obj
                 })
-                throw "require failed"
+                throw new Error("require failed")
             }
         }
     }
@@ -725,7 +725,7 @@ class MM {
                 props1,
                 props2
             })
-            throw "requireEither failed"
+            throw new Error("requireEither failed")
         }
     }
 

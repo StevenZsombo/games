@@ -352,11 +352,11 @@ class ChatServer extends Chat {
         const obj = {}
         obj[Listener.SERVER.SERVERnameOrderedToReset] = true
         obj.targetID = targetID
-        this.sendMessage(obj, true)
+        this.sendMessage(obj)
     }
     //**param {String} target */
     orderReload(targetID) {
-        this.sendMessage({ targetID: targetID, reload: true }, true)
+        this.sendMessage({ targetID: targetID, reload: true })
     }
     orderForceName(targetID, forcedName) {
         const obj = {}
@@ -457,7 +457,7 @@ class Listener {
             return
         }
 
-        this.isLogging && console.log(name, compact) //log is approved
+        this.isLogging && console.log(name) //log is approved
         const person = participants[name]
         if (!person) {
             console.error("participants[name] does not exist???")
@@ -499,7 +499,9 @@ class Listener {
         this.on_participant_disconnect?.(person)
     }
     recoverFromWS(recoveryData) {
-        const p = this.participants[name]
+        // const p = this.participants[name]
+        //TODO
+        throw new Error("Not yet implemented.")
     }
     recoverFromWSrequest(nameID) {
         this.isLoggingRecovery && console.log(`R@${nameID}`)
