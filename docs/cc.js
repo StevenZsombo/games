@@ -618,7 +618,6 @@ class Game extends GameCore {
                     try { document.documentElement.requestFullscreen() }
                     catch (err) { console.error("Can't fullscreen", err) }
                 }
-            //GameEffects.fullscreenTrickButton()
         }
 
 

@@ -1953,7 +1953,7 @@ class GameEffects {
                 .map(x => x[1].length == 0 ? x : [x[0], x[1].apply(x[1], Array(x[1].length).fill().map(prompt))])
             ])
     }
-
+    /**@deprecated */
     static fullscreenTrickButton() {
         const invis = Button.fromRect(game.rect.copy)
         invis.visible = false
