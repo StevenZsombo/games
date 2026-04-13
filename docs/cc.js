@@ -213,7 +213,6 @@ class Game extends GameCore {
         })
 
 
-        // GameEffects.fullscreenTrickButton()
 
     }
     resetKingdom() {
@@ -614,7 +613,12 @@ class Game extends GameCore {
             if (message.orderResetKingdom !== undefined) {
                 game.resetKingdom()
             }
-            if (message.present) GameEffects.fullscreenTrickButton()
+            if (message.present)
+                this.mouser.on_click_once = () => {
+                    try { document.documentElement.requestFullscreen() }
+                    catch (err) { console.error("Can't fullscreen", err) }
+                }
+            //GameEffects.fullscreenTrickButton()
         }
 
 
@@ -687,14 +691,15 @@ class Game extends GameCore {
     }
 
     afterEverythingHasLoaded() {
-        GameEffects.fullscreenTrickButton() //this kinda sucks
+        this.mouser.on_click_once = () => {
+            try { document.documentElement.requestFullscreen() }
+            catch (err) { console.error("Can't fullscreen", err) }
+        }
 
         if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
         if (location.hash.includes("d")) { this.debugMode() }
         else { this._removeLoadingButton() }
 
-        //MM.toggleFullscreen(true)
-        //can only be initiated by user gesture, sadly.
 
     }
 
