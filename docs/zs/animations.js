@@ -184,7 +184,14 @@ class Anim {
 		const settings = { varNames, startVals, endVals, ...args }
 		return new Anim(obj, time, "stepMany", settings)
 	}
-
+	/**
+	 * Shorthand for "setMany"
+	 * @param {Object} obj 
+	 * @param {number} time 
+	 * @param {string|Array<string} varNames 
+	 * @param {any|any[]} vals 
+	 * @returns {Anim}
+	 */
 	static setter(obj, time, varNames, vals, args = {}) {
 		if (!Array.isArray(varNames)) { varNames = varNames.split(" ") }
 		if (!Array.isArray(vals)) { vals = [vals] }
