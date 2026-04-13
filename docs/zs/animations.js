@@ -10,17 +10,20 @@ class Animator {
 	}
 
 	add_anim(objoranim, time, code, args = {}) {
-		if (!(objoranim instanceof Anim)) { //can just pass Anim immediately
-			objoranim = new Anim(objoranim, time, code, args)
+		const anim = (objoranim instanceof Anim) ? objoranim : new Anim(objoranim, time, code, args)
+		if (anim.ditch) { //ditch all existing animations of the object
+			//append and on_end are called. repeat and chain are NOT
+			this.animations.forEach(x => {
+				if (x.obj === anim.obj) {
+					this.update_kill_terminateWithoutRepeatOrChain(x)
+				}
+			})
+		} else if (!(anim.noLock) && this.locked.has(anim.obj)) {
+			console.error(this); console.error(anim.obj); throw new Error("Object is locked")
 		}
-		if (objoranim.ditch) { //ditch all existing animations of the object
-			this.animations.forEach(x => { if (x.obj === objoranim.obj) { x.time = -1 } })
-		} else if (!(objoranim.noLock) && this.locked.has(objoranim.obj)) {
-			console.error(this); console.error(objoranim.obj); throw new Error("Object is locked")
-		}
-		objoranim.obj != null && this.locked.add(objoranim.obj)
-		this.animations.push(objoranim)
-
+		anim.obj != null && this.locked.add(anim.obj)
+		this.animations.push(anim)
+		return anim
 
 	}
 
@@ -57,7 +60,7 @@ class Animator {
 		for (const anim of this.animations) {
 			anim.time -= dt //times+frames are only managed here
 			if (anim.time >= 0) {
-				anim.animate()
+				!anim.ignored && anim.animate() //clumsy optional flag. undefined by default
 				newAnims.push(anim)
 			} else {
 				newAnims.push(...this.update_kill(anim))
@@ -111,7 +114,35 @@ class Animator {
 		this.locked.delete(anim.obj)
 		return chains
 	}
-
+	/** @param {Anim} anim */
+	update_kill_terminateWithoutRepeatOrChain(anim) { //still calls on_end
+		anim.append?.()
+		anim.on_end?.(anim.obj)
+		this.locked.delete(anim.obj)
+	}
+	/**
+	 * Ditch early. Calls append and on_end. Does NOT call chain and repeat.
+	 * @param {Anim} anim */
+	earlyDitch(anim) {
+		this.update_kill_terminateWithoutRepeatOrChain(anim)
+		anim.ignored = true //clumsy optional flag. undefined by default
+	}
+	/**
+	 * Returns all animations on that object.
+	 * BEWARE: sequences are ignored.
+	 * @param {Object} obj
+	 * @returns {Anim[]}
+	 */
+	byObject(obj) {
+		return this.animations.filter(x => x.obj === obj)
+	}
+	/**
+	 * Ditch all anims on that object early. Calls append, on_end, NOT chain, repeat.
+	 * @param {Object} obj
+	 */
+	earlyDitchByObject(obj) {
+		this.byObject(obj).forEach(x => this.earlyDitch(x))
+	}
 }
 
 class Anim {
