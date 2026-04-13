@@ -14,6 +14,8 @@ Before starting the game:
 
 
 Students can now start joining to the IP address.
+Ask them to close all apps and tabs.
+Connect to "Student" wifi, disconnect 5G.
 7.  If a student has an (X) next to their name then they lost connection.
     Small handheld devices may lose connection repeatedly. It is not an issue in general.
     The students might be annoyed (the page will refresh 
