@@ -669,13 +669,18 @@ class Game extends GameCore {
     }
 
     enter() {
-        window.wProgress?.("game.enter()")
         const enterAction = () => {
-            const obj = chat.sendSecure({ kingdom: myKingdomID })
-            window.wProgress?.(`\nsendSecure(${chat.nameID})\n`)
+            window.wProgress?.("game.enter()")
+            setTimeout(() => {
+                const obj = chat.sendSecure({ kingdom: myKingdomID })
+                window.wProgress?.(`\nsendSecure(${chat.nameID})\n`)
+            }, 1)
         }
         if (chat.isConnected) enterAction()
-        else { chat.on_join_once = enterAction }
+        else {
+            window.wProgress?.("WAIT TO CONNECT")
+            chat.on_join_once = enterAction
+        }
     }
 
     _showingMap = false
