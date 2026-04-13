@@ -315,9 +315,10 @@ listener.on_message = (obj, person) => {
     }
     person = Person.check(person)
     if (obj.kingdom !== undefined) {//watch out for 0  //convert to number just in case
-        //BADNESS
-        // if (+obj.kingdom === person.kingdom?.id) return //can safely resend kingdom!
-        //idiot.
+        if (!game.kingdoms[+obj.kingdom]) {
+            hq.orderResetKingdom(person) //need not be a name
+            return
+        }
         const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom])
         if (true || newlyJoined)// for now
             SHAREmany([
