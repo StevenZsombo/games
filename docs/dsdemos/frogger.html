@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frogger</title>
+</head>
+<body>
+    <canvas id="game" width="500" height="500" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let frog = {x: 240, y: 460, w: 20}
+        let cars = []
+        let score = 0
+        let gameOver = false
+        
+        for (let i = 0; i < 5; i++) {
+            cars.push({x: Math.random() * 500, y: 100 + i * 60, w: 40, dx: (Math.random() - 0.5) * 3})
+        }
+        
+        function update() {
+            if (gameOver) return
+            
+            for (let c of cars) {
+                c.x += c.dx
+                if (c.x > 500) c.x = -40
+                if (c.x < -40) c.x = 500
+                
+                if (frog.x < c.x + c.w && frog.x + frog.w > c.x && frog.y < c.y + 30 && frog.y + frog.w > c.y) {
+                    gameOver = true
+                }
+            }
+            
+            if (frog.y < 50) {
+                score++
+                frog = {x: 240, y: 460, w: 20}
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'green'
+            ctx.fillRect(0, 0, 500, 500)
+            
+            ctx.fillStyle = 'gray'
+            for (let i = 0; i < 5; i++) ctx.fillRect(0, 80 + i * 60, 500, 40)
+            
+            ctx.fillStyle = 'brown'
+            ctx.fillRect(0, 0, 500, 50)
+            
+            ctx.fillStyle = 'lime'
+            ctx.fillRect(frog.x, frog.y, frog.w, frog.w)
+            
+            ctx.fillStyle = 'red'
+            for (let c of cars) ctx.fillRect(c.x, c.y, c.w, 30)
+            
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'white'
+                ctx.font = '20px monospace'
+                ctx.fillText('GAME OVER', 190, 250)
+                ctx.fillText('Press R', 210, 280)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && e.key === 'r') {
+                frog = {x: 240, y: 460, w: 20}
+                score = 0
+                gameOver = false
+                return
+            }
+            if (e.key === 'ArrowUp') frog.y -= 40
+            if (e.key === 'ArrowDown') frog.y += 40
+            if (e.key === 'ArrowLeft') frog.x -= 40
+            if (e.key === 'ArrowRight') frog.x += 40
+            frog.x = Math.max(0, Math.min(480, frog.x))
+            frog.y = Math.max(0, Math.min(480, frog.y))
+        })
+        
+        setInterval(update, 1000 / 60)
+        draw()
+    </script>
+</body>
+</html>

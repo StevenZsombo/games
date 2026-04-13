@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asteroids</title>
+</head>
+<body>
+    <canvas id="game" width="600" height="400" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let ship = { x: 300, y: 200, angle: 0, thrust: false, radius: 12 }
+        let bullets = []
+        let asteroids = []
+        let score = 0
+        let gameOver = false
+        
+        function init() {
+            asteroids = []
+            for (let i = 0; i < 5; i++) {
+                asteroids.push({
+                    x: Math.random() * 600,
+                    y: Math.random() * 400,
+                    dx: (Math.random() - 0.5) * 2,
+                    dy: (Math.random() - 0.5) * 2,
+                    radius: 20
+                })
+            }
+            ship = { x: 300, y: 200, angle: 0, thrust: false, radius: 12 }
+            bullets = []
+            score = 0
+            gameOver = false
+        }
+        
+        function update() {
+            if (gameOver) return
+            
+            // Ship movement
+            if (ship.thrust) {
+                ship.x += Math.cos(ship.angle) * 3
+                ship.y += Math.sin(ship.angle) * 3
+            }
+            ship.x = (ship.x + 600) % 600
+            ship.y = (ship.y + 400) % 400
+            
+            // Bullets
+            bullets = bullets.filter(b => b.life > 0)
+            for (let b of bullets) {
+                b.x += b.dx
+                b.y += b.dy
+                b.life--
+                b.x = (b.x + 600) % 600
+                b.y = (b.y + 400) % 400
+            }
+            
+            // Asteroids
+            for (let a of asteroids) {
+                a.x += a.dx
+                a.y += a.dy
+                a.x = (a.x + 600) % 600
+                a.y = (a.y + 400) % 400
+            }
+            
+            // Bullet collision
+            for (let i = 0; i < bullets.length; i++) {
+                let b = bullets[i]
+                for (let j = 0; j < asteroids.length; j++) {
+                    let a = asteroids[j]
+                    let dx = b.x - a.x
+                    let dy = b.y - a.y
+                    let dist = Math.sqrt(dx * dx + dy * dy)
+                    if (dist < a.radius) {
+                        asteroids.splice(j, 1)
+                        bullets.splice(i, 1)
+                        score++
+                        asteroids.push({
+                            x: Math.random() * 600,
+                            y: Math.random() * 400,
+                            dx: (Math.random() - 0.5) * 2,
+                            dy: (Math.random() - 0.5) * 2,
+                            radius: 20
+                        })
+                        break
+                    }
+                }
+            }
+            
+            // Ship collision
+            for (let a of asteroids) {
+                let dx = ship.x - a.x
+                let dy = ship.y - a.y
+                let dist = Math.sqrt(dx * dx + dy * dy)
+                if (dist < ship.radius + a.radius) {
+                    gameOver = true
+                }
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'black'
+            ctx.fillRect(0, 0, 600, 400)
+            
+            if (!gameOver) {
+                // Ship
+                ctx.save()
+                ctx.translate(ship.x, ship.y)
+                ctx.rotate(ship.angle)
+                ctx.beginPath()
+                ctx.moveTo(15, 0)
+                ctx.lineTo(-10, -8)
+                ctx.lineTo(-10, 8)
+                ctx.fillStyle = 'white'
+                ctx.fill()
+                ctx.restore()
+                
+                // Bullets
+                ctx.fillStyle = 'yellow'
+                for (let b of bullets) {
+                    ctx.fillRect(b.x - 2, b.y - 2, 4, 4)
+                }
+                
+                // Asteroids
+                ctx.fillStyle = 'gray'
+                for (let a of asteroids) {
+                    ctx.beginPath()
+                    ctx.arc(a.x, a.y, a.radius, 0, Math.PI * 2)
+                    ctx.fill()
+                }
+            }
+            
+            // Score
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'white'
+                ctx.font = '30px monospace'
+                ctx.textAlign = 'center'
+                ctx.fillText('GAME OVER', 300, 180)
+                ctx.font = '16px monospace'
+                ctx.fillText('Press R to restart', 300, 240)
+                ctx.textAlign = 'left'
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && e.key === 'r') {
+                init()
+                return
+            }
+            if (gameOver) return
+            
+            if (e.key === 'ArrowUp') ship.thrust = true
+            if (e.key === 'ArrowLeft') ship.angle -= 0.1
+            if (e.key === 'ArrowRight') ship.angle += 0.1
+            if (e.key === ' ') {
+                bullets.push({
+                    x: ship.x + Math.cos(ship.angle) * 15,
+                    y: ship.y + Math.sin(ship.angle) * 15,
+                    dx: Math.cos(ship.angle) * 6,
+                    dy: Math.sin(ship.angle) * 6,
+                    life: 60
+                })
+            }
+        })
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp') ship.thrust = false
+        })
+        
+        init()
+        setInterval(update, 1000 / 60)
+        draw()
+    </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minesweeper</title>
+</head>
+<body>
+    <canvas id="game" width="300" height="300" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        let grid = []
+        let size = 8
+        let cell = 300 / size
+        
+        function init() {
+            grid = []
+            for (let i = 0; i < size; i++) {
+                grid[i] = []
+                for (let j = 0; j < size; j++) {
+                    grid[i][j] = { mine: false, revealed: false, count: 0 }
+                }
+            }
+            let mines = 10
+            while (mines > 0) {
+                let x = Math.floor(Math.random() * size)
+                let y = Math.floor(Math.random() * size)
+                if (!grid[x][y].mine) {
+                    grid[x][y].mine = true
+                    mines--
+                }
+            }
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (!grid[i][j].mine) {
+                        let c = 0
+                        for (let dx = -1; dx <= 1; dx++)
+                            for (let dy = -1; dy <= 1; dy++)
+                                if (grid[i+dx]?.[j+dy]?.mine) c++
+                        grid[i][j].count = c
+                    }
+                }
+            }
+        }
+        
+        function reveal(x, y) {
+            if (grid[x][y].revealed) return
+            grid[x][y].revealed = true
+            if (grid[x][y].count === 0 && !grid[x][y].mine) {
+                for (let dx = -1; dx <= 1; dx++)
+                    for (let dy = -1; dy <= 1; dy++)
+                        if (grid[x+dx]?.[y+dy] && !grid[x+dx][y+dy].revealed)
+                            reveal(x+dx, y+dy)
+            }
+        }
+        
+        canvas.onclick = (e) => {
+            let rect = canvas.getBoundingClientRect()
+            let x = Math.floor((e.clientX - rect.left) / cell)
+            let y = Math.floor((e.clientY - rect.top) / cell)
+            if (grid[x][y].mine) {
+                alert('Game Over!')
+                init()
+            } else {
+                reveal(x, y)
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#ccc'
+            ctx.fillRect(0, 0, 300, 300)
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (grid[i][j].revealed) {
+                        ctx.fillStyle = '#fff'
+                        ctx.fillRect(i * cell, j * cell, cell - 1, cell - 1)
+                        if (grid[i][j].count > 0) {
+                            ctx.fillStyle = 'black'
+                            ctx.font = `${cell * 0.6}px monospace`
+                            ctx.textAlign = 'center'
+                            ctx.textBaseline = 'middle'
+                            ctx.fillText(grid[i][j].count, i * cell + cell/2, j * cell + cell/2)
+                        }
+                    } else {
+                        ctx.fillStyle = '#888'
+                        ctx.fillRect(i * cell, j * cell, cell - 1, cell - 1)
+                    }
+                }
+            }
+            requestAnimationFrame(draw)
+        }
+        
+        init()
+        draw()
+    </script>
+</body>
+</html>

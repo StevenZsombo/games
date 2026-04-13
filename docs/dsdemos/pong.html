@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pong</title>
+</head>
+<body>
+    <canvas id="game" width="800" height="400" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let ball = { x: 400, y: 200, dx: 3, dy: 2, size: 8 }
+        let paddle1 = { y: 200, height: 80 }
+        let paddle2 = { y: 200, height: 80 }
+        let score = { p1: 0, p2: 0 }
+        
+        function update() {
+            ball.x += ball.dx
+            ball.y += ball.dy
+            
+            if (ball.y < 0 || ball.y > 400) ball.dy *= -1
+            if (ball.x < 30 && ball.y > paddle1.y && ball.y < paddle1.y + paddle1.height) ball.dx *= -1
+            if (ball.x > 770 && ball.y > paddle2.y && ball.y < paddle2.y + paddle2.height) ball.dx *= -1
+            if (ball.x < 0) { score.p2++; reset() }
+            if (ball.x > 800) { score.p1++; reset() }
+            
+            // AI (right paddle)
+            paddle2.y = ball.y - paddle2.height/2
+            paddle2.y = Math.max(0, Math.min(320, paddle2.y))
+        }
+        
+        function reset() {
+            ball.x = 400; ball.y = 200
+            ball.dx = (Math.random() > 0.5 ? 3 : -3)
+            ball.dy = (Math.random() > 0.5 ? 2 : -2)
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'black'
+            ctx.fillRect(0, 0, 800, 400)
+            
+            ctx.fillStyle = 'white'
+            ctx.fillRect(20, paddle1.y, 10, paddle1.height)
+            ctx.fillRect(770, paddle2.y, 10, paddle2.height)
+            ctx.fillRect(ball.x, ball.y, ball.size, ball.size)
+            
+            ctx.font = '30px monospace'
+            ctx.fillText(score.p1, 300, 50)
+            ctx.fillText(score.p2, 480, 50)
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            let rect = canvas.getBoundingClientRect()
+            paddle1.y = e.clientY - rect.top - paddle1.height/2
+            paddle1.y = Math.max(0, Math.min(320, paddle1.y))
+        })
+        
+        function gameLoop() {
+            update()
+            draw()
+            requestAnimationFrame(gameLoop)
+        }
+        
+        gameLoop()
+    </script>
+</body>
+</html>

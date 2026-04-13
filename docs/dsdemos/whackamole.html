@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Whack-a-Mole</title>
+</head>
+<body>
+    <canvas id="game" width="400" height="400" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let holes = []
+        let mole = {x: -1, y: -1, active: false}
+        let score = 0
+        let time = 30
+        
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                holes.push({x: i * 100 + 50, y: j * 100 + 50})
+            }
+        }
+        
+        function updateMole() {
+            if (mole.active) {
+                mole.active = false
+            } else {
+                let idx = Math.floor(Math.random() * holes.length)
+                mole.x = holes[idx].x
+                mole.y = holes[idx].y
+                mole.active = true
+            }
+            setTimeout(updateMole, 800)
+        }
+        
+        function updateTimer() {
+            if (time > 0) {
+                time--
+                setTimeout(updateTimer, 1000)
+            }
+        }
+        
+        canvas.onclick = (e) => {
+            if (time === 0) return
+            let rect = canvas.getBoundingClientRect()
+            let x = e.clientX - rect.left
+            let y = e.clientY - rect.top
+            
+            if (mole.active && Math.hypot(x - mole.x, y - mole.y) < 30) {
+                score++
+                mole.active = false
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'brown'
+            ctx.fillRect(0, 0, 400, 400)
+            
+            ctx.fillStyle = 'black'
+            for (let h of holes) {
+                ctx.beginPath()
+                ctx.arc(h.x, h.y, 30, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            
+            if (mole.active) {
+                ctx.fillStyle = 'brown'
+                ctx.beginPath()
+                ctx.arc(mole.x, mole.y, 25, 0, Math.PI * 2)
+                ctx.fill()
+                ctx.fillStyle = 'black'
+                ctx.beginPath()
+                ctx.arc(mole.x - 10, mole.y - 8, 4, 0, Math.PI * 2)
+                ctx.arc(mole.x + 10, mole.y - 8, 4, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            ctx.fillText('Time: ' + time, 10, 60)
+            
+            if (time === 0) {
+                ctx.fillStyle = 'white'
+                ctx.font = '30px monospace'
+                ctx.fillText('GAME OVER', 110, 200)
+                ctx.fillText('Score: ' + score, 150, 250)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        updateMole()
+        updateTimer()
+        draw()
+    </script>
+</body>
+</html>

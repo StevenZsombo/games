@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Racing</title>
+</head>
+<body>
+    <canvas id="game" width="400" height="600" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let car = {x: 180, w: 40}
+        let obstacles = []
+        let score = 0
+        let gameOver = false
+        
+        function update() {
+            if (gameOver) return
+            
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].y += 5
+                if (obstacles[i].y > 600) {
+                    obstacles.splice(i, 1)
+                    score++
+                    i--
+                }
+            }
+            
+            if (Math.random() < 0.02) {
+                obstacles.push({x: Math.random() * 360, y: -50, w: 40})
+            }
+            
+            for (let o of obstacles) {
+                if (car.x < o.x + o.w && car.x + car.w > o.x && o.y + 40 > 550 && o.y < 590) {
+                    gameOver = true
+                }
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'gray'
+            ctx.fillRect(0, 0, 400, 600)
+            
+            for (let i = 0; i < 600; i += 40) {
+                ctx.fillStyle = 'white'
+                ctx.fillRect(195, i, 10, 20)
+            }
+            
+            ctx.fillStyle = 'blue'
+            ctx.fillRect(car.x, 550, car.w, 40)
+            
+            ctx.fillStyle = 'red'
+            for (let o of obstacles) ctx.fillRect(o.x, o.y, o.w, 40)
+            
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'white'
+                ctx.font = '20px monospace'
+                ctx.fillText('GAME OVER', 130, 300)
+                ctx.fillText('Press R', 160, 340)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            let rect = canvas.getBoundingClientRect()
+            car.x = e.clientX - rect.left - car.w/2
+            car.x = Math.max(0, Math.min(360, car.x))
+        })
+        
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && e.key === 'r') location.reload()
+        })
+        
+        setInterval(update, 1000 / 60)
+        draw()
+    </script>
+</body>
+</html>

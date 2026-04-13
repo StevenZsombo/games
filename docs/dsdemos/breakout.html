@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Breakout</title>
+</head>
+<body>
+    <canvas id="game" width="600" height="400" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let paddle = {x: 270, w: 80}
+        let ball = {x: 300, y: 350, dx: 3, dy: -3, r: 6}
+        let bricks = []
+        let score = 0
+        let gameOver = false
+        
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 5; j++) {
+                bricks.push({x: 10 + i * 70, y: 20 + j * 25, w: 60, h: 20, alive: true})
+            }
+        }
+        
+        function update() {
+            if (gameOver) return
+            
+            ball.x += ball.dx
+            ball.y += ball.dy
+            
+            if (ball.x < ball.r || ball.x > 600 - ball.r) ball.dx *= -1
+            if (ball.y < ball.r) ball.dy *= -1
+            
+            if (ball.y + ball.r > 380 && ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
+                ball.dy = -Math.abs(ball.dy)
+                let hitPos = (ball.x - paddle.x) / paddle.w
+                ball.dx = (hitPos - 0.5) * 6
+            }
+            
+            if (ball.y > 400) gameOver = true
+            
+            for (let b of bricks) {
+                if (b.alive && ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w && ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+                    b.alive = false
+                    ball.dy *= -1
+                    score += 10
+                }
+            }
+            
+            if (bricks.every(b => !b.alive)) gameOver = true
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'black'
+            ctx.fillRect(0, 0, 600, 400)
+            
+            ctx.fillStyle = 'white'
+            ctx.fillRect(paddle.x, 380, paddle.w, 10)
+            ctx.beginPath()
+            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2)
+            ctx.fill()
+            
+            for (let b of bricks) {
+                if (b.alive) {
+                    ctx.fillStyle = `hsl(${b.x * 5}, 70%, 50%)`
+                    ctx.fillRect(b.x, b.y, b.w, b.h)
+                }
+            }
+            
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'white'
+                ctx.font = '20px monospace'
+                ctx.fillText(score === 400 ? 'YOU WIN!' : 'GAME OVER', 260, 200)
+                ctx.fillText('Press R', 270, 240)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            let rect = canvas.getBoundingClientRect()
+            paddle.x = e.clientX - rect.left - paddle.w/2
+            paddle.x = Math.max(0, Math.min(520, paddle.x))
+        })
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r') location.reload()
+        })
+        
+        setInterval(update, 1000 / 60)
+        draw()
+    </script>
+</body>
+</html>

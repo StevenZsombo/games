@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shooter</title>
+</head>
+<body>
+    <canvas id="game" width="600" height="400" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        let player = { x: 300, y: 350, w: 30, h: 20 }
+        let bullets = []
+        let enemies = []
+        let score = 0
+        
+        for(let i = 0; i < 5; i++) enemies.push({ x: Math.random() * 550, y: Math.random() * 100, w: 20, h: 20 })
+        
+        function update() {
+            if (bullets.length) bullets = bullets.filter(b => b.y > 0).map(b => ({x: b.x, y: b.y - 5}))
+            enemies = enemies.filter(e => {
+                let hit = bullets.some(b => Math.abs(b.x - e.x) < 20 && Math.abs(b.y - e.y) < 20)
+                if (hit) score++
+                return !hit
+            })
+            if (enemies.length < 3) enemies.push({ x: Math.random() * 550, y: 10, w: 20, h: 20 })
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'black'
+            ctx.fillRect(0, 0, 600, 400)
+            
+            ctx.fillStyle = 'cyan'
+            ctx.fillRect(player.x, player.y, player.w, player.h)
+            
+            ctx.fillStyle = 'yellow'
+            bullets.forEach(b => ctx.fillRect(b.x, b.y, 3, 8))
+            
+            ctx.fillStyle = 'red'
+            enemies.forEach(e => ctx.fillRect(e.x, e.y, e.w, e.h))
+            
+            ctx.fillStyle = 'white'
+            ctx.fillText('Score: ' + score, 10, 30)
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            let rect = canvas.getBoundingClientRect()
+            player.x = e.clientX - rect.left - player.w/2
+            player.x = Math.max(0, Math.min(570, player.x))
+        })
+        
+        canvas.addEventListener('click', () => {
+            bullets.push({ x: player.x + player.w/2 - 1.5, y: player.y })
+        })
+        
+        function gameLoop() {
+            update()
+            draw()
+            requestAnimationFrame(gameLoop)
+        }
+        
+        gameLoop()
+    </script>
+</body>
+</html>

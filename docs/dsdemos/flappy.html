@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird</title>
+</head>
+<body>
+    <canvas id="game" width="400" height="600" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        let bird = { y: 300, vy: 0, r: 12 }
+        let pipes = []
+        let score = 0
+        let gameOver = false
+        let frame = 0
+        
+        function reset() {
+            bird.y = 300
+            bird.vy = 0
+            pipes = []
+            score = 0
+            gameOver = false
+            frame = 0
+        }
+        
+        function update() {
+            if (gameOver) return
+            
+            bird.vy += 0.2
+            bird.y += bird.vy
+            
+            if (bird.y < 0 || bird.y > 600) gameOver = true
+            
+            if (frame % 90 === 0) {
+                let gapY = 150 + Math.random() * 200
+                pipes.push({ x: 400, top: gapY - 100, bottom: gapY + 100, passed: false })
+            }
+            
+            for (let i = 0; i < pipes.length; i++) {
+                pipes[i].x -= 2
+                
+                if (pipes[i].x + 50 < 0) {
+                    pipes.splice(i, 1)
+                    i--
+                    continue
+                }
+                
+                if (!pipes[i].passed && pipes[i].x + 50 < 50) {
+                    pipes[i].passed = true
+                    score++
+                }
+                
+                if (50 + bird.r > pipes[i].x && 50 - bird.r < pipes[i].x + 50) {
+                    if (bird.y - bird.r < pipes[i].top || bird.y + bird.r > pipes[i].bottom) {
+                        gameOver = true
+                    }
+                }
+            }
+            
+            frame++
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#87CEEB'
+            ctx.fillRect(0, 0, 400, 600)
+            
+            ctx.fillStyle = 'yellow'
+            ctx.beginPath()
+            ctx.arc(50, bird.y, bird.r, 0, Math.PI * 2)
+            ctx.fill()
+            
+            ctx.fillStyle = 'green'
+            for (let pipe of pipes) {
+                ctx.fillRect(pipe.x, 0, 50, pipe.top)
+                ctx.fillRect(pipe.x, pipe.bottom, 50, 600 - pipe.bottom)
+            }
+            
+            ctx.fillStyle = 'black'
+            ctx.font = '30px monospace'
+            ctx.fillText(score, 185, 50)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'black'
+                ctx.font = '20px monospace'
+                ctx.fillText('Click to restart', 140, 300)
+            }
+        }
+        
+        canvas.addEventListener('click', () => {
+            if (gameOver) {
+                reset()
+            } else {
+                bird.vy = -4.5
+            }
+        })
+        
+        function gameLoop() {
+            update()
+            draw()
+            requestAnimationFrame(gameLoop)
+        }
+        
+        reset()
+        gameLoop()
+    </script>
+</body>
+</html>

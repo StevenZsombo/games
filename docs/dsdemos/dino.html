@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Endless Runner</title>
+</head>
+<body>
+    <canvas id="game" width="600" height="300" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        let player = {x: 100, y: 250, w: 30, h: 30, jumping: false, vy: 0}
+        let obstacles = []
+        let score = 0
+        let gameOver = false
+        
+        function update() {
+            if (gameOver) return
+            
+            // Player physics
+            if (player.jumping) {
+                player.vy += 0.5
+                player.y += player.vy
+                if (player.y >= 250) {
+                    player.y = 250
+                    player.jumping = false
+                    player.vy = 0
+                }
+            }
+            
+            // Obstacles
+            for (let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= 5
+                if (obstacles[i].x + 30 < 0) {
+                    obstacles.splice(i, 1)
+                    score++
+                    i--
+                }
+            }
+            
+            if (Math.random() < 0.02) {
+                obstacles.push({x: 600, y: 260, w: 20, h: 30})
+            }
+            
+            // Collision
+            for (let o of obstacles) {
+                if (player.x < o.x + o.w && player.x + player.w > o.x && player.y + player.h > o.y) {
+                    gameOver = true
+                }
+            }
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#87CEEB'
+            ctx.fillRect(0, 0, 600, 300)
+            
+            ctx.fillStyle = 'green'
+            ctx.fillRect(0, 280, 600, 20)
+            
+            ctx.fillStyle = 'red'
+            ctx.fillRect(player.x, player.y, player.w, player.h)
+            
+            ctx.fillStyle = 'gray'
+            for (let o of obstacles) ctx.fillRect(o.x, o.y, o.w, o.h)
+            
+            ctx.fillStyle = 'black'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            ctx.fillText('Press SPACE to jump', 10, 60)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'black'
+                ctx.font = '20px monospace'
+                ctx.fillText('GAME OVER', 250, 150)
+                ctx.fillText('Press R to restart', 240, 180)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && (e.key === 'r' || e.key === 'R')) {
+                location.reload()
+            }
+            if ((e.key === ' ' || e.key === 'Space') && !player.jumping && !gameOver) {
+                player.jumping = true
+                player.vy = -8
+            }
+        })
+        
+        setInterval(update, 1000 / 60)
+        draw()
+    </script>
+</body>
+</html>

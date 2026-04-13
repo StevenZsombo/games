@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetris</title>
+</head>
+<body>
+    <canvas id="game" width="300" height="600" style="border:1px solid black"></canvas>
+    <script>
+        const canvas = document.getElementById('game')
+        const ctx = canvas.getContext('2d')
+        
+        const pieces = [
+            [[1,1,1,1]],
+            [[1,1],[1,1]],
+            [[0,1,0],[1,1,1]],
+            [[1,1,0],[0,1,1]],
+            [[0,1,1],[1,1,0]],
+            [[1,0,0],[1,1,1]],
+            [[0,0,1],[1,1,1]]
+        ]
+        
+        let board = Array(20).fill().map(() => Array(10).fill(0))
+        let piece = null
+        let pieceX = 3, pieceY = 0
+        let score = 0
+        let gameOver = false
+        
+        function newPiece() {
+            let idx = Math.floor(Math.random() * pieces.length)
+            piece = pieces[idx].map(row => [...row])
+            pieceX = 3
+            pieceY = 0
+            if (collision()) gameOver = true
+        }
+        
+        function collision() {
+            for (let y = 0; y < piece.length; y++) {
+                for (let x = 0; x < piece[y].length; x++) {
+                    if (piece[y][x] && (pieceY + y >= 20 || pieceX + x < 0 || pieceX + x >= 10 || board[pieceY + y][pieceX + x])) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+        
+        function merge() {
+            for (let y = 0; y < piece.length; y++) {
+                for (let x = 0; x < piece[y].length; x++) {
+                    if (piece[y][x]) board[pieceY + y][pieceX + x] = 1
+                }
+            }
+            clearLines()
+            newPiece()
+        }
+        
+        function clearLines() {
+            for (let y = 0; y < 20; y++) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1)
+                    board.unshift(Array(10).fill(0))
+                    score += 100
+                }
+            }
+        }
+        
+        function move(dx, dy) {
+            pieceX += dx
+            pieceY += dy
+            if (collision()) {
+                pieceX -= dx
+                pieceY -= dy
+                if (dy === 1) merge()
+                return false
+            }
+            return true
+        }
+        
+        function rotate() {
+            let rotated = piece[0].map((_, i) => piece.map(row => row[i]).reverse())
+            let oldPiece = piece
+            piece = rotated
+            if (collision()) piece = oldPiece
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'black'
+            ctx.fillRect(0, 0, 300, 600)
+            
+            for (let y = 0; y < 20; y++) {
+                for (let x = 0; x < 10; x++) {
+                    if (board[y][x]) {
+                        ctx.fillStyle = 'cyan'
+                        ctx.fillRect(x * 30, y * 30, 28, 28)
+                    }
+                }
+            }
+            
+            for (let y = 0; y < piece.length; y++) {
+                for (let x = 0; x < piece[y].length; x++) {
+                    if (piece[y][x]) {
+                        ctx.fillStyle = 'white'
+                        ctx.fillRect((pieceX + x) * 30, (pieceY + y) * 30, 28, 28)
+                    }
+                }
+            }
+            
+            ctx.fillStyle = 'white'
+            ctx.font = '20px monospace'
+            ctx.fillText('Score: ' + score, 10, 30)
+            
+            if (gameOver) {
+                ctx.fillStyle = 'white'
+                ctx.font = '20px monospace'
+                ctx.fillText('GAME OVER', 90, 300)
+                ctx.fillText('Press R', 110, 340)
+            }
+            
+            requestAnimationFrame(draw)
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && e.key === 'r') location.reload()
+            if (e.key === 'ArrowLeft') move(-1, 0)
+            if (e.key === 'ArrowRight') move(1, 0)
+            if (e.key === 'ArrowDown') move(0, 1)
+            if (e.key === 'ArrowUp') rotate()
+            if (e.key === ' ') while(move(0, 1)) {}
+        })
+        
+        newPiece()
+        setInterval(() => move(0, 1), 500)
+        draw()
+    </script>
+</body>
+</html>
