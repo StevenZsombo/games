@@ -1,12 +1,14 @@
 Before starting the game:
 1.  Make sure that the correct map.json file is loaded.
-    It is in Steven/games/docs/conquest/maps.
+    Visit Steven/games/docs/conquest/maps.
+    Delete map.json.
+    Find the file with the correct number of teams. Make a copy of it, then rename the copy to map.json.
 2.  Run the server executable.
     It will tell you the IP address students can connect to LATER.
 3.  Run the Electron application BEFORE students start joining.
     It should load the game.
 4.  dev -> ERASE QUICKSAVES (important!)
-5.  SERVER -> BUCKETS to set the buckets file (is in Steven/secrets)
+5.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
 6.  SERVER -> MAXATTACKS -> 1 to start with.
     Can increase later.
 
@@ -19,11 +21,11 @@ Students can now start joining to the IP address.
 8.  SERVER -> START to begin the game.
 
 Student management:
-Click on team side banner (small one, next to the map), then you can pick a student and
+Click on team-colored banner, then you can pick a student and
 order them to change their name or kingdom if necessary.
 
 During the game:
-SERVER -> INVALIDATE -> QUESTIONID to erase a faulty question from the question bank.
+SERVER -> INVALIDATE -> QUESTIONID to remove a faulty question from the question bank.
 Gradually increase SERVER -> MAXATTACKS throughout the game. Use your judgement.
 
 Ending the game:
@@ -36,20 +38,26 @@ After the game:
 13. Send me a copy of:
 - Steven/clipped/conquestEnd(numbers).json
 - Steven/games/docs/record.txt
-- You can make a timelapse out of the "timelapse" pictures in the clipped folder 
+- You can make a timelapse out of the "timelapse" pictures in the Steven/clipped folder 
   if you wish on https://sisik.eu/images-to-video
 
 
 
 Client (student)-side issues & fixes:
-Image won't center or is too zoomed in - tap the gray header "Conquest game" several times.
+
+Most common problems: too many open tabs, too many open apps, background apps using up the bandwidth.
+Duplicate tabs: if the students opens two different tabs each running the game it will not function properly.
+Solution to each of these: turn off 5G, close all applications and close all tabs.
+
 Can't enter fullscreen - tap the student's name in the right-upper corner.
-If neither works, add #s at the end of the URL to enable "scrolling" and zooming.
+Image won't center, is too zoomed in, is too zoomed out - tap the gray header "Conquest game" several times.
 
 Stuck on loading screen - tap the text several times to flush and refresh.
 
-Suspect memory issues (on very low end devices), add #l at the end of the URL to force "low" map quality.
-(The opposite is #h for "high" map quality if you want to show the game on the smart board.)
+Page won't load entirely: double-check the IP address, and make sure that autocomplete did not add any ports
+(it tends to correct 10.40.1.219 to the incorrect 10.40.1.2019:8000 for example).
+
+Slow to load or has noticeable input lag - throttling due to low battery or too many other apps running.
 
 Anything else: add #d at the end of the URL to allow "debug" info to be printed on the page,
 then call me for help or take pictures of the errors log.
