@@ -613,11 +613,6 @@ class Button extends Clickable {
 	}
 
 
-	get copy() {
-		let result = new Button()
-		Object.assign(result, this)
-		return result
-	}
 	flip_selected() {
 		this.selected = !this.selected
 	}
@@ -633,9 +628,9 @@ class Button extends Clickable {
 	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
 	static make_checkbox(button, preservePreviousFunction = false) {
 		if (preservePreviousFunction) {
-			button.on_click = MM.extFunc(button.on_click, button.selected_flip.bind(button))
+			button.on_click = MM.extFunc(button.on_click, button.flip_selected.bind(button))
 		} else {
-			button.on_click = button.selected_flip.bind(button)
+			button.on_click = button.flip_selected.bind(button)
 		}
 		button.hover_color ??= "pink"
 		return button

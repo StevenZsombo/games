@@ -184,15 +184,20 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
         this.add_drawable(recordLab)
 
         const animTswap = 600
-        const animTdelay = animTswap + 400
+        const animTdelay = animTswap + 300
         let allowSwap = true
+        const swapAnimLatest = new Set()
         let allowClicking = true
         const pairings = new Set() //"body0,body1" pairs (in BOTH orders)
         const swap = (pair, animT = animTswap) => {
             if (!allowSwap) {
-                GameEffects.popup("Wait for the animation to finish!", ppp)
-                return
+                // GameEffects.popup("Wait for the animation to finish!", ppp)
+                //   return
+                console.info("oopsie, shouldn't swap yet")
             }
+            //^^early ditch instead!
+            swapAnimLatest.forEach(x => this.animator.earlyDitch(x))
+            swapAnimLatest.clear()
             if (pair[0] == pair[1]) return
             if (pairings.has(pair.join(","))) {
                 /*if (pairings.size == MM.binom(len, 2) * 2) {
@@ -209,7 +214,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 this.add_drawable(bgs, 4)
                 const blinkLine = [b0.centerX, b0.centerY, b1.centerX, b1.centerY, 3, "red"]
                 lines.push(blinkLine)
-                this.animator.add_anim(Anim.custom(blinkLine, 500, (t, obj) => {
+                const anim = this.animator.add_anim(Anim.custom(blinkLine, 500, (t, obj) => {
                     obj[4] = Anim.interpol(8, 14, Anim.l.vee(t))
                     bgs.forEach(x => x.outline = Anim.interpol(14, 18, Anim.l.vee(t)))
                 }, undefined, {
@@ -219,6 +224,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                         this.remove_drawables_batch(bgs)
                     }
                 }))
+                swapAnimLatest.add(anim)
                 return
             }
             swapRecord.push(pair)
@@ -243,14 +249,15 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
                 bodsMap.get(pair[1]).centerX, bodsMap.get(pair[1]).centerY
             ])
 
-            this.animator.add_anim(mindsMap.get(new1), animT, Anim.f.moveFrom,
-                { x: m1X, y: m1Y, ditch: true, lerp: Anim.l.smoothstep })
-            this.animator.add_anim(mindsMap.get(new0), animT, Anim.f.moveFrom,
+            const anim1 = this.animator.add_anim(mindsMap.get(new1), animT, Anim.f.moveFrom,
+                { x: m1X, y: m1Y, lerp: Anim.l.smoothstep })
+            const anim2 = this.animator.add_anim(mindsMap.get(new0), animT, Anim.f.moveFrom,
                 {
-                    x: m0X, y: m0Y, ditch: true, lerp: Anim.l.smoothstep,
+                    x: m0X, y: m0Y, lerp: Anim.l.smoothstep,
                     on_end: () => { allowSwap = true; addline(); checkVictory(); }
                 })
-
+            swapAnimLatest.add(anim1)
+            swapAnimLatest.add(anim2)
             console.log("swapped:", pair, Array.from(curr).map(x => x.join(":")).join("; "))
         }
         if (swaps.length) {
@@ -345,7 +352,7 @@ Hermes,Leela`.split("\n").map(x => x.split(",")) : []
         Object.assign(window,
             {
                 swap, bods, minds, bodsMap, mindsMap, curr, lines, allowSwap, pairings, nicks, labs, stage,
-                recordLab, swapRecord, checkVictory, corners, cornerTaps, basketball,
+                recordLab, swapRecord, checkVictory, corners, cornerTaps, basketball, swapAnimLatest,
                 mathologer, resvideo, fandom, explanation, infosphere, wiki
             })
 

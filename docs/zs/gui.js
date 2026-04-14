@@ -14,7 +14,7 @@ class Framerater {
 			y: 10,
 			width: 150,
 			height: 40,
-			fontsize: 32,
+			fontSize: 32,
 			color: "yellow",
 			outline: 0,
 		})
@@ -54,7 +54,7 @@ class Framerater {
 class Keyboarder {
 	constructor(denybuttons) {
 		if (denybuttons === null) {
-			throw "did not specify whether keypress propagation should be denied or not"
+			throw new Error("did not specify whether keypress propagation should be denied or not")
 		}
 		/*-----------------------------------------------worst idea ever---------------------------------------------------------*/
 		//fullscreenToggle = MM.extFunc(fullscreenToggle, () => game.mouser.whereIsCanvas())
@@ -386,6 +386,7 @@ class Cropper {
 
 	load_images(names, containerDict, whatToCallAfter) {
 		let num = names.length
+		if (num == 0) return whatToCallAfter()
 		const onload = () => { --num === 0 && whatToCallAfter() }
 		for (const item of names) {
 			const img = new Image
