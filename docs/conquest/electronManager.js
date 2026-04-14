@@ -483,8 +483,28 @@ You can now download bucket.json. Rename it to something more descriptive and ke
 
 
 
-
-
+const unwrap = async () => {
+    but("You will need to upload conquestEnd(numbers).json.")
+    const json = JSON.parse(await fetch("secrets/bankSecret.json"))
+    const origNames = json.map(x => x[1]) //id,origNames<-WANTED,sol,bucket
+    feed(MM.tableStr(origNames))
+    const j = await MM.importJSON()
+    const r = j.questionRecord
+    if (!r.length) { alert("no data"); return }
+    let props = "fromfile id ev player kingdomID kingdomName timePassed conflict".split(" ")
+    r.forEach(x => x.fromfile = origNames[x.id])
+    const rows = [props].concat(rows)
+    feed(MM.tableStr(rows))
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'record');
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const filename = `postGame${Date.now()}.xlsx`
+    log("Downloading Excel...")
+    await fileAPI.writeBuffer(`clipped/${filename}`, excelBuffer)
+    log(`Success! Downloaded as ${filename} in the clipped folder.`)
+    log("You may quit the app now.")
+}
 
 
 
@@ -495,6 +515,7 @@ const optionsMenu = async () => {
     ob.push(["Add more questions to the bank.", () => fullProcess(addProcess)])
     ob.push(["Create/restore bank.xlsx", () => createOrRestoreBankXLSX()])
     ob.push(["Organize buckets.", () => { fullProcess(bucketProcess) }])
+    ob.push(["Post-game analysis", () => unwrap()])
     const buttons = []
     for (let i = 0; i < ob.length; i++) {
         const btn = document.createElement("button")
