@@ -91,6 +91,10 @@ class Game extends GameCore {
         let numbers = []
         /**@type {Button[]} */
         const balls = Array(BALL_COUNT).fill().map(() => new Button())
+        balls.forEach(b => {
+            Button.make_circle(b)
+            Button.make_draggable(b)
+        })
         const refresh = function (b) {
             if (b.tail) {
                 b.tail.target = { x: b.x + W * 2, y: b.y }
@@ -166,37 +170,39 @@ class Game extends GameCore {
         }
         // Rect.packArray(balls, this.rect.copy.splitGrid())
         let isDraggingWhat = null
-        balls.forEach((b, i) => {
-            Button.make_circle(b)
-            Button.make_draggable(b)
-            b.width = W
-            b.fontSize = W
-            b.tag = i
-            b.repr = 0 //0 or actual value
-            b.isBall = true
-            b.txt = i + 1
-            b.tail = i == 0 ? null : balls[i - 1]
-            b.head = (i == balls.length - 1) ? null : balls[i + 1]
-            // b.isBlocking = true //bad idea
-            b.on_click = () => { b.isBlocking = true; separate(b) }
-            b.refresh = () => refresh(b)
-            b.on_drag_more = () => { refresh(b); isDraggingWhat = b }
-            b.on_release = () => {
-                if (isDraggingWhat !== b) return
-                join(b); b.isBlocking = false; isDraggingWhat = null
+        const initBalls = () => {
+            balls.forEach((b, i) => {
+                b.color = "black"
+                b.width = W
+                b.fontSize = W
+                b.tag = i
+                b.repr = 0 //0 or actual value
+                b.isBall = true
+                b.txt = i + 1
+                b.tail = i == 0 ? null : balls[i - 1]
+                b.head = (i == balls.length - 1) ? null : balls[i + 1]
+                // b.isBlocking = true //bad idea
+                b.on_click = () => { b.isBlocking = true; separate(b) }
+                b.refresh = () => refresh(b)
+                b.on_drag_more = () => { refresh(b); isDraggingWhat = b }
+                b.on_release = () => {
+                    if (isDraggingWhat !== b) return
+                    join(b); b.isBlocking = false; isDraggingWhat = null
+                }
+            })
+            reRepr(balls.at(-1))
+            balls.at(-1).topleftat(W, 400)
+            recolor(balls.at(-1))
+            if (BALL_COUNT * W > this.WIDTH / 2) {
+                const rows = MM.reshape(balls, MM.clamp(SQ * 2, 1, Math.floor(this.WIDTH / W / 2)))
+                rows.forEach(x => separate(x.at(-1)))
+                console.log({ rows })
+                const bg = this.rect.copy.resize(this.WIDTH, this.HEIGHT * .5).move(W, 0)
+                Rect.packCol(rows.map(x => x.at(-1)), bg, "justify", "left")
             }
-        })
-        reRepr(balls.at(-1))
-        balls.at(-1).topleftat(W, 400)
-        recolor(balls.at(-1))
-        if (BALL_COUNT * W > this.WIDTH / 2) {
-            const rows = MM.reshape(balls, MM.clamp(SQ * 2, 1, Math.floor(this.WIDTH / W / 2)))
-            rows.forEach(x => separate(x.at(-1)))
-            console.log({ rows })
-            const bg = this.rect.copy.resize(this.WIDTH, this.HEIGHT * .5).move(W, 0)
-            Rect.packCol(rows.map(x => x.at(-1)), bg, "justify", "left")
+            balls.filter(x => !x.head).forEach(x => x.refresh())
         }
-        balls.filter(x => !x.head).forEach(x => x.refresh())
+        initBalls()
         this.add_drawable(balls)
 
         const topLab = new Button()
@@ -244,6 +250,15 @@ class Game extends GameCore {
             }
         }
         this.add_drawable(outDrawable, 4)
+
+        const resetButton = new Button()
+        resetButton.resize(150, 75)
+        resetButton.bottomat(this.HEIGHT)
+        resetButton.rightat(this.WIDTH)
+        resetButton.txt = "Reset"
+        resetButton.on_release = () => initBalls()
+
+        this.add_drawable(resetButton)
 
         Object.assign(window, { balls, topLab, botLab })
         this.balls = balls
