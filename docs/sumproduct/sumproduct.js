@@ -22,6 +22,12 @@ var univ = {
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 
+const RULES = {
+    BALL_COUNT: 24,
+    WIDTH: 35,
+    IS_ANIMATED: 1, //1 or 0
+
+}
 
 class Game extends GameCore {
     //#region more
@@ -57,18 +63,39 @@ class Game extends GameCore {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
 
+    rules_from_hash() {
+        const h = location.search.slice(1)
+        if (!h) return
+        if (Number.isFinite(+h)) {
+            RULES.BALL_COUNT = +h > 0 ? +h : 24
+            return
+        }
+        const numbers = h.split(",").map(Number)
+        if (Number.isFinite(numbers[0]))
+            RULES.BALL_COUNT = numbers[0] > 0 ? numbers[0] : 24
+        if (Number.isFinite(numbers[1]))
+            RULES.WIDTH = MM.clamp(5, numbers[1], 100)
+
+
+        // const kv = h.split(",").map(x => x.split("=").map(x => [x[0], +x[1]])).filter(x => Number.isFinite(x[1]))
+        // console.log(kv)
+
+    }
+
     //#region initialize_more
     initialize_more() {
-        const BALL_COUNT = 24
+        this.rules_from_hash()
+        const BALL_COUNT = RULES.BALL_COUNT
         const SQ = MM.pipe(BALL_COUNT, Math.sqrt, Math.floor)
-        const W = 36
+        const W = RULES.WIDTH
         let numbers = []
         /**@type {Button[]} */
         const balls = Array(BALL_COUNT).fill().map(() => new Button())
         const refresh = function (b) {
             if (b.tail) {
-                b.tail.x = b.x + W * 2
-                b.tail.y = b.y
+                b.tail.target = { x: b.x + W * 2, y: b.y }
+                // b.tail.x = b.x + W * 2
+                // b.tail.y = b.y
                 b.tail.refresh()
             }
         }
@@ -143,11 +170,11 @@ class Game extends GameCore {
             Button.make_circle(b)
             Button.make_draggable(b)
             b.width = W
+            b.fontSize = W
             b.tag = i
             b.repr = 0 //0 or actual value
             b.isBall = true
             b.txt = i + 1
-            b.fontSize = 36
             b.tail = i == 0 ? null : balls[i - 1]
             b.head = (i == balls.length - 1) ? null : balls[i + 1]
             // b.isBlocking = true //bad idea
@@ -160,10 +187,16 @@ class Game extends GameCore {
             }
         })
         reRepr(balls.at(-1))
-        balls.at(-1).topleftat((this.rect.width - BALL_COUNT * W * 2) / 2, 400)
+        balls.at(-1).topleftat(W, 400)
         recolor(balls.at(-1))
-        balls.at(-1).refresh()
-        balls.at(-1).repr = BALL_COUNT
+        if (BALL_COUNT * W > this.WIDTH / 2) {
+            const rows = MM.reshape(balls, MM.clamp(SQ * 2, 1, Math.floor(this.WIDTH / W / 2)))
+            rows.forEach(x => separate(x.at(-1)))
+            console.log({ rows })
+            const bg = this.rect.copy.resize(this.WIDTH, this.HEIGHT * .5).move(W, 0)
+            Rect.packCol(rows.map(x => x.at(-1)), bg, "justify", "left")
+        }
+        balls.filter(x => !x.head).forEach(x => x.refresh())
         this.add_drawable(balls)
 
         const topLab = new Button()
@@ -171,20 +204,27 @@ class Game extends GameCore {
         topLab.rightstretchat(this.rect.width)
         topLab.height = 240
         topLab.font_font = "myMonospace"
-        topLab.fontSize = 36
+        topLab.fontSize = 30
         topLab.transparent = true
         topLab.textSettings = { textAlign: "left" }
         topLab.dynamicText = () =>
-            `Group the ${BALL_COUNT} marbles so that the product of the sizes of groups is maximual!` +
+            `Group the ${BALL_COUNT} marbles so that the product of the sizes of groups is maximal!` +
             `\nDragging a marble drags all other marbles to its right.` +
+            `\nSplit a group by dragging the non-leftmost marble.` +
             `\nDrag onto an existing group to merge the two groups.`
         this.add_drawable(topLab)
         const botLab = topLab.copy
         botLab.fontSize = 30
-        botLab.dynamicText = () =>
-            `\nYour group sizes, their sum, and their product:\n` +
-            `${numbers.join(" + ")} = ${numbers.reduce((s, t) => s + t, 0)}\n` +
-            `${numbers.join(" * ")} = ${numbers.reduce((s, t) => s * t, 1)} `
+        botLab.dynamicText = () => {
+            const a = [`Your group sizes, their sum, and their product:`,
+                `${numbers.join(" + ")} = ${numbers.reduce((s, t) => s + t, 0)}`,
+                `${numbers.join(" * ")} = ${numbers.reduce((s, t) => s * t, 1)} `]
+            if (a[1].length > 80 || a[2].length > 80) {
+                a[1] = a[1].split("=").join("\n =")
+                a[2] = a[2].split("=").join("\n =")
+            }
+            return a.join("\n")
+        }
 
         botLab.bottomat(this.rect.bottom)
         this.add_drawable(botLab)
@@ -192,10 +232,10 @@ class Game extends GameCore {
 
         const outDrawable = {
             draw: (ctx) => {
-                const outBalls = balls.filter(b => b.x - b.width * .5 > this.rect.width)
+                const outBalls = balls.filter(b => b.x + W * .75 > this.rect.width)
                 const outMap = new Map()
-                outBalls.forEach(b => outMap.set(b.x, b))
-                Array.from(outBalls.entries()).forEach(([x, ball]) => {
+                outBalls.forEach(b => outMap.set(b.color, b))
+                Array.from(outMap.entries()).forEach(([_, ball]) => {
                     const yy = ball.y
                     MM.drawArrow(ctx, this.rect.width - 80, yy, this.rect.width - 30, yy,
                         { color: ball.color, size: 10, txt: "more" }
@@ -206,6 +246,7 @@ class Game extends GameCore {
         this.add_drawable(outDrawable, 4)
 
         Object.assign(window, { balls, topLab, botLab })
+        this.balls = balls
     }
     //#endregion
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -215,7 +256,31 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-
+        const { balls } = this
+        const W = RULES.WIDTH
+        if (!RULES.IS_ANIMATED) {
+            balls.filter(x => x.target).forEach(b => {
+                Object.assign(b, b.target)
+                b.target = null
+            })
+        } else {
+            balls.filter(x => x.target).forEach(b => {
+                let dX = b.target.x - b.x
+                let dY = b.target.y - b.y
+                const mag = Math.hypot(dX, dY)
+                if (mag < 5) {
+                    Object.assign(b, b.target)
+                    b.target = null
+                    return
+                }
+                //with slideFactor
+                const slideMult = 0.8
+                const slidefactor = MM.clamp(dt / 17, .1, 1) * slideMult
+                b.x += dX * slidefactor
+                b.y += dY * slidefactor
+            })
+            balls.filter(b => b.head == null).forEach(b => b.refresh())
+        }
 
 
 

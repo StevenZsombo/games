@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "commonjs"
+    },
+    "include": [
+        "./*.js",
+        "../zs/*.js"
+    ],
+    "exclude": [
+        "node_modules",
+        "./sketch*.js",
+        "./zs/sketch*.js",
+        "./server*.js",
+        "./cc.js",
+        "./game.js",
+        "./platformer.js"
+    ]
+}
