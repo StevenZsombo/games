@@ -56,6 +56,10 @@ class MM {
     static extFunc = MM.extendFunction
 
 
+    static pipe(value, ...fn) {
+        return fn.reduce((s, t) => t(s), value)
+    }
+
 
     static dist(x, y, u, w) {
         return Math.hypot(x - u, y - w)
@@ -1965,13 +1969,14 @@ class GameEffects {
         game.add_drawable(invis)
 
     }
+
+
     /**
      * @param {function(string)} on_pressingEnter 
      * @returns {HTMLInputElement}
      * - clean up with .remove() 
      * - has .value for its content
      * */
-
     static inputBox(x = 100, y = 100, width, height, on_pressingEnter) {
         const input = document.createElement('input')
         input.style.position = 'absolute'
