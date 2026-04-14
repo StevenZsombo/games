@@ -168,6 +168,8 @@ class Game extends GameCore {
             reRepr(last)
 
         }
+        this.searchDown = searchDown
+        this.searchUp = searchUp
         // Rect.packArray(balls, this.rect.copy.splitGrid())
         let isDraggingWhat = null
         const initBalls = () => {
@@ -279,22 +281,41 @@ class Game extends GameCore {
                 b.target = null
             })
         } else {
-            balls.filter(x => x.target).forEach(b => {
-                let dX = b.target.x - b.x
-                let dY = b.target.y - b.y
-                const mag = Math.hypot(dX, dY)
-                if (mag < 5) {
-                    Object.assign(b, b.target)
-                    b.target = null
-                    return
-                }
+            /*
+            //with constraint
+            const snap = b => {
+                const head = b.head
+                if (!head) return
+                const dx = b.x - head.x
+                const dy = b.y - head.y
+                const currentAng = Math.atan2(dy, dx)
+                const lerpFactor = MM.clamp(dt / 17, 0.1, 1) * 0.3
+                const newAng = currentAng * (1 - lerpFactor)
+                b.x = head.x + Math.cos(newAng) * 2 * W
+                b.y = head.y + Math.sin(newAng) * 2 * W
+            }
+            balls.filter(b => !b.head).forEach(first => {
+                const full = this.searchDown(first)
+                full.forEach(snap)
+            })*/
+            {
                 //with slideFactor
-                const slideMult = 0.8
-                const slidefactor = MM.clamp(dt / 17, .1, 1) * slideMult
-                b.x += dX * slidefactor
-                b.y += dY * slidefactor
-            })
-            balls.filter(b => b.head == null).forEach(b => b.refresh())
+                balls.filter(x => x.target).forEach(b => {
+                    let dX = b.target.x - b.x
+                    let dY = b.target.y - b.y
+                    const mag = Math.hypot(dX, dY)
+                    if (mag < 5) {
+                        Object.assign(b, b.target)
+                        b.target = null
+                        return
+                    }
+                    const slideMult = 0.8
+                    const slidefactor = MM.clamp(dt / 17, .1, 1) * slideMult
+                    b.x += dX * slidefactor
+                    b.y += dY * slidefactor
+                })
+                balls.filter(b => b.head == null).forEach(b => b.refresh())
+            }
         }
 
 
