@@ -97,4 +97,4 @@ sudo apachectl stop
 (full prevent) sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist
 sudo kill <PID>
 sudo kill -9 <PID>
-
+sudo nice -n -20 ~/Documents/Steven/your_app_name
