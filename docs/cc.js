@@ -662,22 +662,25 @@ class Game extends GameCore {
     }
 
     enter() {
-        chat.on_join = () => {
-            if (myKingdomID == null) { //should be impossible, but just to be safe
-                GameEffects.popup("ERROR: myKingdomID is somehow null,\n ask the teacher for help.", undefined, GRAPHICS.POPUP_ERROR)
-                window.wProgress?.("ERROR: myKingdID is somehow null")
-                throw new Error("Kingdom is somehow undefined when trying to send it!")
-            }
-            console.log("successful reconnect!")
-            chat.sendSecure({ kingdom: myKingdomID }) //re-announce kingdom on each reconnect!
-            //this won't refresh the page at least. might cause issues on low-end?
-        }
         if (chat.isConnected) {
             window.wProgress?.("\nCONNECTED!")
             chat.sendSecure({ kingdom: myKingdomID })
         }
         else {
             window.wProgress?.("\nWAITING TO CONNECT!")
+            /*chat.on_join_once = () => {
+                chat.sendSecure({ kingdom: myKingdomID })*/
+        }
+        //this is sync - event won't be handled in-between (I hope lol)
+        chat.on_join = () => {
+            if (myKingdomID == null) { //should be impossible, but just to be safe
+                GameEffects.popup("ERROR: myKingdomID is somehow null,\n ask the teacher for help.", undefined, GRAPHICS.POPUP_ERROR)
+                window.wProgress?.("ERROR: myKingdID is somehow null")
+                throw new Error("Kingdom is somehow undefined when trying to send it!")
+            }
+            console.log("cc: successful reconnect!")
+            chat.sendSecure({ kingdom: myKingdomID }) //fully reannounce kingdom on each reconnect.
+            // chat.sendMessage({ inquire: "bunch" }) //this is really just a ping...
         }
     }
 

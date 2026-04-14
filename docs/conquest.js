@@ -99,7 +99,7 @@ class Person extends Participant {
                 popupSettings: GRAPHICS.POPUP_ERROR
             })
             //no notification for now, just silently ignore
-            console.error("Invalid wss attempt", this)
+            console.log("Invalid wss attempt", this)
             return false
         } else { return true }
     }
@@ -319,14 +319,14 @@ listener.on_message = (obj, person) => {
             hq.orderResetKingdom(person) //need not be a name
             return
         }
-        const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom])
-        if (true || newlyJoined)// for now
-            SHAREmany([
-                "kingdomsFullData",
-                "territoriesFullData",
-                "rankingData", "valuesData", "ownershipData", "conflictsData"
-            ], person.nameID)
-        else SHAREbunch(person.nameID)
+        const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom]) //const ignored
+        // if (true || newlyJoined)// for now
+        SHAREmany([
+            "kingdomsFullData",
+            "territoriesFullData",
+            "rankingData", "valuesData", "ownershipData", "conflictsData"
+        ], person.nameID)
+        // else SHAREbunch(person.nameID)
 
     }
 

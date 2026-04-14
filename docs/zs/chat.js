@@ -61,9 +61,9 @@ class Chat {
                 this.errorHandler = null
                 this.announceSelf() //only the server announces themselves.
                 this.queueSend() //in case this is a reconnect!
-                this.on_join?.()
                 this.on_join_once?.()
                 this.on_join_once = null
+                this.on_join?.()
             }
             this.socket.onerror = (event) => {
                 //console.error("Something went wrong, attempting to reconnect.", event)
@@ -471,14 +471,14 @@ class Listener {
 
         //logging any requests
         if (message.promptResponse) {
-            person.on_prompt_response?.(message.promptResponse)
             person.on_prompt_response_once?.(message.promptResponse)
             person.on_prompt_response_once = null
+            person.on_prompt_response?.(message.promptResponse)
         }
         if (message.requestResponse) {
-            person.on_request_response?.(message.requestResponse)
             person.on_request_response_once?.(message.requestResponse)
             person.on_request_response_once = null
+            person.on_request_response?.(message.requestResponse)
         }
 
         //anything else
