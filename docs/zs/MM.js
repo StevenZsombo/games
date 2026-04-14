@@ -1002,6 +1002,15 @@ class MM {
         }
     }
 
+    static * partitions(n, max = n, current = []) {
+        if (n === 0) yield [...current];
+        else for (let i = Math.min(max, n); i >= 1; i--) {
+            current.push(i);
+            yield* MM.partitions(n - i, i, current);
+            current.pop();
+        }
+    }
+
     static * powerset(arr) {
         for (let mask = 0; mask < (1 << arr.length); mask++) {
             yield arr.filter((_, i) => mask & (1 << i));
@@ -1754,16 +1763,19 @@ class GameEffects {
             cp.resize(origW * scale, origH * scale)
         }, null, { on_end: () => { game.remove_drawable(cp) } }))
     }
-
     /**
-     * 
      * @param {string} txt - Message to display
-     * @param {Array<number>} posFrac - Float position array coordinates as a fraction of screen size
-     * @param {Array<number} sizeFrac - Size as a fraction of screen size
-     * @param {Array<number} direction - "bottom top left right" where to come from
-     * @param {number} travelTime - How long it takes to move to position
-     * @param {number} floatTime - How long to linger
-     * @param {{}} [moreButtonSettings={}] - More settings to be applied to the created button
+     * @param {{
+     *   posFrac?: [number, number],
+     *   sizeFrac?: [number, number],
+     *   direction?: string,
+     *   travelTime?: number,
+     *   floatTime?: number,
+     *   moreButtonSettings?: Object,
+     *   close_on_release?: boolean,
+     *   on_end?: Function
+     * }} [options] - Configuration options
+     * @param {string|Object} [preset] - Preset configuration
      */
     static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
         travelTime = 500, floatTime = 1000,

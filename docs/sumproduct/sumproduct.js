@@ -65,17 +65,29 @@ class Game extends GameCore {
 
     rules_from_hash() {
         const h = location.search.slice(1)
-        if (!h) return
-        if (Number.isInteger(+h)) {
-            RULES.BALL_COUNT = +h > 0 ? +h : 24
-            return
+        if (h) {
+            const numbers = h.split(",").map(Number)
+            if (Number.isInteger(numbers[0]))
+                RULES.BALL_COUNT = numbers[0] > 0 ? numbers[0] : 24
+            if (Number.isInteger(numbers[1]))
+                RULES.WIDTH = MM.clamp(5, numbers[1], 100)
         }
-        const numbers = h.split(",").map(Number)
-        if (Number.isInteger(numbers[0]))
-            RULES.BALL_COUNT = numbers[0] > 0 ? numbers[0] : 24
-        if (Number.isInteger(numbers[1]))
-            RULES.WIDTH = MM.clamp(5, numbers[1], 100)
-
+        if (location.hash.endsWith("cheat")) {
+            const allPoss = MM.partitions(RULES.BALL_COUNT)
+            const prods = []
+            allPoss.forEach(x => {
+                prods.push([x, x.reduce((s, t) => s * t)])
+            })
+            prods.sort((u, w) => w[1] - u[1])
+            const str = "The highest products are: \n\n" +
+                MM.tableStr(prods.slice(0, 10)
+                    .map(x => [`${x[0].join("*")} `, "=", x[1]])
+                )
+            GameEffects.popup(str, {
+                floatTime: 30000, close_on_release: true,
+                moreButtonSettings: { font_font: "myMonospace", textSettings: { textAlign: "left", textBaseline: "top" } }
+            }, GameEffects.popupPRESETS.megaBlue)
+        }
 
         // const kv = h.split(",").map(x => x.split("=").map(x => [x[0], +x[1]])).filter(x => Number.isFinite(x[1]))
         // console.log(kv)
