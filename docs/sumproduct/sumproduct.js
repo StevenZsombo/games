@@ -66,14 +66,14 @@ class Game extends GameCore {
     rules_from_hash() {
         const h = location.search.slice(1)
         if (!h) return
-        if (Number.isFinite(+h)) {
+        if (Number.isInteger(+h)) {
             RULES.BALL_COUNT = +h > 0 ? +h : 24
             return
         }
         const numbers = h.split(",").map(Number)
-        if (Number.isFinite(numbers[0]))
+        if (Number.isInteger(numbers[0]))
             RULES.BALL_COUNT = numbers[0] > 0 ? numbers[0] : 24
-        if (Number.isFinite(numbers[1]))
+        if (Number.isInteger(numbers[1]))
             RULES.WIDTH = MM.clamp(5, numbers[1], 100)
 
 
