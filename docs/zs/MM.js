@@ -39,18 +39,21 @@ class MM {
     }
 
 
-    static extendFunction(func, ext, extensionGoesBeforeInsteadOfAfter = false) {
+    static extendFunction(func, ext,
+        extensionGoesBeforeInsteadOfAfter = false,
+        returnOriginalInsteadOfExtension = false
+    ) {
         if (extensionGoesBeforeInsteadOfAfter) {
             return function (...args) {
-                ext?.(...args)
-                return func?.(...args)
+                const e = ext?.(...args)
+                const f = func?.(...args)
+                return returnOriginalInsteadOfExtension ? f : e
             }
         }
         return function (...args) {
-            func?.(...args)
-            return ext?.(...args)
-            //func?.apply(this, args)
-            //return ext.apply(this,args)
+            const f = func?.(...args)
+            const e = ext?.(...args)
+            return returnOriginalInsteadOfExtension ? f : e
         }
     }
     static extFunc = MM.extendFunction
@@ -1621,7 +1624,83 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         return partitions;
     }
 
+    /**
+     * @param {string} txt
+     * @param {string|string[]} delimiters
+     * @returns {{piece:string,by:string}[]}
+     */
+    static delimitedText(txt, delimiters) {
+        if (!txt) return []
+        if (delimiters == null) throw new Error("no delimiter was given")
+        if (!Array.isArray(delimiters)) delimiters = [...delimiters]
+        const result = []
+        let i = 0
+        const stack = []
+        while (i < txt.length) {
+            let foundDelim = null
+            let openIdx = -1
+            for (const d of delimiters) {
+                const idx = txt.indexOf(d, i)
+                if (idx !== -1 && (openIdx === -1 || idx < openIdx)) {
+                    openIdx = idx
+                    foundDelim = d
+                }
+            }
+            if (foundDelim === null) {
+                if (i < txt.length) result.push({ piece: txt.substring(i), by: "" })
+                break
+            }
+            if (openIdx > i) result.push({ piece: txt.substring(i, openIdx), by: "" })
+            // Check if this is an opening delimiter (not closing a previous one)
+            if (stack.length > 0 && foundDelim !== stack[stack.length - 1]) {
+                throw new Error(`nesting not allowed: ${foundDelim} inside ${stack[stack.length - 1]}`)
+            }
+            const closeIdx = txt.indexOf(foundDelim, openIdx + 1)
+            if (closeIdx === -1) throw new Error(`unclosed delimiter: ${foundDelim}`)
+            // Check for any other delimiter opening before this one closes
+            for (const d of delimiters) {
+                const nextOpen = txt.indexOf(d, openIdx + 1)
+                if (nextOpen !== -1 && nextOpen < closeIdx) {
+                    throw new Error(`nesting not allowed: ${d} inside ${foundDelim}`)
+                }
+            }
+            result.push({ piece: txt.substring(openIdx + 1, closeIdx), by: foundDelim })
+            i = closeIdx + 1
+        }
+        if (stack.length > 0) throw new Error(`unclosed delimiter: ${stack[stack.length - 1]}`)
+        return result
+    }
 
+    static delimitedReplace(txt, delimiter, left, right) {
+        if (!txt) return ""
+        const chopped = MM.delimitedText(txt, delimiter)
+        let result = ""
+        for (const x of chopped) {
+            if (x.by === delimiter) {
+                result += left + x.piece + right
+            } else {
+                result += x.piece
+            }
+        }
+        return result
+    }
+
+    static delimitedReplaceExtract(txt, delimiter, left, right) {
+        if (!txt) return { txt: "", extracted: [] }
+        right ??= left
+        const chopped = MM.delimitedText(txt, delimiter)
+        let result = ""
+        const extracted = []
+        for (const x of chopped) {
+            if (x.by === delimiter) {
+                extracted.push(x.piece)
+                result += left + x.piece + right
+            } else {
+                result += x.piece
+            }
+        }
+        return { txt: result, extracted }
+    }
 
 
 
@@ -2009,13 +2088,22 @@ class GameEffects {
         }
         return input
     }
-    /**@param {Rect} @param {function(string)} on_pressingEnter  rect  */
+    /**@param {Rect} rect @param {function(string)} on_pressingEnter  */
     static inputBoxFromRect(rect, on_pressingEnter) {
         return GameEffects.inputBox(rect.x, rect.y, rect.width, rect.height, on_pressingEnter)
     }
 
 
 
-
+    static latexButton(alsoAddTEXforScripting = true) {
+        const a = MM.pipe(new Button(),
+            x => game.add_drawable(x)[0],
+            Button.make_draggable,
+            Button.make_latex,
+            x => (x.isBlocking = true, x.centeratV(game.rect.center).resize(1600, 800)))
+        if (alsoAddTEXforScripting)
+            window.TEX = str => a.latex.tex = str
+        return a
+    }
 }
 //#endregion

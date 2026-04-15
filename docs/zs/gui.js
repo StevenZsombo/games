@@ -795,9 +795,11 @@ class LatexManager {
 
 	/**@param {string} str  */
 	set tex(str) {
+		if (str.includes("$")) str = LatexManager.dollarToPure(str)
 		if (str === this._tex) return
 		this._tex = str
 		this.refresh()
+		return str
 	}
 	get tex() { return this._tex }
 
@@ -805,6 +807,93 @@ class LatexManager {
 		this.img.src = 'data:image/svg+xml;base64,' + btoa(
 			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
 		)
+	}
+
+	static dollarToPure(strWithDollars, alignmentLCR = "c") {
+		// const chopped = MM.delimitedText(strWithDollars, ["$", "@"])
+		//ill-advised, use MM.delimitedReplace or MM.delimitedReplaceExtract
+		const chopped = MM.delimitedText(strWithDollars, ["$"])
+		let out = ""
+		const addText = (text) => {
+			const spl = `{}${text}`.split("\\\\").filter(x => x != "") //double backslash \\
+			out += spl.map(x => {
+				if (x.includes("\\fbox")) {//special treatment to \fbox
+					//deepseek
+					const parts = x.split(/(\\fbox\{[^}]*\})/g)
+					const processed = parts.map(part => {
+						if (part.startsWith("\\fbox")) {
+							return part
+						} else if (part.length > 0) {
+							return `\\text{${part}}`
+						}
+						return ""
+					}).join("")
+					return processed
+					//--****************************************************
+				}
+				return `\\text{${x}}`
+			}).join("\\\\")
+		}
+		chopped.forEach(x => {
+			if (x.by == "") addText(x.piece)
+			else if (x.by == "$") out += x.piece
+		})
+		return `\\begin{array}{${alignmentLCR}}${out}\\end{array}`
+	}
+
+	/**@deprecated */
+	static dollarToPureDEPR(strWithDollars, alignmentLCR = "c") {
+		const charArr = [...strWithDollars]
+		let text = ""
+		let math = ""
+		let mode = "none" //or text or math
+		let out = ""
+		const addText = () => {
+			const spl = `{}${text}`.split("\\\\").filter(x => x != "") //double backslash \\
+			out += spl.map(x => {
+				if (x.includes("\\fbox")) {//special treatment to \fbox
+					//deepseek
+					const parts = x.split(/(\\fbox\{[^}]*\})/g)
+					const processed = parts.map(part => {
+						if (part.startsWith("\\fbox")) {
+							return part
+						} else if (part.length > 0) {
+							return `\\text{${part}}`
+						}
+						return ""
+					}).join("")
+					return processed
+					//--****************************************************
+				}
+				return `\\text{${x}}`
+			}).join("\\\\")
+			text = ""
+			mode = "none"
+		}
+		for (const c of charArr) {
+			if (c != "$" && mode == "none") {//entering text
+				mode = "text"
+				text += c
+			} else if (c != "$" && mode == "text") {//continuing text
+				text += c
+			} else if (c == "$" && mode == "none") {//entering math from none
+				mode = "math"
+			} else if (c == "$" && mode == "text") { //entering math from text
+				addText()
+				mode = "math"
+			} else if (c != "$" && mode == "math") {//continuing math
+				math += c
+			} else if (c == "$" && mode == "math") { //leaving math
+				out += math
+				math = ""
+				mode = "none"
+			}
+		}
+		if (mode == "math") throw new Error("latex $ not closed")
+		if (mode == "text") {
+			addText()
+		}
+		return `\\begin{array}{${alignmentLCR}}${out}\\end{array}`
 	}
 
 	static matrixToTex(matrix) {
