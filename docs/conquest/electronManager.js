@@ -485,15 +485,17 @@ You can now download bucket.json. Rename it to something more descriptive and ke
 
 const unwrap = async () => {
     but("You will need to upload conquestEnd(numbers).json.")
-    const json = JSON.parse(await fetch("secrets/bankSecret.json"))
+    const json = JSON.parse(await fileAPI.fetch("secrets/bankSecret.json"))
     const origNames = json.map(x => x[1]) //id,origNames<-WANTED,sol,bucket
-    feed(MM.tableStr(origNames))
+    feed(MM.tableStr(MM.transposeArray([origNames])))
     const j = await MM.importJSON()
     const r = j.questionRecord
     if (!r.length) { alert("no data"); return }
     let props = "fromfile id ev player kingdomID kingdomName timePassed conflict".split(" ")
     r.forEach(x => x.fromfile = origNames[x.id])
-    const rows = [props].concat(rows)
+    console.log({ r })
+    const rows = [props].concat(r.map(x => props.map(p => x[p])))
+    console.log({ rows })
     feed(MM.tableStr(rows))
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet(rows);

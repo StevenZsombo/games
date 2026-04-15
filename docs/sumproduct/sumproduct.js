@@ -271,8 +271,18 @@ class Game extends GameCore {
         resetButton.rightat(this.WIDTH)
         resetButton.txt = "Reset"
         resetButton.on_release = () => initBalls()
-
         this.add_drawable(resetButton)
+
+        const changeNumberButton = Button.fromButton(resetButton)
+        changeNumberButton.move(-1.4 * changeNumberButton.width, 0)
+        changeNumberButton.stretch(1.2, 1)
+        changeNumberButton.txt = "Change number"
+        changeNumberButton.on_release = () => {
+            const n = +prompt("How many marbles?", BALL_COUNT)
+            if (Number.isInteger(n) && n > 1 && n != BALL_COUNT)
+                location.search = n
+        }
+        this.add_drawable(changeNumberButton)
 
         Object.assign(window, { balls, topLab, botLab })
         this.balls = balls
