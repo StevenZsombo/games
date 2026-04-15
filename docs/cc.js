@@ -22,82 +22,123 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: () => {
-        const setupPunish = () => {
-            if (!game || !chat || !chat.isConnected) { setTimeout(setupPunish, 200); return; }
-            if (RULES.IDLE_BAN_DURATION <= 0) return
-            //penalties go here
-            let penWindow = null
-            let objs = null
-            let origCols = null
-            const checkPenAction = () => {
-                if (RULES.IDLE_NOTIFY_SERVER)
-                    chat.sendMessage({ idle: Date.now() })
-                const penTime = RULES.IDLE_BAN_DURATION
-                penUntil = Date.now() + penTime
-                easePen()
-                localStorage.setItem("penUntil", penUntil)
-
-                //both options run on Anim, so no ticking while in the background
-                if (RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD) {
-                    objs ??= [game.right, game.bot, game.top, game.left, game.middle]
-                    origCols ??= objs.map(x => x.color)
-                    objs.forEach(x => x.color = "rgb(255, 0, 0)")
-                    // mapster?.changeBgColor(255, 0, 0)
-                    game.animator.add_anim(Anim.delay(penTime,
-                        {
-                            on_end: easePen
-                        }))
-                    return
+        const betterPunish = () => {
+            if (!RULES.IDLE_SYSTEM_USED) return
+            if (!game || !game.middle || !chat || !chat.isConnected) { setTimeout(betterPunish, 200); return; }
+            let hasFocus = true
+            let penLeft = 0
+            let penCount = 0
+            let hasPen = false
+            const readPen = () => {
+                penLeft = +localStorage.getItem("penLeft") || 0
+                penCount = +localStorage.getItem("penCount") || 0
+                checkPenIfDone()
+            }
+            const writePen = () => {
+                localStorage.setItem("penLeft", penLeft)
+                localStorage.setItem("penCount", penCount)
+            }
+            const checkPenIfDone = (dt) => {
+                if (penLeft == 0) {
+                    return true
                 }
+                if (penLeft < 0) {
+                    penLeft = 0
+                    hasPen = false
+                    writePen()
+                    objs.forEach((x, i) => x.color = origCols[i])
+                    penWindow?.close()
+                    penWindow = null
+                    return true
+                } if (penLeft > 0 && hasFocus) {
+                    dt && (penLeft -= dt)
+                }
+                return false
+
+            }
+            let objs = [game.right, game.bot, game.top, game.middle]
+            let origCols = objs.map(x => x.color)
+            let penWindow = null
+
+
+            const startPen = (firstRun = false) => {
+                const isNew = !firstRun && !hasPen
+                !firstRun && endPen()
+                if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
+                hasPen = true
+                // readPen()
+                // if (penLeft > 0) return //already running pen
+                if (!firstRun) {
+                    isNew && (penCount += 1)
+                    penLeft =
+                        RULES.IDLE_BAN_DURATION_BY_OFFENCE_COUNT[Math.min(penCount - 1, RULES.IDLE_BAN_DURATION_BY_OFFENCE_COUNT.length - 1)]
+                }
+                if (RULES.IDLE_NOTIFY_SERVER)
+                    chat.sendMessage({ idle: Date.now() + penLeft })
+                writePen()
+                RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD
+                    ? startPenWarn()
+                    : startPenBlockingWindow()
+            }
+
+            const startPenWarn = () => {
+                objs.forEach((x) => x.color = "red")
+            }
+            const startPenBlockingWindow = () => {
                 const popup = GameEffects.popup("", {
                     sizeFrac: [.98, .98],
                     posFrac: [.5, .5],
                     close_on_release: false,
                     travelTime: 100,
-                    floatTime: penTime,
+                    infinite: true
                 })
                 popup.color = "red"
                 popup.fontSize = 72
                 popup.isBlocking = true
                 popup.dynamicText = () => `You are not allowed to use other apps or other tabs.`
-                    + `\nYou are forbidden from interacting for the next ${Math.ceil((penUntil - Date.now()) / 1000)
-                    } seconds.`
+                    + `\nYou are forbidden from interacting for the next`
+                    + `\n\n${Math.ceil(penLeft / 1000)} seconds.`
+                    + (
+                        `\n\nThe timer will not decrease until you move back to the game,`
+                        + `\nand will restart each time you use other apps.`
+                        + `\nThe timer will get much longer on repeated offence.`)
                 penWindow = popup
             }
-            const checkExtendPen = () => {
-                if (!game) { return } else { game.easePen ??= easePen }
-                if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
-                let penUntil = +localStorage.getItem("penUntil") || 0
-                if (penUntil > Date.now()) checkPenAction()
-            }
-            const onBlur = () => {
-                if (!game) { return } else { game.easePen ??= easePen }
-                if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
-                checkPenAction()
-            }
-            const easePen = (alsoProtect = false) => {
-                if (objs) {
-                    objs.forEach((x, i) => x.color = origCols[i])
-                }
-                if (penWindow) {
-                    penWindow.close?.()
-                }
-                localStorage.setItem("penUntil", 0)
+            const endPen = (alsoProtect = false) => {
+                penLeft = -1 //to force clean
+                checkPenIfDone()
                 alsoProtect && localStorage.setItem("protectedFromPenUntil", Date.now() + 2000) //2 seconds protection
             }
-            checkExtendPen()
-            window.onblur = () => {
+            const microTrick = () =>
                 Promise.resolve().then(() => {
-                    if (document.hasFocus()) return
-                    onBlur()
+                    hasFocus = document.hasFocus()
+                    if (!hasFocus) {
+                        startPen()
+                    }
                 })
-            }
-            window.onfocus = () => {
-                checkExtendPen()
-            }
-            //penalties end here
+            window.addEventListener('blur', () => {
+                microTrick()
+            })
+            window.addEventListener('focus', () => {
+                hasFocus = true
+            })
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    microTrick()
+                }
+            })
+            univ.on_beforeunload = writePen
+
+
+            game.extras_on_update.push(
+                dt => checkPenIfDone(dt)
+            )
+            game.easePen = endPen
+
+            readPen()
+            if (penLeft > 0) startPen(true)
         }
-        setupPunish()
+        betterPunish()
     },
     on_first_run: () => {
         window.onhashchange = () => {
@@ -164,10 +205,12 @@ var univ = {
                         button.remove()
                         p.textContent = origLoadTextContent
                         window.onkeyup = null
-                        try { document.documentElement.requestFullscreen }
-                        catch (err) { console.log("Failed to fullscreen.", err) }
                         document.body.style.zoom = 1
                         return resolve()
+                    } else {
+                        const issues =
+                            "Invalid name. Must be at least 3 and at most 20 letters long, English letters only."
+                        alert(issues)
                     }
                 }
                 window.onkeyup = (ev) => {
@@ -683,8 +726,7 @@ class Game extends GameCore {
         }
 
 
-        //clockwork for snippet update 
-        //AND also attack reminders
+        //clockwork for snippet update
         this.snippetUpdateClockwork = setInterval(
             () => {
                 snippets.forEach(x => x.update(1000))

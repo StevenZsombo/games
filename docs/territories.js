@@ -45,8 +45,9 @@ var RULES = ({
 
 
     //idle prevention
-    IDLE_TIME_LIMIT: 500, //punitive but feels necessary
-    IDLE_BAN_DURATION: 30 * 1000, //can be overriden by NOT_BAN below
+    IDLE_SYSTEM_USED: true,
+    IDLE_BAN_DURATION_BY_OFFENCE_COUNT:
+        [15 * 1000, 30 * 1000, 60 * 1000, 120 * 1000],
     IDLE_NO_BAN_BUT_WARNING_INSTEAD: false,
     IDLE_NOTIFY_SERVER: true,
 

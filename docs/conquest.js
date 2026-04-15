@@ -1496,7 +1496,9 @@ class Game extends GameCore {
     /**@param {Person} person  */
     warnIdle(person, startTimeStamp) {
         if (this.punishedPersonSet.has(person)) {
-            this.sideMessageList[this.punishedPersonSet.get(person)].startTimeStamp = startTimeStamp
+            const p = this.sideMessageList[this.punishedPersonSet.get(person)]
+            p.startTimeStamp = startTimeStamp
+            p.timeLeftStill = startTimeStamp - Date.now()
             return
         }
         let ind = this.sideMessageList.indexOf(null)
@@ -1512,7 +1514,7 @@ class Game extends GameCore {
             {
                 posFrac: [.55 * .15, yyy], sizeFrac: [.15, .04],
                 direction: "left", floatTime: RULES.IDLE_BAN_DURATION,
-                floatTime: 60 * 60 * 1000,//full hour cause why not
+                infinite: true,
                 travelTime: 200,
             }
         )
@@ -1528,12 +1530,13 @@ class Game extends GameCore {
             chat.sendMessage({ targetID: person.nameID, eval: `game?.easePen?.(true)` })
         }
         popup.startTimeStamp = startTimeStamp
+        popup.timeLeftStill = startTimeStamp - Date.now()
         const action = () => {
-            popup.timeLeftStill = RULES.IDLE_BAN_DURATION - (Date.now() - popup.startTimeStamp)
+            popup.timeLeftStill -= 1000
             if (popup.timeLeftStill < 0) {
                 popup.getRidOf()
             }
-            popup.txt = `${person.name} blocked for ${Math.ceil((popup.timeLeftStill / 1000))}`
+            popup.txt = `${person.name} blocked for ${Math.floor(popup.timeLeftStill / 1000)}`
         }
         action()
         this.clockwork_extras.push(action)
