@@ -2,7 +2,7 @@
 
 //#region Chat
 class Chat {
-    static RECONNECT_TIME = 2 * 1000
+    static RECONNECT_TIME = 1 * 1000
     static RESEND_TIME = 1500
     static BLINKING_TIME = 0 //feature no longer needed: disconnections are now handled via server.js and Listener
     static HOSTNAMES_INDICATING_OFFLINE = ['', 'stevenzsombo.github.io']
@@ -316,6 +316,7 @@ class Participant { // extend for Person
 class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
+
         this.receiveMessage = null//set to nothing, won't be needed anyways
         this.isLoggingTargeting = false
     }
@@ -406,6 +407,8 @@ class Listener {
         obj.targetID = nameID //different id, so this is the newer person trying to join
         this.chat.sendMessage(obj) //just to be sure.
         //participant will NOT be added. so their future messages will NOT be parsed
+        //participant will be forced to rename themselves. then joining with a new name will be no issue
+        //the old, now inactive connection will remain. no reason why not I think (?)
     }
     handleEarlyJoin(name, nameID) {
         //by telling them to bugger off. won't be parsed.

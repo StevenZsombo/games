@@ -13,7 +13,7 @@
         "./zs/sketch*.js",
         "./server*.js",
         "./cc.js",
-        "./conquest.js",
+        // "./conquest.js",
         "./game.js"
     ]
 }
