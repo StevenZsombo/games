@@ -277,6 +277,7 @@ class Mapster extends OptimizedRecolor {
                 this._recolor("bg", this.imageData, r, g, b, a)//does not work for some reason
                 this.ctx.putImageData(this.imageData, 0, 0)
             }
+            this.changeBgColor(0, 0, 0, 0)
 
             territories.forEach(t => {
                 const [bX, bY] = this.rectToCoord(t.button)

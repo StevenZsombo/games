@@ -22,86 +22,82 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: () => {
-        {
-            let storedLimit = localStorage.getItem("IDLE_TIME_LIMIT")
-            if (storedLimit == null) {//nothing stored -> use RULES
-                localStorage.setItem("IDLE_TIME_LIMIT", RULES.IDLE_TIME_LIMIT)
-            } else { //stored -> override RULES
-                RULES.IDLE_TIME_LIMIT = +storedLimit
-            }
+        const setupPunish = () => {
+            if (!game || !chat || !chat.isConnected) { setTimeout(setupPunish, 200); return; }
+            if (RULES.IDLE_BAN_DURATION <= 0) return
+            //penalties go here
+            let penWindow = null
+            let objs = null
+            let origCols = null
+            const checkPenAction = () => {
+                if (RULES.IDLE_NOTIFY_SERVER)
+                    chat.sendMessage({ idle: Date.now() })
+                const penTime = RULES.IDLE_BAN_DURATION
+                penUntil = Date.now() + penTime
+                easePen()
+                localStorage.setItem("penUntil", penUntil)
 
-        }
-        if (!RULES.IDLE_BAN_DURATION || !RULES.IDLE_TIME_LIMIT) return
-        //penalties go here
-        let lastBlurTime = null
-        window.onblur = () => {
-            checkPen()
-            lastBlurTime = Date.now()
-        }
-        let penWindow = null
-        let objs = null
-        let origCols = null
-        const checkPenAction = () => {
-            if (!game || !chat) return
-            if (RULES.IDLE_NOTIFY_SERVER)
-                chat.sendMessage({ idle: Date.now() })
-            if (RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD) {
-                objs ??= [game.right, game.bot, game.top, game.left]
-                origCols ??= objs.map(x => x.color)
-                objs.forEach(x => x.color = "rgb(255, 0, 0)")
-                mapster?.changeBgColor(255, 0, 0)
-                game.animator.add_anim(Anim.delay(RULES.IDLE_BAN_DURATION,
-                    {
-                        on_end: easePen
-                    }))
-                return
+                //both options run on Anim, so no ticking while in the background
+                if (RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD) {
+                    objs ??= [game.right, game.bot, game.top, game.left, game.middle]
+                    origCols ??= objs.map(x => x.color)
+                    objs.forEach(x => x.color = "rgb(255, 0, 0)")
+                    // mapster?.changeBgColor(255, 0, 0)
+                    game.animator.add_anim(Anim.delay(penTime,
+                        {
+                            on_end: easePen
+                        }))
+                    return
+                }
+                const popup = GameEffects.popup("", {
+                    sizeFrac: [.98, .98],
+                    posFrac: [.5, .5],
+                    close_on_release: false,
+                    travelTime: 100,
+                    floatTime: penTime,
+                })
+                popup.color = "red"
+                popup.fontSize = 72
+                popup.isBlocking = true
+                popup.dynamicText = () => `You are not allowed to use other apps or other tabs.`
+                    + `\nYou are forbidden from interacting for the next ${Math.ceil((penUntil - Date.now()) / 1000)
+                    } seconds.`
+                penWindow = popup
             }
-            easePen()
-            const penTime = RULES.IDLE_BAN_DURATION
-            penUntil = Date.now() + penTime
-            localStorage.setItem("penUntil", penUntil)
-            const popup = GameEffects.popup("", {
-                sizeFrac: [.98, .98],
-                posFrac: [.5, .5],
-                close_on_release: false,
-                travelTime: 100,
-                floatTime: penTime,
-            })
-            popup.color = "red"
-            popup.fontSize = 80
-            popup.isBlocking = true
-            popup.dynamicText = () => `You are not allowed to use other apps or other tabs.`
-                + `\nYou are forbidden from interacting for the next ${Math.ceil((penUntil - Date.now()) / 1000)
-                } seconds.`
-            penWindow = popup
-        }
-        const checkPen = () => {
-            if (!game) { return } else { game.easePen ??= easePen }
-            if (window.isUnloading) return
-            let penUntil = +localStorage.getItem("penUntil") || 0
-            if (
-                (lastBlurTime && (Date.now() - lastBlurTime > RULES.IDLE_TIME_LIMIT)) // //off for long enough
-                || (penUntil > Date.now()) //or localStorage reveals there is still time left.
-            ) {
+            const checkExtendPen = () => {
+                if (!game) { return } else { game.easePen ??= easePen }
+                if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
+                let penUntil = +localStorage.getItem("penUntil") || 0
+                if (penUntil > Date.now()) checkPenAction()
+            }
+            const onBlur = () => {
+                if (!game) { return } else { game.easePen ??= easePen }
+                if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
                 checkPenAction()
             }
-        }
-
-        const easePen = () => {
-            if (objs) {
-                objs.forEach((x, i) => x.color = origCols[i])
-                mapster?.changeBgColor(0, 0, 0, 0)
+            const easePen = (alsoProtect = false) => {
+                if (objs) {
+                    objs.forEach((x, i) => x.color = origCols[i])
+                }
+                if (penWindow) {
+                    penWindow.close?.()
+                }
+                localStorage.setItem("penUntil", 0)
+                alsoProtect && localStorage.setItem("protectedFromPenUntil", Date.now() + 2000) //2 seconds protection
             }
-            if (penWindow) {
-                penWindow.close?.()
+            checkExtendPen()
+            window.onblur = () => {
+                Promise.resolve().then(() => {
+                    if (document.hasFocus()) return
+                    onBlur()
+                })
             }
-
+            window.onfocus = () => {
+                checkExtendPen()
+            }
+            //penalties end here
         }
-
-        window.focus()
-        checkPen()
-        window.onfocus = checkPen
-        //penalties end here
+        setupPunish()
     },
     on_first_run: () => {
         window.onhashchange = () => {
@@ -185,9 +181,7 @@ var univ = {
             .finally(x => beforeMainPassedToBeCalled())
     }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
-    on_beforeunload: () => {
-        window.isUnloading = true
-    },
+    on_beforeunload: null,
     allowQuietReload: false,
     acquireNameStr: "Your English name (at least 4 letters):", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
@@ -470,8 +464,8 @@ class Game extends GameCore {
             this.left = left
             this.right = right
             this.middle = middle
-            middle.visible = false
-            middle.interactable = false
+            middle.color = this.BGCOLOR
+            this.add_drawable(middle, 1)
 
             myKingdomObject = kingdoms[myKingdomID]
             myColor = myKingdomObject.color

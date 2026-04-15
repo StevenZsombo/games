@@ -57,10 +57,10 @@ class Person extends Participant {
         //initialized by Listener, actually.
         this.kingdom = null
     }
-    kick() {
+    kick(doNotOrderResetName = false) {
         // game.remove_drawable(this.button) //no buttons
         game?.kingdoms.forEach(x => x.members.delete(this)) //but removed from kingdom
-        chat.orderResetName(this.nameID)
+        !doNotOrderResetName && chat.orderResetName(this.nameID)
         delete participants[this.name]
     }
     initialize() {
@@ -662,8 +662,9 @@ class Game extends GameCore {
         // this.mapIMG = Gimmicks.createBackground(this)
         this.initialize_scores()
         this.initialize_scores_side()
-
+        this.clockwork_extras = []
         this.conflictsClockwork = setInterval(() => {
+            this.clockwork_extras.forEach(fn => fn())
             if (this.isPaused) return
             this.conflicts.forEach(x => x.update(1000))
             this.conflictsHistory.push(...this.conflicts.filter(x => x.alreadyResolved))
@@ -1299,7 +1300,7 @@ class Game extends GameCore {
             ["Rename",
                 () => {
                     asyncprompt("What shall their new name be?").then(nn => {
-                        if (nn.length < 4) nn += "1234"
+                        if (nn.length < 4) nn += "" + person.nameID
                         chat.orderForceName(person.nameID, nn)
                         this.kingdoms.forEach(x => x.members.delete(person))
                         spop(`Set.`)
@@ -1307,6 +1308,27 @@ class Game extends GameCore {
                     })
                 }
             ],
+            ["Whitelist", () => {
+                chat.sendMessage({
+                    targetID: person.nameID,
+                    eval:
+                        `game?.easePen?.();localStorage.setItem("protectedFromPenUntil",32503680000000);`, //the year 3000
+                    popup: "You have been whitelisted.",
+                    popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+
+                })
+                if (this.punishedPersonSet.has(person)) {
+                    this.sideMessageList[this.punishedPersonSet.get(person)]?.getRidOf?.()
+                }
+                spop(`Whitelisted ${person.name}`)
+            }],
+            ["Flush", () => {
+                person.kick(true)
+                chat.sendMessage({
+                    targetID: person.nameID,
+                    eval: "localStorage.clear();chat.silentReload();"
+                })
+            }]
             /*["Reassign to kingdom",
                 () => {
                     spop("Feature unavailable.\nTODO")
@@ -1469,7 +1491,7 @@ class Game extends GameCore {
         })
     }
 
-    sideMessageList = Array(10).fill(null)
+    sideMessageList = Array(13).fill(null)
     punishedPersonSet = new Map()
     /**@param {Person} person  */
     warnIdle(person, startTimeStamp) {
@@ -1477,9 +1499,13 @@ class Game extends GameCore {
             this.sideMessageList[this.punishedPersonSet.get(person)].startTimeStamp = startTimeStamp
             return
         }
-        const ind = this.sideMessageList.findIndex(x => x == null)
+        let ind = this.sideMessageList.indexOf(null)
+        if (ind == -1) {
+            spop(`Too many messages.\nBlocked ${person.name}`)
+            ind = this.sideMessageList.reduce((s, t, i) => s = t.timeLeftStill < s.timeLeftStill ? { i, timeLeftStill: t.timeLeftStill } : s, { i: -1, timeLeftStill: 999999999 }).i
+        }
         this.punishedPersonSet.set(person, ind)
-        const yyy = Anim.interpol(this.border.top.bottom + 200, this.border.bot.top,
+        const yyy = Anim.interpol(this.border.top.bottom + 180, this.border.bot.top,
             ind / this.sideMessageList.length)
             / this.HEIGHT
         const popup = GameEffects.popup("",
@@ -1488,32 +1514,29 @@ class Game extends GameCore {
                 direction: "left", floatTime: RULES.IDLE_BAN_DURATION,
                 floatTime: 60 * 60 * 1000,//full hour cause why not
                 travelTime: 200,
-                close_on_release: true,
-                on_end: () => {
-                    this.sideMessageList[ind] = null
-                    this.punishedPersonSet.delete(person)
-                    chat.sendMessage({
-                        targetID: person.nameID,
-                        eval:
-                            `game.easePen?.()`
-                    })
-                }
-
             }
         )
         this.sideMessageList[ind] = popup
         popup.getRidOf = () => {
             this.sideMessageList[ind] = null
             this.punishedPersonSet.delete(person)
+            this.clockwork_extras = this.clockwork_extras.filter(x => x !== action)
+            popup.close()
+        }
+        popup.on_release = () => {
+            popup.getRidOf()
+            chat.sendMessage({ targetID: person.nameID, eval: `game?.easePen?.(true)` })
         }
         popup.startTimeStamp = startTimeStamp
-        popup.update = () => {
+        const action = () => {
             popup.timeLeftStill = RULES.IDLE_BAN_DURATION - (Date.now() - popup.startTimeStamp)
             if (popup.timeLeftStill < 0) {
                 popup.getRidOf()
             }
             popup.txt = `${person.name} blocked for ${Math.ceil((popup.timeLeftStill / 1000))}`
         }
+        action()
+        this.clockwork_extras.push(action)
 
         popup.color = "red"
         popup.fontSize = 24
