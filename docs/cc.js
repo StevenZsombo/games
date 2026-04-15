@@ -22,13 +22,74 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: () => {
-        /*
-        //monkey
-        const omg = chat.receiveMessage
-        chat.receiveMessage = function (...args) {
-            console.log(...args)
-            omg.call(chat, ...args)
-        }*/
+        {
+            let storedLimit = localStorage.getItem("IDLE_TIME_LIMIT")
+            if (storedLimit == null) {//nothing stored -> use RULES
+                localStorage.setItem("IDLE_TIME_LIMIT", RULES.IDLE_TIME_LIMIT)
+            } else { //stored -> override RULES
+                RULES.IDLE_TIME_LIMIT = +storedLimit
+            }
+
+        }
+        if (!RULES.IDLE_BAN_DURATION || !RULES.IDLE_TIME_LIMIT) return
+        //penalties go here
+        let lastBlurTime = null
+        window.onblur = () => {
+            checkPen()
+            lastBlurTime = Date.now()
+        }
+        let penWindow = null
+        let objs = null
+        let origCols = null
+        const checkPenAction = () => {
+            if (RULES.IDLE_NOT_BAN_BUT_WARNING_INSTEAD_DURATION) {
+                objs ??= [game.right, game.bot, game.top]
+                origCols ??= objs.map(x => x.color)
+                objs.forEach(x => x.color = "red")
+                mapster?.changeBgColor(255, 0, 0)
+                game.animator.add_anim(Anim.delay(RULES.IDLE_NOT_BAN_BUT_WARNING_INSTEAD_DURATION,
+                    {
+                        on_end: () => {
+                            objs.forEach((x, i) => x.color = origCols[i])
+                            mapster?.changeBgColor(0, 0, 0, 0)
+                        }
+                    }))
+                return
+            }
+            penWindow?.close()
+            const penTime = RULES.IDLE_BAN_DURATION
+            penUntil = Date.now() + penTime
+            localStorage.setItem("penUntil", penUntil)
+            const popup = GameEffects.popup("", {
+                sizeFrac: [.98, .98],
+                posFrac: [.5, .5],
+                close_on_release: false,
+                travelTime: 100,
+                floatTime: penTime,
+            })
+            popup.color = "red"
+            popup.fontSize = 80
+            popup.isBlocking = true
+            popup.dynamicText = () => `You are not allowed to use other apps or other tabs.`
+                + `\nYou are forbidden from interacting for the next ${Math.ceil((penUntil - Date.now()) / 1000)
+                } seconds.`
+            penWindow = popup
+        }
+        const checkPen = () => {
+            if (!game) return
+            if (window.isUnloading) return
+            let penUntil = +localStorage.getItem("penUntil") || 0
+            if (
+                (lastBlurTime && (Date.now() - lastBlurTime > RULES.IDLE_TIME_LIMIT)) // //off for long enough
+                || (penUntil > Date.now()) //or localStorage reveals there is still time left.
+            ) {
+                checkPenAction()
+            }
+        }
+        window.focus()
+        checkPen()
+        window.onfocus = checkPen
+        //penalties end here
     },
     on_first_run: () => {
         window.onhashchange = () => {
@@ -38,8 +99,6 @@ var univ = {
         window.onerror = (message, source, lineno, colno, error) => {
             chat.sendMessage({ yell: error?.stack || `${message} at ${source}:${lineno}` })
         }
-        /*window.addEventListener("error", (e) =>
-            chat.sendMessage({ yell: `${e.error.stack || `${e.message} at ${e.filename}:${e.lineno}`}` }))*/
     },
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
@@ -114,7 +173,9 @@ var univ = {
             .finally(x => beforeMainPassedToBeCalled())
     }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
-    on_beforeunload: null,
+    on_beforeunload: () => {
+        window.isUnloading = true
+    },
     allowQuietReload: false,
     acquireNameStr: "Your English name (at least 4 letters):", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
@@ -231,7 +292,7 @@ class Game extends GameCore {
             //both mean that this is NOT the current conquest session
             //localStorage.clear() //so flush everything
             const nameID = localStorage.getItem("nameID") //keep nameID?
-            localStorage.clear()
+            localStorage.clear() //also resets penalties and game rules
             nameID && localStorage.setItem("nameID", nameID)
             chat.acquireName() //ask for name again, which sets a recent timestamp
             chat.silentReload() //clear everything

@@ -272,6 +272,12 @@ class Mapster extends OptimizedRecolor {
             this.imageData = this.ctx.getImageData(0, 0, this.width, this.height)
             this.data = this.imageData.data
 
+            this._addRegion("bg", this._floodFillFindIndicesScanline(this.imageData, 1, 1))
+            this.changeBgColor = (r, g, b, a = 255) => {
+                this._recolor("bg", this.imageData, r, g, b, a)//does not work for some reason
+                this.ctx.putImageData(this.imageData, 0, 0)
+            }
+
             territories.forEach(t => {
                 const [bX, bY] = this.rectToCoord(t.button)
                 const found = this._floodFillFindIndicesScanline(this.imageData, bX, bY)

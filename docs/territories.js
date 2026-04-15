@@ -44,6 +44,12 @@ var RULES = ({
     MAPSTER_IMAGE_QUALITY_SERVER: 1,
 
 
+    //idle prevention
+    IDLE_TIME_LIMIT: 500, //punitive but feels necessary
+    IDLE_BAN_DURATION: 30 * 1000, //overriden by NOT_BAN unless that's null
+    IDLE_NOT_BAN_BUT_WARNING_INSTEAD_DURATION: 30 * 1000,
+
+
     //Blake
     PICTURE_BACKGROUND_DIMENSIONS: [1560, 840],
     PICTURE_BACKGROUND_SCALEFACTOR: 1,
