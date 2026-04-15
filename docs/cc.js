@@ -42,21 +42,21 @@ var univ = {
         let objs = null
         let origCols = null
         const checkPenAction = () => {
-            if (RULES.IDLE_NOT_BAN_BUT_WARNING_INSTEAD_DURATION) {
-                objs ??= [game.right, game.bot, game.top]
+            if (!game || !chat) return
+            if (RULES.IDLE_NOTIFY_SERVER)
+                chat.sendMessage({ idle: Date.now() })
+            if (RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD) {
+                objs ??= [game.right, game.bot, game.top, game.left]
                 origCols ??= objs.map(x => x.color)
-                objs.forEach(x => x.color = "red")
+                objs.forEach(x => x.color = "rgb(255, 0, 0)")
                 mapster?.changeBgColor(255, 0, 0)
-                game.animator.add_anim(Anim.delay(RULES.IDLE_NOT_BAN_BUT_WARNING_INSTEAD_DURATION,
+                game.animator.add_anim(Anim.delay(RULES.IDLE_BAN_DURATION,
                     {
-                        on_end: () => {
-                            objs.forEach((x, i) => x.color = origCols[i])
-                            mapster?.changeBgColor(0, 0, 0, 0)
-                        }
+                        on_end: easePen
                     }))
                 return
             }
-            penWindow?.close()
+            easePen()
             const penTime = RULES.IDLE_BAN_DURATION
             penUntil = Date.now() + penTime
             localStorage.setItem("penUntil", penUntil)
@@ -76,7 +76,7 @@ var univ = {
             penWindow = popup
         }
         const checkPen = () => {
-            if (!game) return
+            if (!game) { return } else { game.easePen ??= easePen }
             if (window.isUnloading) return
             let penUntil = +localStorage.getItem("penUntil") || 0
             if (
@@ -86,6 +86,18 @@ var univ = {
                 checkPenAction()
             }
         }
+
+        const easePen = () => {
+            if (objs) {
+                objs.forEach((x, i) => x.color = origCols[i])
+                mapster?.changeBgColor(0, 0, 0, 0)
+            }
+            if (penWindow) {
+                penWindow.close?.()
+            }
+
+        }
+
         window.focus()
         checkPen()
         window.onfocus = checkPen
@@ -458,6 +470,8 @@ class Game extends GameCore {
             this.left = left
             this.right = right
             this.middle = middle
+            middle.visible = false
+            middle.interactable = false
 
             myKingdomObject = kingdoms[myKingdomID]
             myColor = myKingdomObject.color
@@ -890,6 +904,8 @@ class Game extends GameCore {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 

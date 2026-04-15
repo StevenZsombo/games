@@ -330,6 +330,10 @@ listener.on_message = (obj, person) => {
 
     }
 
+    if (obj.idle !== undefined) {
+        game.warnIdle(person, obj.idle)
+    }
+
     //actually depr but whatever
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (obj.inquire === "bunch")
@@ -1463,6 +1467,59 @@ class Game extends GameCore {
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
+    }
+
+    sideMessageList = Array(10).fill(null)
+    punishedPersonSet = new Map()
+    /**@param {Person} person  */
+    warnIdle(person, startTimeStamp) {
+        if (this.punishedPersonSet.has(person)) {
+            this.sideMessageList[this.punishedPersonSet.get(person)].startTimeStamp = startTimeStamp
+            return
+        }
+        const ind = this.sideMessageList.findIndex(x => x == null)
+        this.punishedPersonSet.set(person, ind)
+        const yyy = Anim.interpol(this.border.top.bottom + 200, this.border.bot.top,
+            ind / this.sideMessageList.length)
+            / this.HEIGHT
+        const popup = GameEffects.popup("",
+            {
+                posFrac: [.55 * .15, yyy], sizeFrac: [.15, .04],
+                direction: "left", floatTime: RULES.IDLE_BAN_DURATION,
+                floatTime: 60 * 60 * 1000,//full hour cause why not
+                travelTime: 200,
+                close_on_release: true,
+                on_end: () => {
+                    this.sideMessageList[ind] = null
+                    this.punishedPersonSet.delete(person)
+                    chat.sendMessage({
+                        targetID: person.nameID,
+                        eval:
+                            `game.easePen?.()`
+                    })
+                }
+
+            }
+        )
+        this.sideMessageList[ind] = popup
+        popup.getRidOf = () => {
+            this.sideMessageList[ind] = null
+            this.punishedPersonSet.delete(person)
+        }
+        popup.startTimeStamp = startTimeStamp
+        popup.update = () => {
+            popup.timeLeftStill = RULES.IDLE_BAN_DURATION - (Date.now() - popup.startTimeStamp)
+            if (popup.timeLeftStill < 0) {
+                popup.getRidOf()
+            }
+            popup.txt = `${person.name} blocked for ${Math.ceil((popup.timeLeftStill / 1000))}`
+        }
+
+        popup.color = "red"
+        popup.fontSize = 24
+
+
+
     }
 
 
