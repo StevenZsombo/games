@@ -2068,29 +2068,36 @@ class GameEffects {
      * - clean up with .remove() 
      * - has .value for its content
      * */
-    static inputBox(x = 100, y = 100, width, height, on_pressingEnter) {
-        const input = document.createElement('input')
+    static inputBox(x = 100, y = 100, width, height, on_pressingEnter, on_input) {
+        const input = document.createElement((on_input && !on_pressingEnter) ? 'textarea' : 'input')
         input.style.position = 'absolute'
         input.id = "inputBox" //my own thing
             ;
         ({ x, y } = game.mouser.getDisplayedCoordV(x, y))
         input.style.left = x + "px"
         input.style.top = y + "px"
-        width && (input.style.width = width)
-        height && (input.style.height = height)
+        width && (input.style.width = width + "px")
+        height && (input.style.height = height + "px")
         document.body.appendChild(input)
-
-        game.keyboarder.on_keydownDict["Enter"] = () => {
-            const value = input.value
-            game.keyboarder.on_keydownDict["Enter"] = null
-            input.remove()
-            on_pressingEnter?.(value)
+        if (on_pressingEnter) {
+            game.keyboarder.on_keydownDict["Enter"] = () => {
+                const value = input.value
+                game.keyboarder.on_keydownDict["Enter"] = null
+                input.remove()
+                on_pressingEnter?.(value)
+            }
+        }
+        if (on_input) {
+            input.oninput = () => on_input(input.value)
         }
         return input
     }
+
     /**@param {Rect} rect @param {function(string)} on_pressingEnter  */
-    static inputBoxFromRect(rect, on_pressingEnter) {
-        return GameEffects.inputBox(rect.x, rect.y, rect.width, rect.height, on_pressingEnter)
+    static inputBoxFromRect(rect, on_pressingEnter, on_input) {
+        return GameEffects.inputBox(rect.x, rect.y,
+            rect.width / game.mouser.scaleX,
+            rect.height / game.mouser.scaleY, on_pressingEnter, on_input)
     }
 
 
@@ -2100,9 +2107,32 @@ class GameEffects {
             x => game.add_drawable(x)[0],
             Button.make_draggable,
             Button.make_latex,
-            x => (x.isBlocking = true, x.centeratV(game.rect.center).resize(1600, 800)))
-        if (alsoAddTEXforScripting)
+            x => (
+                x.isBlocking = true,
+                x.color = "white",
+                x.centeratV(game.rect.center).move(0, -100).resize(1600, 800)))
+        const on_input = (str) => {
+            try {
+                a.latex.tex = str
+            } catch (err) { console.log(err) }
+        }
+        const inp = GameEffects.inputBoxFromRect(MM.pipe(a.copyRect,
+            x => (x.resize(a.width, 200).topat(a.bottom + 20))
+        ), null, on_input)
+        inp.value = String.raw`\text{sample: }\int_{-2}^8 \sqrt{\frac 4 {1-\cos^5x}}dx`
+        on_input(inp.value)
+        console.log(
+            `How to use:
+If the input contains no $ then it will be parsed as math.
+Otherwise anything within $...$ is parsed as math, everything outside as text.
+
+For complex output, best to avoid $ entirely and use \\text{} for text.`
+        )
+
+        if (alsoAddTEXforScripting) {
             window.TEX = str => a.latex.tex = str
+            window.TEXTINPUTBOX = inp
+        }
         return a
     }
 }

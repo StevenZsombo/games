@@ -809,10 +809,13 @@ class LatexManager {
 		)
 	}
 
-	static dollarToPure(strWithDollars, alignmentLCR = "c") {
+	static dollarToPure(strWithDollars) {
 		// const chopped = MM.delimitedText(strWithDollars, ["$", "@"])
 		//ill-advised, use MM.delimitedReplace or MM.delimitedReplaceExtract
-		const chopped = MM.delimitedText(strWithDollars, ["$"])
+		const chopped = MM.delimitedText(strWithDollars
+			.replaceAll("\\null", "{}")
+			,
+			["$"])
 		let out = ""
 		const addText = (text) => {
 			const spl = `{}${text}`.split("\\\\").filter(x => x != "") //double backslash \\
@@ -838,7 +841,7 @@ class LatexManager {
 			if (x.by == "") addText(x.piece)
 			else if (x.by == "$") out += x.piece
 		})
-		return `\\begin{array}{${alignmentLCR}}${out}\\end{array}`
+		return `\\begin{align*}${out}\\end{align*}`
 	}
 
 	/**@deprecated */
