@@ -204,11 +204,24 @@ const PLOT = () => {
         `(() => {
 if (!game) { return; }
 const p = Gimmicks.plotHighscore(${hs});
-game.add_drawable(p,7);
+game.add_drawable(p,9);
 setTimeout(()=>{game.remove_drawable(p);},15*1000);
 })()`
     )
     spop("Plot shared!")
+}
+const PLOTDOWNLOAD = () => {
+    const hs = JSON.stringify(game.highscore)
+    chat.sendCommand(
+        `(() => {
+if (!game) { return; }
+const p = Gimmicks.plotHighscore(${hs});
+game.add_drawable(p,9);
+setTimeout(()=>{Cropper.screenshot();},500);
+setTimeout(()=>{game.remove_drawable(p);},15*1000);
+})()`
+    )
+    spop("Plot download shared!")
 }
 const COUNTDOWN = (text, seconds) => {
     GameEffects.countdown(text, seconds)
@@ -1553,7 +1566,7 @@ class Game extends GameCore {
             {
                 posFrac: [.55 * .15, yyy], sizeFrac: [.15, .04],
                 direction: "left", floatTime: RULES.IDLE_BAN_DURATION,
-                infinite: true,
+                floatTime: Infinity,
                 travelTime: 200,
             }
         )

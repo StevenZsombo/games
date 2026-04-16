@@ -65,6 +65,7 @@ var univ = {
                 const isNew = !firstRun && !hasPen
                 !firstRun && endPen()
                 if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
+                console.log("startPen")
                 hasPen = true
                 // readPen()
                 // if (penLeft > 0) return //already running pen
@@ -82,14 +83,17 @@ var univ = {
             }
 
             const startPenWarn = () => {
+                console.log("startPenWarn")
                 objs.forEach((x) => x.color = "red")
             }
             const startPenBlockingWindow = () => {
+                console.log("startPenBlockingWindow")
                 const popup = GameEffects.popup("", {
                     sizeFrac: [.98, .98],
                     posFrac: [.5, .5],
                     close_on_release: false,
-                    travelTime: Infinity,
+                    travelTime: 200,
+                    floatTime: Infinity,
                 })
                 popup.color = "red"
                 popup.fontSize = 72
@@ -104,6 +108,7 @@ var univ = {
                 penWindow = popup
             }
             const endPen = (alsoProtect = false) => {
+                console.log("endPen")
                 penLeft = -1 //to force clean
                 checkPenIfDone()
                 alsoProtect && localStorage.setItem("protectedFromPenUntil", Date.now() + 2000) //2 seconds protection
@@ -116,13 +121,16 @@ var univ = {
                     }
                 })
             window.addEventListener('blur', () => {
+                console.log("blur")
                 microTrick()
             })
             window.addEventListener('focus', () => {
+                console.log("focus")
                 hasFocus = true
             })
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
+                    console.log("hidden")
                     microTrick()
                 }
             })
