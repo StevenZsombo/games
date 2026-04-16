@@ -56,7 +56,7 @@ class Chat {
             this.socket = new WebSocket(address)
             console.log("Attempting to connect...")
             this.socket.onopen = () => {
-                console.log("Connected.")
+                console.log("Connected.", this)
                 this.reconnections++
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
