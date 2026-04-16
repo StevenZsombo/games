@@ -2106,7 +2106,7 @@ class GameEffects {
         return { close, oldLayers }
     }
 
-    static fullMenu() {
+    static fullMenu(on_close) {
         const underlay = new Button({
             x: 0, y: 0, width: game.WIDTH, height: game.HEIGHT,
             isBlocking: true,
@@ -2122,10 +2122,18 @@ class GameEffects {
         const panel = new Panel()
         panel.components = items
         game.add_drawable(panel)
+        let closedAlready = false
+        const close = () => {
+            if (closedAlready) return
+            closedAlready = true
+            game.remove_drawable(panel)
+            on_close?.()
+        }
         return {
             panel, menu: panel,
             activate: panel.activate, deactivate: panel.deactivate,
-            items, add, underlay
+            add, underlay, items,
+            close
         }
 
     }
