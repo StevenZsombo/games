@@ -60,10 +60,10 @@ class Chat {
                 clearInterval(this.errorHandler)
                 this.errorHandler = null
                 this.announceSelf() //only the server announces themselves.
-                this.queueSend() //in case this is a reconnect!
                 this.on_join_once?.()
                 this.on_join_once = null
                 this.on_join?.()
+                this.queueSend() //in case this is a reconnect!
             }
             this.socket.onerror = (event) => {
                 //console.error("Something went wrong, attempting to reconnect.", event)
