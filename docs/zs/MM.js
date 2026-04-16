@@ -265,13 +265,13 @@ class MM {
                 let { x, y } = MM.coordToPlotScreenInternalPos(i, 0, minX, maxX, minY, maxY, rect)
                 show_grid && MM.drawLine(screen, x, 0, x, rect.height, { color: grid_color, width: grid_width })
                 show_dotting && MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
-                show_axes_labels && i != 0 && screen.fillText(i, x - 10, y + 24)
+                show_axes_labels && i != 0 && (screen.fillStyle = axes_color, screen.fillText(i, x - 10, y + 24))
             }
             for (let j = Math.trunc(minY / dY) * dY; j <= maxY; j += dY) {
                 let { x, y } = MM.coordToPlotScreenInternalPos(0, j, minX, maxX, minY, maxY, rect)
                 show_grid && MM.drawLine(screen, 0, y, rect.width, y, { color: grid_color, width: grid_width })
                 show_dotting && MM.drawCircle(screen, x, y, axes_width * 1.6, { color: axes_color })
-                show_axes_labels && j != 0 && screen.fillText(j, x + 10, y + 6)
+                show_axes_labels && j != 0 && (screen.fillStyle = axes_color, screen.fillText(j, x + 10, y + 6))
             }
 
         }
@@ -1976,7 +1976,7 @@ class GameEffects {
         })
         b.close = () => game.animator.add_anim(floatOut)
         if (close_on_release) b.on_release = b.close
-        game.add_drawable(b, 7)
+        game.add_drawable(b, 8)
         if (floatTime == Infinity) { game.animator.add_anim(floatIn) }
         else { game.animator.add_sequence(floatIn, Anim.delay(floatTime), floatOut) }
 

@@ -198,7 +198,18 @@ const DOWNLOAD = () => {
     }
     setTimeout(action, 100) //hacky
 }
-
+const PLOT = () => {
+    const hs = JSON.stringify(game.highscore)
+    chat.sendCommand(
+        `(() => {
+if (!game) { return; }
+const p = Gimmicks.plotHighscore(${hs});
+game.add_drawable(p,7);
+setTimeout(()=>{game.remove_drawable(p);},15*1000);
+})()`
+    )
+    spop("Plot shared!")
+}
 const COUNTDOWN = (text, seconds) => {
     GameEffects.countdown(text, seconds)
     chat.sendCommand(
@@ -581,11 +592,12 @@ class Game extends GameCore {
         this.overlay.draw = () => { }
         game.add_drawable(this.overlay, 7)
 
-        const switchModeButton = new Button({ txt: "Show\nBanners", widht: 120, height: 80 })
+        const switchModeButton = new Button({ width: 100, height: 80 })
+        switchModeButton.txt = "Show\nBanners"
         this.switchModeButton = switchModeButton
         switchModeButton.bottomat(this.rect.bottom - 20)
         switchModeButton.rightat(this.rect.right - 50)
-        switchModeButton.on_click = () => switchStage()
+        switchModeButton.on_release = () => switchStage()
         this.add_drawable(switchModeButton)
         this.border = Gimmicks.setupBorder()
         Object.values(this.border).forEach(x => {
@@ -636,6 +648,9 @@ class Game extends GameCore {
         this.snapShotButton = snapShotButton
         this.add_drawable(snapShotButton)
 
+        /*const plotButton = Button.fromRect(snapShotButton.copyRect)
+        plotButton.move(snapShotButton.width * -1.35, 0)
+        this.add_drawable(plotButton)*/
 
         const arrowsDrawableObject = {
             draw: (screen) => {
@@ -833,6 +848,8 @@ class Game extends GameCore {
             ])
             parr.push(["DISPLAY", DISPLAY, "Share a screenshot of the server screen."])
             parr.push(["DOWNLOAD", DOWNLOAD, "Let students download a screenshot of the server screen."])
+            MASTER.ALLOW_PLOT &&
+                parr.push(["PLOT", PLOT, "Share the plots with the students."])
             parr.push(["CLIPBOARD", CLIPBOARD, "First, paste a picture onto the canvas. Then send to students."])
             parr.push(["HARDREFRESH", HARDREFRESH, "Fully synchronizes each connected student."])
             parr.push(["RELOAD", RELOAD, "Reloads the browser page of each connected student."])
@@ -958,6 +975,9 @@ class Game extends GameCore {
         }
         this.add_drawable(devButton)
 
+        if (MASTER.ALLOW_PLOT) {
+            this.recomputeHighscore()
+        }
 
 
         mapster = new Mapster(
@@ -1348,8 +1368,13 @@ class Game extends GameCore {
             btStgs ?? { fontSize: 28, width: 360, height: 70, },// color: "white", hover_color: "lightblue" },
             this.overlay)
     }
-
-
+    /**@type {Array<[...scores:number[], timestamp:number]>} */
+    highscore = []
+    plotPanel = null
+    recomputeHighscore() {
+        const latest = this.kingdoms.map(x => this.getKingdomTotalValue(x)).concat(Date.now())
+        this.highscore.push(latest)
+    }
 
 
 
@@ -1378,6 +1403,7 @@ class Game extends GameCore {
     * 
     * @property {number} timestamp - for debugging
     * @property {string} timestampHHMMSS - for debugging
+    * @property {?number[][]} highscore - cumulative highscores per kingdom. MASTER can disable
     */
     saveGame(saveName = "conquestManual",
         backups = 5 //also writes to textfile
@@ -1434,13 +1460,17 @@ class Game extends GameCore {
             timestamp: Date.now(),
             timestampHHMMSS: MM.time()
         }
+        if (MASTER.ALLOW_PLOT) {
+            this.recomputeHighscore()
+            saveObj.highscore = this.highscore
+        }
         try {
             try { MM.exportJSON(saveObj, (saveName + "_" + MM.time() + ".json").split(":").join("_")) }
             catch (err) { console.error(err) }
             const str = JSON.stringify(saveObj)
-            try { localStorage.setItem(saveName, str) }
+            try { if (MASTER.ALLOW_SAVING_TO_LOCALSTORAGE) localStorage.setItem(saveName, str) }
             catch (err) { console.error(err) }
-            try { if (backups) MM.localStorageBackup(saveName, backups) }
+            try { if (backups && MASTER.ALLOW_SAVING_TO_LOCALSTORAGE) MM.localStorageBackup(saveName, backups) }
             catch (err) { console.error(err) }
             return str
         } catch (err) { console.error(err) }
@@ -1497,6 +1527,7 @@ class Game extends GameCore {
             c.timeLeft = x.timeLeft
             this.conflicts.push(c)
         })
+        if (saveObj.highscore && MASTER.ALLOW_PLOT) this.highscore = saveObj.highscore
     }
 
     sideMessageList = Array(13).fill(null)
@@ -1787,15 +1818,37 @@ const hq = {
 }
 
 
-let stage = ["map", "score"][0]
-const switchStage = () => {
-    if (stage === "map") {
+//lovely circular stages
+const stagesAvailable = ["map", "score"].concat(MASTER.ALLOW_PLOT ? "plot" : [])
+let stage = stagesAvailable[0]
+let plotPanel = null
+switchStage = () => {
+    const next = stagesAvailable[(stagesAvailable.indexOf(stage) + 1) % stagesAvailable.length]
+    if (next === "score") {
         game.showingMap = false
-        stage = "score"
         game.scorePanel.activate()
-    } else if (stage === "score") {
+        game.switchModeButton.txt =
+            MASTER.ALLOW_PLOT ? "Show\nPlot" : "Show\nMap"
+    } else if (next === "plot") {
         game.scorePanel.deactivate()
-        stage = "map"
+        plotPanel = Gimmicks.plotHighscore(game.highscore)
+        game.add_drawable(plotPanel, 7)
+        plotPanel.isBlocking = true
+        plotPanel.components[0].isBlocking = true
+        const close = () => {
+            switchStage()
+            game.remove_drawable(plotPanel)
+            plotPanel = null
+            game.mouser.on_blocked_release = null
+        }
+        game.mouser.blockNextRelease()
+        game.mouser.on_blocked_release = close
+        game.switchModeButton.txt = "Show\nMap"//pointless
+    } else if (next === "map") {
+        // plotPanel?.close()
+        game.scorePanel.deactivate()
         game.showingMap = true
+        game.switchModeButton.txt = "Show\nBanners"
     }
+    stage = next
 }

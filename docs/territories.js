@@ -89,7 +89,7 @@ class Kingdom {
         "cyan",
         "pink",
         "orange",
-        "yellow",
+        "gold",
         "green",
         "brown",
         "silver",
@@ -589,4 +589,51 @@ class Gimmicks {
         })
     }
 
+
+    /**@param {Array<[...scores:number[], timestamp:number]>} highscore */
+    static plotHighscore(highscore) { //careful NOT to go haywire
+        if (!game || !highscore || !highscore.length) return //at least one subarray
+        console.log("Plotting...", highscore)
+
+        const kingdomCount = highscore[0].length - 1
+        const times = highscore.map(x => x.at(-1))
+        const earliest = times[0]
+        const minutes = times.map(x => x - earliest).map(x => x / 1000 / 60)
+        const highestEver = highscore.flatMap(x => x.slice(0, -1)).reduce((s, t) => s > t ? s : t, 0)
+        const curves = Array(kingdomCount).fill().map((_, kingdomID) => {
+            const XYXYXY = highscore.flatMap((score, index) => {
+                return [minutes[index], score[kingdomID]]
+            })
+            return MM.brokenLineFunction(...XYXYXY)
+        })
+        const colors = Array(kingdomCount).fill().map((_, i) => Kingdom.defaultColors[i])
+        const bg = Button.fromRect(game.rect.copy.stretch(.99, .99))
+        bg.isBlocking = true
+        bg.color = "white"
+        const plot = new Plot(null, bg.copyRect)
+        plot.minX = -2
+        plot.minY = -300
+        plot.maxX = MM.clamp(minutes.at(-1) * 1.05, 15, Infinity)
+        plot.maxY = MM.clamp(highestEver * 1.1, 6300, Infinity)
+        plot.axes_color = "black"
+        plot.show_grid = true
+        plot.label_highlighted = true
+        plot.color = "black"
+        plot.highlightPointLabelFunction = (_, y) => y
+        plot.highlightPointOffsetXFunction = x => x
+        plot.label_highlighted_font = "36px mySerif"
+        plot.show_axes_labels = true
+        plot.dottingDistance = [10, 500]
+        plot.show_dotting = false
+        plot.show_border_values = false
+        plot.pltMore = curves.map((c, kingdomID) => ({
+            func: c,
+            highlightedPoints: [[minutes.at(-1), highscore.at(-1)[kingdomID]]],
+            color: colors[kingdomID],
+            width: 8
+        }))
+        console.log({ minutes, highestEver, curves, colors, plot, bg })
+        const panel = new Panel(bg, plot)
+        return panel
+    }
 }

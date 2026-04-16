@@ -949,14 +949,14 @@ class Plot {
 		this.plotCanvas.height = rect.height
 		this.plotScreen = this.plotCanvas.getContext("2d")
 		this.plotRect = new Rect(0, 0, rect.width, rect.height)
-
 	}
 
 	draw(screen) {
+		if (!this.visible) return
 		MM.plot(this.plotScreen, this.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 			{ ...this })
 		this.highlightedPoints.forEach(p => this.highlightPoint(p))
-		this.pltMore?.forEach(item => {
+		this.pltMore?.forEach((item, index) => {
 			if (item?.func) {
 				MM.plot(this.plotScreen, item.func, this.minX, this.maxX, this.minY, this.maxY, this.plotRect,
 					{
@@ -967,7 +967,7 @@ class Plot {
 					}
 				)
 			}
-			item?.highlightedPoints?.forEach(x => this.highlightPoint(x, item.color)
+			item?.highlightedPoints?.forEach(p => this.highlightPoint(p, item.color, index)
 			)
 
 		})
@@ -992,15 +992,24 @@ class Plot {
 
 	highlightPoint(p, color, label_highlighted) {
 		let { x, y } = this.coordToPlotScreenInternalPos(...p)
-		MM.drawCircle(this.plotScreen, x, y, 10, { color: color ?? this.color })
+		MM.drawCircle(this.plotScreen, x, y, this.highlightPointSize, { color: color ?? this.color })
 		label_highlighted ??= this.label_highlighted
 		if (label_highlighted) {
-			const label = `(${Number(p[0].toFixed(this.show_border_values_dp))}, ${Number(p[1].toFixed(this.show_border_values_dp))})`
+			const label = this.highlightPointLabelFunction(p[0], p[1])
 			this.plotScreen.font = this.label_highlighted_font
-			this.plotScreen.fillText(label, x - 40, y + ((y > this.rect.height / 2) * 2 - 1) * 40)
+			this.plotScreen.fillText(label, this.highlightPointOffsetXFunction(x), this.highlightPointOffsetYFunction(y))
 		}
 	}
+	visible = true
+	activate() { this.visible = true; this.controlButton && (this.controlButton.visible = true); }
+	deactivate() { this.visible = false; this.controlButton && (this.controlButton.visible = false); }
 
+	highlightPointSize = 10
+	highlightPointOffsetXFunction(x) { return x - 40 }
+	highlightPointOffsetYFunction(y) { return y + ((y > this.rect.height / 2) * 2 - 1) * 40 }
+	highlightPointLabelFunction(x, y) { //values
+		return `(${Number(x.toFixed(this.show_border_values_dp))}, ${Number(y.toFixed(this.show_border_values_dp))})`
+	}
 	fixAxes() {
 		if (this.fixedRatio) {
 			const widthDensity = (this.maxX - this.minX) / this.rect.width
@@ -1119,6 +1128,7 @@ class Plot {
 			const factor = wheel < 0 ? 1.1 : 1 / (1.1)
 			plot.zoomAtPointer(factor, pos)
 		}
+		this.controlButton = button
 	}
 
 	/*resize(width, height) {//does not work

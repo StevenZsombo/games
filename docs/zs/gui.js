@@ -196,8 +196,10 @@ class Mouser {
 
 		/**@type {?function(Mouser)}*/ this.on_click = null
 		/**@type {?function(Mouser)}*/ this.on_click_once = null
+		/**@type {?function(Mouser)}*/ this.on_blocked_click = null
 		/**@type {?function(Mouser)}*/ this.on_release = null
 		/**@type {?function(Mouser)}*/ this.on_release_once = null
+		/**@type {?function(Mouser)}*/ this.on_blocked_release = null
 
 		this.canvas = canvas
 		this.canvasRect = new Rect(0, 0, canvas.width, canvas.height)
@@ -251,6 +253,7 @@ class Mouser {
 				this.on_click?.(this)
 				this.on_click_once && (this.on_click_once(this), this.on_click_once = null)
 			} else {
+				this.on_blocked_click?.()
 				this._blockNextClick = false
 			}
 			this.down = true //updates nevertheless? might be an issue
@@ -269,6 +272,7 @@ class Mouser {
 				this.on_release?.(this)
 				this.on_release_once && (this.on_release_once(this), this.on_release_once = null)
 			} else {
+				this.on_blocked_release?.()
 				this._blockNextRelease = false
 			}
 			this.down = false
