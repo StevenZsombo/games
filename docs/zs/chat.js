@@ -18,8 +18,9 @@ class Chat {
         this.socket = null
         this.reconnections = -1
         this.errorHandler = null
-        this.queue = []
-        this.queueTimeout = 0
+        /**@type {Map<string, obj>} */
+        this.queue = new Map()
+        this.queueTimeout = 10 * 1000
         this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
         this.secureIDsToIgnore = new Set()
         this.isServer = isServer
@@ -91,7 +92,7 @@ class Chat {
     }
 
     get isConnected() {
-        return this.socket.readyState === WebSocket.OPEN
+        return this.socket?.readyState === WebSocket.OPEN
     }
 
     scheduleReconnect(ip) {
@@ -134,19 +135,25 @@ class Chat {
         obj.name ??= this.name
         obj.id = MM.randomID()
         obj.queuedAt = Date.now() //IMPORTANT
-        this.queue.push(obj)
+        this.queue.set(obj.id, obj)
         this.sendMessage(obj)
         return obj
     }
 
     queueSend() {
-        if (!this.queue.length) return
-        this.queueTimeout && (this.queue = this.queue.filter(x => Date.now() - x.queuedAt < this.queueTimeout))
-        this.queue.forEach(this.sendMessage.bind(this))
+        if (!this.queue.size) return
+        for (const [id, obj] of this.queue) { //sets have safe deletion, who would've known
+            if (this.queueTimeout && (Date.now() - obj.queuedAt > this.queueTimeout)) {
+                this.queue.delete(id)
+            } else {
+                this.sendMessage(obj)
+            }
+
+        }
     }
 
     receiveEcho(echo) {
-        this.queue = this.queue.filter(x => x.id != echo)
+        this.queue.delete(echo)
     }
 
     acquireName() {
@@ -230,6 +237,7 @@ class Chat {
                 Number.isFinite(+this.name.at(-1)) ? this.name.slice(0, -1) + (+this.name.at(-1) + 1) : this.name + "0"
             )
             this.silentReload() //this is a server response so it shouldn't create a loop
+            return
         }
         else if (message.SERVERnameOrderedToReset != null) this.resetName()
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
@@ -241,8 +249,8 @@ class Chat {
         if (message.eval != null) eval(message.eval)
         if (message.log != null) console.log(message.log)
         if (message.alert != null) alert(message.alert)
-        if (message.reload != null) this.silentReload()
-        if (message.orderReload != null) this.silentReload()
+        if (message.reload != null) { this.silentReload(); return; }
+        if (message.orderReload != null) { this.silentReload(); return; }
         if (message.prompt != null) {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
@@ -319,6 +327,9 @@ class ChatServer extends Chat {
 
         this.receiveMessage = null//set to nothing, won't be needed anyways
         this.isLoggingTargeting = false
+
+        this.chat.queueTimeout = 0
+        console.log(`Server queueTimeout has been set to ${this.chat.queueTimeout || "infinite"}`)
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
@@ -380,8 +391,6 @@ class Listener {
 
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
-        this.chat.queueTimeout = 0 //reconsider first. system is unfinished.
-        console.log(`Server queueTimeout has been set to ${this.chat.queueTimeout || "infinite"}`)
         this.allowPriorJoin = true
         this.isLogging = false//true
         // this.isLoggingRecovery = true

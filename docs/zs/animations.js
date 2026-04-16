@@ -1,3 +1,4 @@
+//#region Animator
 class Animator {
 	constructor() {
 		/**@type {Anim[]} */
@@ -15,7 +16,7 @@ class Animator {
 			//append and on_end are called. repeat and chain are NOT
 			this.animations.forEach(x => {
 				if (x.obj === anim.obj) {
-					this.update_kill_terminateWithoutRepeatOrChain(x)
+					this.earlyDitch(x)
 				}
 			})
 		} else if (!(anim.noLock) && this.locked.has(anim.obj)) {
@@ -58,13 +59,15 @@ class Animator {
 		dt *= this.speedMultiplier
 		const newAnims = []
 		for (const anim of this.animations) {
+			if (anim.ignored) continue //clumsy optional flag undefined by default
 			anim.time -= dt //times+frames are only managed here
 			if (anim.time >= 0) {
-				!anim.ignored && anim.animate() //clumsy optional flag. undefined by default
+				anim.animate()
 				newAnims.push(anim)
 			} else {
 				newAnims.push(...this.update_kill(anim))
 			}
+
 		}
 		this.animations = newAnims
 
@@ -114,17 +117,15 @@ class Animator {
 		this.locked.delete(anim.obj)
 		return chains
 	}
-	/** @param {Anim} anim */
-	update_kill_terminateWithoutRepeatOrChain(anim) { //still calls on_end
-		anim.append?.()
-		anim.on_end?.(anim.obj)
-		this.locked.delete(anim.obj)
-	}
+
 	/**
 	 * Ditch early. Calls append and on_end. Does NOT call chain and repeat.
 	 * @param {Anim} anim */
 	earlyDitch(anim) {
-		this.update_kill_terminateWithoutRepeatOrChain(anim)
+		console.log(anim.append)
+		anim.append?.()
+		anim.on_end?.(anim.obj)
+		this.locked.delete(anim.obj)
 		anim.ignored = true //clumsy optional flag. undefined by default
 	}
 	/**
@@ -144,7 +145,9 @@ class Animator {
 		this.byObject(obj).forEach(x => this.earlyDitch(x))
 	}
 }
+//#endregion
 
+//#region Anim
 class Anim {
 	/**
 	 * @param {Object} obj - Target object to animate
@@ -164,7 +167,7 @@ class Anim {
 		//accepts chain, chainMany repeat, on_end, lerp, ditch              NEVER #append
 		//all changes are non-mutating: object properties are to be reset when we are done!
 		if (!this[code]) {
-			console.log({
+			console.error({
 				obj,
 				time,
 				code,
@@ -184,6 +187,9 @@ class Anim {
 
 		this.totTime = time
 	}
+
+
+
 	get copy() {
 		return new Anim(this.obj, this.totTime ?? this.time, this.code, this)
 	}
@@ -327,9 +333,9 @@ class Anim {
 	}
 
 	delay() {
-		/*if (!this.init) {
+		if (!this.init) {
 			this.init = true
-		}*/
+		}
 	}
 
 	hide() {
@@ -614,3 +620,4 @@ class Anim {
 
 	}
 }
+//#endregion

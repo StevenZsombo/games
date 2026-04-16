@@ -63,6 +63,10 @@ class MM {
         return fn.reduce((s, t) => t(s), value)
     }
 
+    static compose(...fn) {
+        return (value) => fn.reduce((s, t) => t(s), value)
+    }
+
 
     static dist(x, y, u, w) {
         return Math.hypot(x - u, y - w)
@@ -1480,6 +1484,31 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 `);
         tab.document.close();
     }
+
+    /**
+   * Creates a deferred Promise with external resolve/reject controls.
+   * @returns {{promise: Promise, resolve: Function, reject: Function}}
+   * @example
+   * const { promise, resolve } = MM.defer()
+   * setTimeout(resolve, 1000)
+   * await promise //Resolves after 1 second
+   */
+    static defer() {
+        let resolve, reject;
+        const promise = new Promise((res, rej) => {
+            resolve = res;
+            reject = rej;
+        });
+        return { promise, resolve, reject };
+    }
+
+    /* Usage
+    const { promise, resolve } = defer();
+    game.animator.add_anim(obj, 500, Anim.f.moveTo, {
+        x: 400, y: 300,
+        on_end: resolve
+    });
+    await promise;*/
 
     /**
      * No args support yet.
