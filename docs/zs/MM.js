@@ -1174,11 +1174,12 @@ class MM {
         return str.split(",").map(Number)
     }
 
-    static collectToMap(arr, key) {
+    static collectToMap(arr, keyOrFunc) {
+        const fn = typeof keyOrFunc === "function" ? keyOrFunc : x => x[keyOrFunc]
         const s = new Map()
         for (const item of arr) {
-            if (!s.has(item[key])) s.set(item[key], [])
-            s.get(item[key]).push(item)
+            if (!s.has(fn(item))) s.set(fn(item), [])
+            s.get(fn(item)).push(item)
         }
         return s
 
@@ -1208,6 +1209,21 @@ class MM {
         ].flatMap(([x, y]) => [x - rect.width / 4, y + rect.height / 4])
 
     }
+
+
+    static closestPointOnSegment(x, y, a, b, c, d) {
+        const dx = c - a
+        const dy = d - b
+        if (dx === 0 && dy === 0) return { x: a, y: b }
+        let t = ((x - a) * dx + (y - b) * dy) / (dx * dx + dy * dy)
+        t = Math.max(0, Math.min(1, t)) //clamp
+        return {
+            x: a + t * dx,
+            y: b + t * dy,
+            t: t //also the parameter!
+        }
+    }
+
 
     static brokenLineFunction(...polyXYXYXY) {
         const xs = polyXYXYXY.filter((_, i) => !(i % 2))
@@ -2071,7 +2087,7 @@ class GameEffects {
         result.menuButtons = menu
         return result
     }
-    static debugFunctionsFromAnObject(object, allowParameters = true) {
+    static dropDownDebugFunctionsFromAnObject(object, allowParameters = true) {
         return () => GameEffects.dropDownMenu(
             [...Object.entries(object)
                 .filter(x => typeof x[1] === 'function')
@@ -2079,6 +2095,43 @@ class GameEffects {
                 .map(x => x[1].length == 0 ? x : [x[0], x[1].apply(x[1], Array(x[1].length).fill().map(prompt))])
             ])
     }
+
+    /**@deprecated */
+    static fullMenuWithReplaceDEPR() {
+        const oldLayers = game.layers
+        game.layers = []
+        const close = () => {
+            game.layers = oldLayers
+        }
+        return { close, oldLayers }
+    }
+
+    static fullMenu() {
+        const underlay = new Button({
+            x: 0, y: 0, width: game.WIDTH, height: game.HEIGHT,
+            isBlocking: true,
+            outline: 0,
+            opacity: 0.7,
+            color: "black",
+            fontSize: 108
+        })
+        const items = [underlay]
+        const add = (drawable) => {
+            items.push(drawable)
+        }
+        const panel = new Panel()
+        panel.components = items
+        game.add_drawable(panel)
+        return {
+            panel, menu: panel,
+            activate: panel.activate, deactivate: panel.deactivate,
+            items, add, underlay
+        }
+
+    }
+
+
+
     /**@deprecated */
     static fullscreenTrickButton() {
         const invis = Button.fromRect(game.rect.copy)

@@ -458,6 +458,25 @@ class Clickable extends Rect {
 		return within
 	}
 
+	resetClickableState() {
+		this.on_click = null
+		this.on_release = null
+		this.on_hover = null
+		this.on_enter = null
+		this.on_leave = null
+		this.on_drag = null
+		this.on_drag_more = null
+		this.on_hold = null
+		this.on_wheel = null
+		this._drag_force_within = false //won't let the button separate from mouse while dragging
+		this.just_entered = false
+		this.last_clicked = null
+		this.last_held = null
+		this.interactable = true
+		this.clickable = true
+		this.isBlocking = false //whether it blocks when clicked or not
+	}
+
 }
 //#endregion
 //#region Button
@@ -779,6 +798,13 @@ class Inspector extends Button {
 	 * @param {Game} game 
 	 */
 	constructor(button, game) {
+		button ??= new Button({
+			width: 850,
+			height: 120,
+			color: "moccasin",
+			outline: 3,
+			fontSize: 30,
+		})
 		super(button)
 		game ??= game //hacky
 		this.game = game
@@ -1353,7 +1379,6 @@ class InputBoard {
 //#region Panel
 
 class Panel extends Malleable {
-
 	activate() { this.components.forEach(x => x.activate?.()) }
 	deactivate() { this.components.forEach(x => x.deactivate?.()) }
 	/**@param {Boolean} bool  */
@@ -1364,7 +1389,71 @@ class Panel extends Malleable {
 		game.remove_drawable(this)
 	}
 
+}
+//#endregion
 
+//#region Slider
+class Slider extends Panel {
+	leftX = 100
+	leftY = 100
+	rightX = 500
+	rightY = 100
+	min = 0
+	max = 100
+	_value = 0
+	_t = 0
+	integer = false
+	lineSettings = { color: "black", width: 10 }
+	/**@param {Button} button */
+	constructor(button, backgroundButton) {
+		super()
+		const lineDrawable = {
+			draw: (ctx) => {
+				MM.drawLine(ctx, this.leftX, this.leftY, this.rightX, this.rightY,
+					this.lineSettings
+				)
+			}
+		}
+		this.components.push(lineDrawable)
+		this.assignMovingButton(button ?? new Button({ width: 50, height: 50 }))
+	}
+	set value(val) {
+		this._value = val
+		const t = (val - this.min) / (val - this.max)
+		const x = this.leftX + t * (this.rightX - this.leftX)
+		const y = this.rightY + t * (this.rightY - this.leftY)
+		this.moving.centerat(x, y)
+	}
+	get value() {
+		return this._value
+	}
+	on_value_change = null
+	on_value_end = null
+	/**@param {Button} moving  */
+	assignMovingButton(moving) {
+		if (this.moving) {
+			this.moving.resetClickableState()
+			this.components.splice(this.components.indexOf(this.moving))
+			this.moving = null
+		}
+		moving._drag_force_within = true
+		moving.on_drag = (pos) => {
+			const { x, y, t } = MM.closestPointOnSegment(pos.x, pos.y, this.leftX, this.leftY, this.rightX, this.rightY)
+			moving.centerat(x, y)
+			let val = this.min + t * (this.max - this.min)
+			if (this.integer) val = Math.floor(val)
+			val = MM.clamp(val, this.min, this.max)
+			this._value = val
+			this.on_value_change?.(this._value)
+		}
+		moving.on_release = (pos) => {
+			this.on_value_end?.(this._value)
+		}
+		this.moving = moving
+		this.components.push(moving)
+		this.value = this.min
+		return this
+	}
 
 
 
