@@ -1501,6 +1501,30 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         tab.document.close();
     }
 
+
+
+    /**
+     * Creates an inline Web Worker from a function that returns a value.
+     * @param {Function} fn - Function that receives data and returns a result.
+     * @returns {Worker} A Web Worker instance.
+     * @example
+     * const worker = MM.createWorker(x => x ** 2)
+     * worker.onmessage = e => console.log(e.data)
+     * worker.postMessage(12) //eventually logs 144
+     */
+    static createWorker(fn) {
+        const blob = new Blob([`
+            const fn = ${fn.toString()};
+            self.onmessage = (e) => {
+            self.postMessage(fn(e.data));
+        };
+    `], { type: 'application/javascript' });
+        return new Worker(URL.createObjectURL(blob));
+    }
+
+
+
+
     /**
    * Creates a deferred Promise with external resolve/reject controls.
    * @returns {{promise: Promise, resolve: Function, reject: Function}}
@@ -1517,14 +1541,6 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         });
         return { promise, resolve, reject };
     }
-
-    /* Usage
-    const { promise, resolve } = defer();
-    game.animator.add_anim(obj, 500, Anim.f.moveTo, {
-        x: 400, y: 300,
-        on_end: resolve
-    });
-    await promise;*/
 
     /**
      * No args support yet.

@@ -1,3 +1,4 @@
+//https://mindyourdecisions.com/blog/2023/10/03/maximum-product-of-a-number-partition/
 var univ = {
     isOnline: false,
     PORT: 80,
@@ -235,10 +236,16 @@ class Game extends GameCore {
         this.add_drawable(topLab)
         const botLab = topLab.copy
         botLab.fontSize = 30
+        let highest = numbers.reduce((s, t) => s * t, 1)
         botLab.dynamicText = () => {
-            const a = [`Your group sizes, their sum, and their product:`,
+            const curr = numbers.reduce((s, t) => s * t, 1)
+            highest = Math.max(highest, curr)
+            const a = [
+                `Your group sizes, their sum, and their product:                        `
+                + `record: ${highest}`
+                ,
                 `${numbers.join(" + ")} = ${numbers.reduce((s, t) => s + t, 0)}`,
-                `${numbers.join(" * ")} = ${numbers.reduce((s, t) => s * t, 1)} `]
+                `${numbers.join(" * ")} = ${curr} `]
             if (a[1].length > 80 || a[2].length > 80) {
                 a[1] = a[1].split("=").join("\n =")
                 a[2] = a[2].split("=").join("\n =")

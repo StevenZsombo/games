@@ -1399,13 +1399,12 @@ class Slider extends Panel {
 	rightX = 500
 	rightY = 100
 	min = 0
-	max = 100
+	max = 1
 	_value = 0
-	_t = 0
 	integer = false
 	lineSettings = { color: "black", width: 10 }
 	/**@param {Button} button */
-	constructor(button, backgroundButton) {
+	constructor(button) {
 		super()
 		const lineDrawable = {
 			draw: (ctx) => {
@@ -1418,10 +1417,11 @@ class Slider extends Panel {
 		this.assignMovingButton(button ?? new Button({ width: 50, height: 50 }))
 	}
 	set value(val) {
+		val = MM.clamp(val, this.min, this.max)
 		this._value = val
-		const t = (val - this.min) / (val - this.max)
+		const t = (val - this.min) / (this.max - this.min)
 		const x = this.leftX + t * (this.rightX - this.leftX)
-		const y = this.rightY + t * (this.rightY - this.leftY)
+		const y = this.leftY + t * (this.rightY - this.leftY)
 		this.moving.centerat(x, y)
 	}
 	get value() {
@@ -1443,7 +1443,7 @@ class Slider extends Panel {
 			let val = this.min + t * (this.max - this.min)
 			if (this.integer) val = Math.floor(val)
 			val = MM.clamp(val, this.min, this.max)
-			this._value = val
+			this.integer ? (this.value = val) : this._value = val
 			this.on_value_change?.(this._value)
 		}
 		moving.on_release = (pos) => {
