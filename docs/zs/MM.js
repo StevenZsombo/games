@@ -539,6 +539,10 @@ class MM {
         return Math.random() * (max - min) + min
     }
 
+    static randomIndex(maxExclusive) {
+        return Math.floor(maxExclusive * Math.random())
+    }
+
     static randomInt(min, maxInclusive) {
         maxInclusive += 1
         return Math.floor(Math.random() * (maxInclusive - min) + min)

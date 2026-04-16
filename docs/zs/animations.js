@@ -144,6 +144,16 @@ class Animator {
 	earlyDitchByObject(obj) {
 		this.byObject(obj).forEach(x => this.earlyDitch(x))
 	}
+
+	clockworks = []
+	createClockwork(time, on_repeat) {
+		const a = Anim.delay(time, { repeat: Infinity, on_repeat: on_repeat })
+		Object.defineProperty(a, "interval", { get() { return a.totTime }, set(val) { a.totTime = val } })
+		a.tag = "clockwork"
+		this.clockworks.push(a)
+		this.add_anim(a)
+		return a
+	}
 }
 //#endregion
 

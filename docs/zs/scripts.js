@@ -880,6 +880,7 @@ class MouseHelper extends Button {
 //#region Malleable
 class Malleable {
 	constructor(...comps) {
+		/**@type {Button[]} */
 		this.components = [...comps]
 	}
 
@@ -900,6 +901,13 @@ class Malleable {
 			c.draw?.(screen)
 		}
 	}
+
+	//array-like:
+	forEach(...args) { return this.components.forEach(...args) }
+	map(...args) { return this.components.map(...args) }
+	filter(...args) { return this.components.filter(...args) }
+	get length() { return this.components.length }
+	[Symbol.iterator]() { return this.components[Symbol.iterator](); }
 }
 //#endregion
 
@@ -1113,7 +1121,15 @@ class Plot {
 		}
 	}
 
+	/*resize(width, height) {//does not work
+		this.plotRect.width = this.plotCanvas.width = this.rect.width = width
+		this.plotRect.height = this.plotCanvas.height = this.rect.height = height
+	}
+	reposition(x, y) {//does not work
+		this.plotRect.x  = this.rect.x = x
+		this.plotRect.y  = this.rect.y = y
 
+	}*/
 }
 //#endregion
 

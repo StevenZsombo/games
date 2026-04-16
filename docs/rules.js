@@ -3,7 +3,7 @@ var RULES = ({
     NUMBER_OF_TEAMS: 5, //////////////////////////////////
     NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
     PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension ///////////////////////////
-    MAPFILE: "./conquest/maps/map.json", //handled if missing. can be null
+    MAPFILE: "./conquest/maps/map.json", //handled if missing. can be null -> defaults to rules
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
     DEFENSE_GAIN_VALUE: +50,
@@ -80,7 +80,7 @@ var RULES = ({
 //#region GRAPHICS.
 var GRAPHICS = ({
     ATTACK_BEFORE_RESPONSE_COLOR: "red",
-    ATTACK_TEAM_COLOR_FUNCTION: x => "blue",//x => x,
+    ATTACK_TEAM_COLOR_FUNCTION: color => "blue",//x => x,
     POPUP_ATTACK_SUCCESS: "bigBlue",
     POPUP_ATTACK_FAIL: "bigBlue",
     POPUP_DEFEND_SUCCESS: "bigBlue",
