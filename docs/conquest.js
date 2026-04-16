@@ -69,10 +69,13 @@ class Person extends Participant {
         console.log("joined:", this.name, this.nameID)
     }
     /**@returns {Person} */
-    static to(nameOrPerson) {
-        return typeof nameOrPerson === "string" ? (
-            participants[nameOrPerson] || Object.values(participants).find(x => x.nameID == nameOrPerson)
-        ) : nameOrPerson
+    static to(name_nameID_or_person) {
+        return typeof name_nameID_or_person === "string"
+            ? (
+                participants[name_nameID_or_person]
+                || Object.values(participants).find(x => x.nameID == name_nameID_or_person)
+            )
+            : name_nameID_or_person
     }
     static check(person) {
         person = Person.to(person)
@@ -220,6 +223,22 @@ const UNPAUSE = () => {
     chat.sendMessage({ eval: "game.unpause()" })
     RELOAD() //easiest solution = best
 
+}
+const WHITELIST = (person) => {
+    if (!game) return
+    person = Person.to(person)
+    chat.sendMessage({
+        targetID: person.nameID,
+        eval:
+            `game?.easePen?.();localStorage.setItem("protectedFromPenUntil",32503680000000);`, //the year 3000
+        popup: "You have been whitelisted.",
+        popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
+
+    })
+    if (game.punishedPersonSet.has(person)) {
+        game.sideMessageList[game.punishedPersonSet.get(person)]?.getRidOf?.()
+    }
+    spop(`Whitelisted ${person.name}`)
 }
 const INVALIDATE = (id) => {
     game.invalidate(id)
@@ -1309,18 +1328,7 @@ class Game extends GameCore {
                 }
             ],
             ["Whitelist", () => {
-                chat.sendMessage({
-                    targetID: person.nameID,
-                    eval:
-                        `game?.easePen?.();localStorage.setItem("protectedFromPenUntil",32503680000000);`, //the year 3000
-                    popup: "You have been whitelisted.",
-                    popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
-
-                })
-                if (this.punishedPersonSet.has(person)) {
-                    this.sideMessageList[this.punishedPersonSet.get(person)]?.getRidOf?.()
-                }
-                spop(`Whitelisted ${person.name}`)
+                WHITELIST(person)
             }],
             ["Flush", () => {
                 person.kick(true)
