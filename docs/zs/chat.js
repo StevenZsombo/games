@@ -275,6 +275,10 @@ class Chat {
             contest.shared[message.shared] = message.value
             contest.on_share?.(message.shared, message.value)
         }
+        if (message.weak != null) {
+            Object.assign(contest.shared[message.weak], message.value)
+            contest.on_weak?.(message.weak, message.value)
+        }
 
         this.on_receive?.(message)
         this.on_receive_more?.(message)
@@ -328,8 +332,8 @@ class ChatServer extends Chat {
         this.receiveMessage = null//set to nothing, won't be needed anyways
         this.isLoggingTargeting = false
 
-        this.chat.queueTimeout = 0
-        console.log(`Server queueTimeout has been set to ${this.chat.queueTimeout || "infinite"}`)
+        this.queueTimeout = 0
+        console.log(`Server queueTimeout has been set to ${this.queueTimeout || "infinite"}`)
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
@@ -532,4 +536,85 @@ class Listener {
 
 }
 
+//#endregion
+
+
+
+
+//#region ContestManager
+class ContestManager {
+    constructor() {
+        this.chat ??= chat
+        this.shared = {} //updated property by property
+        this.on_share = null //called with the NEW properties only
+        this.on_weak = null //uses Object.assign instead. called with the new keys only
+
+
+        this.isActive = false
+
+        this.on_start = null
+        this.on_end = null
+        this.on_pause = null
+        this.on_unpause = null
+
+        this.doesPauseBlockInputs = true
+
+        this.rules = "Rules are yet to be set."
+
+
+    }
+
+
+
+    //really awkward... best not use any of it
+    /**@deprecated */
+    startContest() {
+        univ.on_next_game_once = () => {
+            this.isActive = true
+            GameEffects.popup("Contest has started, good luck!")
+            this.on_start?.()
+        }
+        main()
+    }
+    /**@deprecated */
+    endContest() {
+        this.isActive = false
+        GameEffects.popup("Contest has ended. Stand by for the results.", GameEffects.popupPRESETS.redLinger)
+        this.on_end?.()
+    }
+    /**@deprecated */
+    pauseContest() {
+        this.isActive = false
+        GameEffects.popup("Contest was paused, please stand by.")
+        this.on_pause?.()
+        game.isAcceptingInputs = this.doesPauseBlockInputs
+    }
+    /**@deprecated */
+    unpauseContest() {
+        this.isActive = true
+        GameEffects.popup("Contest was unpaused, you may continue.")
+        this.on_unpause?.()
+        game.isAcceptingInputs = true
+    }
+    /**@deprecated */
+    startAfter(seconds) {
+        GameEffects.countdown("Contest will start in:", seconds, this.startContest.bind(this))
+    }
+    /**@deprecated */
+    endAfter(seconds) {
+        GameEffects.countdown("Contest will end in:", seconds, this.endContest.bind(this))
+    }
+
+
+
+    show_rules(time = 10000) {
+        game.isAcceptingInputs = false
+        GameEffects.popup(this.rules, {
+            moreButtonSettings: {
+                ...GameEffects.popupPRESETS.megaBlue, floatTime: time,
+                on_end: () => { game.isAcceptingInputs = true }
+            }
+        })
+    }
+}
 //#endregion

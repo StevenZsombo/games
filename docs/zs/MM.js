@@ -1522,7 +1522,13 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         return new Worker(URL.createObjectURL(blob));
     }
 
-
+    static objectSize(obj, multiplier = 1) {
+        const str = JSON.stringify(obj)
+        const bytes = new TextEncoder().encode(str).length * multiplier
+        if (bytes < 1024) return `${bytes} B`
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+    }
 
 
     /**
@@ -1919,7 +1925,6 @@ class GameEffects {
      */
     static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
         travelTime = 500, floatTime = 1000,
-        infinite = false,
         moreButtonSettings = { color: "yellow" },
         close_on_release = false,
         on_end = null } = {},
@@ -1968,9 +1973,8 @@ class GameEffects {
         b.close = () => game.animator.add_anim(floatOut)
         if (close_on_release) b.on_release = b.close
         game.add_drawable(b, 7)
-        infinite
-            ? game.animator.add_anim(floatIn)
-            : game.animator.add_sequence(floatIn, Anim.delay(floatTime), floatOut)
+        if (floatTime == Infinity) { game.animator.add_anim(floatIn) }
+        else { game.animator.add_sequence(floatIn, Anim.delay(floatTime), floatOut) }
 
 
 

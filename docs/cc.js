@@ -89,8 +89,7 @@ var univ = {
                     sizeFrac: [.98, .98],
                     posFrac: [.5, .5],
                     close_on_release: false,
-                    travelTime: 100,
-                    infinite: true
+                    travelTime: Infinity,
                 })
                 popup.color = "red"
                 popup.fontSize = 72
