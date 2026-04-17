@@ -314,7 +314,7 @@ class GameCore extends GameCoreLayerCore {
     draw(screen) {
         //draw
         this.draw_layers(screen)
-        if (!univ.showFramerate) this.framerate.draw(screen) //weirdness:
+        this.framerate.draw(screen) //weirdness:
         //is showFramerate is true then a button is added, otherwise this is necessary
 
     }

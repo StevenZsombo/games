@@ -929,9 +929,11 @@ class Malleable {
 	}
 
 	check(...params) {
-		for (let c of this.components) {
-			c.check?.(...params)
+		let anyHit = false
+		for (let i = this.components.length - 1; i >= 0; i--) {
+			anyHit = this.components[i].check?.(...params) || anyHit
 		}
+		return anyHit
 	}
 
 	update(dt) {
