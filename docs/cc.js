@@ -65,7 +65,6 @@ var univ = {
                 const isNew = !firstRun && !hasPen
                 !firstRun && endPen()
                 if (((+localStorage.getItem("protectedFromPenUntil")) || 0) > Date.now()) return
-                console.log("startPen")
                 hasPen = true
                 // readPen()
                 // if (penLeft > 0) return //already running pen
@@ -83,11 +82,9 @@ var univ = {
             }
 
             const startPenWarn = () => {
-                console.log("startPenWarn")
                 objs.forEach((x) => x.color = "red")
             }
             const startPenBlockingWindow = () => {
-                console.log("startPenBlockingWindow")
                 const popup = GameEffects.popup("", {
                     sizeFrac: [.98, .98],
                     posFrac: [.5, .5],
@@ -108,10 +105,14 @@ var univ = {
                 penWindow = popup
             }
             const endPen = (alsoProtect = false) => {
-                console.log("endPen")
                 penLeft = -1 //to force clean
                 checkPenIfDone()
                 alsoProtect && localStorage.setItem("protectedFromPenUntil", Date.now() + 2000) //2 seconds protection
+            }
+            const easePen = (alsoProtect = false) => {
+                endPen(alsoProtect)
+                penCount = Math.max(0, penCount - 1)
+                writePen()
             }
             const microTrick = () =>
                 Promise.resolve().then(() => {
@@ -121,16 +122,13 @@ var univ = {
                     }
                 })
             window.addEventListener('blur', () => {
-                console.log("blur")
                 microTrick()
             })
             window.addEventListener('focus', () => {
-                console.log("focus")
                 hasFocus = true
             })
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
-                    console.log("hidden")
                     microTrick()
                 }
             })
@@ -140,7 +138,7 @@ var univ = {
             game.extras_on_update.push(
                 dt => checkPenIfDone(dt)
             )
-            game.easePen = endPen
+            game.easePen = easePen
 
             readPen()
             if (penLeft > 0) startPen(true)

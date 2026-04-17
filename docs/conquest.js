@@ -223,6 +223,30 @@ setTimeout(()=>{game.remove_drawable(p);},15*1000);
     )
     spop("Plot download shared!")
 }
+
+const DIAGNOSTIC = () => {
+    const str = MM.safeStringify({
+        game,
+        kingdoms: game.kingdoms,
+        territories: game.territories,
+        layers: game.layers,
+        participants,
+        chat, contest, RULES, GRAPHICS, MASTER, univ
+    }, { exclude: [Mapster], functions: true })
+    MM.downloadFile(str, "diagnostic" + Date.now() + ".json")
+    return str
+}
+
+const ABSOLVE = (person) => {
+    person = Person.to(person)
+    const msg = {
+        targetID: person.nameID, many: [{ eval: `game?.easePen?.(true)` }]
+    }
+    if (game.attacksAllowed) msg.many.push({ popup: "Absolved by server.", popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE })
+    chat.sendMessage(msg)
+
+}
+
 const COUNTDOWN = (text, seconds) => {
     GameEffects.countdown(text, seconds)
     chat.sendCommand(
@@ -697,7 +721,23 @@ class Game extends GameCore {
         serverButton.txt = "SERVER"
         serverButton.on_click = null
         serverButton.on_release = () => {
-            SERVERBUTTON()
+            const dd = SERVERBUTTON() //quit being fancy lol
+            /*let { x, y } = this.mouser.pos
+            x = dd.menuButtons[0].x
+            y = dd.menuButtons[0].y
+            dd.menuButtons.forEach((b, i) => {
+                b.opacity = 1
+                b.interactable = false
+                const origText = b.txt
+                b.txt = ""
+                this.animator.add_anim(Anim.delay(i * 50, {
+                    chain: Anim.stepper(b, 200,
+                        ["x", "y", "opacity", "rad", "width", "height"],
+                        [x, y, 1, 0, b.width, b.height], [b.x, b.y, 0, 0, b.width, b.height],
+                        { on_end: () => { b.opacity = 0; b.interactable = true; b.txt = origText } })
+                }))
+            })*/
+
         }
         this.serverButton = serverButton
         this.add_drawable(serverButton)
@@ -710,6 +750,15 @@ class Game extends GameCore {
         this.initialize_scores()
         this.initialize_scores_side()
         this.clockwork_extras = []
+        if (RULES.IDLE_SYSTEM_USED) {
+            this.clockwork_extras.push(() => {
+                if (!this.attacksAllowed && !this.isPaused) {
+                    //automatically absolve before round starts.
+                    this.sideMessageList.forEach(x => x && x.on_release())
+                }
+            })
+        }
+
         this.conflictsClockwork = setInterval(() => {
             this.clockwork_extras.forEach(fn => fn())
             if (this.isPaused) return
@@ -783,7 +832,7 @@ class Game extends GameCore {
         this.inspector = inspector
 
 
-
+        /** @returns {DropDownMenuResult} */
         const SERVERBUTTON = () => {
             const parr = []
             if (!this.attacksAllowed && !this.isPaused) {
@@ -900,6 +949,8 @@ class Game extends GameCore {
             )
             parr.forEach((x, i) =>
                 inspector.addChild(dd.menuButtons[i], x[2]))
+
+            return dd
         }
 
         //MAPBUTTON goes here. when i feel like it.
@@ -922,6 +973,8 @@ class Game extends GameCore {
                         console.log(dev[x].length ? dev[x](prompt(`dev.${x}`)) : dev[x]())
          
                     }])]*/
+
+                    .concat([["DIAGNOSTIC", DIAGNOSTIC]])
                     .concat([
                         [`kingdoms = ${RULES.NUMBER_OF_TEAMS}`, () => {
 
@@ -983,8 +1036,6 @@ class Game extends GameCore {
                 inspector.addChild(b, v)
             })
 
-
-            ddm.menuButtons.forEach(x => { })
         }
         this.add_drawable(devButton)
 
@@ -1579,7 +1630,7 @@ class Game extends GameCore {
         }
         popup.on_release = () => {
             popup.getRidOf()
-            chat.sendMessage({ targetID: person.nameID, eval: `game?.easePen?.(true)` })
+            ABSOLVE(person)
         }
         popup.startTimeStamp = startTimeStamp
         popup.timeLeftStill = startTimeStamp - Date.now()
@@ -1799,6 +1850,7 @@ const hq = {
         contestIntervals.forEach(x => clearInterval(x))
         game.saveGame("conquestEnd")
         if (MASTER.ALLOW_SCREENSHOTS) setTimeout(() => Cropper.screenshot("conquestEnd"), 100)
+        if (MASTER.ALLOW_DIAGNOSTIC) DIAGNOSTIC()
         console.log("Timers/intervals cleared.")
         chat.sendMessage({
             popup: "The game has ended. Thank you for playing.\nStand by for results!",

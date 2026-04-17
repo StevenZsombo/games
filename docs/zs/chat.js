@@ -566,20 +566,13 @@ class ContestManager {
 
 
 
-    //really awkward... best not use any of it
-    /**@deprecated */
     startContest() {
-        univ.on_next_game_once = () => {
-            this.isActive = true
-            GameEffects.popup("Contest has started, good luck!")
-            this.on_start?.()
-        }
-        main()
+        // GameEffects.popup("Contest has started, good luck!")
+        this.on_start?.()
     }
-    /**@deprecated */
     endContest() {
         this.isActive = false
-        GameEffects.popup("Contest has ended. Stand by for the results.", GameEffects.popupPRESETS.redLinger)
+        // GameEffects.popup("Contest has ended. Stand by for the results.", GameEffects.popupPRESETS.redLinger)
         this.on_end?.()
     }
     /**@deprecated */
@@ -596,11 +589,11 @@ class ContestManager {
         this.on_unpause?.()
         game.isAcceptingInputs = true
     }
-    /**@deprecated */
+
     startAfter(seconds) {
         GameEffects.countdown("Contest will start in:", seconds, this.startContest.bind(this))
     }
-    /**@deprecated */
+
     endAfter(seconds) {
         GameEffects.countdown("Contest will end in:", seconds, this.endContest.bind(this))
     }

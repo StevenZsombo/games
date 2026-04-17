@@ -372,6 +372,7 @@ class MM {
         opacity && screen.restore()
     }
     //#endregion
+    //#region MM.drawRotated
     /**
      * @param {RenderingContext} screen 
      * @param {Object} obj - must have a center.x center.y
@@ -395,7 +396,7 @@ class MM {
         }
         screen.restore()
     }
-
+    //#endregion
 
 
     static RotateContext(screen, rad, x, y) {
@@ -694,7 +695,7 @@ class MM {
     }
 
     static shuffle(arr) {
-        return [...arr].sort(x => Math.random() - .5)
+        return [...arr].sort(() => Math.random() - .5)
     }
 
     static putAsFirst(item, arr) {
@@ -795,7 +796,6 @@ class MM {
     * @param {number} endExclusive
     * @returns {Array<number>}
     */
-
     static indices(startOrEnd, endExlusive = null) {
         const [start, end] = endExlusive !== null ? [startOrEnd, endExlusive] : [0, startOrEnd]
         return Array.from({ length: end - start }, (_, i) => start + i)
@@ -1582,6 +1582,52 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         throw "not yet implemented"
     }
 
+    /**
+     * Safely stringifies an object, handling circular references, DOM elements, and unstringifiable values.
+     * @param {Object} obj - The object to stringify
+     * @param {Object} [options] - Configuration options
+     * @param {Array<Function>} [options.include=[]] - Classes to include (if empty, includes all)
+     * @param {Array<Function>} [options.exclude=[]] - Classes to exclude (takes priority over include)
+     * @param {Boolean} [options.functions=[]]
+     * @returns {string} JSON string with problematic values replaced by "@DOM", "@Circular", "@Excluded", or "@Error"
+     * Thank you DeepSeek.
+     */
+    static safeStringify(obj, { include = [], exclude = [], functions = false } = {}) {
+        const keep = v => !v || typeof v !== 'object' ? true : exclude.some(c => v instanceof c) ? false : include.length ? include.some(c => v instanceof c) : true;
+        const clean = (v, path = new Set()) => {
+            if (v?.nodeType) return "@DOM";
+            if (!keep(v)) return "@Excluded";
+            if (v && typeof v === 'object') {
+                if (path.has(v)) {
+                    if (v instanceof Map) return "@Map";
+                    if (v instanceof Set) return "@Set";
+                    if (typeof v === 'function') return functions ? v.toString() : "@FunctionCircular";
+                    return "@Circular";
+                }
+                path.add(v);
+                let result;
+                if (Array.isArray(v)) result = v.map(x => x && typeof x === 'object' ? clean(x, path) : clean(x, path));
+                else if (v instanceof Map) return "@Map";
+                else if (v instanceof Set) return "@Set";
+                else { result = {}; for (const k in v) { const x = v[k]; result[k] = x && typeof x === 'object' ? clean(x, path) : clean(x, path); } }
+                path.delete(v);
+                return result;
+            }
+            if (typeof v === 'function') return functions ? v.toString() : "@Function";
+            if (typeof v === 'symbol') return "@Symbol";
+            return v;
+        };
+        return JSON.stringify(clean(obj));
+    }
+
+
+
+
+
+
+
+
+
 
     //#region vibe
     static graphRandomPartition(graph, d) {
@@ -2038,6 +2084,12 @@ class GameEffects {
         //setTimeout(() => game.remove_drawable(b), (seconds + .5) * 1000)
         //on_end && setTimeout(on_end, seconds * 1000)
     }
+
+    /**
+     * @typedef {Object} DropDownMenuResult
+     * @property {Button[]} menuButtons
+     * @property {Function} close
+     */
     /**
      * Adds to game automatically.
      * @param {Object<string,function> | Array<Array<string,function>>} objTextAndOnRelease
@@ -2048,6 +2100,7 @@ class GameEffects {
      * @param {Button|Array<Button>} alsoClosingButtons
      * @param {Boolean} addCloseButton 
      * @param {function} on_close
+     * @returns {DropDownMenuResult}
      */
     static dropDownMenu(objTextAndOnRelease, backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = {}, alsoClosingButtons = null, addCloseButton = true, on_close = null
@@ -2111,6 +2164,8 @@ class GameEffects {
         result.menuButtons = menu
         return result
     }
+
+
     static dropDownDebugFunctionsFromAnObject(object, allowParameters = true) {
         return () => GameEffects.dropDownMenu(
             [...Object.entries(object)
