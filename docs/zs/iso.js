@@ -105,8 +105,9 @@ class CubeGrid {
         const j = Math.floor(ry / size)
         return [i, j]
     }
-
-    check(x, y, clicked, released, held, wheel) {
+    /**@param {CheckParamsObj} checkParamsObj  */
+    check(checkParamsObj) {
+        const { x, y, clicked, released, held, wheel } = checkParamsObj
         const [u, w] = this.findGridElement(x, y)
         for (let i = 0; i < this.cols; i++) for (let j = 0; j < this.rows; j++)
             this.cubes[i][j].check(u, w, clicked, released, held, wheel)

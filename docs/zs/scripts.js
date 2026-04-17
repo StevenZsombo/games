@@ -407,8 +407,9 @@ class Clickable extends Rect {
 		this.isBlocking = false //whether it blocks when clicked or not
 		Object.assign(this, options)
 	}
-
-	check(x, y, clicked, released, held, wheel) {
+	/**@param {CheckParamsObj}*/
+	check(checkParamsObj) {
+		const { x, y, clicked, released, held, wheel } = checkParamsObj
 		if (released) { //log releases anyways
 			this.last_clicked = null
 			this.last_held = null
@@ -558,46 +559,46 @@ class Button extends Clickable {
 	}
 	/**@param {RenderingContext} screen  */
 	draw(screen) {
-		if (this.visible) {
-			if (this.rad) { //context is restored below
-				screen.save()
-				MM.RotateContext(screen, this.rad, this.centerX, this.centerY)
-			}
-			if (!this.transparent && this.outline) {
-				this.draw_outline(screen)
-			}
-			if (!this.transparent) {
-				let draw_color
-				if (this.selected) {
-					//selected
-					if (this.just_entered && this.hover_selected_color) {
-						draw_color = this.hover_selected_color
-					} else {
-						draw_color = this.selected_color
-					}
-				} else if (this.hover_color && this.just_entered) {
-					//not selected
-					draw_color = this.hover_color
-				} else {
-					draw_color = this.color
-				}
-
-				this.draw_color = draw_color
-				this.draw_background(screen)
-
-			}
-			if (this.img != null) {
-				this.draw_image(screen)
-			}
-			if (this.dynamicText) { this.txt = this.dynamicText() }
-			if (this.txt != null) {
-				this.draw_text(screen)
-			}
-			if (this.rad) {
-				screen.restore() //started above, should go at the end
-			}
-			this.draw_more?.(screen)
+		if (!this.visible) return
+		if (this.rad) { //context is restored below
+			screen.save()
+			MM.RotateContext(screen, this.rad, this.centerX, this.centerY)
 		}
+		if (!this.transparent && this.outline) {
+			this.draw_outline(screen)
+		}
+		if (!this.transparent) {
+			let draw_color
+			if (this.selected) {
+				//selected
+				if (this.just_entered && this.hover_selected_color) {
+					draw_color = this.hover_selected_color
+				} else {
+					draw_color = this.selected_color
+				}
+			} else if (this.hover_color && this.just_entered) {
+				//not selected
+				draw_color = this.hover_color
+			} else {
+				draw_color = this.color
+			}
+
+			this.draw_color = draw_color
+			this.draw_background(screen)
+
+		}
+		if (this.img != null) {
+			this.draw_image(screen)
+		}
+		if (this.dynamicText) { this.txt = this.dynamicText() }
+		if (this.txt != null) {
+			this.draw_text(screen)
+		}
+		if (this.rad) {
+			screen.restore() //started above, should go at the end
+		}
+		this.draw_more?.(screen)
+
 
 	}
 
@@ -644,7 +645,10 @@ class Button extends Clickable {
 		this.imgScale = 1
 	}
 
-	/**@param {Button} button  @param {boolean} [preservePreviousFunction=false] */
+
+
+
+	/** @param {Button} button @param {boolean} [preservePreviousFunction=false] @returns {Button} */
 	static make_checkbox(button, preservePreviousFunction = false) {
 		if (preservePreviousFunction) {
 			button.on_click = MM.extFunc(button.on_click, button.flip_selected.bind(button))
@@ -655,7 +659,7 @@ class Button extends Clickable {
 		return button
 	}
 
-	/**@param {Array<Button>} buttons @param {boolean} [preservePreviousFunction=false]   */
+	/** @param {Array<Button>} buttons @param {boolean} [preservePreviousFunction=false] @returns {{buttons: Button[], selected: Button}} */
 	static make_radio(buttons, preservePreviousFunction = false) {
 		let radio_group = {
 			buttons: buttons,
@@ -682,7 +686,7 @@ class Button extends Clickable {
 		return radio_group
 	}
 
-	/**@param {Button} button  */
+	/** @param {Button} button @returns {Button} */
 	static make_draggable(button) {
 		button.on_drag = function (pos) {
 			this.move(pos.x - this.last_held.x, pos.y - this.last_held.y)
@@ -691,9 +695,10 @@ class Button extends Clickable {
 		return button
 	}
 
-	/**@param {Button} button @param {Button[]} others */
+	/** @param {Button} button @param {Button[]} others @param {boolean} [doNotDragSelf=false] @returns {Button & {drag_others_list: Button[]}} */
 	static make_drag_others(button, others, doNotDragSelf = false) {
 		others ??= []
+		if (!Array.isArray(others)) others = [others]
 		button.drag_others_list ??= []
 		button.drag_others_list.push(...(others.filter(x => x !== button)))
 		button.on_drag = function (pos) {
@@ -707,7 +712,7 @@ class Button extends Clickable {
 		return button
 	}
 
-	/**@param {Button} button  */
+	/** @param {Button} button @param {number[]} polyXYXYXY @returns {Button & {polyXYXYXY: number[], collidepoint: Function}} */
 	static make_polygon(button, polyXYXYXY) {
 		button.polyXYXYXY = polyXYXYXY
 		button.draw_background = function (screen) {
@@ -724,12 +729,12 @@ class Button extends Clickable {
 		}
 		return button
 	}
-	/**@param {Button} button  */
+	/** @param {Button} button @returns {Button & {collidepoint: Function}} */
 	static make_rhombus(button) {
 		return Button.make_polygon(button, MM.rectToRhombus(button))
 	}
 
-	/**@param {Button} button  */
+	/** @param {Button} button @returns {Button & {collidepoint: Function}} */
 	static make_circle(button) {
 		button.draw_background = function (screen) {
 			MM.drawCircle(screen, this.centerX, this.centerY, this.width, {
@@ -742,7 +747,7 @@ class Button extends Clickable {
 		}
 		return button
 	}
-	/**@param {Button} button */
+	/** @param {Button} button @returns {Button & {radius: number}} */
 	static make_roundedRect(button) {
 		button.radius ??= Math.min(button.width, button.height) / 3
 		button.draw_background = function (screen) {
@@ -755,13 +760,14 @@ class Button extends Clickable {
 		return button
 	}
 
-	/**@param {Button} button @param {customFont} customFontInstance */
+	/** @param {Button} button @param {customFont} customFontInstance @returns {Button} */
 	static make_pixelFont(button, customFontInstance) {
 		button.draw_text = function (screen) { customFontInstance.drawText(screen, this.txt, this, { ...this }) }
 		return button
 	}
 
-	/**@param {Button} button  */
+
+	/** @param {Button} button @param {string} [texInitial] @param {number} [imgScale=0] @returns {Button & {latex: LatexManager, setTex: Function}} */
 	static make_latex(button, texInitial, imgScale = 0) {
 		button.latex = new LatexManager(texInitial)
 		button.img = button.latex.img
@@ -773,6 +779,44 @@ class Button extends Clickable {
 		button.setTex = function (str) { this.latex.tex = str }
 		return button
 	}
+	/** @template {Button} T @param {T} button @param {Button|Button[]} [others] @returns {T & {_x: number, _y: number, anchor_list: Button[], on_xchange: Function, on_ychange: Function}} */
+	static make_anchor(button, others) {
+		others ??= []
+		if (!Array.isArray(others)) others = [others]
+		button._x = button.x
+		button._y = button.y
+		button.anchor_list = others
+		button.on_xchange = null
+		button.on_ychange = null
+		Object.defineProperties(button,
+			{
+				x: {
+					get() { return this._x },
+					set(v) {
+						if (this._x === v) return
+						const dX = v - this._x
+						this.on_xchange?.(v, this._x)
+						this.anchor_list.forEach(oth => oth.x += dX)
+						this._x = v
+					}
+				},
+				y: {
+					get() { return this._y },
+					set(v) {
+						if (this._y === v) return
+						const dY = v - this._y
+						this.on_ychange?.(v, this._y)
+						this.anchor_list.forEach(oth => oth.y += dY)
+						this._y = v
+					}
+				},
+
+			}
+		)
+	}
+
+
+
 
 	activate() {
 		this.visible = true

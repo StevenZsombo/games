@@ -813,8 +813,12 @@ class Game extends GameCore {
 
     afterEverythingHasLoaded() {
         this.mouser.on_click_once = () => {
-            try { document.documentElement.requestFullscreen() }
-            catch (err) { console.error("Can't fullscreen", err) }
+            try {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error("Can't fullscreen, yo!", err);
+                })
+            }
+            catch (err) { console.error("Can't fullscreen, yo!", err) }
         }
 
         if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }

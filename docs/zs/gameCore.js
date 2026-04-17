@@ -88,9 +88,106 @@ const main = function (canvas) {
 }
 //#endregion
 
-//#region GameCore
-class GameCore {
+
+
+
+
+
+
+
+//#region GameCoreLayerCore
+class GameCoreLayerCore {
     constructor() {
+        this.layers = Array(10).fill().map(() => [])
+
+
+        this.lastClicked = new Set()
+        this.lastHovered = new Set()
+
+    }
+
+
+
+    /**
+     * @typedef {Object} CheckParamsObj
+     * @property {number} x
+     * @property {number} y
+     * @property {boolean} clicked
+     * @property {boolean} released
+     * @property {boolean} held
+     * @property {number} wheel
+     */
+    /**@param {CheckParamsObj} checkParamsObj  */
+    check_drawables(checkParamsObj) {
+        let { x, y, clicked, released, held, wheel } = checkParamsObj
+        let hit = false
+        let blocked = false
+        clicked && this.lastClicked.clear()
+        this.lastHovered.clear()
+        //for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
+        //for (const item of layer.toReversed()) {//items processed backwards
+        for (let layerIndex = this.layers.length - 1; layerIndex >= 0; layerIndex--) {
+            const layer = this.layers[layerIndex]
+            for (let itemIndex = layer.length - 1; itemIndex >= 0; itemIndex--) {
+                const item = layer[itemIndex]
+                hit = item.check?.({ x, y, clicked, released, held, wheel })
+                if (hit && !blocked) {
+                    this.lastHovered.add(item) //discrepancy with visible & interactable
+                    clicked && this.lastClicked.add(item)
+                }
+                if (hit && item.isBlocking) {
+                    blocked = true
+                    clicked = false
+                    released = false
+                    held = false
+                    //x = null //problematic: prevent escaping the underlying button's hover.
+                    //y = null
+                }
+            }
+        }
+        return blocked
+    }
+
+
+
+
+
+
+    draw_layers(screen) {
+        for (const layer of this.layers) {
+            for (const item of layer) {
+                item.draw(screen)  //drawables should ahve a draw, but whatevs
+            }
+        }
+    }
+    add_drawable(items, layer = 5) {
+        if (!Array.isArray(items)) {
+            items = [items]
+        }
+        for (const item of items) {
+            this.layers[layer].push(item)
+        }
+        return items
+    }
+    remove_drawable(item) {
+        this.layers = this.layers.map(x => x.filter(y => y !== item))
+    }
+    remove_drawables_batch(...items) {
+        items.flat().forEach(x => this.remove_drawable(x))
+    }
+    get layersFlat() { return this.layers.flat() }
+}
+
+//#endregion
+
+
+
+
+
+//#region GameCore
+class GameCore extends GameCoreLayerCore {
+    constructor() {
+        super()
         const canvas = document.getElementById("myCanvas")
         this.canvas = canvas
         /**@type {RenderingContext} */
@@ -123,15 +220,13 @@ class GameCore {
         this.extras_on_draw = []
         this.extras_temp = []
 
-        this.layers = Array(10).fill().map(x => [])
+
 
         univ.showFramerate && this.add_drawable(this.framerate.button)
 
 
         this.lastCycleTime = Date.now()
 
-        this.lastClicked = new Set()
-        this.lastHovered = new Set()
 
 
 
@@ -145,9 +240,9 @@ class GameCore {
         univ.on_each_start?.()
 
         /**@type {boolean} */
-        this.isRunning ??= true
-        this.isDrawing ??= true
-        this.isAcceptingInputs ??= true
+        this.isRunning = true
+        this.isDrawing = true
+        this.isAcceptingInputs = true
         this.status = "playing"
         this.tick()
     }
@@ -205,49 +300,24 @@ class GameCore {
         this.clockTotal += dt
         const now = Date.now()
         this.keyboarder.update(dt, now)
+        if (this.isAcceptingInputs) {
+            this.check_drawables(this.mouser)
+        }
         this.update_drawables(dt)
         this.animator.update(dt)
-
     }
     update_drawables(dt) {
-        let { clicked, released, held, x, y, wheel } = this.mouser
-        let hit = false
-        let blocked = false //inefficient but reliable.
-        clicked && this.lastClicked.clear()
-        this.lastHovered.clear()
-        //for (const layer of this.layers.toReversed()) {//layers drawn 0->9, processed backwards
-        //for (const item of layer.toReversed()) {//items processed backwards
-        for (let layerIndex = this.layers.length - 1; layerIndex >= 0; layerIndex--) {
-            const layer = this.layers[layerIndex]
-            for (let itemIndex = layer.length - 1; itemIndex >= 0; itemIndex--) {
-                const item = layer[itemIndex]
-                item.update?.(dt)
-                if (this.isAcceptingInputs) {
-                    hit = item.check?.(x, y, clicked, released, held, wheel)
-                    if (hit && !blocked) {
-                        this.lastHovered.add(item) //discrepancy with visible & iteractable
-                        clicked && this.lastClicked.add(item)
-                    }
-                    if (hit && item.isBlocking) {
-                        blocked = true
-                        clicked = false
-                        released = false
-                        held = false
-                        //x = null //problematic: prevent escaping the underlying button's hover.
-                        //y = null
-                    }
-                }
-            }
-        }
+        this.layers.forEach(layer => layer.forEach(item => item.update?.(dt)))
     }
+
 
     draw(screen) {
         //draw
         this.draw_layers(screen)
-        this.framerate.draw(screen)
+        if (!univ.showFramerate) this.framerate.draw(screen) //weirdness:
+        //is showFramerate is true then a button is added, otherwise this is necessary
 
     }
-
     draw_reset(screen) {
         if (this.BGCOLOR) {
             screen.fillStyle = this.BGCOLOR
@@ -256,15 +326,6 @@ class GameCore {
             screen.clearRect(0, 0, this.WIDTH, this.HEIGHT)
         }
     }
-
-    draw_layers(screen) {
-        for (const layer of this.layers) {
-            for (const item of layer) {
-                item.draw(screen)
-            }
-        }
-    }
-
     next_loop() {
         this.mouser.next_loop()
         this.keyboarder.next_loop()
@@ -274,28 +335,61 @@ class GameCore {
         setTimeout(() => this.screen.fillRect(0, 0, this.WIDTH, this.HEIGHT), 100)
 
     }
-    add_drawable(items, layer = 5) {
-        if (!Array.isArray(items)) {
-            items = [items]
-        }
-        for (const item of items) {
-            this.layers[layer].push(item)
-        }
-        return items
-    }
-    remove_drawable(item) {
-        this.layers = this.layers.map(x => x.filter(y => y !== item))
-    }
-    remove_drawables_batch(...items) {
-        items.flat().forEach(x => this.remove_drawable(x))
-    }
-    //#endregion
-
-    get layersFlat() { return this.layers.flat() }
     toggleFramerateUnlocked() { this.framerateUnlocked = !this.framerateUnlocked }
     toggleIsDrawing() { this.isDrawing = !this.isDrawing; this.drawnAlready = false; }
 
 } //this is the last closing brace for class Game
+//#endregion
+
+
+
+class GameWorld extends GameCoreLayerCore {
+    /**@param {Rect} fromRect  */
+    constructor(fromRect) {
+        super()
+        /**@type {Rect} */
+        this.worldRect = fromRect.copy
+        /**@type {Rect} */
+        this.screenRect = fromRect.copy
+        this.isBlocking = false
+    }
+    /**@param {RenderingContext} ctx */
+    draw(ctx) {
+        ctx.save()
+        ctx.translate(this.screenRect.x, this.screenRect.y)
+        ctx.beginPath()
+        ctx.rect(0, 0, this.screenRect.width, this.screenRect.height)
+        ctx.clip()
+        const scaleX = this.screenRect.width / this.worldRect.width
+        const scaleY = this.screenRect.height / this.worldRect.height
+        ctx.translate(-this.worldRect.x * scaleX, -this.worldRect.y * scaleY)
+        ctx.scale(scaleX, scaleY)
+        this.draw_layers(ctx)
+        ctx.restore()
+    }
+
+    update() { }
+    /**@param {CheckParamsObj} checkParamsObj  */
+    check(checkParamsObj) {
+        if (!this.screenRect.collidepoint(checkParamsObj.x, checkParamsObj.y)) return false
+        const scaleX = this.screenRect.width / this.worldRect.width
+        const scaleY = this.screenRect.height / this.worldRect.height
+
+        const translated = {
+            ...checkParamsObj,
+            x: (checkParamsObj.x - this.screenRect.x) / scaleX + this.worldRect.x,
+            y: (checkParamsObj.y - this.screenRect.y) / scaleY + this.worldRect.y
+        }
+        return this.check_drawables(translated) && this.isBlocking
+    }
+
+
+}
+
+
+
+
+
 
 
 /**@type {HTMLImageElement[]} */

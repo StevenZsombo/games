@@ -2306,5 +2306,25 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         }
         return a
     }
+
+    /**@param {button} button @param {number} factor   */
+    static magnifier(button, factor) {
+        const out = {}
+        out.factor = factor
+        game.remove_drawable(button)
+        const w = new GameWorld(button.copyRect)
+        w.screenRect = button
+        w.worldRect.stretch(1 / out.factor, 1 / out.factor)
+        Button.make_drag_others(button, w.worldRect)
+
+        for (let i = 0; i < game.layers.length - 1; i++) {//all but top layer are copied! avoid recursion
+            w.layers[i] = game.layers[i]
+        }
+        button.opacity = .5
+        game.add_drawable([w, button], game.layers.length - 1)
+        out.button = button
+        out.world = w
+        return out
+    }
 }
 //#endregion

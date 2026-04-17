@@ -122,7 +122,6 @@ class Animator {
 	 * Ditch early. Calls append and on_end. Does NOT call chain and repeat.
 	 * @param {Anim} anim */
 	earlyDitch(anim) {
-		console.log(anim.append)
 		anim.append?.()
 		anim.on_end?.(anim.obj)
 		this.locked.delete(anim.obj)
