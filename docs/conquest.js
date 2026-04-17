@@ -1906,8 +1906,9 @@ switchStage = () => {
             plotPanel = null
             game.mouser.on_blocked_release = null
         }
-        game.mouser.blockNextRelease()
-        game.mouser.on_blocked_release = close
+        // game.mouser.blockNextRelease()
+        // game.mouser.on_blocked_release = close
+        plotPanel.components[0].on_release = close
         game.switchModeButton.txt = "Show\nMap"//pointless
     } else if (next === "map") {
         // plotPanel?.close()

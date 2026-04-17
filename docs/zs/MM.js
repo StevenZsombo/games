@@ -759,6 +759,22 @@ class MM {
         Object.defineProperty(obj, propertyString, { get() { return func(obj) } })
     }
 
+    static monkeyPatchPrivate(obj, propertyString, { on_change = null, on_set = null, on_get = null, on_change_before = null } = {}) {
+        obj["_" + propertyString] = obj[propertyString]
+        Object.defineProperty(obj, propertyString,
+            {
+                get() { on_get?.(); return this["_" + propertyString] },
+                set(v) {
+                    on_set?.(v, this["_" + propertyString]);
+                    if (this["_" + propertyString] !== v) {
+                        on_change_before?.(v, this["_" + propertyString])
+                        this["_" + propertyString] = v
+                        on_change?.(v, this["_" + propertyString])
+                    }
+                }
+            })
+    }
+
     static reshape(arr, columnsWidth) {
         let ret = []
         for (let i = 0; i < arr.length; i += columnsWidth) {
@@ -1143,6 +1159,7 @@ class MM {
         }
         return true
     }
+    //#region MM.drawPolygon
     /**@param {RenderingContext} screen  */
     static drawPolygon(screen, polyXYXYXY, { color = "black", outline = 3, outline_color = "blue", opacity = 0 } = {}) {
         if ((!color && !outline) || opacity == 1) { return }
@@ -1163,6 +1180,18 @@ class MM {
             screen.stroke()
         }
         screen.globalAlpha = 1
+    }
+    //#endregion
+
+    static polyStar(x = 0, y = 0, outerSize = 32, { legs = 5, innerSize, innerRatio = 0.35, ...drawArgs } = {}) {
+        const angles = Array.from({ length: legs }, (_, i) => i * TWOPI / legs - NINETYDEG)
+        const halfAngles = angles.map(x => x + TWOPI / legs / 2)
+        innerSize ??= innerRatio * outerSize
+        const outer = angles.map(x => [Math.cos(x), Math.sin(x)]).map(x => x.map(x => x * outerSize))
+        const inner = halfAngles.map(x => [Math.cos(x), Math.sin(x)]).map(x => x.map(x => x * innerSize))
+        const vectors = outer.flatMap((x, i) => [x, inner[i]])
+        const polyXYXYXY = vectors.flatMap(([u, w]) => [x + u, y + w])
+        return polyXYXYXY
     }
 
 
@@ -2308,8 +2337,9 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
     }
 
     /**@param {button} button @param {number} factor   */
-    static magnifier(button, factor) {
-        const out = {}
+    static magnifier(button, factor = 2) {
+        button ??= new Button({ width: 500, height: 500 })
+        const out = new Panel()
         out.factor = factor
         game.remove_drawable(button)
         const w = new GameWorld(button.copyRect)
@@ -2320,10 +2350,12 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         for (let i = 0; i < game.layers.length - 1; i++) {//all but top layer are copied! avoid recursion
             w.layers[i] = game.layers[i]
         }
-        button.opacity = .5
-        game.add_drawable([w, button], game.layers.length - 1)
-        out.button = button
-        out.world = w
+        button.visible = false
+        game.add_drawable(out, game.layers.length - 1)
+        out.components.push(w, button)
+        button.isBlocking = true
+
+
         return out
     }
 }

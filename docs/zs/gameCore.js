@@ -352,9 +352,12 @@ class GameWorld extends GameCoreLayerCore {
         /**@type {Rect} */
         this.screenRect = fromRect.copy
         this.isBlocking = false
+        this.visible = true
+        this.interactable = true
     }
     /**@param {RenderingContext} ctx */
     draw(ctx) {
+        if (!this.visible) return
         ctx.save()
         ctx.translate(this.screenRect.x, this.screenRect.y)
         ctx.beginPath()
@@ -371,6 +374,7 @@ class GameWorld extends GameCoreLayerCore {
     update() { }
     /**@param {CheckParamsObj} checkParamsObj  */
     check(checkParamsObj) {
+        if (!this.interactable) return
         if (!this.screenRect.collidepoint(checkParamsObj.x, checkParamsObj.y)) return false
         const scaleX = this.screenRect.width / this.worldRect.width
         const scaleY = this.screenRect.height / this.worldRect.height

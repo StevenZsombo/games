@@ -590,7 +590,10 @@ class Gimmicks {
     }
 
 
-    /**@param {Array<[...scores:number[], timestamp:number]>} highscore */
+    /**
+     * @param {Array<[...scores:number[], timestamp:number]>} highscore 
+     * @returns {Panel & {components: [Button, Plot]}}
+     */
     static plotHighscore(highscore) { //careful NOT to go haywire
         if (!game || !highscore || !highscore.length) return //at least one subarray
         console.log("Plotting...", highscore)
@@ -634,6 +637,8 @@ class Gimmicks {
         }))
         console.log({ minutes, highestEver, curves, colors, plot, bg })
         const panel = new Panel(bg, plot)
+        bg.isBlocking = true
+        panel.isBlocking = true
         return panel
     }
 }

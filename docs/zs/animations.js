@@ -278,6 +278,8 @@ class Anim {
 		scaleThroughFactor: "scaleThroughFactor",
 		setTemp: "setTemp",
 		setTempMany: "setTempMany",
+		step: "step",
+		stepMany: "stepmany",
 		delay: "delay",
 		hide: "hide",
 		stretchFrom: "stretchFrom",

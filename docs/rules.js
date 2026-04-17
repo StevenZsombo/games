@@ -106,6 +106,9 @@ var GRAPHICS = ({
     TOP: 40,
     BOT: 200,
 
+    CAPITAL_STAR_OUTER_SIZE: 18,
+    CAPITAL_STAR_INNER_SIZE: 7
+
 
 })
 //#region MASTER.

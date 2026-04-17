@@ -1,6 +1,7 @@
 const TWOPI = Math.PI * 2
 const ONEDEG = Math.PI / 180
 const PI = Math.PI
+const HALFPI = Math.PI / 2
 const NINETYDEG = Math.PI / 2
 
 
@@ -712,7 +713,7 @@ class Button extends Clickable {
 		return button
 	}
 
-	/** @param {Button} button @param {number[]} polyXYXYXY @returns {Button & {polyXYXYXY: number[], collidepoint: Function}} */
+	/** @param {Button} button @param {number[]} polyXYXYXY @returns {Button & {polyXYXYXY: number[]}} */
 	static make_polygon(button, polyXYXYXY) {
 		button.polyXYXYXY = polyXYXYXY
 		button.draw_background = function (screen) {
@@ -723,15 +724,37 @@ class Button extends Clickable {
 			return MM.collidePolygon(x, y, this.polyXYXYXY)
 		}
 		button.move = function (dx, dy) {
-			this.polyXYXYXY.forEach((x, i, a) => {
+			this.polyXYXYXY.forEach((_, i, a) => {
 				a[i] += i % 2 ? dy : dx
 			})
+			this.x += dx
+			this.y += dy
 		}
 		return button
 	}
-	/** @param {Button} button @returns {Button & {collidepoint: Function}} */
+	/** @param {Button} button @param {number[]} polyXYXYXY @returns {Button & {polyXYXYXY: number[]}} */
 	static make_rhombus(button) {
 		return Button.make_polygon(button, MM.rectToRhombus(button))
+	}
+	/** 
+	 * @param {Button} button @param {number[]} polyXYXYXY 
+	 * @returns {Button & {polyXYXYXY: number[], legs: number}} */
+	static make_polyStar(button) {
+		button.recomputePolyXYXYXY = function () {
+			this.polyXYXYXY = MM.polyStar(this.x, this.y, this.outerSize,
+				this)
+		}
+		button.legs = 5
+		MM.monkeyPatchPrivate(button, "legs", { on_change: button.recomputePolyXYXYXY.bind(button) })
+		button.outerSize = button.width
+		MM.monkeyPatchPrivate(button, "outerSize", { on_change: button.recomputePolyXYXYXY.bind(button) })
+		button.innerSize = button.width * 0.35
+		button.width = 0
+		button.height = 0
+		MM.monkeyPatchPrivate(button, "innerSize", { on_change: button.recomputePolyXYXYXY.bind(button) })
+		button.recomputePolyXYXYXY()
+		Button.make_polygon(button, button.polyXYXYXY)
+		return button
 	}
 
 	/** @param {Button} button @returns {Button & {collidepoint: Function}} */
@@ -926,9 +949,13 @@ class Malleable {
 	constructor(...comps) {
 		/**@type {Button[]} */
 		this.components = [...comps]
+		this.visible = true
+		this.interactable = true
+		this.isBlocking = false
 	}
 
 	check(...params) {
+		if (!this.interactable) return
 		let anyHit = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
 			anyHit = this.components[i].check?.(...params) || anyHit
@@ -943,6 +970,7 @@ class Malleable {
 	}
 
 	draw(screen) {
+		if (!this.interactable) return
 		for (let c of this.components) {
 			c.draw?.(screen)
 		}
@@ -954,6 +982,16 @@ class Malleable {
 	filter(...args) { return this.components.filter(...args) }
 	get length() { return this.components.length }
 	[Symbol.iterator]() { return this.components[Symbol.iterator](); }
+
+
+	activate() { this.components.forEach(x => x.activate?.()) }
+	deactivate() { this.components.forEach(x => x.deactivate?.()) }
+	/**@param {Boolean} bool*/
+	set activeState(bool) { this.components.forEach(x => x.activeState = bool) }
+	destroy() {
+		game?.remove_drawable(this)
+	}
+
 }
 //#endregion
 
@@ -1449,19 +1487,7 @@ class InputBoard {
 
 
 //#region Panel
-
-class Panel extends Malleable {
-	activate() { this.components.forEach(x => x.activate?.()) }
-	deactivate() { this.components.forEach(x => x.deactivate?.()) }
-	/**@param {Boolean} bool  */
-	set activeState(bool) { this.components.forEach(x => x.activeState = bool) }
-
-
-	destroy() {
-		game.remove_drawable(this)
-	}
-
-}
+const Panel = Malleable
 //#endregion
 
 //#region Slider

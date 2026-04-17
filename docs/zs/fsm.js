@@ -51,11 +51,11 @@ class Observatory {
     createItem(key, value) {
         this.items.set(key, value)
     }
-    setItem(key, value) {
+    setItem(key, value) {//change called AFTER changes.
         const oldValue = this.items.get(key)
-        if (oldValue !== value) this.on_changeCallables.get(key)?.forEach(fn => fn(value, oldValue))
-        this.on_setCallables.get(key)?.forEach(fn => fn(value))
         this.items.set(key, value)
+        this.on_setCallables.get(key)?.forEach(fn => fn(value))
+        if (oldValue !== value) this.on_changeCallables.get(key)?.forEach(fn => fn(value, oldValue))
     }
     getItem(key) {
         const value = this.items.get(key)
