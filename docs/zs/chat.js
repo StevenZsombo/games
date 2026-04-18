@@ -39,6 +39,7 @@ class Chat {
         this.on_join = null
         this.on_join_once = null
         this.on_join_extras_temp_map = new Map() //callback array
+        this.on_join_sendMany = new Map() //messages to send with many:[...]
         this.on_disconnect = null
         this.on_error = null
         this.on_issue = null // means error or disconnect
@@ -75,6 +76,9 @@ class Chat {
                 this.on_join_once?.()
                 this.on_join_once = null
                 this.on_join_extras_temp_map.forEach(x => x())
+                this.on_join_extras_temp_map.clear()
+                this.sendMessage({ many: Array.from(Object.values(this.on_join_sendMany)) })
+                this.on_join_sendMany.clear()
                 this.on_join?.()
                 this.queueSend() //in case this is a reconnect!
             }
@@ -208,23 +212,24 @@ class Chat {
         const flag = `sendInquire(${key})`
         if (this.inquirePromises.has(key)) return Promise.reject(`sendInquire: already pending for ${key}`)
         const p = new Promise((resolve, reject) => {
-            const send = () => this.sendMessage({ inquire: key })
+            const msg = { inquire: key }
+            const send = () => this.sendMessage(msg)
             const attempt = () => {
                 if (retries-- < 0) {
-                    this.on_join_extras_temp_map.delete(flag)
+                    this.on_join_sendMany.delete(flag)
                     clearInterval(clock)
                     reject(`sendInquire: failed for ${key}`)
                     return
                 }
                 if (this.isConnected) send()
-                else this.on_join_extras_temp_map.set(flag, send)
+                else this.on_join_sendMany.set(flag, msg)
             }
             const clock = setInterval(() => {
                 on_retry?.(retries)
                 attempt()
             }, interval)
             const succeed = (value) => {
-                this.on_join_extras_temp_map.delete(flag)
+                this.on_join_sendMany.delete(flag)
                 clearInterval(clock)
                 resolve(value)
             }
@@ -340,6 +345,43 @@ class Chat {
         univ.allowQuietReload = true
         location.reload()
     }
+    //#region wee woo
+    pendingWees = new Map()
+    wee(value, params, { retries = 5, interval = 500 } = {}) {
+        const uniqueID = MM.randomID()
+        return new Promise((resolve, reject) => {
+            const flag = `wee@${uniqueID}`
+            const msg = { wee: uniqueID, value, params }
+            const send = () => this.isConnected ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
+            const clock = setInterval(() => {
+                if (--retries < 0) {
+                    cleanup()
+                    reject(`wee timeout: ${value}`)
+                } else {
+                    send()
+                }
+            }, interval)
+            const cleanup = () => {
+                clearInterval(clock)
+                this.pendingWees.delete(uniqueID)
+                this.on_join_sendMany.delete(flag)
+            }
+            this.pendingWees.set(uniqueID, { resolve, cleanup })
+
+            send()
+        })
+    }
+    /**@type {Map<string,Function>} */
+    on_weeFunctions = new Map()
+    weeHandler(message) {
+        return { woo: message.wee, value: this.on_weeFunctions.get(message.value)?.(message.params) }
+    }
+    woo(wee, fn) {
+        this.on_weeFunctions.set(wee, fn)
+        return this
+    }
+    //#endregion
+
     /**@type {?Function} */
     receiveMessageServer = null
     receiveMessageParse(messageText) {
@@ -350,13 +392,25 @@ class Chat {
         if (message) this.receiveMessageCommonForClientAndServer(message)
 
     }
+
     receiveMessageCommonForClientAndServer(message) {
         if (this.safeToReceiveCommonForClientAndServer(message)) {
+            this.on_receive?.(message)
+            this.on_receive_more?.(message)
+            if (message.woo && this.pendingWees.has(message.woo)) {//invalid wees are ignored.
+                const { resolve, cleanup } = this.pendingWees.get(message.woo)
+                cleanup()
+                resolve(message.value)
+                return
+            }
+            if (message.wee) {
+                this.sendMessage(this.weeHandler(message))
+                return
+            }
             this.receiveMessage?.(message)
             this.receiveMessageServer?.(message) //server only
         }
     }
-
     checkIfReceivedAlready(message) {//safe receiving
         if (message.id) {
             const processedAlready = this.secureIDsToIgnore.has(message.id)
@@ -435,8 +489,6 @@ class Chat {
             contest.on_weak?.(message.weak, message.value)
         }
 
-        this.on_receive?.(message)
-        this.on_receive_more?.(message)
     }
     //#endregion
 
@@ -485,8 +537,6 @@ class ChatServer extends Chat {
         super(ip, name, true)
 
         this.receiveMessage = null//will be overriden by reveiceMessageServer
-        this.on_receive = null //redundant, would be called by receiveMessage only
-        this.on_receive_more = null //redundant, would be called by receiveMessage only
         this.isLoggingTargeting = this.isLogging || false
 
         this.queueTimeout = 0
