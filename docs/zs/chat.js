@@ -2,11 +2,15 @@
 
 //#region Chat
 class Chat {
+    static singletonAlreadyExists = false
     static RECONNECT_TIME = 1 * 1000
     static RESEND_TIME = 1500
     static BLINKING_TIME = 0 //feature no longer needed: disconnections are now handled via server.js and Listener
     static HOSTNAMES_INDICATING_OFFLINE = ['', 'stevenzsombo.github.io']
     constructor(ip = null, name = null, isServer = false) {
+        if (Chat.singletonAlreadyExists) {
+            throw new Error("Chat must be a singleton.")
+        } else Chat.singletonAlreadyExists = true
         if (Chat.HOSTNAMES_INDICATING_OFFLINE.includes(location.hostname)) {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
             univ.isOnline = false //hacky, but this prevents chat from existing
@@ -40,6 +44,12 @@ class Chat {
 
         this.on_receive = null
         this.on_receive_more = null
+        this.on_echo = null //receives (echo,obj)
+        /** @type {Map<string, Function>} id -> callback*/
+        this.on_echoCallbacks = new Map()
+        this.on_fail = null //when message times out. receives (id,obj)
+        /** @type {Map<string, Function>} id -> callback*/
+        this.on_failCallbacks = new Map()
 
     }
 
@@ -116,6 +126,48 @@ class Chat {
         // will be extracted automatically from the first message sent.
     }
 
+
+    /**
+     * @typedef {Object} ChatMessage - message object sent
+     * @property {string} [name]
+     * @property {string} [nameID]
+     * @property {string} [target] - deprecated, use targetID
+     * @property {string} [targetID] - server only
+     * @property {string[]} [targetIDlist] - server only
+     * @property {any[]} [many] - objects in many (array) are parsed in order
+     * @property {string} [eval]
+     * @property {any} [log]
+     * @property {string} [alert]
+     * @property {boolean} [reload] - same as orderReload
+     * @property {boolean} [orderReload]
+     * @property {string} [prompt]
+     * @property {any} [promptResponse]
+     * @property {boolean} [present]
+     * @property {number} [presentResponse]
+     * @property {string} [popup]
+     * @property {Object} [popupSettings]
+     * @property {string} [request]
+     * @property {string} [requestResponse]
+     * @property {string} [demand]
+     * @property {any} [value]
+     * @property {string} [shared]
+     * @property {string} [inquire]
+     * @property {number} [connected]
+     * @property {string} [connectedAddress]
+     * @property {string} [disconnectedAddress]
+     * @property {string} [disconnectedID]
+     * @property {string} [yell] - lets server log an error. TODO extend properly
+     * @property {string} [str] - string
+     * @property {string} [id] - secure, will be echoed
+     * @property {number} [queuedAt] - secure only
+     * @property {string} [echo] - the echo it received
+     * @property {number} [blink] - server has lastSpoke
+     * @property {boolean} [SERVERnameAlreadyExists] - calls handleNameAlreadyExists
+     * @property {boolean} [SERVERnameOrderedToReset] - calls resetName
+     * @property {string} [SERVERnameForceName] - calls forceName
+     */
+
+
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
         obj.name ??= this.name
@@ -126,18 +178,28 @@ class Chat {
     }
 
 
-    sendSecure(obj) {
+    sendSecure(obj, on_echo_callback = null, on_fail_callback = null) {
         if (typeof obj === "string") { obj = { str: obj } }
         if (this.isServer && obj.target == null && obj.targetID == null) {
+            if (obj.targetIDlist) console.error("The server cannot send multi-target secure messages")
             console.error("The server cannot send untargeted secure messages.")
             return
+
         }
         obj.name ??= this.name
         obj.id = MM.randomID()
         obj.queuedAt = Date.now() //IMPORTANT
         this.queue.set(obj.id, obj)
+        on_echo_callback && this.on_echoCallbacks.set(obj.id, on_echo_callback)
+        on_fail_callback && this.on_failCallbacks.set(obj.id, on_fail_callback)
         this.sendMessage(obj)
         return obj
+    }
+
+    sendPromise(obj) {
+        return new Promise((resolve, reject) => {
+            this.sendSecure(obj, resolve, reject)
+        })
     }
 
     queueSend() {
@@ -145,6 +207,10 @@ class Chat {
         for (const [id, obj] of this.queue) { //sets have safe deletion, who would've known
             if (this.queueTimeout && (Date.now() - obj.queuedAt > this.queueTimeout)) {
                 this.queue.delete(id)
+                this.on_fail?.(id, obj)
+                this.on_failCallbacks.get(id)?.()
+                this.on_failCallbacks.delete(id)
+                this.on_echoCallbacks.delete(id)
             } else {
                 this.sendMessage(obj)
             }
@@ -152,11 +218,40 @@ class Chat {
         }
     }
 
-    receiveEcho(echo) {
+    receiveEcho(echo) { //echo=id
+        const obj = this.queue.get(echo)
+        if (!obj) {
+            console.error("Echo arrived too late. Fails by default.", echo)
+            return
+        }
+        this.on_echo?.(echo, obj)
         this.queue.delete(echo)
+        this.on_echoCallbacks.get(echo)?.()
+        this.on_echoCallbacks.delete(echo)
+        this.on_failCallbacks.delete(echo)
     }
 
-    acquireName() {
+    acquireName() { //defaults to nameID
+        if (this.isServer) {
+            this.name = "GM"
+            this.nameID = "GM"
+            return
+        }
+        this._acquireNameID()
+        if (!this.name) {
+            let name = localStorage.getItem("name")
+            if (name) {
+                this.name = name
+            } else {
+                this.name = this.nameID
+                localStorage.setItem("name", this.name)
+            }
+        }
+
+    }
+
+
+    acquireNameWithPrompt() {
         if (this.isServer) {
             this.name = "GM"
             this.nameID = "GM"
@@ -177,6 +272,8 @@ class Chat {
         }
 
     }
+
+
     _acquireNameID() {
         if (!this.nameID) { //consistent with Supabase
             const stored = localStorage.getItem("nameID")
@@ -191,10 +288,10 @@ class Chat {
         return this.nameID
     }
 
-    forceName(name) {
+    forceName(name, doNotReload = false) {
         this.name = name
         localStorage.setItem("name", name)
-        this.silentReload()
+        if (!doNotReload) this.silentReload()
     }
 
     resetName(reason) {
@@ -209,9 +306,21 @@ class Chat {
         univ.allowQuietReload = true
         location.reload()
     }
-
+    /**@type {?Function} */
+    receiveMessageServer = null
     receiveMessageParse(messageText) {
-        return this.receiveMessage?.(JSON.parse(messageText))
+        let message = null
+        try {
+            message = JSON.parse(messageText)
+        } catch (err) { console.error("bad json in message", err) }
+        if (message) this.receiveMessageCommonForClientAndServer(message)
+
+    }
+    receiveMessageCommonForClientAndServer(message) {
+        if (this.safeToReceiveCommonForClientAndServer(message)) {
+            this.receiveMessage?.(message)
+            this.receiveMessageServer?.(message) //server only
+        }
     }
 
     checkIfReceivedAlready(message) {//safe receiving
@@ -223,29 +332,41 @@ class Chat {
         }
         return false
     }
+
+    //#region receiveMessageCommonClientAndServer
+    /**
+     * @returns {Boolean} - whether cancel early for safe receive
+     */
+    safeToReceiveCommonForClientAndServer(message) {
+        //safe receiving
+        if (this.checkIfReceivedAlready(message)) { return false } //if already processed, then ignore.
+        if (message.echo) { this.receiveEcho(message.echo) }
+
+        if (message.many != null) {
+            message.many.forEach(x => this.receiveMessageCommonForClientAndServer(x))
+            return true
+        }
+        //safe otherwise
+        return true
+    }
+    //#endregion
     //#region receiveMessage
     /**@param {Object} message  */
     receiveMessage(message) {
-        if (message.targetID && message.targetID !== this.nameID) { return } //ignore by targetID
-        else if (message.target && message.target !== this.name) { return } //ignore by target (name)
-        if (this.checkIfReceivedAlready(message)) { return } //safe receiving with echos
-
+        //fully client specific
         if (message.SERVERnameAlreadyExists != null)
         //this.resetName("A user has already joined with that name, please select a different name.") //this sucked
         {
             this.forceName( //just add a number at the end
                 Number.isFinite(+this.name.at(-1)) ? this.name.slice(0, -1) + (+this.name.at(-1) + 1) : this.name + "0"
+                , false //-> force a reload just in case
             )
-            this.silentReload() //this is a server response so it shouldn't create a loop
+            // this.silentReload() //this is a server response so it shouldn't create a loop
             return
         }
         else if (message.SERVERnameOrderedToReset != null) this.resetName()
         if (message.SERVERnameForceName != null) this.forceName(message.SERVERnameForceName)
 
-        if (message.many != null) {
-            message.many.forEach(x => this.receiveMessage(x))
-            return
-        }
         if (message.eval != null) eval(message.eval)
         if (message.log != null) console.log(message.log)
         if (message.alert != null) alert(message.alert)
@@ -260,12 +381,10 @@ class Chat {
             if (typeof message.popupSettings === 'string') GameEffects.popup(message.popup, {}, message.popupSettings)
             else GameEffects.popup(message.popup, message.popupSettings)
         }
-        if (message.echo != null) this.receiveEcho(message.echo)
         if (message.request != null) this.sendMessage({
             requestResponse:
                 (() => { try { return JSON.stringify(eval(message.request)) } catch (err) { return err.toString() } })()
         })
-
         if (message.demand != null) {
             MM.require(message, "value")
             MM.setByPath(message.demand, message.value)
@@ -329,8 +448,10 @@ class ChatServer extends Chat {
     constructor(ip, name) {
         super(ip, name, true)
 
-        this.receiveMessage = null//set to nothing, won't be needed anyways
-        this.isLoggingTargeting = false
+        this.receiveMessage = null//will be overriden by reveiceMessageServer
+        this.on_receive = null //redundant, would be called by receiveMessage only
+        this.on_receive_more = null //redundant, would be called by receiveMessage only
+        this.isLoggingTargeting = this.isLogging || false
 
         this.queueTimeout = 0
         console.log(`Server queueTimeout has been set to ${this.queueTimeout || "infinite"}`)
@@ -390,18 +511,18 @@ class ChatServer extends Chat {
 class Listener {
     constructor() {
         //hacky, declare as Person instead of Participant, but whatever.
-        /**@type {Object.<string, Person>} */
+        /**@type {Object.<string, Person>} */ //awkward af
         this.participants = {}
 
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
         this.allowPriorJoin = true
-        this.isLogging = false//true
+        this.isLogging = false
         // this.isLoggingRecovery = true
         // /**@type {Map<string,Participant>} */
         // this.recoveryQueue = new Map()
 
-        this.chat.receiveMessageParse = this.messageParsing.bind(this)
+        this.chat.receiveMessageServer = this.receiveMessageServer.bind(this)
 
         this.on_message = null //takes obj, person
         this.on_message_more = null //takes obj, person
@@ -433,8 +554,8 @@ class Listener {
 
 
 
-    messageParsing(messageText) {
-        const message = JSON.parse(messageText)
+    receiveMessageServer(message) {
+        this.isLogging && console.log(message)
         if (message.name == "WS") {
             message.disconnectedAddress && this.participantHasJustDisconnected(message.disconnectedAddress)
             //message.recoverFromWS && this.recoverFromWS(message.recoverFromWS)
@@ -448,11 +569,18 @@ class Listener {
         const { name, nameID, ...rest } = message
         //resolving connectivity concerns
         if (message.connected) {//sent only by node //also has connectedAddress, may differ?
-            if (!participants[name]) {//person with new name! the ghost can remain. why not?
+            if (!participants[name]) {
+                const mightBeJustRename = Object.values(participants).find(person => person.nameID === nameID)
+                if (mightBeJustRename) {
+                    delete participants[mightBeJustRename.name]
+                    mightBeJustRename.name = name
+                }
                 participants[name] =
-                    typeof Person === 'function'
+                    mightBeJustRename ??
+                    (typeof Person === 'function'
                         ? new Person(name, nameID, message.connected, message.connectedAddress)
                         : new Participant(name, nameID, message.connected, message.connectedAddress)
+                    )
                 participants[name].isConnected = true
                 participants[name].on_join?.()
                 this.on_participant_join?.(participants[name])
@@ -468,12 +596,19 @@ class Listener {
             }
         }
         if (!participants[name]) { //see if late joining is okay
-            //hell no. they can just reload
-            this.handleEarlyJoin(name, nameID)
-            return
+            const mightBeJustRename = Object.values(participants).find(person => person.nameID === nameID)
+            if (mightBeJustRename) {
+                delete participants[mightBeJustRename.name]
+                participants[name] = mightBeJustRename
+                participants[name].name = name
+            } else {
+                //hell no. they can just reload
+                this.handleEarlyJoin(name, nameID)
+                return
+            }
+
         }
 
-        this.isLogging && console.log(name) //log is approved
         const person = participants[name]
         if (!person) {
             console.error("participants[name] does not exist???")
@@ -481,9 +616,7 @@ class Listener {
         }
         person.lastSpoke = Date.now()
 
-        //safe receiving
-        if (message.echo) { this.chat.receiveEcho(message.echo) } //unfortunate duplicate code...
-        if (this.chat.checkIfReceivedAlready(message)) { return } //if duplicate, then ignore.
+
 
         //logging any requests
         if (message.promptResponse) {

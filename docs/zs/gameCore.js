@@ -23,14 +23,6 @@ window.onload = function () {
         e.stopPropagation()
     }
     )
-    /*window.addEventListener('beforeunload', (e) => {
-        univ.on_beforeunload?.()
-        if (univ.allowQuietReload) return
-        e.preventDefault()
-        e.stopPropagation()
-        //e.returnValue = ''
-    }
-    )*/
     window.onbeforeunload = (e) => {
         univ.on_beforeunload?.()
         if (univ.allowQuietReload) return
@@ -38,6 +30,14 @@ window.onload = function () {
         e.returnValue = ""
     }
 
+
+    if (univ.isOnline) {
+        chat ??= new Chat() //offline for server. Listener will make ChatServer
+        if (!univ.isOnline) chat = null
+        contest = new ContestManager()
+    }
+
+    univ.on_first_run?.()
     if (univ.on_first_run_blocking) {
         univ.on_first_run_blocking(beforeMain.bind(window, canvas))
     } else beforeMain(canvas)
@@ -46,15 +46,6 @@ window.onload = function () {
 
 //#region beforeMain, main
 const beforeMain = function (canvas) {
-    if (univ.isOnline) {
-        chat ??= new Chat() //offline for server. Listener will make ChatServer
-        if (!univ.isOnline) chat = null
-        contest = new ContestManager()
-    }
-    univ.on_first_run?.()
-
-
-
     const filelist = null
     //filelist = `${univ.fontFile}${univ.fontFile && univ.filesList ? " " : ""}${univ.filesList}` //fontFile goes first!
     if (filelist) {//croper, files, myFont are all GLOBAL
@@ -351,7 +342,7 @@ class GameWorld extends GameCoreLayerCore {
         this.worldRect = fromRect.copy
         /**@type {Rect} */
         this.screenRect = fromRect.copy
-        this.isBlocking = false
+        this.isBlocking = true
         this.visible = true
         this.interactable = true
     }

@@ -84,10 +84,10 @@ class Person extends Participant {
         }
         return person
     }
-
+    /**@param {Kingdom} kingdom  */
     assignKingdom(kingdom) {
-        /**@type {Kingdom} */
         let isNew = this.kingdom !== kingdom
+        /**@type {Kingdom} */
         this.kingdom = kingdom
         game?.kingdoms?.forEach(x => x.members.delete(this)) //this busywork is not an issue
         kingdom.members.add(this)
@@ -111,7 +111,7 @@ class Person extends Participant {
 const asyncprompt = (txt) => {
     return new Promise((resolve, reject) => {
         if (!game) reject("asyncprompt: no game")
-        const rect = new Rect(game.mouser.x - 105, game.mouser.y, 210, 140).fitWithinAnother(game.rect)
+        const rect = new Rect(game.mouser.x - 105, game.mouser.y, 310, 70).fitWithinAnother(game.rect)
         const ib = GameEffects.inputBoxFromRect(rect, (val) => resolve(val))
         ib.textContent = txt
         ib.focus()
@@ -135,10 +135,10 @@ const spop = (str, moreStgs) => {
             ? { ...moreStgs, ...GameEffects.popupPRESETS.leftLargePink }
             : GameEffects.popupPRESETS.leftLargePink)
 }
-const ATTENDANCE = () => {
+const ATTENDANCE = (txt) => {
     chat.orderAttendance()
     chat.sendMessage({
-        popup: "Your attendance has been noted.",
+        popup: txt ?? "Your attendance has been noted.",
         popupSettings: "smallPink"
     })
 }
@@ -320,10 +320,10 @@ listener.chat.on_join = () => {
 //did not utilize at all
 const shared = { //can be inquired about if active
     isActive: true,    //false when starting out
-
+    RULES: RULES,
 }
 const sharedFunc = {
-    isActive: () => shared.isActive,
+    teamsData: () => RULES.STUDENTS.map(x => participants[x]?.kingdom?.id ?? -1),
     territoriesFullData: () => game.territories.map(x => ( //dummy me. this is read from map.json
         {
             id: x.id,
@@ -387,11 +387,12 @@ listener.on_message = (obj, person) => {
             return
         }
         const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom]) //const ignored
+        if (!game.attacksAllowed) SHARE("teamsData")
         // if (true || newlyJoined)// for now
         SHAREmany([
             "kingdomsFullData",
             "territoriesFullData",
-            "rankingData", "valuesData", "ownershipData", "conflictsData"
+            "teamsData", "rankingData", "valuesData", "ownershipData", "conflictsData"
         ], person.nameID)
         // else SHAREbunch(person.nameID)
 
@@ -405,6 +406,12 @@ listener.on_message = (obj, person) => {
     if ((obj.inquire !== undefined) && shared.isActive) { //share only if active
         if (obj.inquire === "bunch")
             SHAREbunch(person.nameID)
+        else if (obj.inquire === "RULES") {
+            // SHARE("RULES")
+            SHARE("RULES", person.targetID)
+            SHARE("teamsData")
+            // SHAREmany(["RULES"])
+        }
         else if (!SHARE(obj.inquire, person.nameID))
             console.error("Invalid inquire made by", person.name, person.nameID, obj)
     }
@@ -497,7 +504,7 @@ const HARDREFRESH = () => {
 }
 const SHAREbunch = (targetID) => {
     if (targetID == null && !throttleCheckNotTooRecent("bunch")) return
-    const list = ["rankingData", "valuesData", "ownershipData", "conflictsData"]
+    const list = ["teamsData", "rankingData", "valuesData", "ownershipData", "conflictsData"]
 
     const msg = { many: list.map(key => ({ shared: key, value: sharedFunc[key]() })) }
     if (targetID != null) msg.targetID = targetID
@@ -1056,6 +1063,8 @@ class Game extends GameCore {
             { fillScale: RULES.MAPSTER_IMAGE_QUALITY_SERVER }//RULES.MAPSTER_IMAGE_QUALITY } //server always high quality
         )
         this.add_drawable(mapster, 2)
+
+
     }
 
 
@@ -1293,7 +1302,8 @@ class Game extends GameCore {
                 if (!k.members.size) return ""
                 return Array.from(k.members.values().map(
                     /**@param {Person} x*/
-                    x => x.name + (x.isConnected ? "" : " (X)"))).join("\n")
+                    x => x.isConnected ? x.name : `(X) ${x.name} (X)`)
+                ).join("\n")
             }
             b.color = k.color
             b.textSettings = { textBaseline: "top" }
@@ -1389,7 +1399,7 @@ class Game extends GameCore {
     individualMenu(person, btStgs) {
         const opts = [
             ["Order to change name",
-                () => { person.kick(); spop(`Ordered.`) }
+                () => { hq.orderResetName(person.name); spop(`Ordered.`) }
             ],
             ["Order to change kingdom",
                 () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
@@ -1403,9 +1413,9 @@ class Game extends GameCore {
             ["Rename",
                 () => {
                     asyncprompt("What shall their new name be?").then(nn => {
-                        if (nn.length < 4) nn += "" + person.nameID
+                        if (nn.length <= 3) nn += "" + person.nameID
                         chat.orderForceName(person.nameID, nn)
-                        this.kingdoms.forEach(x => x.members.delete(person))
+                        // this.kingdoms.forEach(x => x.members.delete(person))
                         spop(`Set.`)
 
                     })
@@ -1867,6 +1877,11 @@ const hq = {
         if (!name) { console.log("use dev.resetAllKingdom instead"); return; }
         game.kingdoms.forEach(x => x.members.delete(Person.to(name)))
         chat.sendMessage({ orderResetKingdom: true, targetID: Person.to(name).nameID })
+    },
+    orderResetName: (name) => {
+        if (!name) spop("Name must be given.")
+        game.kingdoms.forEach(x => x.members.delete(Person.to(name)))
+        chat.sendMessage({ eval: `game.resetName()`, targetID: Person.to(name).nameID })
     },
     resetNames: () => COMM(`chat.resetName("Your name has been reset by the server:")`),
     cheat: (nameOrPerson) => {

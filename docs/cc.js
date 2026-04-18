@@ -151,14 +151,90 @@ var univ = {
             location.reload()
         }
         window.onerror = (message, source, lineno, colno, error) => {
-            chat.sendMessage({ yell: error?.stack || `${message} at ${source}:${lineno}` })
+            const fallback = `${message} at ${source}:${lineno}:${colno}`
+            const stack = error?.stack || ''
+            chat.sendMessage({ yell: stack + '\n' + fallback })
+            return false;
+        }
+        window.onunhandledrejection = (event) => {
+            const fallback = `Unhandled Rejection: ${event.reason}`
+            const stack = event.reason?.stack || ''
+            chat.sendMessage({ yell: stack + '\n' + fallback })
+            event.preventDefault()
+        };
+
+        if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
+        if (location.hash.includes("d")) {
+            (() => {
+                document.querySelectorAll("*").forEach(x => x.style.cssText = "")
+                document.body.style.cssText = ""
+                document.body.style.backgroundColor = "white"
+                document.body.style.overflow = "scroll"
+                const container = document.createElement("container")
+                const b = window.BROWSERshowLoading
+                b.style.whiteSpace = "pre-line"
+                const w = window.wProgress
+                w("\n")
+                const canvas = document.getElementById("myCanvas")
+                b.parentNode.insertBefore(canvas, b)
+                document.body.style.display = 'block'
+                canvas.style.display = "block"
+                b.style.display = "block"
+                const j = (obj) => {
+                    try { return JSON.stringify(obj) }
+                    catch (err) { return obj.toString() }
+                }
+                const wrap = (fn, bi, name) => {
+                    const old = fn
+                    return (...args) => {
+                        w(`\n${name}(${j(args)})\n`)
+                        w(j(old?.call(bi, ...args)))
+                        w("\n")
+
+                    }
+                }
+                window.onerror = wrap(window.onerror, window, "onerror")
+                chat.sendMessage = wrap(chat.sendMessage, chat, "sendMessage")
+                console.log = wrap(console.log, console, "log")
+                console.error = wrap(console.error, console, "error")
+                chat.on_receive = wrap(chat.on_receive, chat, "receive")
+
+                const rest = document.createElement("button")
+                rest.textContent = "Reset"
+                rest.onclick = () => b.textContent = ""
+                b.parentNode.insertBefore(rest, b)
+                const inp = document.createElement("input")
+                inp.type = "text"
+                inp.style.width = "400px"
+                b.parentNode.insertBefore(inp, b)
+                const ev = document.createElement("button")
+                ev.textContent = "eval"
+                b.parentNode.insertBefore(ev, b)
+                ev.onclick = () => { try { w(eval(inp.value)) } catch (err) { w(err) } }
+            }
+            )()
         }
     },
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
-        if (location.hash.includes("l")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 4
-        if (location.hash.includes("m")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 2
-        if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 1
+        chat.on_echo = (echo, obj) => console.log("echo", echo, obj)
+        window.wProgress?.("INQUIRING")
+        chat.sendPromise({ inquire: "RULES" }).then(() => {
+            window.wProgress?.("\nRULES received")
+            beforeMainPassedToBeCalled()
+        }
+        ).catch((err) =>
+            window.wProgress?.(["", "",
+                "FAILURE. CAN'T CONNECT TO SERVER",
+                "Make sure you are on the correct WiFi network.",
+                "Close all other apps.",
+                "Close all other tabs.", "",
+                "Ask the teacher for help.",
+            ].join("\n"))
+        )
+
+        //grabbing map file
+        /*
         if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
         fetch(RULES.MAPFILE)
             .then(x => {
@@ -227,6 +303,11 @@ var univ = {
             }))
             .catch(err => { throw err })
             .finally(x => beforeMainPassedToBeCalled())
+        //not happy with this
+        */
+
+
+
     }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
     on_beforeunload: null,
@@ -318,14 +399,30 @@ class Game extends GameCore {
             b.stretch(.8, .8)
             b.outline = 5
             b.on_release = () => {
-                game.remove_drawables_batch(ks)
-                game.remove_drawable(top)
-                myKingdomID = +i
-                localStorage.setItem("myKingdomID", i)
-                origTC && window.BROWSERshowLoading && (window.BROWSERshowLoading.textContent = origTC)
-                this.initialize_more()
+                const cb = GameEffects.confirmBox(`Joining team ${b.txt}, are you sure?`,)
+                cb.button.color = b.color
+                cb.yes.color = cb.no.color = "lightgray"
+                cb.promise
+                    .then(() => {
+                        game.remove_drawables_batch(ks)
+                        game.remove_drawable(top)
+                        myKingdomID = +i
+                        localStorage.setItem("myKingdomID", i)
+                        origTC && window.BROWSERshowLoading && (window.BROWSERshowLoading.textContent = origTC)
+                        this.initialize_more()
+                    }).catch(() => { })
             }
+            b.on_hover = () =>
+                !this.animator.locked.has(b)
+                &&
+                this.animator.add_anim(Anim.stepper(b, 1000, "rad", 0, TWOPI, { ditch: true }))
         })
+        /*const h = ks[0].height
+        ks.forEach(x => x.stretch(1, .1))
+        this.animator.add_staggered(ks, 200, new Anim(null, 500, Anim.f.scaleToFactor, {
+            scaleFactorX: 1, scaleFactorY: 10
+            , on_end: (obj) => obj.resize(ks[0].width, h)
+        }))*/
 
 
 
@@ -335,9 +432,83 @@ class Game extends GameCore {
         chat.silentReload()
     }
 
+    resetName() {
+        localStorage.removeItem("isNameSetByStudent")
+        localStorage.removeItem("name")
+        chat.silentReload()
+    }
+
+
+    acquireName() {
+        let STUDENTS = RULES.STUDENTS
+        if (!STUDENTS) { //fallback
+            chat.forceName(prompt("What is your name?"), true)
+            return
+        }
+        const p = window.BROWSERshowLoading
+        const origLoadTextContent = p.textContent
+        p.textContent = ""
+        // p.textContent = origLoadTextContent
+        if (typeof STUDENTS === 'string')
+            STUDENTS = [",", "\n", "\r", ";"].reduce((acc, delim) =>
+                acc.flatMap(x => x.split(delim))
+                , [STUDENTS]).filter(x => x && x.length >= 3)
+        const fm = GameEffects.fullMenu()
+        fm.underlay.visible = false
+        const label = Button.fromRect(game.rect.copy.stretch(.95, .2).topat(0))
+        label.fontSize = 60
+        label.transparent = true
+        label.txt = "Your name:"
+        const studs = game.rect.copy.stretch(.9, .7).centeratY((label.bottom + game.HEIGHT) / 2).splitGridSquare(STUDENTS.length)
+            .map(Button.fromRect).map(x => x.stretch(.8, .8))
+        studs.forEach(fm.add)
+
+        const select = (b, i) => {
+            chat.forceName(b.txt, true)
+            localStorage.setItem("isNameSetByStudent", 1)
+            fm.close()
+            p.textContent = origLoadTextContent
+            this.initialize_more()
+        }
+        let allowRelease = true
+        studs.forEach((b, i) => {
+            b.txt = STUDENTS[i]
+            b.tag = "student"
+            b.fontSize = 48
+            b.isBlocking = true
+            b.dynamicColor = () =>
+                Kingdom.defaultColors[
+                contest.shared.teamsData?.[i]]
+                ?? "white"
+
+            b.on_release = () => {
+                if (contest.shared.teamsData?.[i] !== -1) return
+                if (!allowRelease) return
+                allowRelease = false
+                const cb = GameEffects.confirmBox(`Are you really ${b.txt}?`)
+                const a = q => this.animator.add_anim(Anim.stepper(q, 700,
+                    "height y",
+                    [0, q.centerY],
+                    [q.height, q.y], { lerp: Math.sqrt }
+                ))
+                a(cb.screenRect)
+                cb.button.color = "antiquewhite"
+                cb.promise.then(() => select(b, i)).catch(() => allowRelease = true)
+
+                // chat.silentReload() //no longer necessary -> server handles renames!
+            }
+        })
+
+        fm.panel.studs = studs
+
+        fm.add(label)
+    }
+
     //#region initialize_more
     initialize_more() {
         window.wProgress?.("\ninitalize_more()")
+
+
 
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
@@ -348,8 +519,14 @@ class Game extends GameCore {
             const nameID = localStorage.getItem("nameID") //keep nameID?
             localStorage.clear() //also resets penalties and game rules
             nameID && localStorage.setItem("nameID", nameID)
-            chat.acquireName() //ask for name again, which sets a recent timestamp
-            chat.silentReload() //clear everything
+            this.acquireName() //ask for name again, which sets a recent timestamp
+            // chat.silentReload() //clear everything
+            return
+        }
+        const isNameSetByStudent = localStorage.getItem("isNameSetByStudent")
+        if (!isNameSetByStudent) {
+            this.acquireName()
+            return
         }
 
 
@@ -383,6 +560,10 @@ class Game extends GameCore {
         if (location.hash.includes("u")) this.toggleFramerateUnlocked() //for true
 
         contest.on_share = (shared, value) => {
+            if (shared == "RULES") {
+                value.fromServer = true
+                Object.assign(RULES, value)
+            }
             if (shared == "territoriesFullData") {
                 // if (territories.length) return
                 this.remove_drawables_batch(territories.map(x => x.button))
@@ -495,7 +676,6 @@ class Game extends GameCore {
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
                 syncReady = true
-                //chat.sendSecure({ inquire: "bunch" })
                 init_after_basics()
             }
         }
@@ -541,7 +721,7 @@ class Game extends GameCore {
             youButton.rightat(this.right.right)
             youButton.topat(0)
             youButton.color = myColor
-            youButton.txt = `You: ${chat.name} (${myKingdomObject.name})`
+            youButton.dynamicText = () => `You: ${chat.name} (${myKingdomObject.name})`
             youButton.on_click = () => MM.toggleFullscreen(true)
             this.youButton = youButton
             this.add_drawable(youButton)
@@ -653,6 +833,11 @@ class Game extends GameCore {
             this.formulasButton = formulasButton
             this.formulasPanel = formulasPanel
             */
+
+
+            if (location.hash.includes("l")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 4
+            if (location.hash.includes("m")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 2
+            if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 1
 
 
             window.wProgress?.("new Mapster()")
@@ -796,7 +981,6 @@ class Game extends GameCore {
             }
             console.log("cc: successful reconnect!")
             chat.sendSecure({ kingdom: myKingdomID }) //fully reannounce kingdom on each reconnect.
-            // chat.sendMessage({ inquire: "bunch" }) //this is really just a ping...
         }
     }
 
@@ -820,10 +1004,8 @@ class Game extends GameCore {
             }
             catch (err) { console.error("Can't fullscreen, yo!", err) }
         }
-
-        if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
-        if (location.hash.includes("d")) { this.debugMode() }
-        else { this._removeLoadingButton() }
+        if (!location.hash.includes("d"))
+            this._removeLoadingButton()
 
 
     }
@@ -850,52 +1032,6 @@ class Game extends GameCore {
         canvas.style.height = c.height + "px";
     }
 
-    debugMode() {
-        document.querySelectorAll("*").forEach(x => x.style.cssText = "")
-        document.body.style.cssText = ""
-        document.body.style.backgroundColor = "white"
-        document.body.style.overflow = "scroll"
-        const container = document.createElement("container")
-        const b = window.BROWSERshowLoading
-        b.style.whiteSpace = "pre-line"
-        const w = window.wProgress
-        w("\n")
-        b.parentNode.insertBefore(this.canvas, b)
-        document.body.style.display = 'block'
-        this.canvas.style.display = "block"
-        b.style.display = "block"
-        const j = (obj) => {
-            try { return JSON.stringify(obj) }
-            catch (err) { return obj.toString() }
-        }
-        const wrap = (fn, bi, name) => {
-            const old = fn
-            return (...args) => {
-                w(`\n${name}(${j(args)})\n`)
-                w(j(old.call(bi, ...args)))
-                w("\n")
-
-            }
-        }
-        window.onerror = wrap(window.onerror, window, "onerror")
-        chat.sendMessage = wrap(chat.sendMessage, chat, "sendMessage")
-        console.log = wrap(console.log, console, "log")
-        console.error = wrap(console.error, console, "error")
-        chat.on_receive = wrap(chat.on_receive, chat, "receive")
-
-        const rest = document.createElement("button")
-        rest.textContent = "Reset"
-        rest.onclick = () => b.textContent = ""
-        b.parentNode.insertBefore(rest, b)
-        const inp = document.createElement("input")
-        inp.type = "text"
-        inp.style.width = "400px"
-        b.parentNode.insertBefore(inp, b)
-        const ev = document.createElement("button")
-        ev.textContent = "eval"
-        b.parentNode.insertBefore(ev, b)
-        ev.onclick = () => { try { w(eval(inp.value)) } catch (err) { w(err) } }
-    }
 
     //#endregion
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

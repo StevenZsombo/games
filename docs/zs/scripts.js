@@ -382,6 +382,11 @@ class Rect {
 		return this.splitRow(...rowWeights).map(r => r.splitCol(...colWeights))
 	}
 
+	splitGridSquare(numberOfCells) {
+		const sq = Math.ceil(Math.sqrt(numberOfCells))
+		return this.splitGrid(sq, sq).flat().slice(0, numberOfCells)
+	}
+
 
 
 }
@@ -460,7 +465,7 @@ class Clickable extends Rect {
 		return within
 	}
 
-	resetClickableState() {
+	eraseClickables() {
 		this.on_click = null
 		this.on_release = null
 		this.on_hover = null
@@ -570,7 +575,9 @@ class Button extends Clickable {
 		}
 		if (!this.transparent) {
 			let draw_color
-			if (this.selected) {
+			if (this.dynamicColor) {
+				draw_color = this.dynamicColor()
+			} else if (this.selected) {
 				//selected
 				if (this.just_entered && this.hover_selected_color) {
 					draw_color = this.hover_selected_color
@@ -1530,7 +1537,7 @@ class Slider extends Panel {
 	/**@param {Button} moving  */
 	assignMovingButton(moving) {
 		if (this.moving) {
-			this.moving.resetClickableState()
+			this.moving.eraseClickables()
 			this.components.splice(this.components.indexOf(this.moving))
 			this.moving = null
 		}

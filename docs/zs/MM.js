@@ -2051,7 +2051,7 @@ class GameEffects {
         })
         b.close = () => game.animator.add_anim(floatOut)
         if (close_on_release) b.on_release = b.close
-        game.add_drawable(b, 8)
+        game.add_drawable(b, 8) // ----------------------------- layer 8 for popups
         if (floatTime == Infinity) { game.animator.add_anim(floatIn) }
         else { game.animator.add_sequence(floatIn, Anim.delay(floatTime), floatOut) }
 
@@ -2237,11 +2237,12 @@ class GameEffects {
             game.remove_drawable(panel)
             on_close?.()
         }
+        panel.tag = "fullMenu"
         return {
             panel, menu: panel,
             activate: panel.activate, deactivate: panel.deactivate,
             add, underlay, items,
-            close
+            close, tag: "fullMenu"
         }
 
     }
@@ -2354,9 +2355,62 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         game.add_drawable(out, game.layers.length - 1)
         out.components.push(w, button)
         button.isBlocking = true
-
-
         return out
+    }
+
+
+    /**@returns {GameWorld & {close:Function, promise: Promise,yes:Button, no:Button, label:Button, button:Button}} */
+    static confirmBox(txt, {
+        on_yes = null, yes: yesTxt = "Yes", no: noTxt = "No", on_no = null, on_close = null,
+        sizeFrac = [.5, .3],
+        draggable = false,
+        buttonColor = "linen", yesColor = "lightgreen", noColor = "lightsalmon" } = {}) {
+        const button = Button.fromRect(game.rect.copy.stretch(...sizeFrac))
+        button.isBlocking = true
+        button.outline = 3
+        const w = new GameWorld(button.copyRect)
+        const [label, low] = button.splitRow(.6, .4).map(Button.fromRect).map(x => (x.fontSize = 48, x))
+        label.transparent = true
+        label.txt = txt
+        const [yes, no] = Array(2).fill().map(() => low.copy)
+        Rect.packArray([yes, no], low.splitGrid(1, 2).flat().map(x => x.stretch(.8, .8)), true)
+        yes.txt = yesTxt
+        no.txt = noTxt
+            ;
+        [button, yes, no].forEach(Button.make_roundedRect)
+        button.radius = yes.radius
+        Button.make_anchor(button, [yes, no, label, w.screenRect, w.worldRect])
+        if (draggable) Button.make_draggable(button)
+
+        button.color = buttonColor
+        yes.color = yesColor
+        no.color = noColor
+
+        game.add_drawable(w, 8)
+        const close = () => { game.remove_drawables_batch(w); on_close?.() }
+        w.close = close
+        w.yes = yes
+        w.no = no
+        w.label = label
+        w.button = button
+        w.add_drawable([button, label, yes, no])
+
+        w.tag = "confirmBox"
+        w.isBlocking = true
+        w.promise = new Promise((resolve, reject) => {
+            yes.on_release = () => {
+                close()
+                on_yes?.()
+                resolve()
+            }
+            no.on_release = () => {
+                close()
+                on_no?.()
+                reject()
+            }
+        })
+
+        return w
     }
 }
 //#endregion

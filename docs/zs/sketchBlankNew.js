@@ -1,5 +1,5 @@
 var univ = {
-    isOnline: false
+    isOnline: false, //server is offline!
     PORT: 80,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,

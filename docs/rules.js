@@ -1,5 +1,8 @@
 //#region RULES.
 var RULES = ({
+    STUDENTS: ["Alice", "Chris", "Cloris", "Coro", "Eden", "Eily", "Ethan Deng", "Ethan Jiang", "George", "Gwendolyn", "Harry", "Howell", "Kevin", "Kimberly", "Kyrie", "Lu", "Lucas", "Michael", "Percy", "Sebastian", "Selina", "Seraphim", "Tommy", "Zoey"],
+    //strArr or null
+    STUDENTS_POSITIONS: null, //STUDENT-size array of [x,y] for their buttons
     NUMBER_OF_TEAMS: 5, //////////////////////////////////
     NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
     PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension ///////////////////////////

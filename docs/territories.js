@@ -641,4 +641,25 @@ class Gimmicks {
         panel.isBlocking = true
         return panel
     }
+
+    static moveStudentsFirst() {
+        localStorage.clear()
+        chat.silentReload()
+    }
+
+    static moveStudentsSecond() {
+        const fm = game.layersFlat.find(x => x.tag === "fullMenu")
+        const studs = fm.studs
+        studs.forEach(x => x.eraseClickables())
+        studs.forEach(Button.make_draggable)
+    }
+
+    static moveStudentsThird() {
+        console.log("find the positions array below.")
+        const arr = game.layersFlat.find(x => x.tag === "fullMenu").studs.map(x => [x.x, x.y])
+        console.log(
+            arr
+        )
+        console.log(JSON.stringify(arr))
+    }
 }
