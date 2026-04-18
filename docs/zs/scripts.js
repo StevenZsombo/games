@@ -245,7 +245,10 @@ class Rect {
 	deflate(dw, dh) {
 		return this.inflate(-dw, -dh)
 	}
-
+	/**
+	 * @param {number} x @param {number} y
+	 * @returns {{x: number, y: number, leftOut: boolean, rightOut: boolean, topOut: boolean, bottomOut: boolean, anyOut: boolean}}
+	 */
 	boundWithinInfo(x, y) {
 		let retX, retY
 		let { left, right, top, bottom } = this
@@ -266,6 +269,10 @@ class Rect {
 		}
 	}
 
+	/**
+	  * @param {Rect} rect
+	  * @returns {{leftIn: boolean, rightIn: boolean, topIn: boolean, bottomIn: boolean}}
+	  */
 	collideRectInfo(rect) {
 		const { left, right, top, bottom } = this
 		const leftIn = rect.left < left && left < rect.right
@@ -275,8 +282,69 @@ class Rect {
 		//const anyIn = this.colliderect(rect)
 		//if (anyIn) return { anyIn, leftIn, rightIn, topIn, bottomIn }
 		return { leftIn, rightIn, topIn, bottomIn }
-
 	}
+
+
+	/**
+	 * @param {number} x @param {number} y the line segment from (x,y)
+	 * @param {number} u @param {number} w to (u,w)
+	 * @returns {{collide: boolean, x: number, y: number, t: number, leftIn: boolean, rightIn: boolean, topIn: boolean, bottomIn: boolean}}
+	 */
+	collideLineRectInfo(x, y, u, w) {
+		const left = this.x, right = this.x + this.width, top = this.y, bottom = this.y + this.height
+		const edges = [[left, top, right, top], [right, top, right, bottom], [right, bottom, left, bottom], [left, bottom, left, top]]
+		let best = null
+		let minDist = Infinity
+		let edgeHit = -1
+		let bestT = 0
+		const dxLine = u - x, dyLine = w - y
+		for (let i = 0; i < 4; i++) {
+			const e = edges[i]
+			const dxEdge = e[2] - e[0], dyEdge = e[3] - e[1]
+			const den = dxLine * dyEdge - dyLine * dxEdge
+			if (den === 0) continue
+			const t = ((x - e[0]) * dyEdge - (y - e[1]) * dxEdge) / den
+			if (t < 0 || t > 1) continue
+			const s = -(dxLine * (y - e[1]) - dyLine * (x - e[0])) / den
+			if (s < 0 || s > 1) continue
+			const px = x + t * dxLine
+			const py = y + t * dyLine
+			const dx = px - x
+			const dy = py - y
+			const dist = dx * dx + dy * dy
+			if (dist < minDist) {
+				minDist = dist
+				best = { x: px, y: py }
+				edgeHit = i
+				bestT = t
+			}
+		}
+		return {
+			collide: best !== null,
+			x: best?.x, y: best?.y,
+			t: bestT,
+			leftIn: edgeHit === 3, rightIn: edgeHit === 1, topIn: edgeHit === 0, bottomIn: edgeHit === 2
+		}
+	}
+	/**
+	 * @param {Rect} wall
+	 * @param {number} vx - velocity in x direction
+	 * @param {number} vy - velocity in y direction
+	 * @returns {{collide: boolean, vx: number, vy: number}}
+	 */
+	collideCrashIntoWallVelocity(wall, vx, vy) {
+		if (vx === 0 && vy === 0) return { collide: false, vx: 0, vy: 0 }
+		const info = wall.collideLineRectInfo(this.x, this.y, this.x + vx, this.y + vy)
+		if (!info.collide) return { collide: false, vx, vy }
+		const stopX = info.leftIn ? Math.min(vx * info.t, 0) : info.rightIn ? Math.max(vx * info.t, 0) : vx * info.t
+		const stopY = info.topIn ? Math.min(vy * info.t, 0) : info.bottomIn ? Math.max(vy * info.t, 0) : vy * info.t
+		return { collide: true, vx: stopX, vy: stopY }
+	}
+
+
+
+
+
 	/**@param {Rect} other  */
 	fitWithinAnother(other) {
 		if (this.width > other.width) this.width = other.width
@@ -313,6 +381,13 @@ class Rect {
 		})
 	}
 
+	/**
+	 * @param {Rect[]} rectsToMove
+	 * @param {Rect[]} destinationRect
+	 * @param {number|"justify"} [gapSizeOrJustify=30]
+	 * @param {"t"|"m"|"b"} [alignTMB="t"]
+	 * @param {boolean} [alsoResize=false]
+	 */
 	static packRow(rectsToMove, destinationRect, gapSizeOrJustify = 30, alignTMB = "t", alsoResize = false) {
 		if (gapSizeOrJustify === "justify" && rectsToMove.length >= 1)
 			gapSizeOrJustify =
@@ -327,6 +402,13 @@ class Rect {
 		})
 	}
 
+	/**
+	 * @param {Rect} rectsToMove
+	 * @param {Rect} destinationRect
+	 * @param {number|"justify"} [gapSizeOrJustify=30]
+	 * @param {"l"|"c"|"r"} [alignLCR="l"]
+	 * @param {boolean} [alsoResize=false]
+	 */
 	static packCol(rectsToMove, destinationRect, gapSizeOrJustify = 30, alignLCR = "l", alsoResize = false) {
 		if (gapSizeOrJustify === "justify" && rectsToMove.length >= 1)
 			gapSizeOrJustify =
@@ -374,10 +456,20 @@ class Rect {
 		return result
 	}
 
+	/**
+	 * @param {number} rows
+	 * @param {number} cols
+	 * @returns {Rect[][]} 
+	 */
 	splitGrid(rows, cols) {
 		return this.splitGridWeight(Array(cols).fill(1), Array(rows).fill(1))
 	}
 
+	/**
+	 * @param {number[]} [colWeights=[1]]
+	 * @param {number[]} [rowWeights=[1]]
+	 * @returns {Rect[][]} 
+	 */
 	splitGridWeight(colWeights = [1], rowWeights = [1]) {
 		return this.splitRow(...rowWeights).map(r => r.splitCol(...colWeights))
 	}

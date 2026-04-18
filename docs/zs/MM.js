@@ -1139,6 +1139,32 @@ class MM {
         this.centeratV(MM.rotatePointAroundPoint(this.cx, this.cy, u, w, rad))
     }
 
+
+
+    /** @returns {boolean} */
+    static collideLineLine(x, y, u, w, a, b, c, d) {
+        const den = (x - u) * (b - d) - (y - w) * (a - c)
+        if (den === 0) return false
+        const t = ((x - a) * (b - d) - (y - b) * (a - c)) / den
+        const s = -((x - u) * (y - b) - (y - w) * (x - a)) / den
+        return t >= 0 && t <= 1 && s >= 0 && s <= 1
+    }
+
+    /** @returns {{collide: boolean, x: number, y: number}} */
+    static collideLineLineV(x, y, u, w, a, b, c, d) {
+        const den = (x - u) * (b - d) - (y - w) * (a - c)
+        if (den === 0) return { collide: false, x: 0, y: 0 }
+        const t = ((x - a) * (b - d) - (y - b) * (a - c)) / den
+        const s = -((x - u) * (y - b) - (y - w) * (x - a)) / den
+        if (t >= 0 && t <= 1 && s >= 0 && s <= 1) {
+            return { collide: true, x: x + t * (u - x), y: y + t * (w - y) }
+        }
+        return { collide: false, x: 0, y: 0 }
+    }
+
+
+
+    
     /**Determines if the given point is "to the right of" the given line. */
     static collideRightOfLine(ptx, pty, la, lb, lu, lw) {
         const vx = ptx - la
