@@ -1445,7 +1445,7 @@ class MM {
         return str ? str.replace(/[^\w\s]/g, '') : ""
     }
 
-    static downloadFile(content, filename, mimeType = 'text/plain') {
+    static downloadFile(content, filename = `unnamed${Date.now()}.txt`, mimeType = 'text/plain') {
         const blob = new Blob([content], { type: mimeType })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')

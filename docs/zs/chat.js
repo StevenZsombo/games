@@ -427,8 +427,8 @@ class Chat {
         if (message.shared != null) {
             this.inquirePromises.get(message.shared)?.(message.value)
             this.inquirePromises.delete(message.shared)
-            contest.shared[message.shared] = message.value
             contest.on_share?.(message.shared, message.value)
+            contest.shared[message.shared] = message.value
         }
         if (message.weak != null) {
             Object.assign(contest.shared[message.weak], message.value)

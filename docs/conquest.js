@@ -145,7 +145,7 @@ const ATTENDANCE = (txt) => {
     })
 }
 let pingWindow = null
-const PING = () => {
+const PING = (doNotPopup = false, doNotSave = false) => {
     pingWindow?.close()
     const responses = {}
     const sentAt = Date.now()
@@ -155,9 +155,14 @@ const PING = () => {
     })
     pingWindow = GameEffects.popup("", {
         travelTime: 100, floatTime: Infinity, close_on_release: true,
-        on_end: () => { MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`) }
+        on_end: () => { !doNotSave && MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`) }
     }, GameEffects.popupPRESETS.megaBlue)
     pingWindow.dynamicText = () => MM.tableStr(Object.entries(responses), ["name", "ping            "], 5)
+
+    if (doNotPopup) {
+        pingWindow.deactivate()
+        Anim.delay(10 * 1000, { add: true, on_end: pingWindow.close })
+    }
 
     chat.sendMessage({ request: "Date.now()" })
 
@@ -582,7 +587,11 @@ class Game extends GameCore {
         const buts = territories.map(x => x.button)
         game.add_drawable(buts)
         const sq = Math.floor(Math.sqrt(RULES.NUMBER_OF_TERRITORIES))
-        Rect.packArray(buts, this.rect.copy.deflate(100, 100).splitGrid(sq + 1, sq + 1).flat(), false)
+        Rect.packArray(buts, this.rect.copy
+            .topat(GRAPHICS.TOP)
+            .rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
+            .bottomstretchat(this.HEIGHT - GRAPHICS.BOT)
+            .splitGrid(sq + 1, sq + 1).flat(), false)
         /**@type {Territory[]} */
         this.territories = territories
         this.buts = buts
@@ -785,6 +794,15 @@ class Game extends GameCore {
                 }
             })
         }
+        this.clockwork_extras.push((() => {
+            let lastPinged = 0
+            return () => {
+                if (Date.now() - lastPinged > 8 * 60 * 1000) { //every 8 minutes
+                    lastPinged = Date.now()
+                    PING(true, false)//no popup but save
+                }
+            }
+        })())
 
         this.conflictsClockwork = setInterval(() => {
             this.clockwork_extras.forEach(fn => fn())
@@ -865,7 +883,9 @@ class Game extends GameCore {
             const parr = []
             if (!this.attacksAllowed && !this.isPaused) {
                 if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
-                    parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."])
+                    parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."
+                        + "\nMaps are in the Steven/games/docs/maps folder."
+                    ])
                 } else if (Question.ALL.length == 0) {
                     parr.push(
                         ["BUCKETS", () => {
@@ -885,7 +905,8 @@ class Game extends GameCore {
                                     // spop("ERROR LOADING BUCKETS.")
                                     GameEffects.popup("Can't load buckets.\n" + err, { close_on_release: true }, GameEffects.popupPRESETS.sideError)
                                 })
-                        }, "Set buckets for the game."]
+                        }, "Set buckets for the game."
+                            + "\nBuckets are in the Steven/secrets folder."]
                     )
                 } else parr.push(
                     ["START", () => { hq.startContest(); spop("Started.") }, "Start the game"]
@@ -939,9 +960,10 @@ class Game extends GameCore {
             ])
             parr.push(["DISPLAY", DISPLAY, "Share a screenshot of the server screen."])
             parr.push(["DOWNLOAD", DOWNLOAD, "Let students download a screenshot of the server screen."])
+            parr.push(["CLIPBOARD", CLIPBOARD, "First, paste a picture onto the canvas. Then send to students."])
             MASTER.ALLOW_PLOT &&
                 parr.push(["PLOT", PLOT, "Share the plots with the students."])
-            parr.push(["CLIPBOARD", CLIPBOARD, "First, paste a picture onto the canvas. Then send to students."])
+            parr.push(["PING", PING, "Test the ping of each connected student."])
             parr.push(["HARDREFRESH", HARDREFRESH, "Fully synchronizes each connected student."])
             parr.push(["RELOAD", RELOAD, "Reloads the browser page of each connected student."])
 
@@ -1033,17 +1055,24 @@ class Game extends GameCore {
                             ])]*/
                         //this is awesome, saved it in GameEffects!
                         [`mapIMG = ${RULES.PICTURE_BACKGROUND_MAP}`, () => {
-                            spop("Feature unavailable, TODO.\nFor now, just change in the map.json file.")
-                            /*alert("Select a picture. Must be from the pictures folder.")
-                            const pick = document.createElement("input")
-                            pick.type = "file"
-                            pick.accept = ".png"
-                            pick.onchange = (ev) => {
-                                const f = ev.target.files[0]
-                                RULES.PICTURE_BACKGROUND_MAP = f.name
-                                
-                            }*/
-                        }],
+                            spop("Select a picture from the pictures folder")
+                            Anim.delay(1000, {
+                                add: true,
+                                on_end: () => {
+                                    const pick = document.createElement("input")
+                                    pick.type = "file"
+                                    pick.accept = ".png"
+                                    pick.onchange = (ev) => {
+                                        const f = ev.target.files[0]
+                                        RULES.PICTURE_BACKGROUND_MAP = f.name
+                                        MANAGER.saveToLocal()
+                                        chat.silentReload()
+                                    }
+                                    pick.click()
+                                }
+                            })
+                        }
+                        ],
                         ["QUICKSAVE", () => { MANAGER.saveToLocal(); spop("Quicksaved.") }],
                         ["SAVE MAP", MANAGER.saveToFile],
                         ["LOAD MAP", MANAGER.loadFromFile]

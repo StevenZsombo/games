@@ -171,6 +171,7 @@ class Anim {
 	 * @param {Function}[args.on_repeat] - What to do on repeat
 	 * @param {boolean}[args.noLock] - Avoids animation lock check, use with care
 	 * @param {boolean}[args.ditch] - forces all other Anim with this obj to end, avoids lock check
+	 * @param {boolean}[args.add] - instance sent to the animator immediately
 	 */
 	constructor(obj, time, code, args = {}) {
 		//accepts chain, chainMany repeat, on_end, lerp, ditch              NEVER #append
@@ -195,6 +196,7 @@ class Anim {
 		if (typeof args?.lerp === "string") { this.lerp = Anim.l[this.lerp] }
 
 		this.totTime = time
+		if (args.add) { game?.animator.add_anim(this) }
 	}
 
 
