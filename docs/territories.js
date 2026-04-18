@@ -17,7 +17,7 @@ const MANAGER = {
             localStorage.clear()
             localStorage.setItem("mapDataTemp", JSON.stringify(d))
             chat.silentReload()
-        })
+        }).catch(err => spop("Could not load map."))
 
     }
 }

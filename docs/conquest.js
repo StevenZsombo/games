@@ -15,31 +15,33 @@ var univ = {
     on_each_start: null,
     on_first_run: null,
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
-        if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
-        fetch(RULES.MAPFILE)
-            .then(x => {
-                if (!x.ok) throw new Error("File not found.")
-                return x.json()
-            })
-            .then(fromFile => {
-                Object.assign(RULES, fromFile.RULES)
-                Object.assign(GRAPHICS, fromFile.GRAPHICS)
-                console.info("Map loaded successfully.")
-            })
-            .catch(x => {
-                console.info("No map data found or it failed to load.", x)
-            })
-            .finally(() => {
-                try {
-                    const ls = JSON.parse(localStorage.getItem("mapDataTemp"))
-                    if (ls) {
-                        Object.assign(RULES, ls.RULES)
-                        Object.assign(GRAPHICS, ls.GRAPHICS)
-                    }
+        (async () => {
+            if (RULES.MAPFILE)
+                await fetch(RULES.MAPFILE)
+                    .then(x => {
+                        if (!x.ok) throw new Error("File not found.")
+                        return x.json()
+                    })
+                    .then(fromFile => {
+                        Object.assign(RULES, fromFile.RULES)
+                        Object.assign(GRAPHICS, fromFile.GRAPHICS)
+                        console.info("Map loaded successfully.")
+                    })
+                    .catch(x => {
+                        console.info("No map data found or it failed to load.", x)
+                    });
+
+            try {
+                const ls = JSON.parse(localStorage.getItem("mapDataTemp"))
+                if (ls) {
+                    Object.assign(RULES, ls.RULES)
+                    Object.assign(GRAPHICS, ls.GRAPHICS)
                 }
-                catch (err) { console.error("Failed loading localStorage", err) }
-                beforeMainPassedToBeCalled()
-            })
+            }
+            catch (err) { console.error("Failed loading localStorage", err) }
+            beforeMainPassedToBeCalled()
+
+        })()
     }, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
     on_beforeunload: null,
@@ -141,6 +143,24 @@ const ATTENDANCE = (txt) => {
         popup: txt ?? "Your attendance has been noted.",
         popupSettings: "smallPink"
     })
+}
+let pingWindow = null
+const PING = () => {
+    pingWindow?.close()
+    const responses = {}
+    const sentAt = Date.now()
+    Object.values(participants).forEach(p => {
+        responses[p.name] = "-"
+        p.on_request_response_once = (value) => responses[p.name] = (+value) - sentAt
+    })
+    pingWindow = GameEffects.popup("", {
+        travelTime: 100, floatTime: Infinity, close_on_release: true,
+        on_end: () => { MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`) }
+    }, GameEffects.popupPRESETS.megaBlue)
+    pingWindow.dynamicText = () => MM.tableStr(Object.entries(responses), ["name", "ping            "], 5)
+
+    chat.sendMessage({ request: "Date.now()" })
+
 }
 const ASK = (person, question) => {
     const personObj = Person.to(person)
@@ -841,13 +861,12 @@ class Game extends GameCore {
 
         /** @returns {DropDownMenuResult} */
         const SERVERBUTTON = () => {
+            /**@type {[label:string,fn:Function,inspecText:string]} */
             const parr = []
             if (!this.attacksAllowed && !this.isPaused) {
-                if (Question.ALL.length) {
-                    parr.push(
-                        ["START", () => { hq.startContest(); spop("Started.") }, "Start the game"]
-                    )
-                } else {
+                if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
+                    parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."])
+                } else if (Question.ALL.length == 0) {
                     parr.push(
                         ["BUCKETS", () => {
                             Question.importBuckets()
@@ -868,7 +887,10 @@ class Game extends GameCore {
                                 })
                         }, "Set buckets for the game."]
                     )
-                }
+                } else parr.push(
+                    ["START", () => { hq.startContest(); spop("Started.") }, "Start the game"]
+                )
+
             }
             if (this.attacksAllowed || this.isPaused) {
                 parr.push(

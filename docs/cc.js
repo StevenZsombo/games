@@ -6,6 +6,8 @@ d - debug mode
 f - framerate shown
 u - framerate shown and unlocked
 */
+let wProgress = window.wProgress ?? (() => { })
+    ;
 var univ = {
     isOnline: true,
     PORT: 80,
@@ -146,6 +148,11 @@ var univ = {
         betterPunish()
     },
     on_first_run: () => {
+        const channel = new BroadcastChannel('stevenGames')
+        channel.onmessage = () => { window.close() }
+        channel.postMessage('begonewithyou')
+        setTimeout(channel.postMessage('dontmakemerepeatmyself'), 100)
+
         window.onhashchange = () => {
             window.onbeforeunload = null
             location.reload()
@@ -173,7 +180,7 @@ var univ = {
                 const container = document.createElement("container")
                 const b = window.BROWSERshowLoading
                 b.style.whiteSpace = "pre-line"
-                const w = window.wProgress
+                const w = wProgress
                 w("\n")
                 const canvas = document.getElementById("myCanvas")
                 b.parentNode.insertBefore(canvas, b)
@@ -218,18 +225,23 @@ var univ = {
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
         chat.on_echo = (echo, obj) => console.log("echo", echo, obj)
-        window.wProgress?.("INQUIRING")
-        chat.sendPromise({ inquire: "RULES" }).then(() => {
-            window.wProgress?.("\nRULES received")
+        wProgress?.("INQUIRING")
+        chat.sendInquire("RULES", 9, 600, {
+            on_retry: (x) => {
+                wProgress(`\nRetrying... ${10 - x}/10`)
+            }
+        }).then((value) => {
+            wProgress?.("\nRULES received")
+            Object.assign(RULES, value)
             beforeMainPassedToBeCalled()
-        }
-        ).catch((err) =>
-            window.wProgress?.(["", "",
+        }).catch((err) =>
+            wProgress?.(["", "",
                 "FAILURE. CAN'T CONNECT TO SERVER",
                 "Make sure you are on the correct WiFi network.",
                 "Close all other apps.",
                 "Close all other tabs.", "",
                 "Ask the teacher for help.",
+                "" + err
             ].join("\n"))
         )
 
@@ -248,7 +260,7 @@ var univ = {
                 return
             })
             .catch(x => { //?. so intellij won't whine about it
-                window.wProgress?.("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
+                wProgress?.("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
                 console.error("No map data found or it failed to load.", x)
                 alert("NO MAP FOUND. This is bad. Tell your teacher.")
             }).then(x => new Promise((resolve, reject) => {
@@ -415,7 +427,8 @@ class Game extends GameCore {
             b.on_hover = () =>
                 !this.animator.locked.has(b)
                 &&
-                this.animator.add_anim(Anim.stepper(b, 1000, "rad", 0, TWOPI, { ditch: true }))
+                this.animator.add_anim(Anim.stepper(b, 800, "rad", 0, .1,
+                    { lerp: Anim.l.wave, ditch: true }))
         })
         /*const h = ks[0].height
         ks.forEach(x => x.stretch(1, .1))
@@ -480,7 +493,6 @@ class Game extends GameCore {
                 Kingdom.defaultColors[
                 contest.shared.teamsData?.[i]]
                 ?? "white"
-
             b.on_release = () => {
                 if (contest.shared.teamsData?.[i] !== -1) return
                 if (!allowRelease) return
@@ -498,6 +510,12 @@ class Game extends GameCore {
                 // chat.silentReload() //no longer necessary -> server handles renames!
             }
         })
+        if (RULES.STUDENTS_POSITIONS && Array.isArray(RULES.STUDENTS_POSITIONS)) {
+            RULES.STUDENTS_POSITIONS.slice(0, studs.length).forEach((pos, i) => {
+                studs[i].x = pos[0]
+                studs[i].y = pos[1]
+            })
+        }
 
         fm.panel.studs = studs
 
@@ -506,7 +524,7 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        window.wProgress?.("\ninitalize_more()")
+        wProgress?.("\ninitalize_more()")
 
 
 
@@ -560,10 +578,6 @@ class Game extends GameCore {
         if (location.hash.includes("u")) this.toggleFramerateUnlocked() //for true
 
         contest.on_share = (shared, value) => {
-            if (shared == "RULES") {
-                value.fromServer = true
-                Object.assign(RULES, value)
-            }
             if (shared == "territoriesFullData") {
                 // if (territories.length) return
                 this.remove_drawables_batch(territories.map(x => x.button))
@@ -573,7 +587,7 @@ class Game extends GameCore {
                 this.buts = territories.map(x => x.button)
                 this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
 
-                window.wProgress?.("territoriesFullData")
+                wProgress?.("territoriesFullData")
                 waitCheckSyncState()
             }
             if (shared == "kingdomsFullData") {
@@ -581,7 +595,7 @@ class Game extends GameCore {
                 kingdoms.push(...Kingdom.manyFromData(value))
                 myKingdomObject = kingdoms[myKingdomID]
                 myColor = myKingdomObject.color
-                window.wProgress?.("kingdomsFullData")
+                wProgress?.("kingdomsFullData")
 
                 /*this.remove_drawables_batch(territories.map(x => x.button)) //in case this.buts gets "lost"
                 territories.length = 0
@@ -672,7 +686,7 @@ class Game extends GameCore {
 
 
         const waitCheckSyncState = () => {
-            window.wProgress?.("waitCheckSyncState()")
+            wProgress?.("waitCheckSyncState()")
             if (syncReady) return
             if (this.territories.length && this.kingdoms.length) {
                 syncReady = true
@@ -682,7 +696,7 @@ class Game extends GameCore {
 
         //#region init_after_basics
         const init_after_basics = () => {
-            window.wProgress?.("init_after_basics()")
+            wProgress?.("init_after_basics()")
             let border = Gimmicks.setupBorder()
             const { top, bot, left, right, middle } = border
             border = Array.from(Object.values(border))
@@ -759,7 +773,7 @@ class Game extends GameCore {
                 x.outline = 0
             })
 
-            const attackButton = new Button({ width: 200, height: 150 })
+            const attackButton = new Button({ width: 240, height: 150 })
             attackButton.fontSize = 30
             // attackButton.bottomat(bot.top)
             attackButton.bottomat(this.bot.top - 20)
@@ -840,7 +854,7 @@ class Game extends GameCore {
             if (location.hash.includes("h")) RULES.MAPSTER_IMAGE_QUALITY_CLIENT = 1
 
 
-            window.wProgress?.("new Mapster()")
+            wProgress?.("new Mapster()")
             mapster = new Mapster(
                 Kingdom.defaultRGBs.slice(0, kingdoms.length),
                 RULES.PICTURE_PATH + RULES.PICTURE_BACKGROUND_MAP,
@@ -873,7 +887,7 @@ class Game extends GameCore {
         }
         this.add_drawable(connectionsDrawableObject, 4)
         this.connectionsDrawableObject = connectionsDrawableObject
-        window.wProgress?.("connectionsDrawable")
+        wProgress?.("connectionsDrawable")
         const arrowsDrawableObject = {
             draw: (screen) => {
                 if (this.showingMap)
@@ -899,7 +913,7 @@ class Game extends GameCore {
         }
         this.arrowsDrawableObject = arrowsDrawableObject
         this.add_drawable(arrowsDrawableObject)
-        window.wProgress?.("arrowsDrawable")
+        wProgress?.("arrowsDrawable")
 
 
 
@@ -951,12 +965,12 @@ class Game extends GameCore {
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
         this.add_drawable(attackCircleDrawableObject, 6)
-        window.wProgress?.("attackCircleDrawable")
+        wProgress?.("attackCircleDrawable")
 
 
 
         this._showingMap = true
-        window.wProgress?.("showingMap")
+        wProgress?.("showingMap")
 
         this.enter()
 
@@ -964,11 +978,11 @@ class Game extends GameCore {
 
     enter() {
         if (chat.isConnected) {
-            window.wProgress?.("\nCONNECTED!")
+            wProgress?.("\nCONNECTED!")
             chat.sendSecure({ kingdom: myKingdomID })
         }
         else {
-            window.wProgress?.("\nWAITING TO CONNECT!")
+            wProgress?.("\nWAITING TO CONNECT!")
             /*chat.on_join_once = () => {
                 chat.sendSecure({ kingdom: myKingdomID })*/
         }
@@ -976,7 +990,7 @@ class Game extends GameCore {
         chat.on_join = () => {
             if (myKingdomID == null) { //should be impossible, but just to be safe
                 GameEffects.popup("ERROR: myKingdomID is somehow null,\n ask the teacher for help.", undefined, GRAPHICS.POPUP_ERROR)
-                window.wProgress?.("ERROR: myKingdID is somehow null")
+                wProgress?.("ERROR: myKingdID is somehow null")
                 throw new Error("Kingdom is somehow undefined when trying to send it!")
             }
             console.log("cc: successful reconnect!")
@@ -1014,6 +1028,7 @@ class Game extends GameCore {
         window.BROWSERshowLoading?.remove()
         delete window.BROWSERshowLoading
         delete window.wProgress
+        wProgress = null
         document.body.style.zoom = 1
 
     }

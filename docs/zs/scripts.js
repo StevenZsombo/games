@@ -355,6 +355,21 @@ class Rect {
 		if (this.bottom > other.bottom) this.bottomat(other.bottom)
 		return this
 	}
+	/** @param {Rect} other */
+	fitOutsideAnother(other) {
+		if (!this.colliderect(other)) return this
+		const overlapLeft = this.right - other.left
+		const overlapRight = other.right - this.left
+		const overlapTop = this.bottom - other.top
+		const overlapBottom = other.bottom - this.top
+		const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom)
+		if (minOverlap === overlapLeft) this.rightat(other.left)
+		else if (minOverlap === overlapRight) this.leftat(other.right)
+		else if (minOverlap === overlapTop) this.bottomat(other.top)
+		else this.topat(other.bottom)
+		return this
+	}
+
 	/**@param {Rect} other  */
 	scaleWithinAnother(other) {
 		let { width, height } = this

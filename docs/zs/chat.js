@@ -38,6 +38,7 @@ class Chat {
 
         this.on_join = null
         this.on_join_once = null
+        this.on_join_extras_temp_map = new Map() //callback array
         this.on_disconnect = null
         this.on_error = null
         this.on_issue = null // means error or disconnect
@@ -73,6 +74,7 @@ class Chat {
                 this.announceSelf() //only the server announces themselves.
                 this.on_join_once?.()
                 this.on_join_once = null
+                this.on_join_extras_temp_map.forEach(x => x())
                 this.on_join?.()
                 this.queueSend() //in case this is a reconnect!
             }
@@ -201,6 +203,38 @@ class Chat {
             this.sendSecure(obj, resolve, reject)
         })
     }
+    inquirePromises = new Map()
+    sendInquire(key, retries = 5, interval = 500, { on_retry = null } = {}) {
+        const flag = `sendInquire(${key})`
+        if (this.inquirePromises.has(key)) return Promise.reject(`sendInquire: already pending for ${key}`)
+        const p = new Promise((resolve, reject) => {
+            const send = () => this.sendMessage({ inquire: key })
+            const attempt = () => {
+                if (retries-- < 0) {
+                    this.on_join_extras_temp_map.delete(flag)
+                    clearInterval(clock)
+                    reject(`sendInquire: failed for ${key}`)
+                    return
+                }
+                if (this.isConnected) send()
+                else this.on_join_extras_temp_map.set(flag, send)
+            }
+            const clock = setInterval(() => {
+                on_retry?.(retries)
+                attempt()
+            }, interval)
+            const succeed = (value) => {
+                this.on_join_extras_temp_map.delete(flag)
+                clearInterval(clock)
+                resolve(value)
+            }
+            this.inquirePromises.set(key, succeed)
+            attempt()
+        })
+        return p
+    }
+
+
 
     queueSend() {
         if (!this.queue.size) return
@@ -376,7 +410,7 @@ class Chat {
             const response = prompt(message.prompt)
             this.sendMessage({ promptResponse: response })
         }
-        if (message.present != null) this.sendMessage({ presentResponse: MM.time() })
+        if (message.present != null) this.sendMessage({ presentResponse: Date.now() })
         if (message.popup != null) {
             if (typeof message.popupSettings === 'string') GameEffects.popup(message.popup, {}, message.popupSettings)
             else GameEffects.popup(message.popup, message.popupSettings)
@@ -390,7 +424,9 @@ class Chat {
             MM.setByPath(message.demand, message.value)
             //eval(`${message.demand} = ${message.value}`)
         }
-        if (message.shared != null) {//not sure if touching this was a good call.
+        if (message.shared != null) {
+            this.inquirePromises.get(message.shared)?.(message.value)
+            this.inquirePromises.delete(message.shared)
             contest.shared[message.shared] = message.value
             contest.on_share?.(message.shared, message.value)
         }
@@ -431,7 +467,7 @@ class Participant { // extend for Person
         this.on_disconnect = null
         this.isConnected = true
 
-        this.on_request_response = null //takes message requestResponse
+        this.on_request_response = null //takes message.requestResponse
         this.on_request_response_once = null
         this.on_prompt_response = null // takes message.promptResponse
         this.on_prompt_response_once = null

@@ -1164,7 +1164,7 @@ class MM {
 
 
 
-    
+
     /**Determines if the given point is "to the right of" the given line. */
     static collideRightOfLine(ptx, pty, la, lb, lu, lw) {
         const vx = ptx - la
@@ -1173,12 +1173,26 @@ class MM {
         const ny = -la + lu
         return vx * nx + vy * ny > 0
     }
-
     static collidePolygon(ptx, pty, polyXYXYXY) {
+        let inside = false
+        const len = polyXYXYXY.length
+        for (let i = 0, j = len - 2; i < len; i += 2) {
+            const xi = polyXYXYXY[i], yi = polyXYXYXY[i + 1]
+            const xj = polyXYXYXY[j], yj = polyXYXYXY[j + 1]
+            const intersects = ((yi > pty) !== (yj > pty)) &&
+                (ptx < (xj - xi) * (pty - yi) / (yj - yi) + xi)
+            if (intersects) inside = !inside
+            j = i
+        }
+        return inside
+    }
+
+    /**@deprecated*/
+    static collidePolygonConvexOnly(ptx, pty, polyXYXYXY) {
         const initial = MM.collideRightOfLine(
             ptx, pty, polyXYXYXY.at(-2), polyXYXYXY.at(-1), polyXYXYXY[0], polyXYXYXY[1]
         )
-        for (let i = 0; i < polyXYXYXY.length - 2; i += 2) {
+        for (let i = 0; i < polyXYXYXY.length - 4; i += 2) {
             if (initial !==
                 MM.collideRightOfLine(ptx, pty, ...polyXYXYXY.slice(i, i + 4))
             ) { return false }
@@ -1345,15 +1359,16 @@ class MM {
     static toggleFullscreen(whatToDo) {
         try {
             if ((whatToDo === true || whatToDo === undefined) && !document.fullscreenElement) {
-                document.documentElement.requestFullscreen()
+                document.documentElement.requestFullscreen().catch((err) => { console.error("can't fullscreen", err) })
                 return true
             }
             if ((whatToDo === false || whatToDo === undefined) && document.fullscreenElement) {
-                document.exitFullscreen()
+                document.exitFullscreen().catch((err) => { console.error("can't fullscreen", err) })
                 return false
             }
         } catch (err) { console.error("can't fullscreen", err) }
     }
+
 
 
     static loadScript(scriptName, callback) {
@@ -2280,7 +2295,7 @@ class GameEffects {
         const invis = Button.fromRect(game.rect.copy)
         invis.visible = false
         invis.on_click = () => {
-            try { document.documentElement.requestFullscreen() }
+            try { document.documentElement.requestFullscreen().catch(() => console.error("can't fullscreen")) }
             catch (err) { console.error("can't fullscreen") }
             game.remove_drawable(invis)
         }

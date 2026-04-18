@@ -1,12 +1,14 @@
 //#region RULES.
 var RULES = ({
-    STUDENTS: ["Alice", "Chris", "Cloris", "Coro", "Eden", "Eily", "Ethan Deng", "Ethan Jiang", "George", "Gwendolyn", "Harry", "Howell", "Kevin", "Kimberly", "Kyrie", "Lu", "Lucas", "Michael", "Percy", "Sebastian", "Selina", "Seraphim", "Tommy", "Zoey"],
+    STUDENTS: Array.from({ length: 24 }, (_, i) => `${i}student`),
+    //["Alice", "Chris", "Cloris", "Coro", "Eden", "Eily", "Ethan Deng", "Ethan Jiang", "George", "Gwendolyn", "Harry", "Howell", "Kevin", "Kimberly", "Kyrie", "Lu", "Lucas", "Michael", "Percy", "Sebastian", "Selina", "Seraphim", "Tommy", "Zoey"],
     //strArr or null
     STUDENTS_POSITIONS: null, //STUDENT-size array of [x,y] for their buttons
-    NUMBER_OF_TEAMS: 5, //////////////////////////////////
-    NUMBER_OF_TERRITORIES: 60, /////////////////////////////////
-    PICTURE_BACKGROUND_MAP: "blake.png", //cannot null //with extension ///////////////////////////
-    MAPFILE: "./conquest/maps/map.json", //handled if missing. can be null -> defaults to rules
+
+    NUMBER_OF_TEAMS: 0, //////////////////////////////////
+    NUMBER_OF_TERRITORIES: 0, /////////////////////////////////
+    PICTURE_BACKGROUND_MAP: "nomap.png", //cannot null //with extension ///////////////////////////
+    MAPFILE: null, //handled if missing. can be null -> defaults to rules
     TERRITORY_BASE_VALUE: 300,
     CAPITAL_BASE_VALUE: 1000,
     DEFENSE_GAIN_VALUE: +50,

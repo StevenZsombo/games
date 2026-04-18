@@ -1,44 +1,39 @@
 Before starting the game:
-1.  Make sure that the correct map.json file is loaded.
-    Visit Steven/games/docs/conquest/maps.
-    Delete map.json.
-    Find the file with the correct number of teams. Make a copy of it, then rename the copy to map.json.
-2.  Run the server executable.
+1.  Run the server executable.
     It will tell you the IP address students can connect to LATER.
-3.  Run the Electron application BEFORE students start joining.
-    It should load the game.
-4.  dev -> ERASE QUICKSAVES (important!)
-5.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
-6.  SERVER -> MAXATTACKS -> 1 to start with.
+2.  Run the Electron application.
+    It should load the game with an empty map (no colors).
+3.  dev -> LOADMAP then select the right map from Steven/games/docs/conquest/maps.
+4.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
+5.  SERVER -> MAXATTACKS -> 1 to start with.
     Can increase later.
-
 
 Students can now start joining to the IP address.
 Ask them to close all apps and tabs.
 Connect to "Student" wifi, disconnect 5G.
-7.  If a student has an (X) next to their name then they lost connection.
+1.  If a student has an (X) next to their name then they lost connection.
     Small handheld devices may lose connection repeatedly. It is not an issue in general.
     The students might be annoyed (the page will refresh 
     instead of submitting their answers so they will need to type it in again).
-8.  SERVER -> START to begin the game.
+2.  SERVER -> START to begin the game.
 
 Student management:
-Click on team-colored banner, then you can pick a student and
-order them to change their name or kingdom if necessary.
+Click on team-colored banner, then pick a student.
 
 During the game:
 SERVER -> INVALIDATE -> QUESTIONID to remove a faulty question from the question bank.
 Gradually increase SERVER -> MAXATTACKS throughout the game. Use your judgement.
 
 Ending the game:
-9.  SERVER -> END -> Yes to end the game.
-10. SERVER -> DISPLAY to show students the server screen.
-11. SERVER -> DOWNLOAD to let students download a copy of the server screen.
+1.  SERVER -> END -> Yes to end the game.
+2.  SERVER -> DISPLAY to show students the server screen.
+3.  SERVER -> DOWNLOAD to let students download a copy of the server screen.
 
 After the game:
-12. Close both the Electron and the server app.
-13. Send me a copy of:
+1.  Close both the Electron and the server app.
+2.  Send me a copy of:
 - Steven/clipped/conquestEnd(numbers).json
+- Steven/clipped/diagnostic(numbers).json
 - Steven/games/docs/record.txt
 - You can make a timelapse out of the "timelapse" pictures in the Steven/clipped folder 
   if you wish on https://sisik.eu/images-to-video
@@ -48,7 +43,6 @@ After the game:
 Client (student)-side issues & fixes:
 
 Most common problems: too many open tabs, too many open apps, background apps using up the bandwidth.
-Duplicate tabs: if the students opens two different tabs each running the game it will not function properly.
 Solution to each of these: turn off 5G, close all applications and close all tabs.
 
 Can't enter fullscreen - tap the student's name in the right-upper corner.
