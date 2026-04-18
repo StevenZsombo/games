@@ -155,7 +155,12 @@ const PING = (doNotPopup = false, doNotSave = false) => {
     })
     pingWindow = GameEffects.popup("", {
         travelTime: 100, floatTime: Infinity, close_on_release: true,
-        on_end: () => { !doNotSave && MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`) }
+        on_end: () => {
+            !doNotSave && MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`)
+            for ([k, v] of Object.entries(responses)) {
+                participants[k] && (participants[k].ping ??= []).push(v)
+            }
+        }
     }, GameEffects.popupPRESETS.megaBlue)
     pingWindow.dynamicText = () => MM.tableStr(Object.entries(responses), ["name", "ping            "], 5)
 
@@ -796,10 +801,16 @@ class Game extends GameCore {
         }
         this.clockwork_extras.push((() => {
             let lastPinged = 0
+            let lastDiagnosed = 0
             return () => {
-                if (Date.now() - lastPinged > 8 * 60 * 1000) { //every 8 minutes
+                if (!this.attacksAllowed) return
+                if (Date.now() - lastPinged > 3 * 60 * 1000) { //every 3 minutes
                     lastPinged = Date.now()
-                    PING(true, false)//no popup but save
+                    PING(true, true) //saves to participants which are then retrieved by diagnostic
+                }
+                if (MASTER.ALLOW_DIAGNOSTIC && (Date.now() - lastDiagnosed > 15 * 60 * 1000)) {//every 15 minutes
+                    lastDiagnosed = Date.now()
+                    DIAGNOSTIC()
                 }
             }
         })())
@@ -1529,6 +1540,8 @@ class Game extends GameCore {
     * @property {number} timestamp - for debugging
     * @property {string} timestampHHMMSS - for debugging
     * @property {?number[][]} highscore - cumulative highscores per kingdom. MASTER can disable
+    * 
+    * Note: ping will be saved by DIAGNOSTIC
     */
     saveGame(saveName = "conquestManual",
         backups = 5 //also writes to textfile
@@ -1855,6 +1868,9 @@ const dev = {
         console.log(graph)
         console.log(pieces)
         pieces.forEach((x, i) => x.forEach(u => game.kingdoms[i].acquireTerritory(game.territories[u])))
+    },
+    showFPS: () => {
+        game.framerate.button.visible ^= 1
     }
 
 }/// end of dev
