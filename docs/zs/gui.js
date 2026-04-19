@@ -20,18 +20,18 @@ class Framerater {
 		})
 		Button.make_draggable(this.button)
 		this.isRunning = isRunning
-		this.startTime = Date.now()
+		this.startTime = performance.now()
 		this.totalTicks = 0
 		this.totalFrames = 0
 	}
 	get elapsed() {
-		return Math.floor((Date.now() - this.startTime) / 100) / 10
+		return Math.floor((performance.now() - this.startTime) / 100) / 10
 	}
 	update(dt, noDrawingNeeded) {
 		if (this.isRunning) {
 			this.totalTicks += 1
 			this.totalFrames += noDrawingNeeded ? 0 : 1
-			let curr_time = Date.now()
+			let curr_time = performance.now()
 			this.timeStamps.push([curr_time, noDrawingNeeded])
 			let i = this.timeStamps.findIndex(x => curr_time - x[0] < this.measuredTimeInterval)
 			this.timeStamps = this.timeStamps.slice(i)
@@ -87,8 +87,8 @@ class Keyboarder {
 			if (!held[e.key]) {
 				held[e.key] = true
 				pressed[e.key] = true
-				this.strokeBuffer.push([Date.now(), e.key])
-				this.keyBuffer.push([Date.now(), e.key])
+				this.strokeBuffer.push([performance.now(), e.key])
+				this.keyBuffer.push([performance.now(), e.key])
 				this.on_keydown?.(e)
 				this.on_keydownDict[e.key]?.()
 			}
@@ -189,8 +189,8 @@ class Mouser {
 		this.released = false
 		this.down = false
 
-		this.lastClickedTime = Date.now() - 1000
-		this.lastReleasedTime = Date.now() - 1000
+		this.lastClickedTime = performance.now() - 1000
+		this.lastReleasedTime = performance.now() - 1000
 		this._blockNextClick = false
 		this._blockNextRelease = false
 
@@ -257,7 +257,7 @@ class Mouser {
 				this._blockNextClick = false
 			}
 			this.down = true //updates nevertheless? might be an issue
-			this.lastClickedTime = Date.now()
+			this.lastClickedTime = performance.now()
 			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.setPointerCapture(e.pointerId) }
 		}
 		//e.shiftKey, e.ctrlKey //true or false
@@ -276,7 +276,7 @@ class Mouser {
 				this._blockNextRelease = false
 			}
 			this.down = false
-			this.lastReleasedTime = Date.now()
+			this.lastReleasedTime = performance.now()
 			// if (e.pointerType === 'touch' || e.pointerType === 'pen') { this.canvas.releasePointerCapture(e.pointerId) }
 		}
 		const pointercancel = (e) => {

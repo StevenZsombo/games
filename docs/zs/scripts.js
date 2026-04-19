@@ -992,12 +992,12 @@ class Inspector extends Button {
 		this.game.add_drawable(this, 9)
 		this.children = new Set()
 		this._subjects = new Set()
-		this.hoverStartTime = Date.now()
+		this.hoverStartTime = performance.now()
 		this.HOVER_AFTER_TIME = 0 //can set to larger to demand to wait
 	}
 	activate(child) {
 		this._subjects.add(child)
-		this.hoverStartTime = Date.now()
+		this.hoverStartTime = performance.now()
 	}
 	deactivate(child) {
 		this._subjects.delete(child)

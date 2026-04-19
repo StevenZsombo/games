@@ -216,7 +216,8 @@ class GameCore extends GameCoreLayerCore {
         univ.showFramerate && this.add_drawable(this.framerate.button)
 
 
-        this.lastCycleTime = Date.now()
+        this.lastCycleTime = performance.now()
+        this.currentCycleTime = performance.now()
 
 
 
@@ -248,15 +249,15 @@ class GameCore extends GameCoreLayerCore {
         if (!this.isRunning) {
             return
         }
-        const now = Date.now()
+        const now = performance.now()
         const dt = Math.min((now - this.lastCycleTime), this.dtUpperLimit)
         this.lastCycleTime = now
 
         const screen = this.screen
         this.drawnAlready ? null : this.draw_reset(screen)
-        this.update(dt)
-        this.update_more(dt)
-        this.extras_on_update.forEach(x => x.call(this, dt))
+        this.update(dt, now)
+        this.update_more(dt, now)
+        this.extras_on_update.forEach(x => x.call(this, dt, now))
         !this.drawnAlready && this.draw_before?.(screen)
         !this.drawnAlready && this.draw(screen)
         !this.drawnAlready && this.draw_more(screen)
@@ -286,10 +287,9 @@ class GameCore extends GameCoreLayerCore {
 
     }
 
-    update(dt) {
+    update(dt, now) {
         //update
         this.clockTotal += dt
-        const now = Date.now()
         this.keyboarder.update(dt, now)
         if (this.isAcceptingInputs) {
             this.check_drawables(this.mouser)
@@ -365,7 +365,7 @@ class GameWorld extends GameCoreLayerCore {
     update() { }
     /**@param {CheckParamsObj} checkParamsObj  */
     check(checkParamsObj) {
-        if (!this.interactable) return
+        if (!this.interactable) return false
         if (!this.screenRect.collidepoint(checkParamsObj.x, checkParamsObj.y)) return false
         const scaleX = this.screenRect.width / this.worldRect.width
         const scaleY = this.screenRect.height / this.worldRect.height
