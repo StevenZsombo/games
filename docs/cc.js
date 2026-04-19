@@ -161,7 +161,7 @@ var univ = {
         let errorTimeStamps = []
         let errorTimeout = 5 * 1000
         let errorLimit = 5
-        window.onerror = (message, source, lineno, colno, error) => {
+        /*window.onerror = (message, source, lineno, colno, error) => {
             const fallback = `${message} at ${source}:${lineno}:${colno}`
             const stack = error?.stack || ''
             errorTimeStamps = errorTimeStamps.filter(x => Date.now() - x < errorTimeout)
@@ -181,7 +181,7 @@ var univ = {
             }
             event.preventDefault()
 
-        }
+        }*/
 
         if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
         if (location.hash.includes("d")) {
@@ -815,10 +815,16 @@ class Game extends GameCore {
                 this.animator.add_anim(Anim.stepper(
                     attackButton, 800, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 3, ditch: true }
                 ))
+                game.attackArrowsDrawable.target = t
+                game.attackArrowsDrawable.activate()
+                game.attackArrowsDrawable.x = t.button.cx
+                game.attackArrowsDrawable.y = t.button.cy
+
             }
             attackButton.on_click = () => {
                 chat.sendMessage({ attack: attackButton.territory.id })
                 attackButton.interactable = false
+                game.attackArrowsDrawable.deactivate()
                 attackButton.txt = "Waiting for\nserver..."
                 this.animator.add_anim(Anim.delay(500, { on_end: () => attackButton.deactivate() }))
             }
@@ -990,6 +996,45 @@ class Game extends GameCore {
         this.attackCircleDrawableObject = attackCircleDrawableObject
         this.add_drawable(attackCircleDrawableObject, 6)
         wProgress?.("attackCircleDrawable")
+
+
+        const attackArrowsDrawable = this.attackArrowsDrawable = {
+            active: false,
+            activate() { this.active = true; this.t = 0 },
+            deactivate() { this.active = false },
+            tag: "attackArrowsDrawable",
+            t: 0,
+            x: 200,
+            y: 200,
+            legs: 4,
+            target: null,
+            draw(ctx) {
+                if (!this.active) return
+                const t = this.t
+                const innerRadius = 30 + Anim.l.square(Anim.l.wave(t)) * 10
+                const outerRadius = 80 + Anim.l.square(Anim.l.wave(t)) * 10
+                const angle = t * TWOPI
+                for (let i = 0, curr = angle; i < this.legs; i++, curr += TWOPI / this.legs) {
+                    const c = Math.cos(curr)
+                    const s = Math.sin(curr)
+                    MM.drawArrow(ctx,
+                        this.x + outerRadius * c, this.y + outerRadius * s - 6,
+                        this.x + innerRadius * c, this.y + innerRadius * s - 6,
+                        {
+                            color: game.canAttackList?.includes(this.target) ? "red" : "black"
+                            , size: 24, width: 6
+                        }
+                    )
+                }
+            },
+            update(dt) {
+                if (!this.active) return
+                this.t += dt * 0.4 / 1000; if (this.t > 1) this.t--
+            },
+        }
+        this.add_drawable(attackArrowsDrawable, 7)
+        // this.attackArrowsDrawableSecond = { ...attackArrowsDrawable }
+        wProgress?.("attackArrowsDrawable")
 
 
 
