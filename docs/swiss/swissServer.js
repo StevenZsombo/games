@@ -35,6 +35,8 @@ listener.on_message = (msg, person) => {
     }
 }
 
+
+
 class Game extends GameCore {
     //#region more
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,6 +73,18 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
+        chat.initWoo("server")
+
+
+        const cleanup = () => {
+            for (const [name, p] of Object.entries(listener.participants)) {
+                if (Date.now() - p.lastSpoke > 120 * 1000) {
+                    delete listener.participants[name]
+                }
+            }
+        }
+
+        // setInterval(cleanup)
 
     }
 

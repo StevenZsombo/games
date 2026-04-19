@@ -363,6 +363,10 @@ class Chat {
         return ++this._uniqueIDWee
     }
 
+
+    static defaultWeeRetries = 5
+    static defaultWeeInterval = 500
+    /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
     pendingWees = new Map()
     /**
      * @param {string} value
@@ -375,7 +379,8 @@ class Chat {
      * @returns {Promise<any>}
      */
     wee(value, params, {
-        retries = 5, interval = 500, on_retry = null, resolveToDefaultInstead = undefined,
+        retries = chat.defaultWeeRetries, interval = chat.defaultWeeInterval, on_retry = null,
+        resolveToDefaultInstead = undefined,
         msgMore = {}
     } = {}) {
         const uniqueID = this.nextUniqueIDWee
@@ -432,6 +437,8 @@ class Chat {
     initWoo(clientOrServer) {
         const wooLibrary = getWooLibrary?.()
         if (!wooLibrary) throw new Error("no wooLibrary")
+        wooLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = wooLibrary.defaultWeeInterval)
+        wooLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = wooLibrary.defaultWeeRetries)
         for (const [key, obj] of Object.entries(wooLibrary.either)) {
             if (obj[clientOrServer]) this.woo(key, obj[clientOrServer])
         }

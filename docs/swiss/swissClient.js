@@ -28,6 +28,12 @@ const LOSE_COLOR = "white"
 const TIE_COLOR = "lightgreen"
 const RIGHT = 200
 
+
+
+
+
+
+
 //#region Play
 class Player {
     constructor(name = "unnamed") {
@@ -46,10 +52,11 @@ class Player {
                 `${this.name}\n${this.score}${this.scoreToBeGained ? " + " + this.scoreToBeGained : ""}`,
             on_click: () => {
                 // this.win()
-                chat.sendMessage({
-                    want:
-                        `players[${this.id}].win()`
-                })
+                // chat.sendMessage({
+                // want:
+                // `players[${this.id}].win()`
+                // })
+                chat.wee("want", `players[${this.id}].win()`)
             },
             isBlocking: true
         })
@@ -98,13 +105,16 @@ let GAP = .98
 /**
  * @param {Player[]} seatingOrder 
  */
+var latestSeating = players
 const share = (seatingOrder) => {
+    latestSeating = Array.from(seatingOrder)
     const obj = {}
     obj.names = players.map(x => x.name)
     obj.scores = players.map(x => x.score)
     obj.seatingOrder = seatingOrder.map(x => x.id)
     GameEffects.popup("Shared.")
-    chat.sendMessage({ shareSwiss: obj })
+    // chat.sendMessage({ shareSwiss: obj })
+    chat.wee("shareSwiss", obj)
 }
 
 const receive = (obj) => {
@@ -114,6 +124,7 @@ const receive = (obj) => {
     players.forEach((x, i) => x.id = i)
     obj.scores.forEach((x, i) => players[i].score = x)
     game.rearrange(obj.seatingOrder.map(x => players[x]))
+    latestSeating = Array.from(obj.seatingOrder.map(x => players[x]))
     GameEffects.popup("Received.")
 }
 
@@ -182,10 +193,10 @@ class Game extends GameCore {
                 txt: "TIE",
                 on_click: () => {
                     // a.tie() //b._tie() is called by a
-                    chat.sendMessage({
-                        want:
-                            `players[${a.id}].tie()`
-                    })
+                    // chat.sendMessage({
+                    // want:
+                    chat.wee("want", `players[${a.id}].tie()`)
+                    // })
                 }
             })
             tie.centeratX((a.button.centerX + b.button.centerX) / 2)
@@ -232,6 +243,9 @@ class Game extends GameCore {
     }
     //#region initialize_more
     initialize_more() {
+
+        chat.initWoo("client")
+
         MASTER && players.push(...Array(30).fill().map((x, i) => new Player(`player ${i}`)))
         const setPlayers = new Button()
         setPlayers.txt = "Add players"
@@ -275,7 +289,7 @@ class Game extends GameCore {
         ping.move(0, ping.height * 1.5)
         ping.dynamicText = () => chat.isConnected ? "good" : "DISCONNECTED: ping"
         ping.dynamicColor = () => chat.isConnected ? "lightgray" : "red"
-        ping.on_release = () => chat.sendMessage({ want: "GameEffects.popup('pong')" })
+        ping.on_release = () => chat.wee("want", "GameEffects.popup('pong')")//chat.sendMessage({ want: "GameEffects.popup('pong')" })
         this.ping = ping
         this.add_drawable(ping)
 
@@ -291,7 +305,8 @@ class Game extends GameCore {
         timerSet.on_click = () => {
             //this.timeCount = prompt("Set timer for (minutes):") * 60 * 1000
             const howlong = +prompt("Set timer for (minutes):") * 60 * 1000
-            chat.sendMessage({ want: `game.timeCount = ${howlong} ` })
+            // chat.sendMessage({ want: `game.timeCount = ${howlong} ` })
+            chat.wee("want", `game.timeCount = ${howlong} `)
         }
 
         timerSet.width = advance.width * .45
@@ -303,7 +318,8 @@ class Game extends GameCore {
         timerStart.bottomat(this.rect.bottom)
         let timerIsRunning = false
         timerStart.on_click = () => {
-            chat.sendMessage({ want: `game.timerStartAction()` })
+            // chat.sendMessage({ want: `game.timerStartAction()` })
+            chat.wee("want", `game.timerStartAction()`)
         }
 
         const timerStartAction = () => {
@@ -332,16 +348,17 @@ class Game extends GameCore {
 
 
 
-        chat.on_receive = (msg) => {
-            console.log(msg)
-            if (msg.receiveSwiss != null)
-                receive(msg.receiveSwiss)
+        /*chat.on_receive = (msg) => {
+           console.log(msg)
+           if (msg.receiveSwiss != null)
+               receive(msg.receiveSwiss)
+       }*/
 
-        }
-        if (chat.isConnected)
-            chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
-        else chat.on_join_once = () =>
-            chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
+        chat.wee("want", `GameEffects.popup("${chat.name} ${chat.nameID} ready")`)
+        // // chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
+        // else chat.on_join_once = () =>
+        //   chat.wee("want", `GameEffects.popup("${chat.name} ${chat.nameID} ready")`)
+        // chat.sendMessage({ want: `GameEffects.popup("${chat.name} ${chat.nameID} ready")` })
 
     }
 
@@ -422,6 +439,7 @@ const dev = {
             share(players)
         })
     },
-    share: () => { share(players); game.rearrange() }
+    share: () => { share(players) },
+    latest: () => { share(latestSeating); }
 
 }/// end of dev
