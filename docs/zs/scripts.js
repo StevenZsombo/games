@@ -871,7 +871,7 @@ class Button extends Clickable {
 	}
 	/** 
 	 * @param {Button} button @param {number[]} polyXYXYXY 
-	 * @returns {Button & {polyXYXYXY: number[], legs: number}} */
+	 * @returns {Button & {polyXYXYXY: number[], legs: number, innerSize:number, outerSize:number}} */
 	static make_polyStar(button) {
 		button.recomputePolyXYXYXY = function () {
 			this.polyXYXYXY = MM.polyStar(this.x, this.y, this.outerSize,
@@ -1636,6 +1636,13 @@ class InputBoard {
 //#region Panel
 const Panel = Malleable
 //#endregion
+
+
+
+
+
+
+
 
 //#region Slider
 class Slider extends Panel {

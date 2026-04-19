@@ -242,7 +242,7 @@ class Mapster extends OptimizedRecolor {
      * @param {number} [options.fillScale=1] - Fill scale factor
      */
     constructor(colors, imageSourceName, x, y, territories, update,
-        { fillScale = 1, } = {}) {
+        { fillScale = 1, stars } = {}) {
         super()
         this.colors = colors
         this.length = territories.length
@@ -269,6 +269,17 @@ class Mapster extends OptimizedRecolor {
             this.canvas.width = this.width
             this.canvas.height = this.height
             this.ctx.drawImage(img, 0, 0, this.width, this.height)
+            if (stars && stars.length) {
+                stars.forEach(([x, y]) => {
+                    const u = x + this.x
+                    const w = y + this.y
+                    const star = MM.polyStar(u, w, GRAPHICS.CAPITAL_STAR_OUTER_SIZE,
+                        { innerSize: GRAPHICS.CAPITAL_STAR_INNER_SIZE })
+                    console.log({ u, w, star })
+                    MM.drawPolygon(this.ctx, star, { color: "red", outline: 0 })
+                })
+            }
+
             this.imageData = this.ctx.getImageData(0, 0, this.width, this.height)
             this.data = this.imageData.data
 

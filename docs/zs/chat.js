@@ -368,7 +368,7 @@ class Chat {
      * @param {string} value
      * @param {Object} params
      * @param {Object} [options]
-     * @param {number} [options.retries=5]
+     * @param {number} [options.retries=3]
      * @param {number} [options.interval=500]
      * @param {?function(retries:number):any} [options.on_retry=null] - receives number of remaning retries
      * @param {boolean} [options.resolveToDefaultInstead=undefined] - will resolve to this instead of failing

@@ -885,7 +885,10 @@ class Game extends GameCore {
                 () => {
                     mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
                 },
-                { fillScale: RULES.MAPSTER_IMAGE_QUALITY_CLIENT }
+                {
+                    fillScale: RULES.MAPSTER_IMAGE_QUALITY_CLIENT,
+                    stars: RULES.PROVINCE_CAPITAL_STAR_POSITIONS
+                }
             )
 
             this.add_drawable(mapster, 2)

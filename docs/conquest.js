@@ -1144,10 +1144,11 @@ class Game extends GameCore {
             () => {
                 mapster.current = this.territories.map(x => Territory.ownedBy(x)?.id ?? null)
             },
-            { fillScale: RULES.MAPSTER_IMAGE_QUALITY_SERVER }//RULES.MAPSTER_IMAGE_QUALITY } //server always high quality
+            { fillScale: RULES.MAPSTER_IMAGE_QUALITY_SERVER, stars: RULES.PROVINCE_CAPITAL_STAR_POSITIONS }
         )
         this.add_drawable(mapster, 2)
 
+        RELOAD()
 
     }
 
@@ -1506,7 +1507,7 @@ class Game extends GameCore {
                         // spop(`Set.`)
                         chat.targetWee(person, "rename", nn)
                             .then((v) => spop(`Renamed ${v[0]} to ${v[1]}`))
-                            .catch(() => { })
+                            .catch(() => badpop(`Failed to rename ${person.name}`))
 
                     })
                 }
