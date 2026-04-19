@@ -425,8 +425,28 @@ class Chat {
         this.on_weeFunctions.set(wee, fn)
         return this
     }
-    //#endregion
 
+    /**
+     * @param {"client"|"server"} clientOrServer 
+     */
+    initWoo(clientOrServer) {
+        const wooLibrary = getWooLibrary?.()
+        if (!wooLibrary) throw new Error("no wooLibrary")
+        for (const [key, obj] of Object.entries(wooLibrary.either)) {
+            if (obj[clientOrServer]) this.woo(key, obj[clientOrServer])
+        }
+        for (const [key, fn] of Object.entries(wooLibrary[clientOrServer])) {
+            this.woo(key, fn)
+        }
+    }
+
+
+
+
+
+
+    //#endregion
+    //#region receiveMessage
     /**@type {?Function} */
     receiveMessageServer = null
     receiveMessageParse(messageText) {

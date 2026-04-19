@@ -276,11 +276,12 @@ const DIAGNOSTIC = () => {
 
 const ABSOLVE = (person) => {
     person = Person.to(person)
-    const msg = {
+    chat.targetWee(person, "absolve")
+    /*const msg = {
         targetID: person.nameID, many: [{ eval: `game?.easePen?.(true)` }]
     }
     if (game.attacksAllowed) msg.many.push({ popup: "Absolved by server.", popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE })
-    chat.sendMessage(msg)
+    chat.sendMessage(msg)*/
 
 }
 
@@ -480,6 +481,7 @@ listener.on_message = (obj, person) => {
 }
 chat.woo("attempt", ([conflictID, guess], person) => {
     if (!person.verifyKingdomAssignedAlready()) return
+    if (!game.attacksAllowed) return //forgot about this last time lol
     const c = game.conflicts.find(x => x.id === conflictID)
     if (c) c.attempt(person.kingdom, guess, person)
     else { console.error("invalid conflid.id for attempt", conflictID, guess, person) }
@@ -602,7 +604,11 @@ class Game extends GameCore {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
     //#region initialize_more
+    initWoo() {
+        chat.initWoo("server")
+    }
     initialize_more() {
+        this.initWoo()
         /**@type {Territory[]} */
         const territories = Array(RULES.NUMBER_OF_TERRITORIES).fill().map((x, i) => new Territory(i))
         const buts = territories.map(x => x.button)
@@ -1491,10 +1497,6 @@ class Game extends GameCore {
                     .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
                 // () => { chat.sendMessage({ targetID: person.nameID, reload: 1 }); spop(`Ordered.`) }
             ],
-            /*["Order to set fullscreen",
-            () => hqBetter.ordFlush(person)
-            .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
-            ],*/
             ["Rename",
                 () => {
                     asyncprompt("What shall their new name be?").then(nn => {
@@ -1503,6 +1505,8 @@ class Game extends GameCore {
                         // this.kingdoms.forEach(x => x.members.delete(person))
                         // spop(`Set.`)
                         chat.targetWee(person, "rename", nn)
+                            .then((v) => spop(`Renamed ${v[0]} to ${v[1]}`))
+                            .catch(() => { })
 
                     })
                 }
@@ -1519,7 +1523,8 @@ class Game extends GameCore {
                     eval: "localStorage.clear();chat.silentReload();"
                 })*/
             ],
-            ["ping = unknown..."]
+            ["ping = unknown...", () => chat.targetWee(person, "fullscreen")
+                .then(() => spop(`Order received, ask them to\nclick their screen.`)).catch(() => badpop(`Order was not received.`))]
             /*, [
                 "Ping", () => {
                     let start = Date.now()
@@ -1540,9 +1545,8 @@ class Game extends GameCore {
             this.overlay)
         {
             const pingbutton = dddd.menuButtons.at(-2)
-            let start = Date.now()
-            chat.targetWee(person, "time").then(() =>
-                pingbutton.txt = `ping = ${Date.now() - start} ms`
+            chat.targetWee(person, "bounce", Date.now()).then((v) =>
+                pingbutton.txt = `ping = ${Date.now() - v} ms`
             ).catch(() => pingbutton.txt = `ping = TIMEOUT`)
         }
 
@@ -1714,11 +1718,10 @@ class Game extends GameCore {
     sideMessageList = Array(13).fill(null)
     punishedPersonSet = new Map()
     /**@param {Person} person  */
-    warnIdle(person, startTimeStamp) {
+    warnIdle(person, penLeft) {
         if (this.punishedPersonSet.has(person)) {
             const p = this.sideMessageList[this.punishedPersonSet.get(person)]
-            p.startTimeStamp = startTimeStamp
-            p.timeLeftStill = startTimeStamp - Date.now()
+            p.timeLeftStill = penLeft
             return
         }
         let ind = this.sideMessageList.indexOf(null)
@@ -1749,14 +1752,13 @@ class Game extends GameCore {
             popup.getRidOf()
             ABSOLVE(person)
         }
-        popup.startTimeStamp = startTimeStamp
-        popup.timeLeftStill = startTimeStamp - Date.now()
+        popup.timeLeftStill = penLeft
         const action = () => {
             popup.timeLeftStill -= 1000
             if (popup.timeLeftStill < 0) {
                 popup.getRidOf()
             }
-            popup.txt = `${person.name} blocked for ${Math.floor(popup.timeLeftStill / 1000)}`
+            popup.txt = `${person.name} blocked for ${1 + Math.ceil(popup.timeLeftStill / 1000)}`
         }
         action()
         this.clockwork_extras.push(action)

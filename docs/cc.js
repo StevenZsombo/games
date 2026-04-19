@@ -76,7 +76,8 @@ var univ = {
                         RULES.IDLE_BAN_DURATION_BY_OFFENCE_COUNT[Math.min(penCount - 1, RULES.IDLE_BAN_DURATION_BY_OFFENCE_COUNT.length - 1)]
                 }
                 if (RULES.IDLE_NOTIFY_SERVER)
-                    chat.sendMessage({ idle: Date.now() + penLeft })
+                    // chat.sendMessage({ idle: Date.now() + penLeft })
+                    chat.wee("idle", penLeft)
                 writePen()
                 RULES.IDLE_NO_BAN_BUT_WARNING_INSTEAD
                     ? startPenWarn()
@@ -157,18 +158,30 @@ var univ = {
             window.onbeforeunload = null
             location.reload()
         }
+        let errorTimeStamps = []
+        let errorTimeout = 5 * 1000
+        let errorLimit = 5
         window.onerror = (message, source, lineno, colno, error) => {
             const fallback = `${message} at ${source}:${lineno}:${colno}`
             const stack = error?.stack || ''
-            chat.sendMessage({ yell: stack + '\n' + fallback })
-            return false;
+            errorTimeStamps = errorTimeStamps.filter(x => Date.now() - x < errorTimeout)
+            if (errorTimeStamps.length < errorLimit) {
+                errorTimeStamps.push(Date.now())
+                chat.sendMessage({ yell: stack + '\n' + fallback })
+            }
+            return false //so that browser won't whine
         }
         window.onunhandledrejection = (event) => {
             const fallback = `Unhandled Rejection: ${event.reason}`
             const stack = event.reason?.stack || ''
-            chat.sendMessage({ yell: stack + '\n' + fallback })
+            errorTimeStamps = errorTimeStamps.filter(x => Date.now() - x < errorTimeout)
+            if (errorTimeStamps.length < errorLimit) {
+                errorTimeStamps.push(Date.now())
+                chat.sendMessage({ yell: stack + '\n' + fallback })
+            }
             event.preventDefault()
-        };
+
+        }
 
         if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
         if (location.hash.includes("d")) {
@@ -527,15 +540,8 @@ class Game extends GameCore {
 
 
     initWoo() {
-        const wooLibrary = getWooLibrary()
-        for (const [key, obj] of Object.entries(wooLibrary.either)) {
-            if (obj.client) chat.woo(key, obj.client)
-        }
-        for (const [key, fn] of Object.entries(wooLibrary.client)) {
-            chat.woo(key, fn)
-        }
+        chat.initWoo("client")
     }
-
     //#region initialize_more
     initialize_more() {
         wProgress?.("\ninitWoo()")
