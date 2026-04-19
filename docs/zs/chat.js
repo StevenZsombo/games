@@ -645,9 +645,10 @@ class ChatServer extends Chat {
         this.sendMessage({ eval: code })
     }
 
-    targetWee(targets, value, params, weeArgs) {
-        let targetIDlist = [].concat(targets).map(x => typeof x === "string" ? x : x.nameID).filter(x => x)
-        return this.wee(value, params, { targetIDlist, ...weeArgs })
+    targetWee(targetID, value, params, weeArgs) {
+        // let targetIDlist = [].concat(target).map(x => typeof x === "string" ? x : x.nameID).filter(x => x)
+        if (typeof targetID !== 'string') targetID = targetID.nameID
+        return this.wee(value, params, { targetID, ...weeArgs })
     }
 
 
