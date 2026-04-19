@@ -54,9 +54,11 @@ class Rect {
 	get cx() {
 		return this.x + this.width / 2
 	}
+	set cx(v) { this.centeratX(v) }
 	get cy() {
 		return this.y + this.height / 2
 	}
+	set cy(v) { this.centeratY(v) }
 	get topleft() {
 		return {
 			x: this.x,
@@ -104,6 +106,11 @@ class Rect {
 	}
 	bottomstretchat(value) {
 		this.height = value - this.y
+		return this
+	}
+	untangle() {
+		if (this.width < 0) this.x += this.width, this.width = -this.width
+		if (this.height < 0) this.y += this.height, this.height = -this.height
 		return this
 	}
 	topleftat(x, y) {
@@ -223,6 +230,17 @@ class Rect {
 		if (h !== null) this.height = h
 		this.centerat(x, y)
 		return this
+	}
+
+	zoom(x, y, factorX, factorY) {
+		const newWidth = this.width * factorX
+		const newHeight = this.height * factorY
+		const dx = (x - this.x) * (factorX - 1)
+		const dy = (y - this.y) * (factorY - 1)
+		this.x -= dx
+		this.y -= dy
+		this.width = newWidth
+		this.height = newHeight
 	}
 
 	spread(x, y, spreadFactorX, spreadFactorY) {
@@ -595,6 +613,7 @@ class Clickable extends Rect {
 //#endregion
 //#region Button
 class Button extends Clickable {
+	/**@param {Button} [options={}]  */
 	constructor(options = {}) {
 		super(options)
 		/**@type {string} */
@@ -1094,6 +1113,20 @@ class Malleable {
 	forEach(...args) { return this.components.forEach(...args) }
 	map(...args) { return this.components.map(...args) }
 	filter(...args) { return this.components.filter(...args) }
+	push(...args) { return this.components.push(...args) }
+	find(...args) { return this.components.find(...args) }
+	findIndex(...args) { return this.components.findIndex(...args) }
+	indexOf(...args) { return this.components.indexOf(...args) }
+	some(...args) { return this.components.some(...args) }
+	includes(...args) { return this.components.includes(...args) }
+	every(...args) { return this.components.every(...args) }
+	reduce(...args) { return this.components.reduce(...args) }
+	reduceRight(...args) { return this.components.reduceRight(...args) }
+	slice(...args) { return this.components.slice(...args) }
+	splice(...args) { return this.components.splice(...args) }
+	sort(...args) { return this.components.sort(...args) }
+	reverse(...args) { return this.components.reverse(...args) }
+	append(...args) { this.components.push(...args); return this.components; }
 	get length() { return this.components.length }
 	[Symbol.iterator]() { return this.components[Symbol.iterator](); }
 

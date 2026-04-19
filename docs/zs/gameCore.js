@@ -38,7 +38,9 @@ window.onload = function () {
     }
 
     univ.on_first_run?.()
-    if (univ.on_first_run_blocking) {
+    if (univ.on_first_run_async) {  //prioritize this over blocking. blocking sucks.
+        univ.on_first_run_async().then(() => beforeMain(canvas))
+    } else if (univ.on_first_run_blocking) {
         univ.on_first_run_blocking(beforeMain.bind(window, canvas))
     } else beforeMain(canvas)
 }
@@ -46,9 +48,9 @@ window.onload = function () {
 
 //#region beforeMain, main
 const beforeMain = function (canvas) {
-    const filelist = null
-    //filelist = `${univ.fontFile}${univ.fontFile && univ.filesList ? " " : ""}${univ.filesList}` //fontFile goes first!
-    if (filelist) {//croper, files, myFont are all GLOBAL
+    // const filelist = null //finally fixed it haha
+    const filelist = `${univ.fontFile ?? ""}${univ.fontFile && univ.filesList ? " " : ""}${univ.filesList ?? ""}` //fontFile goes first!
+    if (filelist) {//cropper, files, myFont are all GLOBAL
         cropper.load_images(filelist.split(" "), files, () => {
             if (univ.fontFile) { myFont.load_fontImage(cropper.convertFont(Object.values(files)[0])) }
             main(canvas)
@@ -167,6 +169,12 @@ class GameCoreLayerCore {
         items.flat().forEach(x => this.remove_drawable(x))
     }
     get layersFlat() { return this.layers.flat() }
+
+    update_drawables(dt) {
+        this.layers.forEach(layer => layer.forEach(item => item.update?.(dt)))
+    }
+    update(dt) { this.update_drawables(dt) }
+
 }
 
 //#endregion
@@ -297,9 +305,6 @@ class GameCore extends GameCoreLayerCore {
         this.update_drawables(dt)
         this.animator.update(dt)
     }
-    update_drawables(dt) {
-        this.layers.forEach(layer => layer.forEach(item => item.update?.(dt)))
-    }
 
 
     draw(screen) {
@@ -346,6 +351,11 @@ class GameWorld extends GameCoreLayerCore {
         this.visible = true
         this.interactable = true
     }
+
+    get scaleX() { return this.screenRect.width / this.worldRect.width }
+    get scaleY() { return this.screenRect.height / this.worldRect.height }
+
+
     /**@param {RenderingContext} ctx */
     draw(ctx) {
         if (!this.visible) return
@@ -354,30 +364,62 @@ class GameWorld extends GameCoreLayerCore {
         ctx.beginPath()
         ctx.rect(0, 0, this.screenRect.width, this.screenRect.height)
         ctx.clip()
-        const scaleX = this.screenRect.width / this.worldRect.width
-        const scaleY = this.screenRect.height / this.worldRect.height
-        ctx.translate(-this.worldRect.x * scaleX, -this.worldRect.y * scaleY)
-        ctx.scale(scaleX, scaleY)
+        ctx.translate(-this.worldRect.x * this.scaleX, -this.worldRect.y * this.scaleY)
+        ctx.scale(this.scaleX, this.scaleY)
         this.draw_layers(ctx)
         ctx.restore()
     }
 
-    update() { }
+
+
     /**@param {CheckParamsObj} checkParamsObj  */
     check(checkParamsObj) {
         if (!this.interactable) return false
         if (!this.screenRect.collidepoint(checkParamsObj.x, checkParamsObj.y)) return false
-        const scaleX = this.screenRect.width / this.worldRect.width
-        const scaleY = this.screenRect.height / this.worldRect.height
 
         const translated = {
             ...checkParamsObj,
-            x: (checkParamsObj.x - this.screenRect.x) / scaleX + this.worldRect.x,
-            y: (checkParamsObj.y - this.screenRect.y) / scaleY + this.worldRect.y
+            x: (checkParamsObj.x - this.screenRect.x) / this.scaleX + this.worldRect.x,
+            y: (checkParamsObj.y - this.screenRect.y) / this.scaleY + this.worldRect.y
         }
         return this.check_drawables(translated) && this.isBlocking
     }
 
+    worldToScreenV({ x, y } = {}) {
+        return {
+            x: (x - this.worldRect.x) * this.scaleX + this.screenRect.x,
+            y: (y - this.worldRect.y) * this.scaleY + this.screenRect.y
+        }
+    }
+    screenToWorldV({ x, y }) {
+        return {
+            x: (x - this.screenRect.x) / this.scaleX + this.worldRect.x,
+            y: (y - this.screenRect.y) / this.scaleY + this.worldRect.y
+        }
+    }
+
+
+    worldToScreenRect(rect) {
+        const topLeft = this.worldToScreenV({ x: rect.x, y: rect.y })
+        const bottomRight = this.worldToScreenV({ x: rect.x + rect.width, y: rect.y + rect.height })
+        return new Rect(
+            topLeft.x,
+            topLeft.y,
+            bottomRight.x - topLeft.x,
+            bottomRight.y - topLeft.y
+        )
+    }
+
+    screenToWorldRect(rect) {
+        const topLeft = this.screenToWorldV({ x: rect.x, y: rect.y })
+        const bottomRight = this.screenToWorldV({ x: rect.x + rect.width, y: rect.y + rect.height })
+        return new Rect(
+            topLeft.x,
+            topLeft.y,
+            bottomRight.x - topLeft.x,
+            bottomRight.y - topLeft.y
+        )
+    }
 
 }
 

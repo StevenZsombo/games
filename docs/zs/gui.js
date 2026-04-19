@@ -53,7 +53,7 @@ class Framerater {
 //#region Keyboarder
 class Keyboarder {
 	constructor(denybuttons) {
-		if (denybuttons === null) {
+		if (denybuttons !== true && denybuttons !== false) {
 			throw new Error("did not specify whether keypress propagation should be denied or not")
 		}
 		/*-----------------------------------------------worst idea ever---------------------------------------------------------*/
@@ -76,6 +76,7 @@ class Keyboarder {
 		this.on_keydownDict = {} //takes event.key
 		this.on_keyup = null //takes event
 		this.on_keyupDict = {} //takes event.key
+		this.on_keyheldDict = {} //no parameters
 		this.on_paste = null //(text) => ...
 		this.on_pasteEvent = null //(event) => ...
 		this.on_copy = null
@@ -166,6 +167,9 @@ class Keyboarder {
 		}
 		this.keyBuffer = this.keyBuffer.filter(x => now - x[0] < this.keyBufferExpiration)
 		this.bufferedKeys = this.keyBuffer.map(x => x[1])
+		for (const [key, fn] of Object.entries(this.on_keyheldDict)) {
+			this.held[key] && fn()
+		}
 	}
 
 	next_loop() {

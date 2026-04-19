@@ -360,7 +360,7 @@ class MM {
                 height = height * rect.width / width
                 width = rect.width
             }
-        } else {
+        } else if (imgScale != 1) {
             width *= imgScale
             height *= imgScale
         }
@@ -2311,6 +2311,24 @@ class GameEffects {
      * - has .value for its content
      * */
     static inputBox(x = 100, y = 100, width, height, on_pressingEnter, on_input) {
+        const hijacker = {
+            _hijack: null,
+            start() {
+                this._hijack = {}
+                this._hijack.on_keydownDict = game.keyboarder.on_keydownDict
+                this._hijack.on_keyupDict = game.keyboarder.on_keyupDict
+                this._hijack.on_keyheldDict = game.keyboarder.on_keyheldDict
+                game.keyboarder.on_keydownDict = {}
+                game.keyboarder.on_keyheldDict = {}
+                game.keyboarder.on_keyupDict = {}
+            },
+            end() {
+                if (!this._hijack) return
+                Object.assign(game.keyboarder, this._hijack)
+                this._hijack = null
+            }
+        }
+        hijacker.start()
         const input = document.createElement((on_input && !on_pressingEnter) ? 'textarea' : 'input')
         input.style.position = 'absolute'
         input.id = "inputBox" //my own thing
@@ -2326,12 +2344,14 @@ class GameEffects {
                 const value = input.value
                 game.keyboarder.on_keydownDict["Enter"] = null
                 input.remove()
+                hijacker.end()
                 on_pressingEnter?.(value)
             }
         }
         if (on_input) {
             input.oninput = () => on_input(input.value)
         }
+        input.focus()
         return input
     }
 

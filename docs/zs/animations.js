@@ -226,8 +226,8 @@ class Anim {
 	 */
 	static stepper(obj, time, varNames, startVals, endVals, args = {}) {
 		if (!Array.isArray(varNames)) { varNames = varNames.split(" ") }
-		if (!Array.isArray(startVals)) { startVals = [startVals] }
-		if (!Array.isArray(endVals)) { endVals = [endVals] }
+		if (startVals && !Array.isArray(startVals)) { startVals = [startVals] }
+		if (endVals && !Array.isArray(endVals)) { endVals = [endVals] }
 
 		const settings = { varNames, startVals, endVals, ...args }
 		return new Anim(obj, time, "stepMany", settings)
@@ -467,14 +467,14 @@ class Anim {
 		if (!this.init) {
 			MM.requireEither(this, "varNames startVals", "varNames endVals")
 			this.init = true
-			if (!this.endVals) {
+			if (!this.endVals?.length) {
 				this.endVals = []
 				this.varNames.forEach((b, i) => {
 					this.endVals[i] = this.obj[b]
 				}
 				)
 			}
-			if (!this.startVals) {
+			if (!this.startVals?.length) {
 				this.startVals = []
 				this.varNames.forEach((b, i) => {
 					this.startVals[i] = this.obj[b]

@@ -15,6 +15,7 @@ var univ = {
     on_each_start: null,
     on_first_run: null,
     on_first_run_blocking: null,
+    on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
     on_beforeunload: null,
     allowQuietReload: true,
