@@ -663,3 +663,31 @@ class Gimmicks {
         console.log(JSON.stringify(arr))
     }
 }
+
+
+var getWooLibrary = () => {
+    return {
+        either: {
+            eval: {
+                client: eval
+            },
+            time: {
+                client: Date.now,
+                server: Date.now,
+            },
+        },
+        client: {
+            rename: v => chat.forceName(v, true),
+            whitelist: () => {
+                game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000)
+                game.cpop("You have been whitelisted by the server.")
+            },
+            ordChangeName: game.resetName,
+            ordChangeKingdom: game.resetKingdom,
+            ordReload: chat.delayedReload,
+            ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
+        },
+        server: {}
+
+    }
+}

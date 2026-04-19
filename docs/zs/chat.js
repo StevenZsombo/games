@@ -141,6 +141,10 @@ class Chat {
      * @property {string} [targetID] - server only
      * @property {string[]} [targetIDlist] - server only
      * @property {any[]} [many] - objects in many (array) are parsed in order
+     * @property {string} [wee] - send with an async callback on response
+     * @property {string} [woo] - respond to a wee request
+     * @property {string} [value] - default value to be handled for most tags
+     * @property {string} [params] - for wee requests
      * @property {string} [eval]
      * @property {any} [log]
      * @property {string} [alert]
@@ -345,19 +349,47 @@ class Chat {
         univ.allowQuietReload = true
         location.reload()
     }
+    delayedReload() {
+        setTimeout(() => {
+            univ.allowQuietReload = true
+            location.reload()
+        }, 1)
+    }
+
     //#region wee woo
+
+    _uniqueIDWee = 0
+    get nextUniqueIDWee() {
+        return ++this._uniqueIDWee
+    }
+
     pendingWees = new Map()
-    wee(value, params, { retries = 5, interval = 500 } = {}) {
-        const uniqueID = MM.randomID()
+    /**
+     * @param {string} value
+     * @param {Object} params
+     * @param {Object} [options]
+     * @param {number} [options.retries=5]
+     * @param {number} [options.interval=500]
+     * @param {?function(retries:number):any} [options.on_retry=null] - receives number of remaning retries
+     * @param {boolean} [options.resolveToDefaultInstead=undefined] - will resolve to this instead of failing
+     * @returns {Promise<any>}
+     */
+    wee(value, params, {
+        retries = 5, interval = 500, on_retry = null, resolveToDefaultInstead = undefined,
+        msgMore = {}
+    } = {}) {
+        const uniqueID = this.nextUniqueIDWee
         return new Promise((resolve, reject) => {
-            const flag = `wee@${uniqueID}`
-            const msg = { wee: uniqueID, value, params }
+            const flag = `w${uniqueID}`
+            const msg = { ...msgMore, wee: uniqueID, value }
+            params && (msg.params = params)
             const send = () => this.isConnected ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
             const clock = setInterval(() => {
                 if (--retries < 0) {
                     cleanup()
-                    reject(`wee timeout: ${value}`)
+                    resolveToDefaultInstead === undefined ? reject(`wee timeout: ${value}`) : resolve(resolveToDefaultInstead)
                 } else {
+                    on_retry?.(retries)
                     send()
                 }
             }, interval)
@@ -371,11 +403,24 @@ class Chat {
             send()
         })
     }
-    /**@type {Map<string,Function>} */
+    /**@type {Map<string, function(params: Object, person: Person|Participant): any>}*/
     on_weeFunctions = new Map()
-    weeHandler(message) {
-        return { woo: message.wee, value: this.on_weeFunctions.get(message.value)?.(message.params) }
+    /**
+     * @param {ChatMessage} message
+     * @param {Person|Participant} person
+     * @returns {{woo: number, value: any}}
+     */
+    weeHandler(message, person) {
+        return {
+            woo: message.wee, value:
+                this.on_weeFunctions.get(message.value)?.(message.params, person)
+        }
     }
+    /**
+     * @param {string} wee
+     * @param {function(params: Object, person: Person|Participant): any} fn
+     * @returns {this}
+    */
     woo(wee, fn) {
         this.on_weeFunctions.set(wee, fn)
         return this
@@ -394,7 +439,11 @@ class Chat {
     }
 
     receiveMessageCommonForClientAndServer(message) {
-        if (this.safeToReceiveCommonForClientAndServer(message)) {
+        let person
+        if (
+            this.safeToReceiveCommonForClientAndServer(message)
+            && (!this.safeToReceiveForListener || (person = this.safeToReceiveForListener(message)))
+        ) {
             this.on_receive?.(message)
             this.on_receive_more?.(message)
             if (message.woo && this.pendingWees.has(message.woo)) {//invalid wees are ignored.
@@ -404,7 +453,7 @@ class Chat {
                 return
             }
             if (message.wee) {
-                this.sendMessage(this.weeHandler(message))
+                this.sendMessage(this.weeHandler(message, person))
                 return
             }
             this.receiveMessage?.(message)
@@ -421,10 +470,11 @@ class Chat {
         return false
     }
 
+
     //#region receiveMessageCommonClientAndServer
     /**
      * @returns {Boolean} - whether cancel early for safe receive
-     */
+    */
     safeToReceiveCommonForClientAndServer(message) {
         //safe receiving
         if (this.checkIfReceivedAlready(message)) { return false } //if already processed, then ignore.
@@ -437,7 +487,11 @@ class Chat {
         //safe otherwise
         return true
     }
-    //#endregion
+    /** @type {?Function} */
+    safeToReceiveForListener = null
+
+
+
     //#region receiveMessage
     /**@param {Object} message  */
     receiveMessage(message) {
@@ -570,6 +624,13 @@ class ChatServer extends Chat {
     sendCommand(code) {
         this.sendMessage({ eval: code })
     }
+
+    targetWee(targets, value, params, weeArgs) {
+        let targetIDlist = [].concat(targets).map(x => typeof x === "string" ? x : x.nameID).filter(x => x)
+        return this.wee(value, params, { targetIDlist, ...weeArgs })
+    }
+
+
     /**@param {String} targetID  */
     orderResetName(targetID) {
         const obj = {}
@@ -609,6 +670,7 @@ class Listener {
         // this.recoveryQueue = new Map()
 
         this.chat.receiveMessageServer = this.receiveMessageServer.bind(this)
+        this.chat.safeToReceiveForListener = this.safeToReceiveForListener.bind(this)
 
         this.on_message = null //takes obj, person
         this.on_message_more = null //takes obj, person
@@ -639,20 +701,19 @@ class Listener {
     }
 
 
-
-    receiveMessageServer(message) {
+    safeToReceiveForListener(message) {
         this.isLogging && console.log(message)
         if (message.name == "WS") {
             message.disconnectedAddress && this.participantHasJustDisconnected(message.disconnectedAddress)
             //message.recoverFromWS && this.recoverFromWS(message.recoverFromWS)
-            return
+            return false
         }
         if (!message.name || message.name == this.name || !message.nameID) {
             console.error("Received an unnamed message", message)
-            return
+            return false
         }
         const participants = this.participants
-        const { name, nameID, ...rest } = message
+        const { name, nameID } = message
         //resolving connectivity concerns
         if (message.connected) {//sent only by node //also has connectedAddress, may differ?
             if (!participants[name]) {
@@ -690,19 +751,20 @@ class Listener {
             } else {
                 //hell no. they can just reload
                 this.handleEarlyJoin(name, nameID)
-                return
+                return false
             }
 
         }
+        return participants[name]
+    }
 
-        const person = participants[name]
+    receiveMessageServer(message) {
+        const person = this.participants[message.name]
         if (!person) {
             console.error("participants[name] does not exist???")
             return
         }
         person.lastSpoke = Date.now()
-
-
 
         //logging any requests
         if (message.promptResponse) {
@@ -722,6 +784,7 @@ class Listener {
         this.on_message_more?.(message, person)
 
     }
+
 
     participantHasJustDisconnected(address) {
         const person = Object.values(this.participants).find(x => x.connectedAddress === address)

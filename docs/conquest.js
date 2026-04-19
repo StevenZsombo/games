@@ -65,6 +65,10 @@ class Person extends Participant {
         !doNotOrderResetName && chat.orderResetName(this.nameID)
         delete participants[this.name]
     }
+    kickBetter() {
+        game?.kingdoms.forEach(x => x.members.delete(this))
+        delete participants[this.name]
+    }
     initialize() {
         if (this.initialized) return //redundant but whatever
         this.initialized = true
@@ -134,8 +138,11 @@ const POPUP = (txt, settings) => chat.sendMessage({
 const spop = (str, moreStgs) => {
     GameEffects.popup(str,
         moreStgs
-            ? { ...moreStgs, ...GameEffects.popupPRESETS.leftLargePink }
+            ? { ...GameEffects.popupPRESETS.leftLargePink, ...moreStgs, }
             : GameEffects.popupPRESETS.leftLargePink)
+}
+const badpop = (str, moreStgs) => {
+    spop(str, { ...moreStgs, moreButtonSettings: { color: "red", width: 400, height: 140 } })
 }
 const ATTENDANCE = (txt) => {
     chat.orderAttendance()
@@ -151,7 +158,7 @@ const PING = (doNotPopup = false, doNotSave = false) => {
     const sentAt = Date.now()
     Object.values(participants).forEach(p => {
         responses[p.name] = "-"
-        p.on_request_response_once = (value) => responses[p.name] = (+value) - sentAt
+        p.on_request_response_once = (_) => responses[p.name] = Date.now() - sentAt
     })
     pingWindow = GameEffects.popup("", {
         travelTime: 100, floatTime: Infinity, close_on_release: true,
@@ -305,14 +312,16 @@ const UNPAUSE = () => {
 const WHITELIST = (person) => {
     if (!game) return
     person = Person.to(person)
-    chat.sendMessage({
+    chat.targetWee(person, "whitelist")
+        .then(() => spop(`Whitelisted ${person.name}.`)).catch(() => badpop("Order was not received"))
+    /*chat.sendMessage({
         targetID: person.nameID,
         eval:
             `game?.easePen?.();localStorage.setItem("protectedFromPenUntil",32503680000000);`, //the year 3000
         popup: "You have been whitelisted.",
         popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE
 
-    })
+    })*/
     if (game.punishedPersonSet.has(person)) {
         game.sideMessageList[game.punishedPersonSet.get(person)]?.getRidOf?.()
     }
@@ -460,14 +469,21 @@ listener.on_message = (obj, person) => {
         if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.nameID)
         else SHARE("conflictsData", person.nameID)
     }
+    /*
+    //deprecated!
     if (obj.attempt !== undefined) {
         if (!person.verifyKingdomAssignedAlready()) return
         const c = game.conflicts.find(x => x.id === obj.attempt)
         if (c) c.attempt(person.kingdom, obj.guess, person)
         else { console.error("invalid conflict.id for attempt", this) }
-    }
+    }*/
 }
-
+chat.woo("attempt", ([conflictID, guess], person) => {
+    if (!person.verifyKingdomAssignedAlready()) return
+    const c = game.conflicts.find(x => x.id === conflictID)
+    if (c) c.attempt(person.kingdom, guess, person)
+    else { console.error("invalid conflid.id for attempt", conflictID, guess, person) }
+})
 
 
 
@@ -1461,24 +1477,32 @@ class Game extends GameCore {
     individualMenu(person, btStgs) {
         const opts = [
             ["Order to change name",
-                () => { hq.orderResetName(person.name); spop(`Ordered.`) }
+                () => hqBetter.ordChangeName(person)
+                    .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
+                //() => { hq.orderResetName(person.name); spop(`Ordered.`) }
             ],
             ["Order to change kingdom",
-                () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
+                () => hqBetter.ordChangeKingdom(person)
+                    .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
+                // () => { hq.orderResetKingdom(person.name); spop(`Ordered.`) }
             ],
             ["Order to reload page",
-                () => { chat.sendMessage({ targetID: person.nameID, reload: 1 }); spop(`Ordered.`) }
+                () => hqBetter.ordReload(person)
+                    .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
+                // () => { chat.sendMessage({ targetID: person.nameID, reload: 1 }); spop(`Ordered.`) }
             ],
-            ["Order to set fullscreen",
-                () => { chat.sendMessage({ targetID: person.nameID, present: 1 }); spop(`Ordered. They should click now.`) }
-            ],
+            /*["Order to set fullscreen",
+            () => hqBetter.ordFlush(person)
+            .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
+            ],*/
             ["Rename",
                 () => {
                     asyncprompt("What shall their new name be?").then(nn => {
                         if (nn.length <= 3) nn += "" + person.nameID
-                        chat.orderForceName(person.nameID, nn)
+                        // chat.orderForceName(person.nameID, nn)
                         // this.kingdoms.forEach(x => x.members.delete(person))
-                        spop(`Set.`)
+                        // spop(`Set.`)
+                        chat.targetWee(person, "rename", nn)
 
                     })
                 }
@@ -1486,23 +1510,42 @@ class Game extends GameCore {
             ["Whitelist", () => {
                 WHITELIST(person)
             }],
-            ["Flush", () => {
+            ["Flush", () => hqBetter.ordFlush(person)
+                .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
+                /*
                 person.kick(true)
                 chat.sendMessage({
                     targetID: person.nameID,
                     eval: "localStorage.clear();chat.silentReload();"
-                })
-            }]
+                })*/
+            ],
+            ["ping = unknown..."]
+            /*, [
+                "Ping", () => {
+                    let start = Date.now()
+                    chat.targetWee(person, "time").then(() => spop(
+                        `${person.name} has ping ${Date.now() - start} ms`
+                    )).catch(badpop)
+                }
+            ]*/
             /*["Reassign to kingdom",
                 () => {
                     spop("Feature unavailable.\nTODO")
                 }
             ]*/
         ]
-        GameEffects.dropDownMenu(opts.map(x => [x[0], x[1]]),
+        const dddd = GameEffects.dropDownMenu(opts.map(x => [x[0], x[1]]),
             null, null, null,
             btStgs ?? { fontSize: 28, width: 360, height: 70, },// color: "white", hover_color: "lightblue" },
             this.overlay)
+        {
+            const pingbutton = dddd.menuButtons.at(-2)
+            let start = Date.now()
+            chat.targetWee(person, "time").then(() =>
+                pingbutton.txt = `ping = ${Date.now() - start} ms`
+            ).catch(() => pingbutton.txt = `ping = TIMEOUT`)
+        }
+
     }
     /**@type {Array<[...scores:number[], timestamp:number]>} */
     highscore = []
@@ -1871,6 +1914,9 @@ const dev = {
     },
     showFPS: () => {
         game.framerate.button.visible ^= 1
+    },
+    acceptAllAttacks: () => {
+        game.conflicts.forEach(x => !x.solving && x.accept())
     }
 
 }/// end of dev
@@ -1962,6 +2008,14 @@ const hq = {
             popupSettings: { floatTime: 10000 }
         })
     },
+}
+
+const hqBetter = {
+    kick: person => person.kickBetter(),
+    ordChangeName: person => (person.kickBetter(), chat.targetWee(person, "ordChangeName")),
+    ordChangeKingdom: person => (person.kickBetter(), chat.targetWee(person, "ordChangeKingdom")),
+    ordReload: person => (chat.targetWee(person, "ordReload")),
+    ordFlush: person => (person.kickBetter(), chat.targetWee(person, "ordFlush")),
 }
 
 

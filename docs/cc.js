@@ -451,6 +451,9 @@ class Game extends GameCore {
         chat.silentReload()
     }
 
+    cpop(txt) {
+        GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE)
+    }
 
     acquireName() {
         let STUDENTS = RULES.STUDENTS
@@ -522,10 +525,22 @@ class Game extends GameCore {
         fm.add(label)
     }
 
+
+    initWoo() {
+        const wooLibrary = getWooLibrary()
+        for (const [key, obj] of Object.entries(wooLibrary.either)) {
+            if (obj.client) chat.woo(key, obj.client)
+        }
+        for (const [key, fn] of Object.entries(wooLibrary.client)) {
+            chat.woo(key, fn)
+        }
+    }
+
     //#region initialize_more
     initialize_more() {
+        wProgress?.("\ninitWoo()")
+        this.initWoo()
         wProgress?.("\ninitalize_more()")
-
 
 
 
@@ -1368,6 +1383,20 @@ class QPane extends Panel {
                 )
                 return
             }
+            chat.wee("attempt", [this.id, +this.guess])
+                .then(() => {
+                    this.submissionTimestamps.push(Date.now())
+                    this.guess = "" //reset
+                    game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."], { ditch: true }))
+                })
+                .catch(() => {
+                    GameEffects.popup(
+                        `Failure to connect. Waiting to reconnect...\nIf this happens a lot, ask the teacher for help.`, undefined,
+                        GRAPHICS.POPUP_ERROR)
+
+                })
+            /*
+            //deprecated!
             if (!chat.isConnected) {
                 GameEffects.popup(
                     `Failure to connect. Waiting to reconnect...\nIf this happens a lot, ask the teacher for help.`, undefined,
@@ -1385,7 +1414,7 @@ class QPane extends Panel {
             this.submissionTimestamps.push(Date.now())
             this.guess = "" //reset
             game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."], { ditch: true }))
-
+            */
         }
 
         if (RULES.SHOW_QUESTION_ID) {
