@@ -815,17 +815,21 @@ class Game extends GameCore {
                 this.animator.add_anim(Anim.stepper(
                     attackButton, 800, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 3, ditch: true }
                 ))
-                game.attackArrowsDrawable.target = t
-                game.attackArrowsDrawable.activate()
-                game.attackArrowsDrawable.x = t.button.cx
-                game.attackArrowsDrawable.y = t.button.cy
+
+                this.attackDrawablesArray.forEach(x => {
+                    x.target = t
+                    x.activate()
+                    x.x = t.button.cx
+                    x.y = t.button.cy
+                }
+                )
 
             }
             attackButton.on_click = () => {
                 chat.sendMessage({ attack: attackButton.territory.id })
                 attackButton.interactable = false
-                game.attackArrowsDrawable.deactivate()
                 attackButton.txt = "Waiting for\nserver..."
+                this.attackDrawablesArray.forEach(x => x.deactivate())
                 this.animator.add_anim(Anim.delay(500, { on_end: () => attackButton.deactivate() }))
             }
 
@@ -994,9 +998,12 @@ class Game extends GameCore {
             }
         }
         this.attackCircleDrawableObject = attackCircleDrawableObject
-        this.add_drawable(attackCircleDrawableObject, 6)
-        wProgress?.("attackCircleDrawable")
+        if (GRAPHICS.ALLOW_ATTACK_CIRCLES)
+            this.add_drawable(attackCircleDrawableObject, 6)
+        wProgress?.("\nattackCircleDrawable")
 
+
+        this.attackDrawablesArray = []
 
         const attackArrowsDrawable = this.attackArrowsDrawable = {
             active: false,
@@ -1032,9 +1039,53 @@ class Game extends GameCore {
                 this.t += dt * 0.4 / 1000; if (this.t > 1) this.t--
             },
         }
-        this.add_drawable(attackArrowsDrawable, 7)
+        if (GRAPHICS.ALLOW_ATTACK_TARGETING_ARROWS) {
+            this.add_drawable(attackArrowsDrawable, 7)
+            this.attackDrawablesArray.push(attackArrowsDrawable)
+        }
         // this.attackArrowsDrawableSecond = { ...attackArrowsDrawable }
         wProgress?.("attackArrowsDrawable")
+
+
+        const attackEmanate = this.attackEmanate = {
+            active: false,
+            activate() { this.active = true; this.t = 0; this.circles = [] },
+            deactivate() { this.active = false },
+            tag: "attackArrowsDrawable",
+            t: 0,
+            x: 200,
+            y: 200,
+            target: null,
+            circles: [],
+            draw(ctx) {
+                if (!this.active) return
+                const col = game.canAttackList?.includes(this.target) ? "red" : "black"
+                if (col === "black") this.deactivate() //only when black
+                let t = this.t
+                if (this.circles.length < t && t < 3)
+                    this.circles.push(0)
+                for (let i = 0; i < this.circles.length; i++) {
+                    let count = (5 - i) + t
+                    this.circles[i] = ((count) * 30 - 40) * .4
+                    MM.drawCircle(ctx, this.x, this.y, this.circles[i],
+                        {
+                            color: null, outline: 3, outline_color: col,
+                            opacity: t < 5 ? 0 : 1 - (10 - t) / 5
+                        }
+                    )
+                }
+
+            },
+            update(dt) {
+                if (!this.active) return
+                this.t += dt * 7 / 1000; if (this.t > 10) this.deactivate()
+            },
+        }
+        if (GRAPHICS.ALLOW_ATTACK_TARGETING_EMANATE) {
+            this.add_drawable(attackEmanate, 7)
+            this.attackDrawablesArray.push(attackEmanate)
+        }
+        wProgress?.("attackEmanate")
 
 
 
