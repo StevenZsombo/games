@@ -2,14 +2,17 @@
 
 /**
  * @typedef {Object} _fileAPI
- * @property {(relativePath: string) => Promise<string[]>} readdir
+ * @property {(relativePath: string) => Promise<Array<{name: string, isDirectory: boolean, isFile: boolean}>>} readdir
  * @property {(oldRelativePath: string, newRelativePath: string) => Promise<void>} rename
  * @property {(srcRelativePath: string, destRelativePath: string) => Promise<void>} copy
  * @property {(relativePath: string) => Promise<void>} delete
  * @property {(filePath: string) => Promise<string>} fetch
+ * @property {(filePath: string) => Promise<string>} readFile
  * @property {(filePath: string, data: any) => Promise<void>} write
  * @property {(filePath: string, bufferData: number[]) => Promise<void>} writeBuffer
- * @property {() => Promise<string>} downloadDir
+ * @property {(relativePath: string) => Promise<boolean>} exists
+ * @property {(relativePath: string, data: string) => Promise<void>} appendFile
+ * @property {() => Promise<string>} DOWNLOAD_DIR
  * @property {() => Promise<string>} STEVEN_DIR
  */
 /**

@@ -505,7 +505,7 @@ class Chat {
     /**
      * @param {"client"|"server"} clientOrServer 
      */
-    initChatLibrary(clientOrServer) {
+    initLibrary(clientOrServer) {
         const chatLibrary = Chat.library ?? Chat.getLibrary?.()
         if (!chatLibrary) throw new Error("no Chat.library, no Chat.getLibrary")
         chatLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = chatLibrary.defaultWeeInterval)
@@ -548,6 +548,7 @@ class Chat {
             this.safeToReceiveCommonForClientAndServer(message)
             && (!this.safeToReceiveForListener || (person = this.safeToReceiveForListener(message)))
         ) {
+            person.lastSpoke = Date.now()
             this.on_receive?.(message)
             this.on_receive_more?.(message)
             if (message.woo && this.pendingWees.has(message.woo)) {//invalid wees are ignored.
@@ -874,7 +875,6 @@ class Listener {
             console.error("participants[name] does not exist???")
             return
         }
-        person.lastSpoke = Date.now()
 
         //logging any requests
         if (message.promptResponse) {

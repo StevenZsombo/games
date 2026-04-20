@@ -539,13 +539,13 @@ class Game extends GameCore {
     }
 
 
-    initWoo() {
-        chat.initWoo("client")
+    initChat() {
+        chat.initLibrary("client")
     }
     //#region initialize_more
     initialize_more() {
         wProgress?.("\ninitWoo()")
-        this.initWoo()
+        this.initChat()
         wProgress?.("\ninitalize_more()")
 
 
@@ -1581,7 +1581,5 @@ const setFocus = (tgt) => {
     }
     focusCurrent = tgt
 }
-
-
 
 

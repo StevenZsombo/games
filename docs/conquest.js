@@ -32,7 +32,7 @@ var univ = {
                     });
 
             try {
-                const ls = JSON.parse(localStorage.getItem("mapDataTemp") || "")
+                const ls = JSON.parse(localStorage.getItem("mapDataTemp") || `""`)
                 if (ls) {
                     Object.assign(RULES, ls.RULES)
                     Object.assign(GRAPHICS, ls.GRAPHICS)
@@ -611,11 +611,11 @@ class Game extends GameCore {
     /// start initialize_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#endregion
     //#region initialize_more
-    initWoo() {
-        chat.initChatLibrary("server")
+    initChat() {
+        chat.initLibrary("server")
     }
     initialize_more() {
-        this.initWoo()
+        this.initChat()
         /**@type {Territory[]} */
         const territories = Array(RULES.NUMBER_OF_TERRITORIES).fill().map((x, i) => new Territory(i))
         const buts = territories.map(x => x.button)
@@ -674,7 +674,6 @@ class Game extends GameCore {
             x.forEach(u => territories[u] && kingdoms[i].acquireTerritory(territories[u]))
         })
         this.buts.forEach(x => x.transparent = RULES.PROVINCE_BUTTONS_TRANSPARENT)
-
 
 
         /**@type {Conflict[]} */
@@ -2033,7 +2032,7 @@ const hqBetter = {
 const stagesAvailable = ["map", "score"].concat(MASTER.ALLOW_PLOT ? "plot" : [])
 let stage = stagesAvailable[0]
 let plotPanel = null
-switchStage = () => {
+const switchStage = () => {
     const next = stagesAvailable[(stagesAvailable.indexOf(stage) + 1) % stagesAvailable.length]
     if (next === "score") {
         game.showingMap = false

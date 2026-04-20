@@ -1,0 +1,51 @@
+const js = require('@eslint/js');
+
+module.exports = [
+    js.configs.recommended,
+    {
+        files: ["**/*.js"],
+        languageOptions: {
+            ecmaVersion: "latest",
+            sourceType: "script",
+            globals: {
+                window: "readonly",
+                document: "readonly",
+                console: "readonly",
+                localStorage: "readonly",
+                WebSocket: "readonly",
+                requestAnimationFrame: "readonly",
+                setTimeout: "readonly",
+                setInterval: "readonly",
+                clearInterval: "readonly",
+                clearTimeout: "readonly",
+                Image: "readonly",
+                Blob: "readonly",
+                FileReader: "readonly",
+                URL: "readonly",
+                fetch: "readonly",
+                alert: "readonly",
+                prompt: "readonly",
+                location: "readonly",
+                navigator: "readonly",
+                performance: "readonly",
+                Date: "readonly",
+                Math: "readonly",
+                JSON: "readonly",
+                Object: "readonly",
+                Array: "readonly",
+                Map: "readonly",
+                Set: "readonly",
+                Promise: "readonly",
+                Error: "readonly"
+            }
+        },
+        rules: {
+            "no-undef": "error",
+            "no-unused-vars": "warn",
+            "no-constant-condition": "warn",
+            "no-empty": "warn",
+            "no-irregular-whitespace": "error",
+            "no-unreachable": "warn"
+        }
+    }
+];
