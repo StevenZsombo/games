@@ -142,7 +142,7 @@ const POPUP = (txt, settings) => chat.sendMessage({
     popup: txt, popupSettings: typeof settings === "string" ? GameEffects.popupPRESETS[settings] : settings
 })
 const spop = (str, moreStgs) => {
-    GameEffects.popup(str,
+    return GameEffects.popup(str,
         moreStgs
             ? { ...GameEffects.popupPRESETS.leftLargePink, ...moreStgs, }
             : GameEffects.popupPRESETS.leftLargePink)
@@ -421,6 +421,41 @@ const sharedFunc = {
             )),
     rankingData: () => game.getRanking()
 }
+
+const FROM_CLIENT_KINGDOM = (num, person) => {
+    if (!game.kingdoms[+num]) {
+        hq.orderResetKingdom(person) //need not be a name
+        return
+    }
+    const newlyJoined = person.assignKingdom(game.kingdoms[+num]) //const ignored
+    if (!game.attacksAllowed) SHARE("teamsData")
+    SHAREmany([
+        "kingdomsFullData",
+        "territoriesFullData",
+        "teamsData", "rankingData", "valuesData", "ownershipData", "conflictsData"
+    ], person.nameID)
+}
+const FROM_CLIENT_ATTACK = (id, person) => {
+    if (!person.verifyKingdomAssignedAlready()) return
+    game.beginAttack(person.kingdom, game.territories[id], person)
+}
+chat.woo("attack", (id, person) => FROM_CLIENT_ATTACK(id, person))
+chat.woo("attempt", ([conflictID, guess], person) => {
+    if (!person.verifyKingdomAssignedAlready()) return
+    if (!game.attacksAllowed) return //forgot about this last time lol
+    const c = game.conflicts.find(x => x.id === conflictID)
+    let success = false
+    if (c) (success = c.attempt(person.kingdom, guess, person))
+    else { console.error("invalid conflid.id for attempt", conflictID, guess, person) }
+    return success
+})
+chat.woo("accept", (id, person) => {
+    if (!person.verifyKingdomAssignedAlready()) return
+    const c = game.conflicts.find(x => x.id === obj.accept)
+    if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.nameID)
+    else SHARE("conflictsData", person.nameID)
+})
+
 /**@param {Person} person */
 listener.on_message = (obj, person) => {
     if (/**@type {Game}*/!game) {
@@ -429,20 +464,8 @@ listener.on_message = (obj, person) => {
     }
     person = Person.check(person)
     if (obj.kingdom !== undefined) {//watch out for 0  //convert to number just in case
-        if (!game.kingdoms[+obj.kingdom]) {
-            hq.orderResetKingdom(person) //need not be a name
-            return
-        }
-        const newlyJoined = person.assignKingdom(game.kingdoms[+obj.kingdom]) //const ignored
-        if (!game.attacksAllowed) SHARE("teamsData")
-        // if (true || newlyJoined)// for now
-        SHAREmany([
-            "kingdomsFullData",
-            "territoriesFullData",
-            "teamsData", "rankingData", "valuesData", "ownershipData", "conflictsData"
-        ], person.nameID)
-        // else SHAREbunch(person.nameID)
-
+        const num = +obj.kingdom
+        FROM_CLIENT_KINGDOM(num, person)
     }
 
     if (obj.idle !== undefined) {
@@ -468,8 +491,7 @@ listener.on_message = (obj, person) => {
     }
 
     if (obj.attack !== undefined) {
-        if (!person.verifyKingdomAssignedAlready()) return
-        game.beginAttack(person.kingdom, game.territories[obj.attack], person)
+        FROM_CLIENT_ATTACK(obj.attack, person)
     }
     if (obj.accept !== undefined) { //accept by conflict id  also serves as inquire for conflictsData (question missing)
         if (!person.verifyKingdomAssignedAlready()) return
@@ -486,13 +508,6 @@ listener.on_message = (obj, person) => {
         else { console.error("invalid conflict.id for attempt", this) }
     }*/
 }
-chat.woo("attempt", ([conflictID, guess], person) => {
-    if (!person.verifyKingdomAssignedAlready()) return
-    if (!game.attacksAllowed) return //forgot about this last time lol
-    const c = game.conflicts.find(x => x.id === conflictID)
-    if (c) c.attempt(person.kingdom, guess, person)
-    else { console.error("invalid conflid.id for attempt", conflictID, guess, person) }
-})
 
 
 
@@ -1512,7 +1527,20 @@ class Game extends GameCore {
                         // this.kingdoms.forEach(x => x.members.delete(person))
                         // spop(`Set.`)
                         chat.targetWee(person, "rename", nn)
-                            .then((v) => spop(`Renamed ${v[0]} to ${v[1]}`))
+                            .then((v) => {
+                                let oldIndex = RULES.STUDENTS.indexOf(v[0])
+
+                                if (oldIndex !== -1) {
+                                    RULES.STUDENTS[oldIndex] = v[1]
+                                    spop(`Renamed ${v[0]} to ${v[1]}`)
+                                }
+                                else {
+                                    spop(`BADNESS: renamed ${v[0]} to ${v[1]}`
+                                        + `\nbut there was no ${v[0]} in the student list\nin the first place.`
+                                        , { floatTime: 8000, close_on_release: true }).color = "red"
+
+                                }
+                            })
                             .catch(() => badpop(`Failed to rename ${person.name}`))
 
                     })

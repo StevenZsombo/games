@@ -368,6 +368,7 @@ class Chat {
     }
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
+    weeRecord = []
     /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
     pendingWees = new Map()
     /**
@@ -382,25 +383,35 @@ class Chat {
      */
     wee(value, params, {
         retries = Chat.defaultWeeRetries, interval = Chat.defaultWeeInterval, on_retry = null,
-        resolveToDefaultInstead = undefined,
-        msgMore = {}
-    } = {}) {
+        resolveToDefaultInstead = undefined, targetID = null,
+        msgMore = {} } = {}
+    ) {
+        if (this.isServer) {
+            if (!targetID) { throw new Error("server can't wee without a target") }
+            if (typeof targetID !== 'string') { throw new Error("invalid targetID (must be string)") }
+        }
         const uniqueID = this.nextUniqueIDWee
         return new Promise((resolve, reject) => {
             const flag = `w${uniqueID}`
             const msg = { ...msgMore, wee: uniqueID, value }
+            const sentAt = Date.now()
             params && (msg.params = params)
+            targetID && (msg.targetID = targetID)
             const send = () => this.isConnected ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
             const clock = setInterval(() => {
                 if (--retries < 0) {
                     cleanup()
-                    resolveToDefaultInstead === undefined ? reject(`wee timeout: ${value}`) : resolve(resolveToDefaultInstead)
+                    this.weeRecord[this.weeRecord.length - 1] = null
+                    resolveToDefaultInstead === undefined
+                        ? reject(`wee timeout: ${value}`)
+                        : resolve(resolveToDefaultInstead)
                 } else {
                     on_retry?.(retries)
                     send()
                 }
             }, interval)
             const cleanup = () => {
+                this.weeRecord.push(Date.now() - sentAt)
                 clearInterval(clock)
                 this.pendingWees.delete(uniqueID)
                 this.on_join_sendMany.delete(flag)
@@ -415,13 +426,20 @@ class Chat {
     /**
      * @param {ChatMessage} message
      * @param {Person|Participant} person
-     * @returns {{woo: number, value: any}}
+     * @returns {{woo: number, value: any, ?targetID: string}}
      */
-    weeHandler(message, person) {
-        return {
-            woo: message.wee, value:
-                this.on_weeFunctions.get(message.value)?.(message.params, person)
+    weeToWooHandler(message, person) {
+        const msg = {
+            woo: message.wee,
+            value: this.on_weeFunctions.get(message.value)?.(message.params, person)
         }
+        if (this.isServer) {
+            if (!person) { throw new Error("server cannot wee willy-nilly") }
+            /*let targetID = typeof person === 'string' ? person : person.nameID
+            targetID && (msg.targetID = targetID)*/
+            msg.targetID = person.nameID
+        }
+        return msg
     }
     /**
      * @param {string} wee
@@ -498,7 +516,7 @@ class Chat {
      * @param {Person|Participant} person
      * @returns {void}
      */
-    spamHandler(message, person) { //no return value - won't be sent back
+    spamToEggsHandler(message, person) { //no return value - won't be sent back
         this.on_spamFunctions.get(message.value)?.(message.params, person)
     }
     /**
@@ -582,7 +600,7 @@ class Chat {
             this.safeToReceiveCommonForClientAndServer(message)
             && (!this.safeToReceiveForListener || (person = this.safeToReceiveForListener(message)))
         ) {
-            person.lastSpoke = Date.now()
+            person && (person.lastSpoke = Date.now())
             this.on_receive?.(message)
             this.on_receive_more?.(message)
             if (message.woo && this.pendingWees.has(message.woo)) {//invalid wees are ignored.
@@ -592,12 +610,12 @@ class Chat {
                 return
             }
             if (message.wee) {
-                this.sendMessage(this.weeHandler(message, person))
+                this.sendMessage(this.weeToWooHandler(message, person))
                 return
             }
             //if (message.eggs) { } //should never receive eggs.
             if (message.spam) {
-                this.spamHandler(message, person)
+                this.spamToEggsHandler(message, person)
                 return
             }
             this.receiveMessage?.(message)
@@ -775,10 +793,11 @@ class ChatServer extends Chat {
         this.sendMessage({ eval: code })
     }
 
-    targetWee(targetID, value, params, weeArgs) {
+    targetWee(target, value, params, weeArgs) {
         // let targetIDlist = [].concat(target).map(x => typeof x === "string" ? x : x.nameID).filter(x => x)
-        if (typeof targetID !== 'string') targetID = targetID.nameID
-        return this.wee(value, params, { targetID, ...weeArgs })
+        if (typeof target !== 'string') target = target.nameID
+        if (!target || typeof target !== 'string') throw new Error("invalid targetID -> failed to retrieve from nameid")
+        return this.wee(value, params, { targetID: target, ...weeArgs })
     }
 
 

@@ -238,11 +238,10 @@ var univ = {
 
     on_first_run_blocking: (beforeMainPassedToBeCalled) => {
         chat.on_echo = (echo, obj) => console.log("echo", echo, obj)
-        wProgress?.("INQUIRING")
-        chat.sendInquire("RULES", 9, 600, {
-            on_retry: (x) => {
-                wProgress(`\nRetrying... ${10 - x}/10`)
-            }
+        wProgress?.("entering...")
+        chat.wee("enter", null, {
+            retries: 9, interval: 800,
+            on_retry: x => wProgress(`\nRetrying... ${10 - x}/10`)
         }).then((value) => {
             wProgress?.("\nRULES received")
             Object.assign(RULES, value)
@@ -794,6 +793,9 @@ class Game extends GameCore {
                 x.outline = 0
             })
 
+            /**
+             * @type {Button & {territory: Territory}}
+             */
             const attackButton = new Button({ width: 240, height: 150 })
             attackButton.fontSize = 30
             // attackButton.bottomat(bot.top)
@@ -826,7 +828,15 @@ class Game extends GameCore {
 
             }
             attackButton.on_click = () => {
-                chat.sendMessage({ attack: attackButton.territory.id })
+                // chat.sendMessage({ attack: attackButton.territory.id })
+                chat.wee("attack", attackButton.territory.id)
+                    .catch(() => {
+                        GameEffects.popup(
+                            "No connection: failed to attack.",
+                            undefined,
+                            GRAPHICS.POPUP_ERROR)
+                    })
+
                 attackButton.interactable = false
                 attackButton.txt = "Waiting for\nserver..."
                 this.attackDrawablesArray.forEach(x => x.deactivate())
@@ -1047,7 +1057,7 @@ class Game extends GameCore {
         wProgress?.("attackArrowsDrawable")
 
 
-        const attackEmanate = this.attackEmanate = {
+        const attackEmanateDrawable = this.attackEmanateDrawable = {
             active: false,
             activate() { this.active = true; this.t = 0; this.circles = [] },
             deactivate() { this.active = false },
@@ -1060,7 +1070,7 @@ class Game extends GameCore {
             draw(ctx) {
                 if (!this.active) return
                 const col = game.canAttackList?.includes(this.target) ? "red" : "black"
-                if (col === "black") this.deactivate() //only when black
+                if (col === "black") return this.deactivate() //only when black
                 let t = this.t
                 if (this.circles.length < t && t < 3)
                     this.circles.push(0)
@@ -1082,10 +1092,10 @@ class Game extends GameCore {
             },
         }
         if (GRAPHICS.ALLOW_ATTACK_TARGETING_EMANATE) {
-            this.add_drawable(attackEmanate, 7)
-            this.attackDrawablesArray.push(attackEmanate)
+            this.add_drawable(attackEmanateDrawable, 7)
+            this.attackDrawablesArray.push(attackEmanateDrawable)
         }
-        wProgress?.("attackEmanate")
+        wProgress?.("attackEmanateDrawable")
 
 
 
@@ -1099,12 +1109,13 @@ class Game extends GameCore {
     enter() {
         if (chat.isConnected) {
             wProgress?.("\nCONNECTED!")
-            chat.sendSecure({ kingdom: myKingdomID })
+            chat.wee("kingdom", myKingdomID).catch((err) => {
+                GameEffects.popup("FAILED TO CONNECT", GameEffects.popupPRESETS.sideError)
+                console.error(err)
+            })
         }
         else {
             wProgress?.("\nWAITING TO CONNECT!")
-            /*chat.on_join_once = () => {
-                chat.sendSecure({ kingdom: myKingdomID })*/
         }
         //this is sync - event won't be handled in-between (I hope lol)
         chat.on_join = () => {
@@ -1114,7 +1125,10 @@ class Game extends GameCore {
                 throw new Error("Kingdom is somehow undefined when trying to send it!")
             }
             console.log("cc: successful reconnect!")
-            chat.sendSecure({ kingdom: myKingdomID }) //fully reannounce kingdom on each reconnect.
+            chat.wee("kingdom", myKingdomID).catch((err) => {
+                GameEffects.popup("FAILED TO CONNECT", GameEffects.popupPRESETS.sideError)
+                console.error(err)
+            }) //fully reannounce kingdom on each reconnect.
         }
     }
 
@@ -1488,18 +1502,30 @@ class QPane extends Panel {
                 )
                 return
             }
-            chat.wee("attempt", [this.id, +this.guess])
-                .then(() => {
-                    this.submissionTimestamps.push(Date.now())
-                    this.guess = "" //reset
-                    game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."], { ditch: true }))
+            const latestGuess = +this.guess
+            chat.wee("attempt", [this.id, latestGuess])
+                .then((success) => {
+                    if (success) GameEffects.fireworksShow(4)
                 })
                 .catch(() => {
-                    GameEffects.popup(
-                        `Failure to connect. Waiting to reconnect...\nIf this happens a lot, ask the teacher for help.`, undefined,
+                    const a = GameEffects.popup(
+                        `Failure to connect. Waiting to reconnect...`
+                        + `\nThis window will disappear as soon as you are back online.`
+                        + `\nIf this happens a lot, ask the teacher for help.`,
+                        { floatTime: Infinity },
                         GRAPHICS.POPUP_ERROR)
-
+                    a.move(a.width * -0.25, 0)
+                    a.stretch(1.5, 1)
+                    chat.asap(() => {
+                        // chat.wee("attempt", [this.id, latestGuess]).catch(() => { })
+                        GameEffects.popup("Reconnected successfully, you may try submitting again!", undefined, GRAPHICS.POPUP_SERVER_RESPONSE)
+                        a.close()
+                    })
                 })
+            this.submissionTimestamps.push(Date.now())
+            this.guess = "" //reset
+            game.animator.add_anim(Anim.setter(ansSubmitButton, 900, ["txt"], ["Submitting..."], { ditch: true }))
+
             /*
             //deprecated!
             if (!chat.isConnected) {
@@ -1564,7 +1590,8 @@ const setFocus = (tgt) => {
         game.showingMap = true
     } else if (tgt != "map" && !panes.has(tgt)) {
         waitingQuestionsTrigger.add(tgt) //on waitlist so no need to double click
-        chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
+        // chat.sendMessage({ accept: tgt }) //accept then quit, accept defaults to update if must
+        chat.wee("accept", tgt)
         tgt = "map"
         Array.from(panes.values()).forEach(x => x.deactivate())
         return //otherwise quit
