@@ -1,5 +1,3 @@
-//var char, SEND declared in the end
-
 //#region Chat
 class Chat {
     static singletonAlreadyExists = false
