@@ -368,7 +368,18 @@ class Chat {
     }
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
-    weeRecord = []
+    pingRecord = []
+    get pingStats() {
+        if (!this.pingRecord.length) return { average: 0, recent: 0, best: 0, worst: 0 }
+        const p = this.pingRecord
+        const sorted = [...p].sort((a, b) => a - b)
+        return {
+            average: p.reduce((s, t) => s + t) / p.length,
+            recent: p.slice(-10).reduce((s, t) => s + t) / (p.slice(-10).length),
+            best: sorted.slice(0, 3),
+            worst: sorted.slice(-3)
+        }
+    }
     /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
     pendingWees = new Map()
     /**
@@ -401,7 +412,7 @@ class Chat {
             const clock = setInterval(() => {
                 if (--retries < 0) {
                     cleanup()
-                    this.weeRecord[this.weeRecord.length - 1] = null
+                    this.pingRecord[this.pingRecord.length - 1] = null
                     resolveToDefaultInstead === undefined
                         ? reject(`wee timeout: ${value}`)
                         : resolve(resolveToDefaultInstead)
@@ -411,7 +422,7 @@ class Chat {
                 }
             }, interval)
             const cleanup = () => {
-                this.weeRecord.push(Date.now() - sentAt)
+                this.pingRecord.push(Date.now() - sentAt)
                 clearInterval(clock)
                 this.pendingWees.delete(uniqueID)
                 this.on_join_sendMany.delete(flag)

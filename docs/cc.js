@@ -235,11 +235,11 @@ var univ = {
             )()
         }
     },
-
-    on_first_run_blocking: (beforeMainPassedToBeCalled) => {
+    on_first_run_async: async () => {
         chat.on_echo = (echo, obj) => console.log("echo", echo, obj)
         wProgress?.("entering...")
-        chat.wee("enter", null, {
+        await chat.asapPromise()
+        await chat.wee("enter", null, {
             retries: 9, interval: 800,
             on_retry: x => wProgress(`\nRetrying... ${10 - x}/10`)
         }).then((value) => {
@@ -256,83 +256,85 @@ var univ = {
                 "" + err
             ].join("\n"))
         )
+        return
+    },
+    on_first_run_blocking: null,// (beforeMainPassedToBeCalled) => {
+    //grabbing map file
+    /*
+    if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
+    fetch(RULES.MAPFILE)
+        .then(x => {
+            if (!x.ok) throw new Error("File not found.")
+            return x.json()
+        })
+        .then(fromFile => {
+            Object.assign(RULES, fromFile.RULES)
+            Object.assign(GRAPHICS, fromFile.GRAPHICS)
+            console.info("Map loaded successfully.")
+            return
+        })
+        .catch(x => { //?. so intellij won't whine about it
+            wProgress?.("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
+            console.error("No map data found or it failed to load.", x)
+            alert("NO MAP FOUND. This is bad. Tell your teacher.")
+        }).then(x => new Promise((resolve, reject) => {
+            if (localStorage.getItem("name")) return resolve()
 
-        //grabbing map file
-        /*
-        if (!RULES.MAPFILE) return beforeMainPassedToBeCalled()
-        fetch(RULES.MAPFILE)
-            .then(x => {
-                if (!x.ok) throw new Error("File not found.")
-                return x.json()
-            })
-            .then(fromFile => {
-                Object.assign(RULES, fromFile.RULES)
-                Object.assign(GRAPHICS, fromFile.GRAPHICS)
-                console.info("Map loaded successfully.")
-                return
-            })
-            .catch(x => { //?. so intellij won't whine about it
-                wProgress?.("NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP NO MAP")
-                console.error("No map data found or it failed to load.", x)
-                alert("NO MAP FOUND. This is bad. Tell your teacher.")
-            }).then(x => new Promise((resolve, reject) => {
-                if (localStorage.getItem("name")) return resolve()
-
-                const p = window.BROWSERshowLoading
-                const origLoadTextContent = p.textContent
-                p.textContent = ""
-                p.style.touchAction = "manipulation"
-                const fontSize = "28px"
-                const div = document.createElement("div")
-                div.textContent = "Type in your name before joining:"
-                div.style.fontSize = fontSize
-                div.style.backgroundColor = "linen"
-                div.style.touchAction = "manipulation"
-                const input = document.createElement("input")
-                input.style.fontSize = fontSize
-                input.style.backgroundColor = "white"
-                input.style.touchAction = "manipulation"
-                const button = document.createElement("button")
-                button.textContent = "Join!"
-                button.style.fontSize = fontSize
-                button.style.backgroundColor = "linen"
-                button.style.touchAction = "manipulation"
-                p.appendChild(div)
-                p.appendChild(input)
-                p.appendChild(button)
-                button.onclick = () => {
-                    const name = MM.lettersNumbersSpacesOnly(input.value)
-                    if (name.length >= 3 && name.length <= 20) {
-                        chat = new Chat(null, name)
-                        localStorage.setItem("name", name)
-                        div.remove()
-                        input.remove()
-                        button.remove()
-                        p.textContent = origLoadTextContent
-                        window.onkeyup = null
-                        document.body.style.zoom = 1
-                        return resolve()
-                    } else {
-                        const issues =
-                            "Invalid name. Must be at least 3 and at most 20 letters long, English letters only."
-                        alert(issues)
-                    }
+            const p = window.BROWSERshowLoading
+            const origLoadTextContent = p.textContent
+            p.textContent = ""
+            p.style.touchAction = "manipulation"
+            const fontSize = "28px"
+            const div = document.createElement("div")
+            div.textContent = "Type in your name before joining:"
+            div.style.fontSize = fontSize
+            div.style.backgroundColor = "linen"
+            div.style.touchAction = "manipulation"
+            const input = document.createElement("input")
+            input.style.fontSize = fontSize
+            input.style.backgroundColor = "white"
+            input.style.touchAction = "manipulation"
+            const button = document.createElement("button")
+            button.textContent = "Join!"
+            button.style.fontSize = fontSize
+            button.style.backgroundColor = "linen"
+            button.style.touchAction = "manipulation"
+            p.appendChild(div)
+            p.appendChild(input)
+            p.appendChild(button)
+            button.onclick = () => {
+                const name = MM.lettersNumbersSpacesOnly(input.value)
+                if (name.length >= 3 && name.length <= 20) {
+                    chat = new Chat(null, name)
+                    localStorage.setItem("name", name)
+                    div.remove()
+                    input.remove()
+                    button.remove()
+                    p.textContent = origLoadTextContent
+                    window.onkeyup = null
+                    document.body.style.zoom = 1
+                    return resolve()
+                } else {
+                    const issues =
+                        "Invalid name. Must be at least 3 and at most 20 letters long, English letters only."
+                    alert(issues)
                 }
-                window.onkeyup = (ev) => {
-                    if (ev.key === "Enter") {
-                        button.onclick()
-                    }
+            }
+            window.onkeyup = (ev) => {
+                if (ev.key === "Enter") {
+                    button.onclick()
                 }
+            }
 
-            }))
-            .catch(err => { throw err })
-            .finally(x => beforeMainPassedToBeCalled())
-        //not happy with this
-        */
+        }))
+        .catch(err => { throw err })
+        .finally(x => beforeMainPassedToBeCalled())
+    //not happy with this
+    */
 
 
 
-    }, //null or function. must call the beforeMainPassed() to proceed
+    //}, //null or function. must call the beforeMainPassed() to proceed
     on_next_game_once: null,
     on_beforeunload: null,
     allowQuietReload: false,

@@ -39,6 +39,7 @@ window.onload = function () {
 
     univ.on_first_run?.()
     if (univ.on_first_run_async) {  //prioritize this over blocking. blocking sucks.
+        // if (univ.on_first_run_async.constructor.name !== "AsyncFunction") throw new Error("univ.on_first_run_async must be async")
         univ.on_first_run_async().then(() => beforeMain(canvas))
     } else if (univ.on_first_run_blocking) {
         univ.on_first_run_blocking(beforeMain.bind(window, canvas))
