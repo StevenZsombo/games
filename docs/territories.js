@@ -664,8 +664,8 @@ class Gimmicks {
     }
 }
 
-//used by chat.initWoo("client") and chat.initWoo("server")
-var getWooLibrary = () => {
+//used by chat.initChatLibrary("client") and chat.initChatLibrary("server")
+Chat.getLibrary = () => {
     return {
         wee: {
             eval: {
@@ -686,7 +686,7 @@ var getWooLibrary = () => {
             wee: {
                 rename: v => { const old = chat.name; chat.forceName(v, true); return [old, chat.name] },
                 whitelist: () => {
-                    game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000)
+                    game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000) //the year 2000!
                     game.cpop("You have been whitelisted by the server.")
                 },
                 absolve: () => game.easePen?.(true),

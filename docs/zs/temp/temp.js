@@ -7,7 +7,7 @@ class Temp {
     }
     static defaultSpamRetries = 5
     static defaultSpamInterval = 500
-    /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
+    /**@type {Map<string,{on_success:Function,cleanup:Function}}*/
     pendingSpams = new Map()
     /**
      * @param {string} value
@@ -16,37 +16,34 @@ class Temp {
      * @param {number} [options.retries=3]
      * @param {number} [options.interval=500]
      * @param {?function(retries:number):any} [options.on_retry=null] - receives number of remaning retries
-     * @param {boolean} [options.resolveToDefaultInstead=undefined] - will resolve to this instead of failing
-     * @returns {Promise<any>}
+     * @returns {void}
      */
     spam(value, params, {
         retries = Chat.defaultSpamRetries, interval = Chat.defaultSpamInterval, on_retry = null,
         msgMore = {}, on_success = null, on_fail = null
     } = {}) {
         const uniqueID = this.nextUniqueIDSpam
-        return new Promise((resolve, reject) => {
-            const flag = `s${uniqueID}`
-            const msg = { ...msgMore, spam: uniqueID, value }
-            params && (msg.params = params)
-            const send = () => this.isConnected ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
-            const clock = setInterval(() => {
-                if (--retries < 0) {
-                    cleanup()
-                    on_fail?.()
-                } else {
-                    on_retry?.(retries)
-                    send()
-                }
-            }, interval)
-            const cleanup = () => {
-                clearInterval(clock)
-                this.pendingSpams.delete(uniqueID)
-                this.on_join_sendMany.delete(flag)
+        const flag = `s${uniqueID}`
+        const msg = { ...msgMore, spam: uniqueID, value }
+        params && (msg.params = params)
+        const send = () => this.isConnected ? this.sendMessage(msg) && cleanup() && on_success?.() : this.on_join_sendMany.set(flag, msg)
+        const clock = setInterval(() => {
+            if (--retries < 0) {
+                cleanup()
+                on_fail?.()
+            } else {
+                on_retry?.(retries)
+                send()
             }
-            this.pendingSpams.set(uniqueID, { on_success, cleanup })
+        }, interval)
+        const cleanup = () => {
+            clearInterval(clock)
+            this.pendingSpams.delete(uniqueID)
+            this.on_join_sendMany.delete(flag)
+        }
+        this.pendingSpams.set(uniqueID, { on_success, cleanup })
 
-            send()
-        })
+        send()
     }
     /**@type {Map<string, function(params: Object, person: Person|Participant): any>}*/
     on_spamFunctions = new Map()
@@ -72,7 +69,7 @@ class Temp {
      * @param {"client"|"server"} clientOrServer 
      */
     initEggs(clientOrServer) {//best wrap each item in a function instead of polluting Game
-        const wooLibrary = wooLibrary ?? getWooLibrary?.()
+        const wooLibrary = globalThis.wooLibrary ?? getWooLibrary?.()
         if (!wooLibrary) throw new Error("no wooLibrary, no getWooLibrary")
         wooLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = wooLibrary.defaultWeeInterval)
         wooLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = wooLibrary.defaultWeeRetries)

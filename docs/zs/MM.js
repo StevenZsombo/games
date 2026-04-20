@@ -2042,6 +2042,7 @@ class GameEffects {
      *   on_end?: Function
      * }} [options] - Configuration options
      * @param {string|Object} [preset] - Preset configuration
+     * @returns {Button & {close:Function}}
      */
     static popup(txt, { posFrac = [.5, .8], sizeFrac = [.4, .1], direction = "bottom",
         travelTime = 500, floatTime = 1000,

@@ -32,7 +32,7 @@ var univ = {
                     });
 
             try {
-                const ls = JSON.parse(localStorage.getItem("mapDataTemp"))
+                const ls = JSON.parse(localStorage.getItem("mapDataTemp") || "")
                 if (ls) {
                     Object.assign(RULES, ls.RULES)
                     Object.assign(GRAPHICS, ls.GRAPHICS)
@@ -157,6 +157,7 @@ const ATTENDANCE = (txt) => {
         popupSettings: "smallPink"
     })
 }
+/**@type {ReturnType<typeof GameEffects.popup> | null} */
 let pingWindow = null
 const PING = (doNotPopup = false, doNotSave = false) => {
     pingWindow?.close()
@@ -611,7 +612,7 @@ class Game extends GameCore {
     //#endregion
     //#region initialize_more
     initWoo() {
-        chat.initWoo("server")
+        chat.initChatLibrary("server")
     }
     initialize_more() {
         this.initWoo()
