@@ -667,7 +667,7 @@ class Gimmicks {
 //used by chat.initWoo("client") and chat.initWoo("server")
 var getWooLibrary = () => {
     return {
-        either: {
+        wee: {
             eval: {
                 client: eval
             },
@@ -680,22 +680,28 @@ var getWooLibrary = () => {
                 server: x => x,
             }
         },
+        spam: {},
+
         client: {
-            rename: v => { const old = chat.name; chat.forceName(v, true); return [old, chat.name] },
-            whitelist: () => {
-                game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000)
-                game.cpop("You have been whitelisted by the server.")
-            },
-            absolve: () => game.easePen?.(true),
-            ordChangeName: game.resetName,
-            ordChangeKingdom: game.resetKingdom,
-            ordReload: chat.delayedReload,
-            ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
-            fullscreen: () => { MM.toggleFullscreen(true) }
+            wee: {
+                rename: v => { const old = chat.name; chat.forceName(v, true); return [old, chat.name] },
+                whitelist: () => {
+                    game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000)
+                    game.cpop("You have been whitelisted by the server.")
+                },
+                absolve: () => game.easePen?.(true),
+                ordChangeName: game.resetName,
+                ordChangeKingdom: game.resetKingdom,
+                ordReload: chat.delayedReload,
+                ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
+                fullscreen: () => { MM.toggleFullscreen(true) }
+            }
         },
         server: {
-            idle: (penLeft, person) => game.warnIdle(person, penLeft)
+            wee: {
+                idle: (penLeft, person) => game.warnIdle(person, penLeft)
+            }
         }
-
     }
+
 }

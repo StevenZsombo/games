@@ -357,13 +357,10 @@ class Chat {
     }
 
     //#region wee woo
-
     _uniqueIDWee = 0
     get nextUniqueIDWee() {
         return ++this._uniqueIDWee
     }
-
-
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
     /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
@@ -379,7 +376,7 @@ class Chat {
      * @returns {Promise<any>}
      */
     wee(value, params, {
-        retries = chat.defaultWeeRetries, interval = chat.defaultWeeInterval, on_retry = null,
+        retries = Chat.defaultWeeRetries, interval = Chat.defaultWeeInterval, on_retry = null,
         resolveToDefaultInstead = undefined,
         msgMore = {}
     } = {}) {
@@ -435,24 +432,23 @@ class Chat {
      * @param {"client"|"server"} clientOrServer 
      */
     initWoo(clientOrServer) {//best wrap each item in a function instead of polluting Game
-        const wooLibrary = wooLibrary ?? getWooLibrary?.()
+        const wooLibrary = globalThis.wooLibrary ?? getWooLibrary?.()
         if (!wooLibrary) throw new Error("no wooLibrary, no getWooLibrary")
         wooLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = wooLibrary.defaultWeeInterval)
         wooLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = wooLibrary.defaultWeeRetries)
-        for (const [key, obj] of Object.entries(wooLibrary.either)) {
+        for (const [key, obj] of Object.entries(wooLibrary.wee ?? {})) {
             if (obj[clientOrServer]) this.woo(key, obj[clientOrServer])
         }
-        for (const [key, fn] of Object.entries(wooLibrary[clientOrServer])) {
+        for (const [key, fn] of Object.entries(wooLibrary[clientOrServer]?.wee ?? {})) {
             this.woo(key, fn)
         }
     }
-
-
-
-
-
-
     //#endregion
+
+
+
+
+
     //#region receiveMessage
     /**@type {?Function} */
     receiveMessageServer = null
@@ -483,6 +479,7 @@ class Chat {
                 this.sendMessage(this.weeHandler(message, person))
                 return
             }
+
             this.receiveMessage?.(message)
             this.receiveMessageServer?.(message) //server only
         }
