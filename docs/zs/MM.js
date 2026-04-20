@@ -528,7 +528,7 @@ class MM {
         let [a, b] = [0n, 1n]
         while (true) {
             yield b
-            const next = a + b //it sucks that [a,b]=[b,a+b] does not work
+            const next = a + b
             a = b
             b = next
         }

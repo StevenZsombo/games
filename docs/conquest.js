@@ -966,7 +966,7 @@ class Game extends GameCore {
                     ,
                 () => {
                     GameEffects.dropDownMenu([0, 1, 2, 3, 4, 5, 6, 7, 8].map(x => [x, () => {
-                        RULES.MAX_ATTACKS_ALLOWED = x //this sucks but whatevs
+                        RULES.MAX_ATTACKS_ALLOWED = x
                         chat.sendMessage({
                             popup: `Each team can now have up to\n${RULES.MAX_ATTACKS_ALLOWED} attacks at a time.`,
                             popupSettings: GRAPHICS.POPUP_SERVER_RESPONSE

@@ -485,6 +485,14 @@ class Chat {
 
         send()
     }
+
+    targetSpam(targets, value, params, spamArgs = {}) {
+        const arr = Array.from(targets?.[Symbol.iterator]?.() ?? [targets]) //forgive me dear lord for i have sinned
+        const ids = arr.map(x => typeof x === "string" ? x : x?.nameID).filter(x => x)
+        if (!ids.length) return
+        this.spam(value, params, { targetIDlist: ids, ...spamArgs })
+    }
+
     /**@type {Map<string, function(params: Object, person: Person|Participant): any>}*/
     on_spamFunctions = new Map()
     /**
