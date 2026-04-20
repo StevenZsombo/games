@@ -1,21 +1,22 @@
 Before starting the game:
-1.  Run the server executable.
+1.  List your students in Steven/games/docs/conquest/students.txt.
+    One line per name, English letters only, at least 3 letters in each name.
+2.  Run the server executable.
     It will tell you the IP address students can connect to LATER.
-2.  Run the Electron application.
-    It should load the game with an empty map (no colors).
-3.  dev -> LOADMAP then select the right map from Steven/games/docs/conquest/maps.
-4.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
-5.  SERVER -> MAXATTACKS -> 1 to start with.
+3.  Run the Electron application.
+    It should load the game with an empty map.
+4.  SERVER -> LOADMAP then select the right map from Steven/games/docs/conquest/maps.
+5.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
+6.  SERVER -> MAXATTACKS -> 1 to start with.
     Can increase later.
 
 Students can now start joining to the IP address.
-Ask them to close all apps and tabs.
+Ask them to close all apps and tabs, and open a browser. 
+    (Prefer: Chrome = Edge = Opera > Firefox > Safari).
 Connect to "Student" wifi, disconnect 5G.
 1.  If a student has an (X) next to their name then they lost connection.
     Small handheld devices may lose connection repeatedly. It is not an issue in general.
-    The students might be annoyed (the page will refresh 
-    instead of submitting their answers so they will need to type it in again).
-2.  SERVER -> START to begin the game.
+2.  Once ready, SERVER -> START to begin the game.
 
 Student management:
 Click on team-colored banner, then pick a student.
@@ -27,7 +28,8 @@ Gradually increase SERVER -> MAXATTACKS throughout the game. Use your judgement.
 Ending the game:
 1.  SERVER -> END -> Yes to end the game.
 2.  SERVER -> DISPLAY to show students the server screen.
-3.  SERVER -> DOWNLOAD to let students download a copy of the server screen.
+3.  SERVER -> DOWNLOAD to let students download a copy of the server screen,
+    mind that this includes the popups so you should wait for those to disappear first.
 
 After the game:
 1.  Close both the Electron and the server app.

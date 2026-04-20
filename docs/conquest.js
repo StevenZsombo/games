@@ -39,6 +39,12 @@ var univ = {
                 }
             }
             catch (err) { console.error("Failed loading localStorage", err) }
+            try {
+                const students = (await (await fetch(RULES.STUDENTSFILE)).text()).split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
+                if (students.length) RULES.STUDENTS = students
+
+            }
+            catch (err) { console.error("failed loading " + RULES.STUDENTSFILE, err) }
             beforeMainPassedToBeCalled()
 
         })()
@@ -1767,7 +1773,7 @@ class Game extends GameCore {
         popup.color = "red"
         popup.fontSize = 24
 
-
+        // if (!this.attacksAllowed) popup.visible = false
 
     }
 

@@ -1,6 +1,7 @@
 //#region RULES.
 var RULES = ({
-    STUDENTS: Array.from({ length: 24 }, (_, i) => `${i}student`),
+    STUDENTS: Array.from({ length: 35 }, (_, i) => `${i}student`),
+    STUDENTSFILE: "conquest/students.txt", //can be null
     //["Alice", "Chris", "Cloris", "Coro", "Eden", "Eily", "Ethan Deng", "Ethan Jiang", "George", "Gwendolyn", "Harry", "Howell", "Kevin", "Kimberly", "Kyrie", "Lu", "Lucas", "Michael", "Percy", "Sebastian", "Selina", "Seraphim", "Tommy", "Zoey"],
     //strArr or null
     STUDENTS_POSITIONS: null, //STUDENT-size array of [x,y] for their buttons

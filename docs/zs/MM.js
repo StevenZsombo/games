@@ -1442,7 +1442,7 @@ class MM {
     }
 
     static lettersNumbersSpacesOnly(str) {
-        return str ? str.replace(/[^\w\s]/g, '') : ""
+        return str ? str.replace(/[^a-zA-Z0-9 ]/g, '') : "";
     }
 
     static downloadFile(content, filename = `unnamed${Date.now()}.txt`, mimeType = 'text/plain') {
