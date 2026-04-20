@@ -180,7 +180,27 @@ class Keyboarder {
 			x => this.pressed[x] = false
 		)*/
 	}
-
+	getHijacker() {
+		const self = this
+		const hijacker = {
+			_hijack: null,
+			start() {
+				this._hijack = {}
+				this._hijack.on_keydownDict = self.on_keydownDict
+				this._hijack.on_keyupDict = self.on_keyupDict
+				this._hijack.on_keyheldDict = self.on_keyheldDict
+				self.on_keydownDict = {}
+				self.on_keyheldDict = {}
+				self.on_keyupDict = {}
+			},
+			end() {
+				if (!this._hijack) return
+				Object.assign(self, this._hijack)
+				this._hijack = null
+			}
+		}
+		return hijacker
+	}
 }
 
 
@@ -231,7 +251,7 @@ class Mouser {
 		}
 	}
 
-	getDisplayedCoordV(x, y) {
+	canvasToEventV({ x, y }) {
 		x ??= this.x
 		y ??= this.y
 		x /= this.scaleX
@@ -240,6 +260,40 @@ class Mouser {
 		y += this.boundingRect.top
 		return { x, y }
 	}
+	eventToCanvasV({ x, y }) {
+		return {
+			x: (x - this.boundingRect.left) * this.scaleX,
+			y: (y - this.boundingRect.top) * this.scaleY
+		}
+	}
+
+	/**
+	 * @param {Rect} rect - Rectangle in canvas coordinates
+	 * @returns {Rect} Rectangle in screen/event coordinates
+	 */
+	rectCanvasToEvent(rect) {
+		const topLeft = this.canvasToEventV(rect.topleft)
+		const bottomRight = this.canvasToEventV(rect.bottomright)
+		return new Rect(
+			topLeft.x,
+			topLeft.y,
+			bottomRight.x - topLeft.x,
+			bottomRight.y - topLeft.y
+		)
+	}
+	/**
+	 * @param {Rect} rect - Rectangle in screen/event coordinates
+	 * @returns {Rect} Rectangle in canvas coordinates
+	 */
+	rectEventToCanvas(rect) {
+		const topLeft = this.eventToCanvasV(rect.topleft)
+		const bottomRight = this.eventToCanvasV(rect.bottomright)
+		return new Rect(
+			topLeft.x, topLeft.y,
+			bottomRight.x - topLeft.x, bottomRight.y - topLeft.y
+		)
+	}
+
 
 	addListeners(canvas) {
 		const pointermove = (e) => {

@@ -2306,49 +2306,45 @@ class GameEffects {
 
 
     /**
-     * @param {function(string)} on_pressingEnter 
-     * @returns {HTMLInputElement}
-     * - clean up with .remove() 
-     * - has .value for its content
-     * */
-    static inputBox(x = 100, y = 100, width, height, on_pressingEnter, on_input) {
-        const hijacker = {
-            _hijack: null,
-            start() {
-                this._hijack = {}
-                this._hijack.on_keydownDict = game.keyboarder.on_keydownDict
-                this._hijack.on_keyupDict = game.keyboarder.on_keyupDict
-                this._hijack.on_keyheldDict = game.keyboarder.on_keyheldDict
-                game.keyboarder.on_keydownDict = {}
-                game.keyboarder.on_keyheldDict = {}
-                game.keyboarder.on_keyupDict = {}
-            },
-            end() {
-                if (!this._hijack) return
-                Object.assign(game.keyboarder, this._hijack)
-                this._hijack = null
-            }
-        }
-        hijacker.start()
+     * @param {number} [x=100] 
+     * @param {number} [y=100] 
+     * @param {number} width 
+     * @param {number} height 
+     * @param {Function(string)} on_pressingEnter 
+     * @param {Function(string)} on_input 
+     * @param {Object} [param0] 
+     * @param {number} [param0.borderless=2] 
+     * @param {string} [param0.color="white"] 
+     * @returns {HTMLInputElement & {close:Function}} 
+     */
+    static inputBox(x = 100, y = 100, width, height, on_pressingEnter, on_input,
+        { outline = 2, color = "white", } = {}
+    ) {
+        const hijacker = game.keyboarder.getHijacker()
+        if (on_pressingEnter) hijacker.start()
+        /** @type {HTMLInputElement & {close:Function}}*/
         const input = document.createElement((on_input && !on_pressingEnter) ? 'textarea' : 'input')
         input.style.position = 'absolute'
         input.id = "inputBox" //my own thing
-            ;
-        ({ x, y } = game.mouser.getDisplayedCoordV(x, y))
         input.style.left = x + "px"
         input.style.top = y + "px"
+        input.style.margin = input.style.padding = "0"
+        input.style.border = outline ? "" : "2px solid black"
+        input.style.boxSizing = "border-box"
+        input.style.backgroundColor = color
         width && (input.style.width = width + "px")
         height && (input.style.height = height + "px")
         document.body.appendChild(input)
-        if (on_pressingEnter) {
-            game.keyboarder.on_keydownDict["Enter"] = () => {
-                const value = input.value
-                game.keyboarder.on_keydownDict["Enter"] = null
-                input.remove()
-                hijacker.end()
-                on_pressingEnter?.(value)
-            }
+        input.close = () => {
+            const value = input.value
+            game.keyboarder.on_keydownDict["Enter"] = null
+            input.remove()
+            hijacker.end()
+            on_pressingEnter?.(value)
         }
+        if (on_pressingEnter)
+            game.keyboarder.on_keydownDict["Enter"] = input.close
+
         if (on_input) {
             input.oninput = () => on_input(input.value)
         }
@@ -2356,13 +2352,21 @@ class GameEffects {
         return input
     }
 
-    /**@param {Rect} rect @param {function(string)} on_pressingEnter  */
-    static inputBoxFromRect(rect, on_pressingEnter, on_input) {
+
+    /**@param {Rect} sourceRect @param {function(string)} on_pressingEnter  */
+    static inputBoxFromRect(sourceRect, on_pressingEnter, on_input) {
+        const rect = game.mouser.rectCanvasToEvent(sourceRect.copy.fitWithinAnother(game.rect))
         return GameEffects.inputBox(rect.x, rect.y,
-            rect.width / game.mouser.scaleX,
-            rect.height / game.mouser.scaleY, on_pressingEnter, on_input)
+            rect.width,
+            rect.height, on_pressingEnter, on_input)
     }
 
+    /**@param {Rect} sourceRect @param {function(string)} on_pressingEnter  */
+    static inputBoxFromRectPromise(sourceRect, on_input) {
+        return new Promise(resolve => {
+            GameEffects.inputBoxFromRect(sourceRect, v => resolve(v), on_input)
+        })
+    }
 
 
     static latexButton(alsoAddTEXforScripting = true) {
