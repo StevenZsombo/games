@@ -198,6 +198,7 @@ class GameCore extends GameCoreLayerCore {
             x: this.WIDTH,
             y: this.HEIGHT
         }
+        this.FRAC = (a, b) => [this.WIDTH * a, this.HEIGHT * b]
         /**@type {Rect}*/
         this.rect = new Rect(0, 0, this.WIDTH, this.HEIGHT)
         this.BGCOLOR = "linen"
