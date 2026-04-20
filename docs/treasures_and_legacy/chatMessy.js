@@ -5,14 +5,12 @@ class Chat {
     static singletonAlreadyExists = false
     static RECONNECT_TIME = 1 * 1000
     static RESEND_TIME = 1500
+    static BLINKING_TIME = 0 //feature no longer needed: disconnections are now handled via server.js and Listener
     static HOSTNAMES_INDICATING_OFFLINE = ['', 'stevenzsombo.github.io']
     constructor(ip = null, name = null, isServer = false) {
         if (Chat.singletonAlreadyExists) {
             throw new Error("Chat must be a singleton.")
-        } else {
-            Chat.singletonAlreadyExists = true
-            Object.defineProperty(Chat, "singletonAlreadyExists", { value: true, configurable: false, writable: false })
-        }
+        } else Chat.singletonAlreadyExists = true
         if (Chat.HOSTNAMES_INDICATING_OFFLINE.includes(location.hostname)) {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
             univ.isOnline = false //hacky, but this prevents chat from existing
@@ -20,21 +18,19 @@ class Chat {
         }
         if (name) { this.name = name }
 
-        /**@type {?WebSocket}*/
+        /**@type {WebSocket} socket */
         this.socket = null
         this.reconnections = -1
-        /**@type {?number} */
-        this.clockworkForErrorOrReconnect = null
-        /**@type {Map<string, obj>}  @deprecated*/
+        this.errorHandler = null
+        /**@type {Map<string, obj>} */
         this.queue = new Map()
-        /**@deprecated */
         this.queueTimeout = 10 * 1000
-        /**@deprecated */
         this.queueHandler = setInterval(this.queueSend.bind(this), Chat.RESEND_TIME)
-        /**@deprecated */
         this.secureIDsToIgnore = new Set()
-
-        this.isServer = isServer || false
+        this.isServer = isServer
+        this.blinkingInterval = this.isServer ? 0 : Chat.BLINKING_TIME //zero for no blinking
+        this.blinkingHandler = this.blinkingInterval ? setInterval(this.sendMessage.bind(this, { blink: 1 }),
+            this.blinkingInterval) : null
 
         this.acquireName()
 
@@ -50,9 +46,8 @@ class Chat {
 
         this.on_receive = null
         this.on_receive_more = null
-        /**@deprecated */
         this.on_echo = null //receives (echo,obj)
-        /** @type {Map<string, Function>} id -> callback @deprecated*/
+        /** @type {Map<string, Function>} id -> callback*/
         this.on_echoCallbacks = new Map()
         this.on_fail = null //when message times out. receives (id,obj)
         /** @type {Map<string, Function>} id -> callback*/
@@ -75,8 +70,8 @@ class Chat {
             this.socket.onopen = () => {
                 console.log("Connected.", this)
                 this.reconnections++
-                clearInterval(this.clockworkForErrorOrReconnect)
-                this.clockworkForErrorOrReconnect = null
+                clearInterval(this.errorHandler)
+                this.errorHandler = null
                 this.announceSelf() //only the server announces themselves.
                 this.on_join_once?.()
                 this.on_join_once = null
@@ -117,7 +112,7 @@ class Chat {
     }
 
     scheduleReconnect(ip) {
-        this.clockworkForErrorOrReconnect ??= setInterval(this.connect.bind(this, ip), Chat.RECONNECT_TIME)
+        this.errorHandler ??= setInterval(this.connect.bind(this, ip), Chat.RECONNECT_TIME)
 
 
     }
@@ -127,7 +122,7 @@ class Chat {
         if (this.socket?.readyState === WebSocket.OPEN) {
             this.socket.send(message); //always targeted at GM if no identifier
         } else {
-            console.log('%cCould not send message', 'color: #b800b8; font-weight: bold; background: #fff0f0; padding: 2px 4px', message);
+            console.error("Could not send message", message)
         }
     }
 
@@ -142,7 +137,7 @@ class Chat {
      * @typedef {Object} ChatMessage - message object sent
      * @property {string} [name]
      * @property {string} [nameID]
-     * @property {string} [target] - deprecated, use targetID @deprecated
+     * @property {string} [target] - deprecated, use targetID
      * @property {string} [targetID] - server only
      * @property {string[]} [targetIDlist] - server only
      * @property {any[]} [many] - objects in many (array) are parsed in order
@@ -165,17 +160,18 @@ class Chat {
      * @property {string} [requestResponse]
      * @property {string} [demand]
      * @property {any} [value]
-     * @property {string} [shared] @deprecated
-     * @property {string} [inquire] @deprecated
+     * @property {string} [shared]
+     * @property {string} [inquire]
      * @property {number} [connected]
      * @property {string} [connectedAddress]
      * @property {string} [disconnectedAddress]
      * @property {string} [disconnectedID]
      * @property {string} [yell] - lets server log an error. TODO extend properly
      * @property {string} [str] - string
-     * @property {string} [id] - secure, will be echoed @deprecated
-     * @property {number} [queuedAt] - secure only @deprecated
-     * @property {string} [echo] - the echo it received @deprecated
+     * @property {string} [id] - secure, will be echoed
+     * @property {number} [queuedAt] - secure only
+     * @property {string} [echo] - the echo it received
+     * @property {number} [blink] - server has lastSpoke
      * @property {boolean} [SERVERnameAlreadyExists] - calls handleNameAlreadyExists
      * @property {boolean} [SERVERnameOrderedToReset] - calls resetName
      * @property {string} [SERVERnameForceName] - calls forceName
@@ -191,7 +187,7 @@ class Chat {
         return message
     }
 
-    /**@deprecated */
+
     sendSecure(obj, on_echo_callback = null, on_fail_callback = null) {
         if (typeof obj === "string") { obj = { str: obj } }
         if (this.isServer && obj.target == null && obj.targetID == null) {
@@ -210,15 +206,12 @@ class Chat {
         return obj
     }
 
-    /**@deprecated */
     sendPromise(obj) {
         return new Promise((resolve, reject) => {
             this.sendSecure(obj, resolve, reject)
         })
     }
-    /**@deprecated */
     inquirePromises = new Map()
-    /**@deprecated */
     sendInquire(key, retries = 5, interval = 500, { on_retry = null } = {}) {
         const flag = `sendInquire(${key})`
         if (this.inquirePromises.has(key)) return Promise.reject(`sendInquire: already pending for ${key}`)
@@ -251,7 +244,7 @@ class Chat {
     }
 
 
-    /**@deprecated */
+
     queueSend() {
         if (!this.queue.size) return
         for (const [id, obj] of this.queue) { //sets have safe deletion, who would've known
@@ -267,7 +260,7 @@ class Chat {
 
         }
     }
-    /**@deprecated */
+
     receiveEcho(echo) { //echo=id
         const obj = this.queue.get(echo)
         if (!obj) {
@@ -577,7 +570,6 @@ class Chat {
             this.receiveMessageServer?.(message) //server only
         }
     }
-    /**@deprecated part of sendsecure pipeline*/
     checkIfReceivedAlready(message) {//safe receiving
         if (message.id) {
             const processedAlready = this.secureIDsToIgnore.has(message.id)
@@ -613,11 +605,6 @@ class Chat {
     //#region receiveMessage
     /**@param {Object} message  */
     receiveMessage(message) {
-        /**
-         * to be phased out entirely in favor of wee-woo and spam-eggs
-         */
-
-
         //fully client specific
         if (message.SERVERnameAlreadyExists != null)
         //this.resetName("A user has already joined with that name, please select a different name.") //this sucked
@@ -668,7 +655,7 @@ class Chat {
 
     }
     //#endregion
-    /**@deprecated */
+
     inquire(varName, secure = false) {
         if (secure) {
             this.sendSecure({ inquire: varName })
