@@ -434,9 +434,9 @@ class Chat {
     /**
      * @param {"client"|"server"} clientOrServer 
      */
-    initWoo(clientOrServer) {
-        const wooLibrary = getWooLibrary?.()
-        if (!wooLibrary) throw new Error("no wooLibrary")
+    initWoo(clientOrServer) {//best wrap each item in a function instead of polluting Game
+        const wooLibrary = wooLibrary ?? getWooLibrary?.()
+        if (!wooLibrary) throw new Error("no wooLibrary, no getWooLibrary")
         wooLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = wooLibrary.defaultWeeInterval)
         wooLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = wooLibrary.defaultWeeRetries)
         for (const [key, obj] of Object.entries(wooLibrary.either)) {
