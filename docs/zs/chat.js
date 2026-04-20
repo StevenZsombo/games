@@ -535,6 +535,27 @@ class Chat {
 
     //#endregion
 
+    /**@returns {Promise<void>}*/
+    asapPromise() {
+        return new Promise(resolve => {
+            if (this.isConnected) return resolve()
+            const flag = Symbol('asap')
+            this.on_join_extras_temp_map.set(flag,
+                () => { this.on_join_extras_temp_map.delete(flag); resolve(); }
+            )
+        })
+    }
+
+    /**@param {Function} callback*/
+    asap(callback) {
+        if (this.isConnected) return callback()
+        const flag = Symbol('asap')
+        this.on_join_extras_temp_map.set(flag,
+            () => { this.on_join_extras_temp_map.delete(flag); callback() }
+        )
+    }
+
+
 
 
     //#region receiveMessage

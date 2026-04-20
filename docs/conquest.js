@@ -1154,7 +1154,7 @@ class Game extends GameCore {
         )
         this.add_drawable(mapster, 2)
 
-        RELOAD()
+        chat.asap(RELOAD)
 
     }
 
