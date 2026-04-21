@@ -191,7 +191,7 @@ class Game extends GameCore {
         sorted.sort(() => Math.random() - .5)
         sorted.sort((x, y) => y.score - x.score) //mutating
         this.rearrange(sorted)
-
+        if (dev.ALLOW_AUTO_SAVE) dev.save()
 
 
     }
@@ -278,6 +278,14 @@ class Game extends GameCore {
         timer.rightat(this.rect.right)
         this.add_drawable([timer, timerSet, timerStart])
 
+
+        const load = Button.fromRect(timerSet.copyRect)
+        load.move(timerSet.x - timerStart.x, 0)
+        load.txt = "Load"
+        load.eraseClickables()
+        load.on_release = () => dev.load()
+        this.add_drawable(load)
+
     }
 
     //#endregion
@@ -342,6 +350,7 @@ class Game extends GameCore {
 //#region dev options
 /// dev. options
 const dev = {
+    ALLOW_AUTO_SAVE: true,
     save: () => { //this sucks enourmous donkey dicks
         MM.exportJSON(
             players.map(x => [x.name, x.score])
