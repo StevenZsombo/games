@@ -927,8 +927,8 @@ class ContestManager {
 //#region Participant
 class Participant {
     /**@type {Map<string,Participant|Person>} nameID -> Participant*/
-    static #ALL = new Map()
-    static get ALL() { return this.#ALL } //can't be replaced.
+    static _ALL = new Map()
+    static get ALL() { return this._ALL } //can't be replaced.
 
     /**@param {Listener} listener  */
     constructor(listener, nameID, { name, connected, connectedAddress }) {
