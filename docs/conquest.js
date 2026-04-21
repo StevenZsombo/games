@@ -161,6 +161,36 @@ const ATTENDANCE = (txt) => {
 let pingWindow = null
 const PING = (doNotPopup = false, doNotSave = false) => {
     pingWindow?.close()
+
+    pingWindow = GameEffects.popup("", {
+        travelTime: 100, floatTime: Infinity, close_on_release: true,
+        on_end: () => {
+            !doNotSave && MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`)
+        }
+    }, GameEffects.popupPRESETS.megaBlue)
+
+    const rec = []
+    pingWindow.dynamicText = () => MM.tableStr(rec, "name average recent best worst".split(" "), 5)
+    pingWindow.textSettings = { textAlign: "left", textBaseline: "top" }
+    pingWindow.font_font = "myMonospace"
+    pingWindow.fontSize = 24
+
+    if (doNotPopup) {
+        pingWindow.deactivate()
+        Anim.delay(10 * 1000, { add: true, on_end: pingWindow.close })
+    }
+    Array.from(Object.values(participants)).filter(p => p.isConnected).forEach(p => {
+        chat.targetWee(p, "pingRecord").then((pingRecord) => {
+            const { average, recent, best, worst } = chat.getPingStats.call({ pingRecord }) ?? {}
+            rec.push([p.name, average, recent, best.join(", "), worst.join(", ")])
+            console.log(pingRecord, p, rec)
+        }).catch(console.error)
+    })
+    // chat.sendMessage({ request: "Date.now()" })
+
+}
+const PINGold = (doNotPopup = false, doNotSave = false) => {
+    pingWindow?.close()
     const responses = {}
     const sentAt = Date.now()
     Object.values(participants).forEach(p => {
@@ -423,7 +453,6 @@ const sharedFunc = {
 }
 
 const FROM_CLIENT_KINGDOM = (num, person) => {
-    console.log(num, person)
     if (!game.kingdoms[+num]) {
         hq.orderResetKingdom(person) //need not be a name
         return

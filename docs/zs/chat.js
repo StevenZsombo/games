@@ -369,8 +369,8 @@ class Chat {
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
     pingRecord = []
-    get pingStats() {
-        if (!this.pingRecord.length) return { average: 0, recent: 0, best: 0, worst: 0 }
+    getPingStats() {
+        if (!this.pingRecord.length) return
         const p = this.pingRecord
         const sorted = [...p].sort((a, b) => a - b)
         return {

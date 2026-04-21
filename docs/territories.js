@@ -700,7 +700,8 @@ Chat.getLibrary = () => {
                 ordChangeKingdom: game.resetKingdom,
                 ordReload: chat.delayedReload,
                 ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
-                fullscreen: () => { MM.toggleFullscreen(true) }
+                fullscreen: () => { MM.toggleFullscreen(true) },
+                pingRecord: () => chat.pingRecord,
             }
         },
         server: {
