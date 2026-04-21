@@ -962,6 +962,7 @@ class Participant {
 
     static check(person) {
         if (!person.initialized) person.initialize_core()
+        return person
     }
     /**
      * @param {Participant | string | string} personOrNameOrNameID 
