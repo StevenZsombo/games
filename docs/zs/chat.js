@@ -412,7 +412,7 @@ class Chat {
             const clock = setInterval(() => {
                 if (--retries < 0) {
                     cleanup()
-                    this.pingRecord[this.pingRecord.length - 1] = null
+                    this.pingRecord.length && (this.pingRecord[this.pingRecord.length - 1] = null)
                     resolveToDefaultInstead === undefined
                         ? reject(`wee timeout: ${value}`)
                         : resolve(resolveToDefaultInstead)
