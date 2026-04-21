@@ -60,41 +60,13 @@ var univ = {
 
 //#region Person
 class Person extends Participant {
-    constructor(...args) {
-        super(...args)
-        //initialized by Listener, actually.
-        this.kingdom = null
-    }
-    kick(doNotOrderResetName = false) {
-        // game.remove_drawable(this.button) //no buttons
-        game?.kingdoms.forEach(x => x.members.delete(this)) //but removed from kingdom
-        !doNotOrderResetName && chat.orderResetName(this.nameID)
-        delete participants[this.name]
-    }
-    kickBetter() {
+    kingdom = null
+    kick() {
         game?.kingdoms.forEach(x => x.members.delete(this))
-        delete participants[this.name]
+        this.listener.persons.delete(this.nameID)
     }
     initialize() {
-        if (this.initialized) return //redundant but whatever
-        this.initialized = true
         console.log("joined:", this.name, this.nameID)
-    }
-    /**@returns {Person} */
-    static to(name_nameID_or_person) {
-        return typeof name_nameID_or_person === "string"
-            ? (
-                participants[name_nameID_or_person]
-                || Object.values(participants).find(x => x.nameID == name_nameID_or_person)
-            )
-            : name_nameID_or_person
-    }
-    static check(person) {
-        person = Person.to(person)
-        if (!person?.initialized) {
-            person.initialize()
-        }
-        return person
     }
     /**@param {Kingdom} kingdom  */
     assignKingdom(kingdom) {
@@ -105,7 +77,6 @@ class Person extends Participant {
         kingdom.members.add(this)
         return isNew
     }
-
     verifyKingdomAssignedAlready() { //rejects connection if no kingdom, but contributing action
         if (this.kingdom == null) {
             chat.sendMessage({
@@ -120,7 +91,8 @@ class Person extends Participant {
     }
 }
 //#endregion
-const asyncprompt = (txt) => {
+
+const asyncprompt = (txt) => { //idea: attach to promise, or return object for better control @TODO @IDEA
     return new Promise((resolve, reject) => {
         if (!game) reject("asyncprompt: no game")
         const rect = new Rect(game.mouser.x - 105, game.mouser.y, 310, 70).fitWithinAnother(game.rect)
@@ -131,7 +103,8 @@ const asyncprompt = (txt) => {
 }
 
 const listener = new Listener()
-listener.on_participant_join = Person.check
+const participants = listener.persons
+listener.on_participant_connect = Person.check
 listener.on_participant_reconnect = Person.check
 listener.on_participant_disconnect = person => console.log("disconnected:", person.name, person.nameID)
 /**@type {ChatServer} */
@@ -150,6 +123,7 @@ const spop = (str, moreStgs) => {
 const badpop = (str, moreStgs) => {
     spop(str, { ...moreStgs, moreButtonSettings: { color: "red", width: 400, height: 140 } })
 }
+/**@deprecated */
 const ATTENDANCE = (txt) => {
     chat.orderAttendance()
     chat.sendMessage({
@@ -179,9 +153,9 @@ const PING = (doNotPopup = false, doNotSave = false) => {
         pingWindow.deactivate()
         Anim.delay(10 * 1000, { add: true, on_end: pingWindow.close })
     }
-    Array.from(Object.values(participants)).filter(p => p.isConnected).forEach(p => {
+    Array.from(participants.values()).filter(p => p.isConnected).forEach(p => {
         chat.targetWee(p, "pingRecord").then((pingRecord) => {
-            const { average, recent, best, worst } = chat.getPingStats.call({ pingRecord }) ?? {}
+            const { average, recent, best, worst } = chat.getPingStats(pingRecord) ?? {}
             rec.push([p.name, average, recent, best.join(", "), worst.join(", ")])
             console.log(pingRecord, p, rec)
         }).catch(console.error)
@@ -189,33 +163,8 @@ const PING = (doNotPopup = false, doNotSave = false) => {
     // chat.sendMessage({ request: "Date.now()" })
 
 }
-const PINGold = (doNotPopup = false, doNotSave = false) => {
-    pingWindow?.close()
-    const responses = {}
-    const sentAt = Date.now()
-    Object.values(participants).forEach(p => {
-        responses[p.name] = "-"
-        p.on_request_response_once = (_) => responses[p.name] = Date.now() - sentAt
-    })
-    pingWindow = GameEffects.popup("", {
-        travelTime: 100, floatTime: Infinity, close_on_release: true,
-        on_end: () => {
-            !doNotSave && MM.downloadFile(pingWindow.txt, `ping${Date.now()}.txt`)
-            for ([k, v] of Object.entries(responses)) {
-                participants[k] && (participants[k].ping ??= []).push(v)
-            }
-        }
-    }, GameEffects.popupPRESETS.megaBlue)
-    pingWindow.dynamicText = () => MM.tableStr(Object.entries(responses), ["name", "ping            "], 5)
 
-    if (doNotPopup) {
-        pingWindow.deactivate()
-        Anim.delay(10 * 1000, { add: true, on_end: pingWindow.close })
-    }
 
-    chat.sendMessage({ request: "Date.now()" })
-
-}
 const ASK = (person, question) => {
     const personObj = Person.to(person)
     if (!personObj) return
@@ -304,7 +253,7 @@ const DIAGNOSTIC = () => {
         kingdoms: game.kingdoms,
         territories: game.territories,
         layers: game.layers,
-        participants,
+        participants: Array.from(participants.entries()),
         chat, contest, RULES, GRAPHICS, MASTER, univ
     }, { exclude: [Mapster], functions: true })
     MM.downloadFile(str, "diagnostic" + Date.now() + ".json")
@@ -369,7 +318,7 @@ const INVALIDATE = (id) => {
     game.invalidate(id)
 }
 
-const participants = listener.participants
+
 //#region connectionInfoButton
 const connectionInfoButton = new Button()
 univ.on_each_start = () => {
@@ -400,7 +349,7 @@ const shared = { //can be inquired about if active
     RULES: RULES,
 }
 const sharedFunc = {
-    teamsData: () => RULES.STUDENTS.map(x => participants[x]?.kingdom?.id ?? -1),
+    teamsData: () => RULES.STUDENTS.map(x => Participant.to(x)?.kingdom?.id ?? -1),
     territoriesFullData: () => game.territories.map(x => ( //dummy me. this is read from map.json
         {
             id: x.id,
@@ -453,6 +402,7 @@ const sharedFunc = {
 }
 
 const FROM_CLIENT_KINGDOM = (num, person) => {
+    console.log({ num, person })
     if (!game.kingdoms[+num]) {
         hq.orderResetKingdom(person) //need not be a name
         return
@@ -481,7 +431,7 @@ chat.woo("attempt", ([conflictID, guess], person) => {
 })
 chat.woo("accept", (id, person) => {
     if (!person.verifyKingdomAssignedAlready()) return
-    const c = game.conflicts.find(x => x.id === obj.accept)
+    const c = game.conflicts.find(x => x.id === id)
     if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.nameID)
     else SHARE("conflictsData", person.nameID)
 })
@@ -508,7 +458,7 @@ listener.on_message = (obj, person) => {
             SHAREbunch(person.nameID)
         else if (obj.inquire === "RULES") {
             // SHARE("RULES")
-            SHARE("RULES", person.targetID)
+            SHARE("RULES", person.nameID)
             SHARE("teamsData")
             // SHAREmany(["RULES"])
         }
@@ -758,33 +708,6 @@ class Game extends GameCore {
         this.border.right.topat(0)
         this.border.right.height = this.rect.height
         this.add_drawable([this.border.left, this.border.right], 3)
-
-        /*const orderResetKingdomButton = switchModeButton.copy
-        orderResetKingdomButton.move(orderResetKingdomButton.width * -1.5, 0)
-        orderResetKingdomButton.txt = "Switch\nKingdom"
-        orderResetKingdomButton.on_click = null
-        orderResetKingdomButton.on_release = () => {
-            if (!Object.keys(participants).length) return
-            GameEffects.dropDownMenu(
-                Object.values(participants).map(x => [x.name, () => hq.orderResetKingdom(x.nameID)]),
-                null, null, null, { height: 35, fontSize: 24, width: 300 }, [this.overlay]
-            ) //adds to game automatically
-        }
-        this.orderResetKingdomButton = orderResetKingdomButton
-        this.add_drawable(orderResetKingdomButton)*/
-
-        /*const orderChangeNameButton = orderResetKingdomButton.copy
-        orderChangeNameButton.move(orderChangeNameButton.width * -1.5, 0)
-        orderChangeNameButton.txt = "Change\nName"
-        orderChangeNameButton.on_release = () => {
-            if (!Object.keys(participants).length) return
-            GameEffects.dropDownMenu(
-                Object.values(participants).map(x => [x.name, () => x.kick()]),
-                null, null, null, { height: 35, fontSize: 24, width: 300 }, [this.overlay]
-            )
-        }
-        this.orderChangeNameButton = orderChangeNameButton
-        this.add_drawable(orderChangeNameButton)*/
 
         const snapShotButton = Button.fromRect(switchModeButton.copyRect)
         snapShotButton.move(snapShotButton.width * -1.35, 0)
@@ -1267,6 +1190,8 @@ class Game extends GameCore {
             this.kingdoms.map(x => Array.from(x.territories.values().map(x => x.id)))
         r.PROVINCE_POSITIONS =
             this.territories.map(x => [x.button.centerX, x.button.centerY].map(Math.round))
+        r.PROVINCE_CAPITAL_STAR_POSITIONS =
+            RULES.PROVINCE_CAPITAL_STAR_POSITIONS
 
         let g = {}
         // Object.assign(g, GRAPHICS) //this sucks elephant dicks
@@ -1519,7 +1444,7 @@ class Game extends GameCore {
     }
     /**@param {Kingdom} kingdom  */
     playerMenu(kingdom) {
-        const players = Array.from(kingdom?.members ?? Object.values(participants))
+        const players = Array.from(kingdom?.members ?? participants.values())
         if (!players.length) return
         const btStgs =
             { fontSize: 28, width: 360, height: 70, color: kingdom?.color ?? "white", hover_color: "red" }
@@ -1580,13 +1505,8 @@ class Game extends GameCore {
                 WHITELIST(person)
             }],
             ["Flush", () => hqBetter.ordFlush(person)
-                .then(() => spop(`Order received.`)).catch(() => badpop(`Order was not received.`))
-                /*
-                person.kick(true)
-                chat.sendMessage({
-                    targetID: person.nameID,
-                    eval: "localStorage.clear();chat.silentReload();"
-                })*/
+                .then(() => { spop(`Order received.`); person.kick() }).catch(() => badpop(`Order was not received.`))
+
             ],
             ["ping = unknown...", () => chat.targetWee(person, "fullscreen")
                 .then(() => spop(`Order received, ask them to\nclick their screen.`)).catch(() => badpop(`Order was not received.`))]
@@ -1801,7 +1721,7 @@ class Game extends GameCore {
         const popup = GameEffects.popup("",
             {
                 posFrac: [.55 * .15, yyy], sizeFrac: [.15, .04],
-                direction: "left", floatTime: RULES.IDLE_BAN_DURATION,
+                direction: "left",
                 floatTime: Infinity,
                 travelTime: 200,
             }
@@ -2078,11 +1998,11 @@ const hq = {
 }
 
 const hqBetter = {
-    kick: person => person.kickBetter(),
-    ordChangeName: person => (person.kickBetter(), chat.targetWee(person, "ordChangeName")),
-    ordChangeKingdom: person => (person.kickBetter(), chat.targetWee(person, "ordChangeKingdom")),
+    kick: person => person.kick(),
+    ordChangeName: person => (person.kick(), chat.targetWee(person, "ordChangeName")),
+    ordChangeKingdom: person => (person.kick(), chat.targetWee(person, "ordChangeKingdom")),
     ordReload: person => (chat.targetWee(person, "ordReload")),
-    ordFlush: person => (person.kickBetter(), chat.targetWee(person, "ordFlush")),
+    ordFlush: person => (person.kick(), chat.targetWee(person, "ordFlush")),
 }
 
 

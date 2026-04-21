@@ -80,7 +80,8 @@ class Chat {
                 this.on_join_once = null
                 this.on_join_extras_temp_map.forEach(x => x())
                 this.on_join_extras_temp_map.clear()
-                this.sendMessage({ many: Array.from(Object.values(this.on_join_sendMany)) })
+                const many = Array.from(Object.values(this.on_join_sendMany))
+                many.length && this.sendMessage({ many })
                 this.on_join_sendMany.clear()
                 this.on_join?.()
                 this.queueSend() //in case this is a reconnect!
@@ -120,7 +121,7 @@ class Chat {
 
     }
 
-    lastHeartbeat = Date.now
+    lastHeartbeat = 0 //will be Date.now() after each call
     lastHeartbeatClockwork = setInterval(() => {
         this.lastHeartbeat - Date.now() > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
     }, 31_000)
@@ -169,17 +170,14 @@ class Chat {
      * @property {string} [requestResponse]
      * @property {string} [demand]
      * @property {any} [value]
-     * @property {string} [shared] @deprecated
-     * @property {string} [inquire] @deprecated
+     * @property {string} [shared] - sharing @deprecated
+     * @property {string} [inquire] - inquiring @deprecated
      * @property {number} [connected]
      * @property {string} [connectedAddress]
      * @property {string} [disconnectedAddress]
      * @property {string} [disconnectedID]
      * @property {string} [yell] - lets server log an error. TODO extend properly
      * @property {string} [str] - string
-     * @property {string} [id] - secure, will be echoed @deprecated
-     * @property {number} [queuedAt] - secure only @deprecated
-     * @property {string} [echo] - the echo it received @deprecated
      * @property {boolean} [SERVERnameAlreadyExists] - calls handleNameAlreadyExists
      * @property {boolean} [SERVERnameOrderedToReset] - calls resetName
      * @property {string} [SERVERnameForceName] - calls forceName
@@ -375,9 +373,9 @@ class Chat {
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
     pingRecord = []
-    getPingStats() {
-        if (!this.pingRecord.length) return
-        const p = this.pingRecord
+    getPingStats(pingRecord = this.pingRecord) {
+        if (!pingRecord.length) return
+        const p = pingRecord
         const sorted = [...p].sort((a, b) => a - b)
         return {
             average: p.reduce((s, t) => s + t) / p.length,
@@ -405,8 +403,8 @@ class Chat {
     } = {}
     ) {
         if (this.isServer) {
-            if (!targetPerson) { throw new Error("server can't wee without a target") }
-            //@TODO add type check later - must be person
+            if (!targetPerson) { console.error(targetPerson, ...arguments); throw new Error("server can't wee without a target") }
+            if (!targetPerson.nameID) { console.error(targetPerson, ...arguments); throw new Error("targetPerson must have a nameID") }
         } else {
             if (targetPerson) { throw new Error("clients can't wee to a target") }
         }
@@ -442,11 +440,11 @@ class Chat {
             send()
         })
     }
-    /**@type {Map<string, function(params: Object, person: Person|Participant): any>}*/
+    /**@type {Map<string, function(params: Object, person: Participant): any>}*/
     on_weeFunctions = new Map()
     /**
      * @param {ChatMessage} message
-     * @param {Person|Participant} person
+     * @param {Participant} person
      * @returns {{woo: number, value: any, ?targetID: string}}
      */
     weeToWooHandler(message, person) {
@@ -464,7 +462,7 @@ class Chat {
     }
     /**
      * @param {string} wee
-     * @param {function(params: Object, person: Person|Participant): any} fn
+     * @param {function(params: Object, person: Participant): any} fn
      * @returns {this}
     */
     woo(wee, fn) {
@@ -503,7 +501,9 @@ class Chat {
         const flag = `s${uniqueID}`
         const msg = { ...msgMore, spam: uniqueID, value }
         params && (msg.params = params)
-        const send = () => this.isConnected ? this.sendMessage(msg) && cleanup() && on_success?.() : this.on_join_sendMany.set(flag, msg)
+        const send = () => this.isConnected
+            ? (this.sendMessage(msg), cleanup(), on_success?.())
+            : this.on_join_sendMany.set(flag, msg)
         const clock = setInterval(() => {
             if (--retries < 0) {
                 cleanup()
@@ -530,11 +530,11 @@ class Chat {
         this.spam(value, params, { targetIDlist: ids, ...spamArgs })
     }
 
-    /**@type {Map<string, function(params: Object, person: Person|Participant): any>}*/
+    /**@type {Map<string, function(params: Object, person: Participant): any>}*/
     on_spamFunctions = new Map()
     /**
      * @param {ChatMessage} message
-     * @param {Person|Participant} person
+     * @param {Participant} person
      * @returns {void}
      */
     spamToEggsHandler(message, person) { //no return value - won't be sent back
@@ -542,7 +542,7 @@ class Chat {
     }
     /**
      * @param {string} spam
-     * @param {function(params: Object, person: Person|Participant): any} fn
+     * @param {function(params: Object, person: Participant): any} fn
      * @returns {this}
     */
     eggs(spam, fn) {
@@ -639,8 +639,9 @@ class Chat {
                 this.spamToEggsHandler(message, person)
                 return
             }
-            this.receiveMessage?.(message)
-            this.receiveMessageServer?.(message, person) //server only
+            this.isServer
+                ? this.receiveMessageServer?.(message, person)
+                : this.receiveMessage?.(message)
         }
     }
     /**@deprecated part of sendsecure pipeline*/
@@ -771,31 +772,6 @@ class Chat {
 //#endregion
 
 
-//#region Participant
-class Participant { // extend for Person
-    constructor(name, nameID, connected, connectedAddress) {
-        this.name = name
-        this.nameID = nameID
-        this.connectedAddress = connectedAddress ?? "WS failed to send?"
-        this.connected = connected ?? "WS failed to send?"
-        this.reconnections = 0
-        this.initialized = false
-
-        this.on_reconnect = null
-        this.on_join = null
-        this.on_disconnect = null
-        this.isConnected = true
-
-        this.on_request_response = null //takes message.requestResponse
-        this.on_request_response_once = null
-        this.on_prompt_response = null // takes message.promptResponse
-        this.on_prompt_response_once = null
-        // this.on_recovery = null //TODO
-        // this.on_recovery_once = null //TODO
-    }
-}
-//#endregion
-
 
 
 //#region ChatServer
@@ -838,7 +814,7 @@ class ChatServer extends Chat {
         this.sendMessage({ eval: code })
     }
 
-    /**@param {ParticipantBetter} person  */
+    /**@param {Participant} person  */
     targetWee(person, value, params, weeArgs) {
         return this.wee(value, params, { targetPerson: person, ...weeArgs })
     }
@@ -871,167 +847,6 @@ class ChatServer extends Chat {
 //#endregion
 
 //#region Listener
-class Listener {
-    constructor() {
-        //hacky, declare as Person instead of Participant, but whatever.
-        /**@type {Object.<string, Person>} */ //awkward af
-        this.participants = {}
-
-        this.name = "GM"
-        this.chat = new ChatServer(undefined, this.name)
-        this.allowPriorJoin = true
-        this.isLogging = false
-        // this.isLoggingRecovery = true
-        // /**@type {Map<string,Participant>} */
-        // this.recoveryQueue = new Map()
-
-        this.chat.receiveMessageServer = this.receiveMessageServer.bind(this)
-        this.chat.safeToReceiveForListener = this.safeToReceiveForListener.bind(this)
-
-        this.on_message = null //takes obj, person
-        this.on_message_more = null //takes obj, person
-        this.on_participant_reconnect = null //takes person
-        this.on_participant_join = null //takes person
-        this.on_participant_disconnect = null //takes person
-        // this.on_participant_recovery = null //takes person
-
-    }
-
-
-
-    handleNameAlreadyExists(name, nameID) {
-        const obj = {}
-        obj[Listener.SERVER.SERVERnameAlreadyExists] = true//will force a new name
-        obj.targetID = nameID //different id, so this is the newer person trying to join
-        this.chat.sendMessage(obj) //just to be sure.
-        //participant will NOT be added. so their future messages will NOT be parsed
-        //participant will be forced to rename themselves. then joining with a new name will be no issue
-        //the old, now inactive connection will remain. no reason why not I think (?)
-    }
-    handleEarlyJoin(name, nameID) {
-        //by telling them to bugger off. won't be parsed.
-        this.chat.sendMessage({
-            targetID: nameID,
-            reload: 1
-        })
-    }
-
-
-    safeToReceiveForListener(message) {
-        this.isLogging && console.log(message)
-        if (message.name == "WS") {
-            message.disconnectedAddress && this.participantHasJustDisconnected(message.disconnectedAddress)
-            //message.recoverFromWS && this.recoverFromWS(message.recoverFromWS)
-            return false
-        }
-        if (!message.name || message.name == this.name || !message.nameID) {
-            console.error("Received an unnamed message", message)
-            return false
-        }
-        const participants = this.participants
-        const { name, nameID } = message
-        //resolving connectivity concerns
-        if (message.connected) {//sent only by node //also has connectedAddress, may differ?
-            if (!participants[name]) {
-                const mightBeJustRename = Object.values(participants).find(person => person.nameID === nameID)
-                if (mightBeJustRename) {
-                    delete participants[mightBeJustRename.name]
-                    mightBeJustRename.name = name
-                }
-                participants[name] =
-                    mightBeJustRename ??
-                    (typeof Person === 'function'
-                        ? new Person(name, nameID, message.connected, message.connectedAddress)
-                        : new Participant(name, nameID, message.connected, message.connectedAddress)
-                    )
-                participants[name].isConnected = true
-                participants[name].on_join?.()
-                this.on_participant_join?.(participants[name])
-            } else if
-                (participants[name].nameID == nameID) { //existing person reconnecting
-                participants[name].reconnections++
-                participants[name].isConnected = true
-                participants[name].connectedAddress = message.connectedAddress ?? "WS failed to send connectedAddress??"
-                participants[name].on_reconnect?.()
-                this.on_participant_reconnect?.(participants[name])
-            } else {//here's the trouble: existing name but different ID:
-                this.handleNameAlreadyExists(name, nameID)
-            }
-        }
-        if (!participants[name]) { //see if late joining is okay
-            const mightBeJustRename = Object.values(participants).find(person => person.nameID === nameID)
-            if (mightBeJustRename) {
-                delete participants[mightBeJustRename.name]
-                participants[name] = mightBeJustRename
-                participants[name].name = name
-            } else {
-                //hell no. they can just reload
-                this.handleEarlyJoin(name, nameID)
-                return false
-            }
-
-        }
-        return participants[name]
-    }
-
-    receiveMessageServer(message) {
-        const person = this.participants[message.name]
-        if (!person) {
-            console.error("participants[name] does not exist???")
-            return
-        }
-
-        //logging any requests
-        if (message.promptResponse) {
-            person.on_prompt_response_once?.(message.promptResponse)
-            person.on_prompt_response_once = null
-            person.on_prompt_response?.(message.promptResponse)
-        }
-        if (message.requestResponse) {
-            person.on_request_response_once?.(message.requestResponse)
-            person.on_request_response_once = null
-            person.on_request_response?.(message.requestResponse)
-        }
-
-        //anything else
-
-        this.on_message?.(message, person)
-        this.on_message_more?.(message, person)
-
-    }
-
-
-    participantHasJustDisconnected(address) {
-        const person = Object.values(this.participants).find(x => x.connectedAddress === address)
-        if (!person) {
-            console.log("A disconnected person could not be identified", address)
-            return
-        }
-        person.isConnected = false
-        person.on_disconnect?.()
-        this.on_participant_disconnect?.(person)
-    }
-    recoverFromWS(recoveryData) {
-        // const p = this.participants[name]
-        //TODO
-        throw new Error("Not yet implemented.")
-    }
-    recoverFromWSrequest(nameID) {
-        this.isLoggingRecovery && console.log(`R@${nameID}`)
-        this.chat.attemptToSendText(`R@${nameID}`) //no pipe, one at a time
-    }
-
-    getNamelist() {
-        return Object.keys(this.participants)
-    }
-
-    static SERVER = {
-        SERVERnameAlreadyExists: "SERVERnameAlreadyExists",
-        SERVERnameOrderedToReset: "SERVERnameOrderedToReset",
-        SERVERnameForceName: "SERVERnameForceName"
-    }
-
-}
 
 //#endregion
 
@@ -1109,15 +924,17 @@ class ContestManager {
 }
 //#endregion
 
+//#region Participant
+class Participant {
+    /**@type {Map<string,Participant|Person>} nameID -> Participant*/
+    static #ALL = new Map()
+    static get ALL() { return this.#ALL } //can't be replaced.
 
-class ParticipantBetter {
-    /**@type {Map<string,ParticipantBetter>} nameID -> Participant*/
-    static ALL = new Map()
-    /**@param {ListenerBetter} listener  */
+    /**@param {Listener} listener  */
     constructor(listener, nameID, { name, connected, connectedAddress }) {
         this.listener = listener
-        if (!nameID || ParticipantBetter.ALL.has(nameID)) throw new Error(nameID ? "nameID already exists" : "invalid nameID")
-        ParticipantBetter.ALL.set(nameID, this)
+        if (!nameID || Participant.ALL.has(nameID)) throw new Error(nameID ? "nameID already exists" : "invalid nameID")
+        Participant.ALL.set(nameID, this)
         this.nameID = nameID //unique identifier
         this.name = name ?? nameID
         this.connectedAddress = connectedAddress ?? "WS failed to send?"
@@ -1143,21 +960,22 @@ class ParticipantBetter {
 
     }
 
-    check() {
-        if (!this.initialized) this.initialize_core()
+    static check(person) {
+        if (!person.initialized) person.initialize_core()
     }
     /**
-     * @param {ParticipantBetter | string | string} personOrNameOrNameID 
-     * @returns {ParticipantBetter | null}
+     * @param {Participant | string | string} personOrNameOrNameID 
+     * @returns {Participant | null}
     */
-    to(personOrNameOrNameID) {
-        if (personOrNameOrNameID instanceof ParticipantBetter) return personOrNameOrNameID
-        if (ParticipantBetter.ALL.has(personOrNameOrNameID)) return ParticipantBetter.ALL.get(personOrNameOrNameID)
-        return Array.from(ParticipantBetter.ALL.values()).find(x => x.name === personOrNameOrNameID)
+    static to(personOrNameOrNameID) {
+        if (personOrNameOrNameID instanceof Participant) return personOrNameOrNameID
+        if (Participant.ALL.has(personOrNameOrNameID)) return Participant.ALL.get(personOrNameOrNameID)
+        return Array.from(Participant.ALL.values()).find(x => x.name === personOrNameOrNameID)
     }
 
     /**Upgrades participant to a Person.*/
     initialize_core() {
+        if (this.initialized) { console.error("already initialized Person", this); return }
         this.initialized = true
         this.initialize()
         this.on_initialize?.()
@@ -1174,13 +992,15 @@ class ParticipantBetter {
     spam(value, params, spamArgs) {
         this.listener.chat.targetSpam(this, value, params, spamArgs)
     }
+
 }
+//#endregion
 
 
-class ListenerBetter {
+//#region Listener
+class Listener {
     constructor() {
-        this.persons = ParticipantBetter.ALL
-        /**@type {Object.<string,Person} */
+        this.persons = Participant.ALL
 
         this.name = "GM"
         this.chat = new ChatServer(undefined, this.name)
@@ -1232,7 +1052,7 @@ class ListenerBetter {
         }
         const participants = this.persons
         const { name, nameID } = message
-        /**@type {ParticipantBetter} */
+        /**@type {Participant} */
         let person
         //resolving connectivity concerns
         if (message.connected) {//sent only by node //also has connectedAddress, may differ?
@@ -1248,7 +1068,9 @@ class ListenerBetter {
                 this.on_participant_connect?.(person)
                 this.on_participant_reconnect?.(person)
             } else {  //if (!participant.has(nameID)) //must be new
-                person = new ParticipantBetter(this, nameID, { ...message })
+                person = typeof Person === 'function'
+                    ? new Person(this, nameID, { ...message })
+                    : new Participant(this, nameID, { ...message })
                 person.on_connect?.()
                 this.on_participant_connect?.(person)
             }
@@ -1264,7 +1086,7 @@ class ListenerBetter {
             this.coreHandleEarlyJoin(nameID)
             return null //nothing else should have been sent
         }
-        return person
+        return person = participants.get(nameID)
     }
 
     receiveMessageServer(message) {
@@ -1320,10 +1142,12 @@ class ListenerBetter {
         return Array.from(this.persons.values()).map(x => x.name)
     }
 
-    static SERVER = {
+    static SERVER = Object.freeze({
         SERVERnameAlreadyExists: "SERVERnameAlreadyExists",
         SERVERnameOrderedToReset: "SERVERnameOrderedToReset",
         SERVERnameForceName: "SERVERnameForceName"
-    }
+    })
 
 }
+//#endregion
+

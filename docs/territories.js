@@ -669,17 +669,12 @@ class Gimmicks {
 Chat.getLibrary = () => {
     return {
         wee: {
-            eval: {
-                client: eval
-            },
-            time: {
-                client: Date.now,
-                server: Date.now,
-            },
-            bounce: {
-                client: x => x,
-                server: x => x,
-            },
+            eval: { client: eval },
+            prompt: { client: prompt },
+            alert: { client: alert },
+            time: { client: Date.now, server: Date.now, },
+            bounce: { client: x => x, server: x => x, },
+            log: { client: v => console.log("%cserver:\n", 'background: #18f000de', v) },
         },
         spam: {
             popup: {
@@ -708,7 +703,7 @@ Chat.getLibrary = () => {
             wee: {// (value,person) => {...}
                 idle: (penLeft, person) => { game.warnIdle(person, penLeft); return 1; },
                 enter: () => { SHARE("teamsData"); return RULES },
-                kingdom: (num, person) => { FROM_CLIENT_KINGDOM(num, person) },
+                kingdom: (num, person) => { console.log(num, person); FROM_CLIENT_KINGDOM(num, person); return true },
 
             }
         },

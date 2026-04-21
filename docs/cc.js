@@ -554,7 +554,7 @@ class Game extends GameCore {
 
 
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
-        if (!nameIDtimestamp || (nameIDtimestamp - Date.now() > 6 * 60 * 60 * 1000))//older than 6 hours or none
+        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000))//older than 6 hours or none
         {
             //both mean that this is NOT the current conquest session
             const nameID = localStorage.getItem("nameID") //keep nameID?
