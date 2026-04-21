@@ -161,7 +161,7 @@ var univ = {
         let errorTimeStamps = []
         let errorTimeout = 5 * 1000
         let errorLimit = 5
-        /*window.onerror = (message, source, lineno, colno, error) => {
+        window.onerror = (message, source, lineno, colno, error) => {
             const fallback = `${message} at ${source}:${lineno}:${colno}`
             const stack = error?.stack || ''
             errorTimeStamps = errorTimeStamps.filter(x => Date.now() - x < errorTimeout)
@@ -181,7 +181,7 @@ var univ = {
             }
             event.preventDefault()
 
-        }*/
+        }
 
         if (location.hash.includes("s")) { document.body.style.overflow = "scroll" }
         if (location.hash.includes("d")) {
@@ -246,15 +246,17 @@ var univ = {
             wProgress?.("\nRULES received")
             Object.assign(RULES, value)
             beforeMainPassedToBeCalled()
-        }).catch((err) =>
-            wProgress?.(["", "",
+        }).catch((err) => {
+            wProgress?.(["", "Error code:" + err, "",
                 "FAILURE. CAN'T CONNECT TO SERVER",
                 "Make sure you are on the correct WiFi network.",
                 "Close all other apps.",
                 "Close all other tabs.", "",
-                "Ask the teacher for help.",
-                "" + err
+                "Ask the teacher for help."
+
             ].join("\n"))
+            throw new Error("CAN'T CONNECT TO SERVER")
+        }
         )
         return
     },
