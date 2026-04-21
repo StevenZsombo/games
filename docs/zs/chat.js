@@ -394,21 +394,24 @@ class Chat {
      */
     wee(value, params, {
         retries = Chat.defaultWeeRetries, interval = Chat.defaultWeeInterval, on_retry = null,
-        resolveToDefaultInstead = undefined, targetID = null,
+        resolveToDefaultInstead = undefined, targetPerson = null,
         msgMore = {} } = {}
     ) {
         if (this.isServer) {
-            if (!targetID) { throw new Error("server can't wee without a target") }
-            if (typeof targetID !== 'string') { throw new Error("invalid targetID (must be string)") }
+            if (!targetPerson) { throw new Error("server can't wee without a target") }
+            //@TODO add type check later - must be person
+        } else {
+            if (targetPerson) { throw new Error("clients can't wee to a target") }
         }
         const uniqueID = this.nextUniqueIDWee
         return new Promise((resolve, reject) => {
             const flag = `w${uniqueID}`
             const msg = { ...msgMore, wee: uniqueID, value }
             const sentAt = Date.now()
-            params && (msg.params = params)
-            targetID && (msg.targetID = targetID)
-            const send = () => this.isConnected ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
+            params !== undefined && (msg.params = params)
+            targetPerson && (msg.targetID = targetPerson.nameID)
+            const send = () =>
+                this.isConnected && (!this.isServer || targetPerson.isConnected) ? this.sendMessage(msg) : this.on_join_sendMany.set(flag, msg)
             const clock = setInterval(() => {
                 if (--retries < 0) {
                     cleanup()
@@ -514,9 +517,9 @@ class Chat {
     }
 
     targetSpam(targets, value, params, spamArgs = {}) {
-        const arr = Array.from(targets?.[Symbol.iterator]?.() ?? [targets]) //forgive me dear lord for i have sinned
+        const arr = Array.from(targets?.[Symbol.iterator]?.() ?? [targets])
         const ids = arr.map(x => typeof x === "string" ? x : x?.nameID).filter(x => x)
-        if (!ids.length) return
+        if (!ids.length) return //not sending
         this.spam(value, params, { targetIDlist: ids, ...spamArgs })
     }
 
@@ -828,31 +831,32 @@ class ChatServer extends Chat {
         this.sendMessage({ eval: code })
     }
 
-    targetWee(target, value, params, weeArgs) {
-        // let targetIDlist = [].concat(target).map(x => typeof x === "string" ? x : x.nameID).filter(x => x)
-        if (typeof target !== 'string') target = target.nameID
-        if (!target || typeof target !== 'string') throw new Error("invalid targetID -> failed to retrieve from nameid")
-        return this.wee(value, params, { targetID: target, ...weeArgs })
+    /**@param {ParticipantBetter} person  */
+    targetWee(person, value, params, weeArgs) {
+        return this.wee(value, params, { targetPerson: person, ...weeArgs })
     }
 
 
-    /**@param {String} targetID  */
+
+    /**@param {String} targetID  @deprecated*/
     orderResetName(targetID) {
         const obj = {}
         obj[Listener.SERVER.SERVERnameOrderedToReset] = true
         obj.targetID = targetID
         this.sendMessage(obj)
     }
-    //**param {String} target */
+    /**@param {String} target @deprecated*/
     orderReload(targetID) {
         this.sendMessage({ targetID: targetID, reload: true })
     }
+    /**@deprecated */
     orderForceName(targetID, forcedName) {
         const obj = {}
         obj[Listener.SERVER.SERVERnameForceName] = forcedName
         obj.targetID = targetID
         this.sendMessage(obj)
     }
+    /**@deprecated*/
     orderAttendance() {
         this.sendMessage({ present: "ask" })
     }

@@ -708,7 +708,6 @@ Chat.getLibrary = () => {
                 idle: (penLeft, person) => { game.warnIdle(person, penLeft); return 1; },
                 enter: (_, person) => { SHARE("teamsData"); return RULES },
                 kingdom: (num, person) => { FROM_CLIENT_KINGDOM(num, person) },
-                accept: (id, person) => { },
 
             }
         },

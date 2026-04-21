@@ -245,7 +245,6 @@ var univ = {
         }).then((value) => {
             wProgress?.("\nRULES received")
             Object.assign(RULES, value)
-            beforeMainPassedToBeCalled()
         }).catch((err) => {
             wProgress?.(["", "Error code:" + err, "",
                 "FAILURE. CAN'T CONNECT TO SERVER",
@@ -427,9 +426,7 @@ class Game extends GameCore {
             b.stretch(.8, .8)
             b.outline = 5
             b.on_release = () => {
-                const cb = GameEffects.confirmBox(`Joining team ${b.txt}, are you sure?`,)
-                cb.button.color = b.color
-                cb.yes.color = cb.no.color = "lightgray"
+                const cb = GameEffects.confirmBox(`Joining team ${b.txt}, are you sure?`)
                 cb.promise
                     .then(() => {
                         game.remove_drawables_batch(ks)
@@ -439,6 +436,8 @@ class Game extends GameCore {
                         origTC && window.BROWSERshowLoading && (window.BROWSERshowLoading.textContent = origTC)
                         this.initialize_more()
                     }).catch(() => { })
+                cb.button.color = b.color
+                cb.yes.color = cb.no.color = "lightgray"
             }
             b.on_hover = () =>
                 !this.animator.locked.has(b)

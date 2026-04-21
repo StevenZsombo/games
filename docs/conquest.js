@@ -423,6 +423,7 @@ const sharedFunc = {
 }
 
 const FROM_CLIENT_KINGDOM = (num, person) => {
+    console.log(num, person)
     if (!game.kingdoms[+num]) {
         hq.orderResetKingdom(person) //need not be a name
         return
@@ -1522,7 +1523,7 @@ class Game extends GameCore {
             ["Rename",
                 () => {
                     asyncprompt("What shall their new name be?").then(nn => {
-                        if (nn.length <= 3) nn += "" + person.nameID
+                        if (nn.length < 3) nn += "" + person.nameID
                         // chat.orderForceName(person.nameID, nn)
                         // this.kingdoms.forEach(x => x.members.delete(person))
                         // spop(`Set.`)
