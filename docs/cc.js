@@ -241,7 +241,7 @@ var univ = {
         await chat.asapPromise()
         await chat.wee("enter", null, {
             retries: 9, interval: 800,
-            on_retry: x => wProgress(`\nRetrying... ${10 - x}/10`)
+            on_retry: x => wProgress?.(`\nRetrying... ${10 - x}/10`)
         }).then((value) => {
             wProgress?.("\nRULES received")
             Object.assign(RULES, value)
