@@ -1483,8 +1483,8 @@ class Game extends GameCore {
                         // spop(`Set.`)
                         chat.targetWee(person, "rename", nn)
                             .then((v) => {
+                                person.name = v[1]
                                 let oldIndex = RULES.STUDENTS.indexOf(v[0])
-
                                 if (oldIndex !== -1) {
                                     RULES.STUDENTS[oldIndex] = v[1]
                                     spop(`Renamed ${v[0]} to ${v[1]}`)
