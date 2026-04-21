@@ -404,7 +404,7 @@ class Chat {
     ) {
         if (this.isServer) {
             if (!targetPerson) { console.error(targetPerson, ...arguments); throw new Error("server can't wee without a target") }
-            if (!targetPerson.nameID) { console.error(targetPerson, ...arguments); throw new Error("targetPerson must have a nameID") }
+            if (!(targetPerson instanceof Participant)) { console.error(targetPerson, ...arguments); throw new Error("targetPerson must have a nameID") }
         } else {
             if (targetPerson) { throw new Error("clients can't wee to a target") }
         }
