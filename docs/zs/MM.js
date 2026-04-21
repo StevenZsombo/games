@@ -2425,7 +2425,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
     }
 
 
-    /**@returns {GameWorld & {close:Function, promise: Promise,yes:Button, no:Button, label:Button, button:Button}} */
+    /**@returns {GameWorld & {close:Function, promise: function():Promise,yes:Button, no:Button, label:Button, button:Button}} */
     static confirmBox(txt, {
         on_yes = null, yes: yesTxt = "Yes", no: noTxt = "No", on_no = null, on_close = null,
         sizeFrac = [.5, .3],
@@ -2463,7 +2463,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
         w.tag = "confirmBox"
         w.isBlocking = true
-        w.promise = new Promise((resolve, reject) => {
+        w.promise = () => new Promise((resolve, reject) => {
             yes.on_release = () => {
                 close()
                 on_yes?.()

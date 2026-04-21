@@ -427,7 +427,7 @@ class Game extends GameCore {
             b.outline = 5
             b.on_release = () => {
                 const cb = GameEffects.confirmBox(`Joining team ${b.txt}, are you sure?`)
-                cb.promise
+                cb.promise()
                     .then(() => {
                         game.remove_drawables_batch(ks)
                         game.remove_drawable(top)
@@ -437,7 +437,8 @@ class Game extends GameCore {
                         this.initialize_more()
                     }).catch(() => { })
                 cb.button.color = b.color
-                cb.yes.color = cb.no.color = "lightgray"
+                cb.yes.color = b.color
+                cb.no.color = "antiquewhite"
             }
             b.on_hover = () =>
                 !this.animator.locked.has(b)
@@ -523,7 +524,7 @@ class Game extends GameCore {
                 ))
                 a(cb.screenRect)
                 cb.button.color = "antiquewhite"
-                cb.promise.then(() => select(b, i)).catch(() => allowRelease = true)
+                cb.promise().then(() => select(b, i)).catch(() => allowRelease = true)
 
                 // chat.silentReload() //no longer necessary -> server handles renames!
             }
@@ -761,7 +762,8 @@ class Game extends GameCore {
             this.youButton = youButton
             this.add_drawable(youButton)
             // top.txt = "Conquest game"
-            top.dynamicText = () => `Conquest game` + (chat.isConnected ? "" : " (connecting...)")
+            top.dynamicText = () => `Conquest game` +
+                (chat.isConnected ? "" : " (lost connection - reconnecting...)")
             top.clickCount = 0
             top.on_click = () => {
                 if (!top.clickCount) setTimeout(() => { top.clickCount = 0 }, 2000)

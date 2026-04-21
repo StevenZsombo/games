@@ -120,9 +120,15 @@ class Chat {
 
     }
 
+    lastHeartbeat = Date.now
+    lastHeartbeatClockwork = setInterval(() => {
+        this.lastHeartbeat - Date.now() > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
+    }, 31_000)
+
     attemptToSendText(message) {
         if (message === undefined) { return }
         if (this.socket?.readyState === WebSocket.OPEN) {
+            this.lastHeartbeat = Date.now()
             this.socket.send(message); //always targeted at GM if no identifier
         } else {
             console.log('%cCould not send message', 'color: #b800b8; font-weight: bold; background: #fff0f0; padding: 2px 4px', message);
@@ -395,7 +401,8 @@ class Chat {
     wee(value, params, {
         retries = Chat.defaultWeeRetries, interval = Chat.defaultWeeInterval, on_retry = null,
         resolveToDefaultInstead = undefined, targetPerson = null,
-        msgMore = {} } = {}
+        msgMore = {}
+    } = {}
     ) {
         if (this.isServer) {
             if (!targetPerson) { throw new Error("server can't wee without a target") }

@@ -679,7 +679,7 @@ Chat.getLibrary = () => {
             bounce: {
                 client: x => x,
                 server: x => x,
-            }
+            },
         },
         spam: {
             popup: {
@@ -705,17 +705,17 @@ Chat.getLibrary = () => {
             }
         },
         server: {
-            wee: {
+            wee: {// (value,person) => {...}
                 idle: (penLeft, person) => { game.warnIdle(person, penLeft); return 1; },
-                enter: (_, person) => { SHARE("teamsData"); return RULES },
+                enter: () => { SHARE("teamsData"); return RULES },
                 kingdom: (num, person) => { FROM_CLIENT_KINGDOM(num, person) },
 
             }
         },
         defaultSpamInterval: 800,
-        defaultWeeRetries: 3,
+        defaultSpamRetries: 1,
         defaultWeeInterval: 400,
-        defaultSpamRetries: 4,
+        defaultWeeRetries: 3,
 
     }
 }
