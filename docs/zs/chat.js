@@ -630,7 +630,7 @@ class Chat {
                 return
             }
             this.receiveMessage?.(message)
-            this.receiveMessageServer?.(message) //server only
+            this.receiveMessageServer?.(message, person) //server only
         }
     }
     /**@deprecated part of sendsecure pipeline*/
@@ -731,6 +731,30 @@ class Chat {
         } else {
             this.sendMessage({ inquire: varName })
         }
+    }
+
+
+    stressTest(target, tests = 100, frequency = 500, interval = 300, retries = 5) {
+        return new Promise(resolve => {
+            let sent = 0
+            let resolved = 0
+            let delivered = 0
+            let failed = 0
+            let retried = 0
+            for (let i = 0; i < tests; i++) {
+                setTimeout(() => {
+                    sent++
+                    chat.wee("bounce", i,
+                        { retries, interval, on_retry: () => retried++, targetID: target?.nameID })
+                        .then(() => delivered++).catch(() => failed++)
+                        .then(() => resolved++)
+                        .finally(() => {
+                            if (resolved === tests)
+                                resolve({ sent, delivered, failed, resolved, retried })
+                        })
+                }, frequency * i)
+            }
+        })
     }
 
 }
@@ -1073,3 +1097,222 @@ class ContestManager {
     }
 }
 //#endregion
+
+
+class ParticipantBetter {
+    /**@type {Map<string,ParticipantBetter>} nameID -> Participant*/
+    static ALL = new Map()
+    /**@param {ListenerBetter} listener  */
+    constructor(listener, nameID, { name, connected, connectedAddress }) {
+        this.listener = listener
+        if (!nameID || ParticipantBetter.ALL.has(nameID)) throw new Error(nameID ? "nameID already exists" : "invalid nameID")
+        ParticipantBetter.ALL.set(nameID, this)
+        this.nameID = nameID //unique identifier
+        this.name = name ?? nameID
+        this.connectedAddress = connectedAddress ?? "WS failed to send?"
+        this.connected = connected ?? "WS failed to send?"
+        this.reconnections = 0
+        this.initialized = false //game-specific
+
+        this.on_reconnect = null
+        this.on_connect = null
+        this.on_initialize = null
+        this.on_disconnect = null
+        this.isConnected = true
+
+        this.on_request_response = null //takes message.requestResponse
+        this.on_request_response_once = null
+        this.on_prompt_response = null // takes message.promptResponse
+        this.on_prompt_response_once = null
+        // this.on_recovery = null //TODO
+        // this.on_recovery_once = null //TODO
+
+
+        this.data = {} //game-specific
+
+    }
+
+    check() {
+        if (!this.initialized) this.initialize_core()
+    }
+    /**
+     * @param {ParticipantBetter | string | string} personOrNameOrNameID 
+     * @returns {ParticipantBetter | null}
+    */
+    to(personOrNameOrNameID) {
+        if (personOrNameOrNameID instanceof ParticipantBetter) return personOrNameOrNameID
+        if (ParticipantBetter.ALL.has(personOrNameOrNameID)) return ParticipantBetter.ALL.get(personOrNameOrNameID)
+        return Array.from(ParticipantBetter.ALL.values()).find(x => x.name === personOrNameOrNameID)
+    }
+
+    /**Upgrades participant to a Person.*/
+    initialize_core() {
+        this.initialized = true
+        this.initialize()
+        this.on_initialize?.()
+    }
+
+    /**@abstract */
+    initialize() { }
+    /**@see {@link Chat.wee} */
+    wee(value, params, weeArgs) {
+        this.listener.chat.targetWee(this, value, params, weeArgs)
+    }
+
+    /**@see {@link Chat.spam} */
+    spam(value, params, spamArgs) {
+        this.listener.chat.targetSpam(this, value, params, spamArgs)
+    }
+}
+
+
+class ListenerBetter {
+    constructor() {
+        this.persons = ParticipantBetter.ALL
+        /**@type {Object.<string,Person} */
+
+        this.name = "GM"
+        this.chat = new ChatServer(undefined, this.name)
+        this.allowPriorJoin = true
+        this.isLogging = false
+
+        this.chat.receiveMessageServer = this.receiveMessageServer.bind(this)
+        this.chat.safeToReceiveForListener = this.safeToReceiveForListener.bind(this)
+
+        this.on_message = null //takes obj, person
+        this.on_message_more = null //takes obj, person
+        this.on_participant_reconnect = null //takes person
+        this.on_participant_connect = null //takes person
+        this.on_participant_initialize = null//takes person
+        this.on_participant_disconnect = null //takes person
+        // this.on_participant_recovery = null //takes person
+
+    }
+
+
+
+    coreHandleNameAlreadyExists(person) {
+        const { nameID } = person
+        const obj = {}
+        obj[Listener.SERVER.SERVERnameAlreadyExists] = true//will force a new name
+        obj.targetID = nameID //different id, so this is the newer person trying to join
+        this.chat.sendMessage(obj) //just to be sure.
+        //participant will be added nevertheless. name-collisions are then handled by client
+    }
+    coreHandleEarlyJoin(nameID) {
+        //by telling them to bugger off. won't be parsed.
+        this.chat.sendMessage({
+            targetID: nameID,
+            reload: 1
+        })
+    }
+
+
+    safeToReceiveForListener(message) {
+        this.isLogging && console.log(message)
+        if (message.name == "WS") {
+            message.disconnectedAddress && this.coreParticipantHasJustDisconnected(message)
+            //message.recoverFromWS && this.recoverFromWS(message.recoverFromWS)
+            return false
+        }
+        if (!message.name || message.name == this.name || !message.nameID) {
+            console.error("Received an unnamed message", message)
+            return false
+        }
+        const participants = this.persons
+        const { name, nameID } = message
+        /**@type {ParticipantBetter} */
+        let person
+        //resolving connectivity concerns
+        if (message.connected) {//sent only by node //also has connectedAddress, may differ?
+            if (participants.has(nameID)) { //must be a reconnect
+                person = participants.get(nameID)
+                //check for rename
+                if (person.name !== name) person.name = name
+                person.isConnected = true
+                person.reconnections++
+                person.connectedAddress = message.connectedAddress ?? "WS failed to send connectedAddress??"
+                person.on_connect?.()
+                person.on_reconnect?.()
+                this.on_participant_connect?.(person)
+                this.on_participant_reconnect?.(person)
+            } else {  //if (!participant.has(nameID)) //must be new
+                person = new ParticipantBetter(this, nameID, { ...message })
+                person.on_connect?.()
+                this.on_participant_connect?.(person)
+            }
+            //either way: check for name collisions:
+            const existing = Array.from(participants.values()).find(x => x.name === person.name)
+            if (existing && existing !== person) {
+                this.coreHandleNameAlreadyExists(person)
+                //no return here -> let them interact anyways.
+            }
+        }
+
+        if (!participants.has(nameID)) {
+            this.coreHandleEarlyJoin(nameID)
+            return null //nothing else should have been sent
+        }
+        return person
+    }
+
+    receiveMessageServer(message) {
+        const person = this.persons.get(message.nameID)
+        if (!person) {
+            //should be impossible, safeToReceiveForListener just ran
+            console.error("person does not exist???")
+            return
+        }
+
+        //logging any requests
+        if (message.promptResponse) {
+            person.on_prompt_response_once?.(message.promptResponse)
+            person.on_prompt_response_once = null
+            person.on_prompt_response?.(message.promptResponse)
+        }
+        if (message.requestResponse) {
+            person.on_request_response_once?.(message.requestResponse)
+            person.on_request_response_once = null
+            person.on_request_response?.(message.requestResponse)
+        }
+
+        //anything else
+
+        this.on_message?.(message, person)
+        this.on_message_more?.(message, person)
+
+    }
+
+    coreParticipantHasJustDisconnected(message) {
+        const { disconnectedAddress, nameID } = message
+        let person =
+            Array.from(this.persons.values()).find(x => x.nameID === nameID || x.connectedAddress === disconnectedAddress)
+        if (!person) {
+            console.log("A disconnected person could not be identified", disconnectedAddress)
+            return
+        }
+        person.isConnected = false
+        person.on_disconnect?.()
+        this.on_participant_disconnect?.(person)
+    }
+    recoverFromWS(recoveryData) {
+        // const p = this.participants[name]
+        //TODO
+        throw new Error("Not yet implemented.")
+    }
+    recoverFromWSrequest(nameID) {
+        this.isLoggingRecovery && console.log(`R@${nameID}`)
+        this.chat.attemptToSendText(`R@${nameID}`) //no pipe, one at a time
+    }
+
+    getNamelist() {
+        return Array.from(this.persons.values()).map(x => x.name)
+    }
+
+    static SERVER = {
+        SERVERnameAlreadyExists: "SERVERnameAlreadyExists",
+        SERVERnameOrderedToReset: "SERVERnameOrderedToReset",
+        SERVERnameForceName: "SERVERnameForceName"
+    }
+
+}

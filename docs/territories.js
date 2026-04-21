@@ -711,7 +711,11 @@ Chat.getLibrary = () => {
                 accept: (id, person) => { },
 
             }
-        }
+        },
+        defaultSpamInterval: 800,
+        defaultWeeRetries: 3,
+        defaultWeeInterval: 400,
+        defaultSpamRetries: 4,
 
     }
 }
