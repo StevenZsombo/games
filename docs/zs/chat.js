@@ -40,7 +40,7 @@ class Chat {
 
         this.on_join = null
         this.on_join_once = null
-        this.on_join_extras_temp_map = new Map() //callback array
+        this.on_join_extras_temp_map = new Map() //callbacks
         this.on_join_sendMany = new Map() //messages to send with many:[...]
         this.on_disconnect = null
         this.on_error = null
