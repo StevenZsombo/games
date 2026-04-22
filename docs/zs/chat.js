@@ -8,7 +8,6 @@ class Chat {
         if (Chat.singletonAlreadyExists) {
             throw new Error("Chat must be a singleton.")
         } else {
-            Chat.singletonAlreadyExists = true
             Object.defineProperty(Chat, "singletonAlreadyExists", { value: true, configurable: false, writable: false })
         }
         if (Chat.HOSTNAMES_INDICATING_OFFLINE.includes(location.hostname)) {
@@ -152,10 +151,12 @@ class Chat {
      * @property {string} [targetID] - server only
      * @property {string[]} [targetIDlist] - server only
      * @property {any[]} [many] - objects in many (array) are parsed in order
-     * @property {string} [wee] - send with an async callback on response
-     * @property {string} [woo] - respond to a wee request
+     * @property {number} [wee] - send with an async callback on response, received by woo
+     * @property {number} [woo] - respond to a wee request
+     * @property {number} [spam] - send sync, received by eggs
+     * @property {number} [eggs] - will never be sent. included for the sake of completion
      * @property {string} [value] - default value to be handled for most tags
-     * @property {string} [params] - for wee requests
+     * @property {string} [params] - for wee and spam
      * @property {string} [eval]
      * @property {any} [log]
      * @property {string} [alert]
@@ -369,14 +370,18 @@ class Chat {
     //#region wee woo
     _uniqueIDWee = 0
     get nextUniqueIDWee() {
-        return ++this._uniqueIDWee
+        return ++this._uniqueIDWee //starts with 1
     }
     static defaultWeeRetries = 5
     static defaultWeeInterval = 500
     pingRecord = []
+    /**
+     * @param {Array<number|null>} [pingRecord=this.pingRecord] 
+     * @returns {?{ average: number; recent: number; best: any; worst: any; }} 
+     */
     getPingStats(pingRecord = this.pingRecord) {
-        if (!pingRecord.length) return
-        const p = pingRecord
+        const p = pingRecord.filter(x => x != null)
+        if (!p.length) return
         const sorted = [...p].sort((a, b) => a - b)
         return {
             average: p.reduce((s, t) => s + t) / p.length,
@@ -385,7 +390,7 @@ class Chat {
             worst: sorted.slice(-3)
         }
     }
-    /**@type {Map<string,{resolve:Function,cleanup:Function}}*/
+    /**@type {Map<string,{resolve:Function,cleanup:Function,reject:Function}}*/
     pendingWees = new Map()
     /**
      * @param {string} value
@@ -436,13 +441,13 @@ class Chat {
                 this.pendingWees.delete(uniqueID)
                 this.on_join_sendMany.delete(flag)
             }
-            this.pendingWees.set(uniqueID, { resolve, cleanup })
+            this.pendingWees.set(uniqueID, { resolve, cleanup, reject })
 
             send()
         })
     }
     /**@type {Map<string, function(params: Object, person: Participant): any>}*/
-    on_weeFunctions = new Map()
+    handlerFunctionsWeeWooSpamEggs = new Map()
     /**
      * @param {ChatMessage} message
      * @param {Participant} person
@@ -451,7 +456,7 @@ class Chat {
     weeToWooHandler(message, person) {
         const msg = {
             woo: message.wee,
-            value: this.on_weeFunctions.get(message.value)?.(message.params, person)
+            value: this.handlerFunctionsWeeWooSpamEggs.get(message.value)?.(message.params, person)
         }
         if (this.isServer) {
             if (!person) { throw new Error("server cannot wee willy-nilly") }
@@ -465,9 +470,10 @@ class Chat {
      * @param {string} wee
      * @param {function(params: Object, person: Participant): any} fn
      * @returns {this}
+     * @deprecated Use .eggs instead
     */
     woo(wee, fn) {
-        this.on_weeFunctions.set(wee, fn)
+        this.handlerFunctionsWeeWooSpamEggs.set(wee, fn)
         return this
     }
 
@@ -479,11 +485,11 @@ class Chat {
     //#region spam eggs
     _uniqueIDSpam = 0
     get nextUniqueIDSpam() {
-        return ++this._uniqueIDSpam
+        return ++this._uniqueIDSpam //starts with 1
     }
     static defaultSpamRetries = 5
     static defaultSpamInterval = 500
-    /**@type {Map<string,{on_success:Function,cleanup:Function}}*/
+    /**@type {Map<string,{on_success:Function,cleanup:Function,on_fail:Function}}*/
     pendingSpams = new Map()
     /**
      * @param {string} value
@@ -519,7 +525,7 @@ class Chat {
             this.pendingSpams.delete(uniqueID)
             this.on_join_sendMany.delete(flag)
         }
-        this.pendingSpams.set(uniqueID, { on_success, cleanup })
+        this.pendingSpams.set(uniqueID, { on_success, cleanup, on_fail })
 
         send()
     }
@@ -531,15 +537,13 @@ class Chat {
         this.spam(value, params, { targetIDlist: ids, ...spamArgs })
     }
 
-    /**@type {Map<string, function(params: Object, person: Participant): any>}*/
-    on_spamFunctions = new Map()
     /**
      * @param {ChatMessage} message
      * @param {Participant} person
      * @returns {void}
      */
     spamToEggsHandler(message, person) { //no return value - won't be sent back
-        this.on_spamFunctions.get(message.value)?.(message.params, person)
+        this.handlerFunctionsWeeWooSpamEggs.get(message.value)?.(message.params, person)
     }
     /**
      * @param {string} spam
@@ -547,13 +551,13 @@ class Chat {
      * @returns {this}
     */
     eggs(spam, fn) {
-        this.on_spamFunctions.set(spam, fn)
+        this.handlerFunctionsWeeWooSpamEggs.set(spam, fn)
         return this
     }
     //#endregion
 
     //#region initChatLibrary
-    static library = null
+    static library = null //or library
     static getLibrary = null //or function
     /**
      * @param {"client"|"server"} clientOrServer 
@@ -563,18 +567,12 @@ class Chat {
         if (!chatLibrary) throw new Error("no Chat.library, no Chat.getLibrary")
         chatLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = chatLibrary.defaultWeeInterval)
         chatLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = chatLibrary.defaultWeeRetries)
-        for (const [key, obj] of Object.entries(chatLibrary.wee ?? {})) {
-            if (obj[clientOrServer]) this.woo(key, obj[clientOrServer])
-        }
-        for (const [key, fn] of Object.entries(chatLibrary[clientOrServer]?.wee ?? {})) {
-            this.woo(key, fn)
-        }
         chatLibrary.defaultSpamInterval && (Chat.defaultSpamInterval = chatLibrary.defaultSpamInterval)
         chatLibrary.defaultSpamRetries && (Chat.defaultSpamRetries = chatLibrary.defaultSpamRetries)
-        for (const [key, obj] of Object.entries(chatLibrary.spam ?? {})) {
+        for (const [key, obj] of Object.entries(chatLibrary.either ?? {})) {
             if (obj[clientOrServer]) this.eggs(key, obj[clientOrServer])
         }
-        for (const [key, fn] of Object.entries(chatLibrary[clientOrServer]?.spam ?? {})) {
+        for (const [key, fn] of Object.entries(chatLibrary[clientOrServer] ?? {})) {
             this.eggs(key, fn)
         }
     }
@@ -599,6 +597,12 @@ class Chat {
         this.on_join_extras_temp_map.set(flag,
             () => { this.on_join_extras_temp_map.delete(flag); callback() }
         )
+    }
+
+    abort() {
+        this.pendingWees.forEach(x => { x.cleanup(); x.reject(); })
+        this.pendingSpams.forEach(x => { x.cleanup(); x.on_fail(); })
+        this.on_join_sendMany.clear()
     }
 
 
@@ -756,7 +760,7 @@ class Chat {
             for (let i = 0; i < tests; i++) {
                 setTimeout(() => {
                     sent++
-                    chat.wee("bounce", i,
+                    this.wee("bounce", i,
                         { retries, interval, on_retry: () => retried++, targetPerson: target })
                         .then(() => delivered++).catch(() => failed++)
                         .then(() => resolved++)

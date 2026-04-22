@@ -668,15 +668,17 @@ class Gimmicks {
 //used by chat.initChatLibrary("client") and chat.initChatLibrary("server")
 Chat.getLibrary = () => {
     return {
-        wee: {
+        defaultSpamInterval: 800,
+        defaultSpamRetries: 1,
+        defaultWeeInterval: 400,
+        defaultWeeRetries: 3,
+        either: {
             eval: { client: eval },
             prompt: { client: prompt },
             alert: { client: alert },
             time: { client: Date.now, server: Date.now, },
             bounce: { client: x => x, server: x => x, },
             log: { client: v => console.log("%cserver:\n", 'background: #18f000de', v) },
-        },
-        spam: {
             popup: {
                 client: txt => GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE),
                 server: txt => GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE),
@@ -684,33 +686,24 @@ Chat.getLibrary = () => {
         },
 
         client: {
-            wee: {
-                rename: v => { const old = chat.name; chat.forceName(v, true); return [old, chat.name] },
-                whitelist: () => {
-                    game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000) //the year 2000!
-                    game.cpop("You have been whitelisted by the server.")
-                },
-                absolve: () => game.easePen?.(true),
-                ordChangeName: game.resetName,
-                ordChangeKingdom: game.resetKingdom,
-                ordReload: chat.delayedReload,
-                ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
-                fullscreen: () => { MM.toggleFullscreen(true) },
-                pingRecord: () => chat.pingRecord,
-            }
+            rename: v => { const old = chat.name; chat.forceName(v, true); return [old, chat.name] },
+            whitelist: () => {
+                game?.easePen?.(); localStorage.setItem("protectedFromPenUntil", 32503680000000) //the year 2000!
+                game.cpop("You have been whitelisted by the server.")
+            },
+            absolve: () => game.easePen?.(true),
+            ordChangeName: game.resetName,
+            ordChangeKingdom: game.resetKingdom,
+            ordReload: chat.delayedReload,
+            ordFlush: () => { localStorage.clear(); chat.delayedReload(); },
+            fullscreen: () => { MM.toggleFullscreen(true) },
+            pingRecord: () => chat.pingRecord,
         },
-        server: {
-            wee: {// (value,person) => {...}
-                idle: (penLeft, person) => { game.warnIdle(person, penLeft); return 1; },
-                enter: () => { SHARE("teamsData"); return RULES },
-                kingdom: (num, person) => { console.log(num, person); FROM_CLIENT_KINGDOM(num, person); return true },
+        server: { /**(params,person) => {...} */
+            idle: (penLeft, person) => { game.warnIdle(person, penLeft); return 1; },
+            enter: () => { SHARE("teamsData"); return RULES },
+            kingdom: (num, person) => { console.log(num, person); FROM_CLIENT_KINGDOM(num, person); return true },
 
-            }
-        },
-        defaultSpamInterval: 800,
-        defaultSpamRetries: 1,
-        defaultWeeInterval: 400,
-        defaultWeeRetries: 3,
-
+        }
     }
 }

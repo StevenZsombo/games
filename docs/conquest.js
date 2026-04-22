@@ -419,8 +419,8 @@ const FROM_CLIENT_ATTACK = (id, person) => {
     if (!person.verifyKingdomAssignedAlready()) return
     game.beginAttack(person.kingdom, game.territories[id], person)
 }
-chat.woo("attack", (id, person) => FROM_CLIENT_ATTACK(id, person))
-chat.woo("attempt", ([conflictID, guess], person) => {
+chat.eggs("attack", (id, person) => FROM_CLIENT_ATTACK(id, person))
+chat.eggs("attempt", ([conflictID, guess], person) => {
     if (!person.verifyKingdomAssignedAlready()) return
     if (!game.attacksAllowed) return //forgot about this last time lol
     const c = game.conflicts.find(x => x.id === conflictID)
@@ -429,7 +429,7 @@ chat.woo("attempt", ([conflictID, guess], person) => {
     else { console.error("invalid conflid.id for attempt", conflictID, guess, person) }
     return success
 })
-chat.woo("accept", (id, person) => {
+chat.eggs("accept", (id, person) => {
     if (!person.verifyKingdomAssignedAlready()) return
     const c = game.conflicts.find(x => x.id === id)
     if (c?.defender === person.kingdom) c.accept() || SHARE("conflictsData", person.nameID)
