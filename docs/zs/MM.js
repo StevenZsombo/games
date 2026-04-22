@@ -67,6 +67,24 @@ class MM {
         return (value) => fn.reduce((s, t) => t(s), value)
     }
 
+    /**
+     * Repeat until "good" (resolved).
+     * @param {function(): Promise<any>} asyncfn
+     * @param {number} [attempts=2]
+     * @returns {Promise<any>}
+     */
+    static async rug(asyncfn, attempts = 2) {
+        let lastError;
+        for (let i = 0; i < attempts; i++) {
+            try {
+                return await asyncfn();
+            } catch (err) {
+                lastError = err;
+            }
+        }
+        throw lastError || new Error("rug failed");
+    }
+
 
     static dist(x, y, u, w) {
         return Math.hypot(x - u, y - w)

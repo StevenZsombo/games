@@ -36,7 +36,6 @@ class Chat {
 
         this.acquireName()
 
-        this.connect(ip, isServer)
 
         this.on_join = null
         this.on_join_once = null
@@ -56,6 +55,12 @@ class Chat {
         /** @type {Map<string, Function>} id -> callback*/
         this.on_failCallbacks = new Map()
 
+        this.lastHeartbeat = 0 //will be Date.now() after each call
+        this.lastHeartbeatClockwork = setInterval(() => {
+            this.lastHeartbeat && Date.now() - this.lastHeartbeat > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
+        }, 31_000)
+
+        this.connect(ip, isServer)
     }
 
     connect(ip, isServer = false) {
@@ -121,10 +126,6 @@ class Chat {
 
     }
 
-    lastHeartbeat = 0 //will be Date.now() after each call
-    lastHeartbeatClockwork = setInterval(() => {
-        this.lastHeartbeat - Date.now() > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
-    }, 31_000)
 
     attemptToSendText(message) {
         if (message === undefined) { return }
@@ -745,7 +746,7 @@ class Chat {
     }
 
 
-    stressTest(target, tests = 100, frequency = 500, interval = 300, retries = 5) {
+    stressTest(target = undefined, tests = 100, frequency = 500, interval = 300, retries = 5) {
         return new Promise(resolve => {
             let sent = 0
             let resolved = 0
@@ -756,7 +757,7 @@ class Chat {
                 setTimeout(() => {
                     sent++
                     chat.wee("bounce", i,
-                        { retries, interval, on_retry: () => retried++, targetID: target?.nameID })
+                        { retries, interval, on_retry: () => retried++, targetPerson: target })
                         .then(() => delivered++).catch(() => failed++)
                         .then(() => resolved++)
                         .finally(() => {
