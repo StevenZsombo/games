@@ -215,7 +215,9 @@ class GameCore extends GameCoreLayerCore {
         this.dtUpperLimit = univ.dtUpperLimit
         this.animator = new Animator()
         this.cropper = new Cropper()
-        this.clockTotal = 0
+        this.dtTotal = 0
+        this.drawCount = 0
+        this.updateCount = 0
 
         this.extras_on_update = []
         this.extras_on_draw = []
@@ -264,10 +266,12 @@ class GameCore extends GameCoreLayerCore {
         this.lastCycleTime = now
 
         const screen = this.screen
-        this.drawnAlready ? null : this.draw_reset(screen)
+        !this.drawnAlready && this.draw_reset(screen)
+        this.updateCount++
         this.update(dt, now)
         this.update_more(dt, now)
         this.extras_on_update.forEach(x => x.call(this, dt, now))
+        !this.drawnAlready && this.drawCount++
         !this.drawnAlready && this.draw_before?.(screen)
         !this.drawnAlready && this.draw(screen)
         !this.drawnAlready && this.draw_more(screen)
@@ -299,7 +303,7 @@ class GameCore extends GameCoreLayerCore {
 
     update(dt, now) {
         //update
-        this.clockTotal += dt
+        this.dtTotal += dt
         this.keyboarder.update(dt, now)
         if (this.isAcceptingInputs) {
             this.check_drawables(this.mouser)

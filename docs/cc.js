@@ -1324,7 +1324,7 @@ class Snippet {
                 screen.beginPath()
                 screen.strokeStyle = myColor //"gray"
                 screen.lineWidth = 20
-                screen.arc(fg.centerX, fg.centerY, 40, game.clockTotal / 800, game.clockTotal / 800 + 5)
+                screen.arc(fg.centerX, fg.centerY, 40, game.dtTotal / 800, game.dtTotal / 800 + 5)
                 screen.stroke()
                 screen.closePath()
             }
