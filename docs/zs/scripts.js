@@ -382,6 +382,13 @@ class Rect {
 		return this
 	}
 	/** @param {Rect} other */
+	isWithinAnother(other) {
+		return this.x >= other.x &&
+			this.y >= other.y &&
+			this.x + this.width <= other.x + other.width &&
+			this.y + this.height <= other.y + other.height
+	}
+	/** @param {Rect} other */
 	fitOutsideAnother(other) {
 		if (!this.colliderect(other)) return this
 		const overlapLeft = this.right - other.left
