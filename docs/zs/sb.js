@@ -101,7 +101,8 @@ class Supabase {
 		//careful, can't overwrite!
 		const url =
 			`${Supabase.SUPABASE_URL}/storage/v1/object/${Supabase.BUCKET_NAME}/uploads/` +
-			`file=${fileName ?? Date.now()};time=${Date.now};name=${Supabase.name};nameID=${Supabase.nameID}.png`
+			// `file=${fileName ?? Date.now()};timestamp=${Date.now()};name=${Supabase.name};nameID=${Supabase.nameID}.png`
+			`${fileName ?? Date.now() + ";" + Supabase.name + ";" + Supabase.nameID}.png`
 		const response = await fetch(url, {
 			method: "POST",
 			headers: {
