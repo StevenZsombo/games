@@ -103,6 +103,7 @@ class StateManager {
     remove(key) {
         this.to(key)?.destroy()
     }
+    has(key) { return this.states.has(key) }
     /**@type {function(from:?State,to:State)} */
     on_transition = null //for debugging
 

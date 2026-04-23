@@ -1,23 +1,24 @@
 {
-    "activeFile": "station1.json",
+    "activeFile": "station1.tmx",
     "expandedProjectPaths": [
         "."
     ],
+    "exportAsImage.visibleLayersOnly": false,
     "fileStates": {
         "station1.json": {
             "scale": 0.125,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3576,
-                "y": 2740
+                "x": 5384,
+                "y": 2876
             }
         },
         "station1.tmx": {
             "scale": 0.5,
-            "selectedLayer": 0,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 869,
-                "y": 665
+                "x": 1344,
+                "y": 669
             }
         },
         "tiles.tsx": {
@@ -34,7 +35,8 @@
     "map.lastUsedFormat": "json",
     "openFiles": [
         "tiles.tsx",
-        "station1.json"
+        "station1.json",
+        "station1.tmx"
     ],
     "project": "relay.tiled-project",
     "recentFiles": [

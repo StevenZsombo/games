@@ -5,12 +5,12 @@
     },
     "include": [
         "./*.js",
-        "../zs/*.js"
+        "../../zs/*.js",
+        "../shared/*.js"
     ],
     "exclude": [
         "node_modules",
         "./sketch*.js",
         "./zs/sketch*.js",
-        "./server*.js",
     ]
 }
