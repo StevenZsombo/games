@@ -232,10 +232,12 @@ class Rect {
 		return this
 	}
 	resizeFixed(w, h, fixedX, fixedY) {
-		this.move(-fixedX, -fixedY)
+		const scaleX = w != null ? w / this.width : 1
+		const scaleY = h != null ? h / this.height : 1
+		this.x = fixedX - (fixedX - this.x) * scaleX
+		this.y = fixedY - (fixedY - this.y) * scaleY
 		w != null && (this.width = w)
 		h != null && (this.height = h)
-		this.move(fixedX, fixedY)
 		return this
 	}
 
@@ -407,6 +409,14 @@ class Rect {
 		else if (minOverlap === overlapRight) this.leftat(other.right)
 		else if (minOverlap === overlapTop) this.bottomat(other.top)
 		else this.topat(other.bottom)
+		return this
+	}
+	/** @param {Rect} other */
+	moveToContain(other) {
+		if (other.left < this.left) this.move(other.left - this.left, 0)
+		else if (other.right > this.right) this.move(other.right - this.right, 0)
+		if (other.top < this.top) this.move(0, other.top - this.top)
+		else if (other.bottom > this.bottom) this.move(0, other.bottom - this.bottom)
 		return this
 	}
 
@@ -1698,35 +1708,35 @@ class Slider extends Panel {
 		const t = (val - this.min) / (this.max - this.min)
 		const x = this.leftX + t * (this.rightX - this.leftX)
 		const y = this.leftY + t * (this.rightY - this.leftY)
-		this.moving.centerat(x, y)
+		this.movingButton.centerat(x, y)
 	}
 	get value() {
 		return this._value
 	}
 	on_value_change = null
 	on_value_end = null
-	/**@param {Button} moving  */
-	assignMovingButton(moving) {
-		if (this.moving) {
-			this.moving.eraseClickables()
-			this.components.splice(this.components.indexOf(this.moving))
-			this.moving = null
+	/**@param {Button} movingButton  */
+	assignMovingButton(movingButton) {
+		if (this.movingButton) {
+			this.movingButton.eraseClickables()
+			this.components.splice(this.components.indexOf(this.movingButton))
+			this.movingButton = null
 		}
-		moving._drag_force_within = true
-		moving.on_drag = (pos) => {
+		movingButton._drag_force_within = true
+		movingButton.on_drag = (pos) => {
 			const { x, y, t } = MM.closestPointOnSegment(pos.x, pos.y, this.leftX, this.leftY, this.rightX, this.rightY)
-			moving.centerat(x, y)
+			movingButton.centerat(x, y)
 			let val = this.min + t * (this.max - this.min)
 			if (this.integer) val = Math.floor(val)
 			val = MM.clamp(val, this.min, this.max)
 			this.integer ? (this.value = val) : this._value = val
 			this.on_value_change?.(this._value)
 		}
-		moving.on_release = (pos) => {
+		movingButton.on_release = (pos) => {
 			this.on_value_end?.(this._value)
 		}
-		this.moving = moving
-		this.components.push(moving)
+		this.movingButton = movingButton
+		this.components.push(movingButton)
 		this.value = this.min
 		return this
 	}

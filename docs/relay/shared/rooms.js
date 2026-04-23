@@ -132,7 +132,7 @@ class Player extends Button {
             (t) => {
                 this.x = Anim.interpol(ox, tx, t)
                 this.y = Anim.interpol(oy, ty, t)
-                this.rad = globalThis.globalSin()
+                this.rad = this.game.dtSin
             },
             "",
             {

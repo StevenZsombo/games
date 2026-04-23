@@ -153,9 +153,9 @@ class State {
         this.key = key
         manager.states.set(key, this)
     }
-    /**@type {function(dt:number)} */
+    /**@type {?function(dt:number)} */
     update = null
-    /**@type {function(ctx:CanvasRenderingContext2D)} */
+    /**@type {?function(ctx:CanvasRenderingContext2D)} */
     draw = null
     //finnicky
     /**@deprecated Yet to be implemented.*/
@@ -194,7 +194,7 @@ class State {
     uncheckedTrans(nextState) {
         const st = this.manager.to(nextState)
         this.on_leave?.(st)
-        this.manager.on_transition(this, st)
+        this.manager.on_transition?.(this, st)
         this.manager.current = st
         st.on_enter?.(this)
         return true
