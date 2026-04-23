@@ -1400,6 +1400,24 @@ class MM {
         document.head.appendChild(script)
     }
 
+    static loadScriptPromise(scriptName) {
+        return new Promise((resolve, reject) => {
+            const oldGlobals = Object.keys(window)
+            const script = document.createElement("script")
+            script.onload = () => {
+                console.log(scriptName, "succesfully loaded.\nNew globals:", Object.keys(window).filter(x => !oldGlobals.includes(x)))
+                script.remove()
+                resolve()
+            }
+            script.onerror = (err) => {
+                script.remove()
+                reject(err)
+            };
+            script.src = scriptName
+            document.head.appendChild(script)
+        })
+    }
+
     static getByPath(path, startObj) {
         startObj ??= window
         const keys = path.split('.');
@@ -1475,6 +1493,37 @@ class MM {
             a.remove()
         }, 3000)
     }
+
+    /**
+     * @example MMdownloadAsZip(['./map.png', './data.json', './sprites/player.png']);
+     * @param {*} fileUrls 
+     * @param {string} [zipName='files.zip'] 
+     * @returns {Promise} 
+     */
+    static async downloadAsZip(fileUrls, zipName = 'files.zip') {
+        if (!window.JSZip) {
+            await Promise.any([
+                MM.loadScriptPromise("./zs/jszip.min.js"),
+                MM.loadScriptPromise("./../zs/jszip.min.js")
+            ])
+        }
+        if (!window.JSZip) throw new Error("failed to load JSZip")
+        const zip = new window.JSZip();
+        await Promise.all(fileUrls.map(async (url) => {
+            const response = await fetch(url)
+            const blob = await response.blob()
+            const filename = url.split('/').at(-1)
+            zip.file(filename, blob)
+        }))
+        const content = await zip.generateAsync({ type: 'blob' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(content)
+        a.download = zipName
+        a.click()
+        URL.revokeObjectURL(a.href)
+        a.remove()
+    }
+
 
     static exportJSON(data, filename = "data.json", alsoAlert = false) {
         if (alsoAlert)

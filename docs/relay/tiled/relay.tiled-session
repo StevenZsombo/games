@@ -5,11 +5,11 @@
     ],
     "fileStates": {
         "station1.json": {
-            "scale": 0.5,
+            "scale": 0.125,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 887,
-                "y": 669
+                "x": 3576,
+                "y": 2740
             }
         },
         "station1.tmx": {
@@ -27,6 +27,9 @@
     },
     "last.exportedFilePath": "D:/js/games/docs/relay/tiled",
     "last.imagePath": "D:/js/games/docs/relay/tiled",
+    "last.worldFilePath": "D:/js/games/docs/relay/tiled",
+    "loadedWorlds": [
+    ],
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "json",
     "openFiles": [
