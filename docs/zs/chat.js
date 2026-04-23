@@ -54,8 +54,8 @@ class Chat {
         /** @type {Map<string, Function>} id -> callback*/
         this.on_failCallbacks = new Map()
 
-        this.lastHeartbeat = 0 //will be Date.now() after each call
-        this.lastHeartbeatClockwork = setInterval(() => {
+        this.lastHeartbeat = null //will be Date.now() after each call
+        this.lastHeartbeatClockwork = this.isServer ? null : setInterval(() => {
             this.lastHeartbeat && Date.now() - this.lastHeartbeat > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
         }, 31_000)
 
@@ -788,7 +788,7 @@ class ChatServer extends Chat {
         this.isLoggingTargeting = this.isLogging || false
 
         this.queueTimeout = 0
-        console.log(`Server queueTimeout has been set to ${this.queueTimeout || "infinite"}`)
+        // console.log(`Server queueTimeout has been set to ${this.queueTimeout || "infinite"}`)
     }
     sendMessage(obj) {
         if (typeof obj === "string") { obj = { str: obj } }
