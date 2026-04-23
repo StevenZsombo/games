@@ -1,0 +1,33 @@
+{
+    "activeFile": "station1.tmx",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "station1.tmx": {
+            "scale": 0.8866666666666666,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 491.72932330827064,
+                "y": 319.7368421052632
+            }
+        },
+        "tiles.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1.5
+        }
+    },
+    "last.exportedFilePath": "D:/js/games/docs/relay/tiled",
+    "last.imagePath": "D:/js/games/docs/relay/tiled",
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+        "tiles.tsx",
+        "station1.tmx"
+    ],
+    "project": "relay.tiled-project",
+    "recentFiles": [
+        "tiles.tsx",
+        "station1.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx"
+}
