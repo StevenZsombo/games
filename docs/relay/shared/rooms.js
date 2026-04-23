@@ -1,7 +1,6 @@
 class Cell {
     constructor(i, j, state) {
-        this.i = i
-        this.j = j
+        this.i = i; this.j = j;
         this.state = state ?? "none"
     }
 }
@@ -58,6 +57,9 @@ class Loca extends GameWorld {
         const { x, y } = this.screenToWorldV(pos)
         return [x, y].map(k => Math.floor(k / GRAPHICS.SIZE))
     }
+    zoom(worldX, worldY, zoomLevel) {
+        this.worldRect.resizeFixed(this.bg.width / zoomLevel, this.bg.height / zoomLevel, worldX, worldY)
+    }
 }
 
 
@@ -84,9 +86,7 @@ class Player extends Button {
         img.onload = () => this.img = img
         img.src = RULES.PICTURES_FOLDER + imgfilename + ".png"
 
-        this.i = i
-        this.j = j
-        this.reposition()
+        this.setIJ(i, j)
         this.loca = loca
         this.game = game
         this.canMove = true
@@ -101,9 +101,8 @@ class Player extends Button {
     static ALLOWED_MOVES = GRAPHICS.ALLOWED_MOVES
     getPathTo(i, j) {
         if (!this.loca.grid.valid(i, j)) return null
-        if (this.path?.length) {
-            this.i = this.path[0][0]
-            this.j = this.path[0][1]
+        if (this.waddleNextStep) {
+            this.setIJ(...this.waddleNextStep)
         }
         const q = [[this.i, this.j]], v = new Map([[`${this.i},${this.j}`, null]])
         while (q.length) {
@@ -126,20 +125,21 @@ class Player extends Button {
     }
     waddleTo(i, j) {
         this.canMove = false
+        this.waddleNextStep = [i, j]
         const [tx, ty, ox, oy] = [i, j, this.i, this.j].map(x => x * GRAPHICS.SIZE)
         this.game.animator.add_anim(Anim.custom(this,
             GRAPHICS.WADDLE_TIME * Math.hypot(i - this.i, j - this.j),
             (t) => {
                 this.x = Anim.interpol(ox, tx, t)
                 this.y = Anim.interpol(oy, ty, t)
-                this.rad = Math.sin(t * TWOPI) * 0.12
+                this.rad = globalThis.globalSin()
             },
             "",
             {
                 on_end: () => {
                     this.rad = 0
-                    this.i = i; this.j = j;
-                    this.reposition()
+                    this.setIJ(i, j)
+                    this.waddleNextStep = null
                     this.canMove = true
                 }
             }
@@ -150,6 +150,13 @@ class Player extends Button {
         if (this.target?.[0] === i && this.target?.[1] === j) return //already getting there
         this.target = [i, j]
         this.path = this.getPathTo(i, j)
+    }
+    on_setIJ(i, j) { } //old i,j are still this.i,this.j
+    setIJ(i, j) {
+        this.on_setIJ(i, j)
+        this.i = i
+        this.j = j
+        this.reposition()
     }
     updateControllable(dt) {
         if (!this.canMove) return
@@ -167,8 +174,8 @@ class Player extends Button {
         const dy = ty - this.y
         //normalize?
         const mag = Math.hypot(dx, dy)
-        if (mag < 10) {
-            this.topleftat(ty, tx)
+        if (mag < GRAPHICS.SIZE * GRAPHICS.DRIFT_SNAP_SIZE_COEFFICIENT) {
+            this.topleftat(tx, ty)
             this.drift = null
             return
         }

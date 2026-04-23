@@ -226,9 +226,16 @@ class Rect {
 
 	resize(w, h) {
 		const { x, y } = this.center
-		if (w !== null) this.width = w
-		if (h !== null) this.height = h
+		if (w != null) this.width = w
+		if (h != null) this.height = h
 		this.centerat(x, y)
+		return this
+	}
+	resizeFixed(w, h, fixedX, fixedY) {
+		this.move(-fixedX, -fixedY)
+		w != null && (this.width = w)
+		h != null && (this.height = h)
+		this.move(fixedX, fixedY)
 		return this
 	}
 

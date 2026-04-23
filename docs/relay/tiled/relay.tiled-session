@@ -9,16 +9,19 @@
             "scale": 0.125,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 5384,
-                "y": 2876
+                "x": 392,
+                "y": 1292
             }
         },
         "station1.tmx": {
-            "scale": 0.5,
-            "selectedLayer": 2,
+            "expandedObjectLayers": [
+                4
+            ],
+            "scale": 0.33,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 574,
-                "y": 677
+                "x": 1145.4545454545455,
+                "y": 489.3939393939393
             }
         },
         "tiles.tsx": {

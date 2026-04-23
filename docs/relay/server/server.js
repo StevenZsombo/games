@@ -1,3 +1,8 @@
+const listener = new Listener()
+const chat = listener.chat
+const persons = listener.persons
+
+
 class Game extends GameCore {
     initialize_more() {
         const loca = this.loca = new Loca(this.rect, "station1")
@@ -45,8 +50,13 @@ class Game extends GameCore {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-
-
+        if (GRAPHICS.FOLLOW_CAMERA_COEFFICIENT) {
+            const { cx, cy } = this.me
+            const { centerX, centerY } = this.loca.worldRect
+            const dx = cx - centerX
+            const dy = cy - centerY
+            this.loca.worldRect.move(dx * GRAPHICS.FOLLOW_CAMERA_COEFFICIENT, dy * GRAPHICS.FOLLOW_CAMERA_COEFFICIENT)
+        }
 
 
 

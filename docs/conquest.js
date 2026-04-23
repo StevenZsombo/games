@@ -144,6 +144,7 @@ const PING = (doNotPopup = false, doNotSave = false) => {
     }, GameEffects.popupPRESETS.megaBlue)
 
     const rec = []
+    { const { average, recent, best, worst } = chat.getPingStats() ?? {}; rec.push(["SERVER/GM", average, recent, best, worst]) }
     pingWindow.dynamicText = () => MM.tableStr(rec, "name average recent best worst".split(" "), 5)
     pingWindow.textSettings = { textAlign: "left", textBaseline: "top" }
     pingWindow.font_font = "myMonospace"
