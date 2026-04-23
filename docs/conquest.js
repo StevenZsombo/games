@@ -151,7 +151,7 @@ const PING = (doNotPopup = false, doNotSave = false) => {
 
     if (doNotPopup) {
         pingWindow.deactivate()
-        Anim.delay(10 * 1000, { add: true, on_end: pingWindow.close })
+        Anim.delay(10 * 1000, { add: game, on_end: pingWindow.close })
     }
     Array.from(participants.values()).filter(p => p.isConnected).forEach(p => {
         chat.targetWee(p, "pingRecord").then((pingRecord) => {
@@ -1064,7 +1064,7 @@ class Game extends GameCore {
                         [`mapIMG = ${RULES.PICTURE_BACKGROUND_MAP}`, () => {
                             spop("Select a picture from the pictures folder")
                             Anim.delay(1000, {
-                                add: true,
+                                add: game,
                                 on_end: () => {
                                     const pick = document.createElement("input")
                                     pick.type = "file"

@@ -196,7 +196,7 @@ class Anim {
 		if (typeof args?.lerp === "string") { this.lerp = Anim.l[this.lerp] }
 
 		this.totTime = time
-		if (args.add) { game?.animator.add_anim(this) }
+		if (args.add) { args.add.animator.add_anim(this) }
 	}
 
 

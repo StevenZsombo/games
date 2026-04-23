@@ -15,6 +15,7 @@ class Grid extends Map {
 
 
 class Loca extends GameWorld {
+    tag = "Loca"
     constructor(fromRect, backgroundimgfile) {
         super(fromRect)
         /**@type {Grid} */
@@ -24,11 +25,11 @@ class Loca extends GameWorld {
         const events = MAP.layers.find(x => x.name === "events")
         const events_gridded = MM.reshape(events.data, events.width)
         console.log({ floors, gridded: floors_grid })
-        for (let i = 0; i < floors.height; i++) {
-            for (let j = 0; j < floors.width; j++) {
-                if (floors_grid[i][j]) {
+        for (let i = 0; i < floors.width; i++) {
+            for (let j = 0; j < floors.height; j++) {
+                if (floors_grid[j][i]) {
                     grid.put(i, j, new Cell(i, j))
-                    if (events_gridded[i][j]) grid.at(i, j).state = "event"
+                    if (events_gridded[j][i]) grid.at(i, j).state = "event"
                 }
 
             }
@@ -38,15 +39,24 @@ class Loca extends GameWorld {
             if (!eventState.has(x.state)) eventState.create(x.state)
         })
 
-        const bg = this.bg = new Button({ transparent: true })
+        const bg = this.bg = new Button({ transparent: true, x: 0, y: 0 })
         const raw = new Image()
         raw.onload = () => {
-            bg.width = raw.width
-            bg.height = raw.height
+            bg.width = this.worldRect.width = raw.width
+            bg.height = this.worldRect.height = raw.height
             bg.img = cropper.resize(raw, raw.width, raw.height)
             this.add_drawable(bg, 0) //layer 0 for background map
+
         }
         raw.src = RULES.MAP_BACKGROUND_FOLDER + backgroundimgfile + ".png"
+    }
+    getIJ(pos) {
+        const { x, y } = pos
+        return [x, y].map(k => Math.floor(k / GRAPHICS.SIZE))
+    }
+    getIJscreen(pos) {
+        const { x, y } = this.screenToWorldV(pos)
+        return [x, y].map(k => Math.floor(k / GRAPHICS.SIZE))
     }
 }
 
@@ -59,54 +69,113 @@ class Player extends Button {
      * @param {number} i 
      * @param {number} j 
      * @param {Location} loca 
+     * @param {Game} game 
      */
-    constructor(imgfilename, i, j, loca) {
+    constructor(imgfilename, i, j, loca, game) {
+        game ??= globalThis.game
         if (!(loca instanceof Loca)) throw new Error("invalid location for player spawn")
         if (!loca.grid.valid(i, j)) throw new Error("invalid i,j for player spawn!")
         super({
             width: GRAPHICS.SIZE, height: GRAPHICS.SIZE, transparent: true,
-            x: i * GRAPHICS.SIZE, y: j * GRAPHICS.SIZE
+            imgScale: 1,
         })
+
         const img = new Image()
         img.onload = () => this.img = img
         img.src = RULES.PICTURES_FOLDER + imgfilename + ".png"
 
         this.i = i
         this.j = j
+        this.reposition()
         this.loca = loca
+        this.game = game
         this.canMove = true
         /**@type {[number,number] | null} */
         this.target = null
+        /**@type {Array<[number,number]> | null} */
+        this.path = null
+
+        this.update = this.updateDrifting
 
     }
-    tryMoveTo(i, j) {
-        const neighbours =
-            [-1, 0, 1].flatMap(x => [-1, 0, 1].map(y => [this.i + x, this.j + y]))
-                .filter(x => !(x[0] && x[1]))
-        const closest = //current cell is always valid
-            neighbours
-                .filter(([u, w]) => this.loca.grid.valid(u, w))
-                .sort(
-                    ([a, b], [c, d]) =>
-                        (a - i) ** 2 + (b - j) ** 2
-                        - (i - c) ** 2 - (j - d) ** 2)
-                .at(0)
+    static ALLOWED_MOVES = GRAPHICS.ALLOWED_MOVES
+    getPathTo(i, j) {
+        if (!this.loca.grid.valid(i, j)) return null
+        if (this.path?.length) {
+            this.i = this.path[0][0]
+            this.j = this.path[0][1]
+        }
+        const q = [[this.i, this.j]], v = new Map([[`${this.i},${this.j}`, null]])
+        while (q.length) {
+            const [c, d] = q.shift()
+            if (c === i && d === j) {
+                const p = [[i, j]]
+                let x = v.get(`${c},${d}`); while (x) { p.unshift(x.split(',').map(Number)); x = v.get(x) }
+                return p
+            };
+            Player.ALLOWED_MOVES.forEach(([a, b]) => {
+                const e = c + a, f = d + b, g = `${e},${f}`
+                if (this.loca.grid.valid(e, f) && !v.has(g)) { v.set(g, `${c},${d}`); q.push([e, f]) }
+            })
+        }; return null
+    }
 
-        if (this.i === closest[0] && this.j === closest[1]) {
-            this.target = null //keep?
-            return
-        } else this.waddleTo(...closest)
+    reposition() {
+        this.x = GRAPHICS.SIZE * this.i
+        this.y = GRAPHICS.SIZE * this.j
     }
     waddleTo(i, j) {
-        //movement animation logic goes here.
-
+        this.canMove = false
+        const [tx, ty, ox, oy] = [i, j, this.i, this.j].map(x => x * GRAPHICS.SIZE)
+        this.game.animator.add_anim(Anim.custom(this,
+            GRAPHICS.WADDLE_TIME * Math.hypot(i - this.i, j - this.j),
+            (t) => {
+                this.x = Anim.interpol(ox, tx, t)
+                this.y = Anim.interpol(oy, ty, t)
+                this.rad = Math.sin(t * TWOPI) * 0.12
+            },
+            "",
+            {
+                on_end: () => {
+                    this.rad = 0
+                    this.i = i; this.j = j;
+                    this.reposition()
+                    this.canMove = true
+                }
+            }
+        ))
     }
-    update(dt) {
+    setTarget(i, j) {
+        if (!this.loca.grid.valid(i, j)) return
+        if (this.target?.[0] === i && this.target?.[1] === j) return //already getting there
+        this.target = [i, j]
+        this.path = this.getPathTo(i, j)
+    }
+    updateControllable(dt) {
         if (!this.canMove) return
         if (!this.target) return
-        if (this.target[0] === this.i && this.target[1] === this.j) {
-            this.target = null; return;
-        }
-        this.tryMoveTo(...this.target)
+        this.path?.length
+            ? this.waddleTo(...this.path.shift())
+            : (this.target = null)
     }
+    drift = null
+    updateDrifting(dt) {
+        if (!this.drift) return
+        let tx = this.drift[0] * GRAPHICS.SIZE
+        let ty = this.drift[1] * GRAPHICS.SIZE
+        const dx = tx - this.x
+        const dy = ty - this.y
+        //normalize?
+        const mag = Math.hypot(dx, dy)
+        if (mag < 10) {
+            this.topleftat(ty, tx)
+            this.drift = null
+            return
+        }
+        //crawling
+        //this.move(dx / mag * GRAPHICS.CRAWL_VELOCITY, dy / mag * GRAPHICS.CRAWL_VELOCITY)
+        //drifting
+        this.move(dx * GRAPHICS.DRIFT_COEFFICENT, dy * GRAPHICS.DRIFT_COEFFICENT)
+    }
+
 }

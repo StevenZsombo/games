@@ -17,8 +17,8 @@
             "scale": 0.5,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1818,
-                "y": 673
+                "x": 574,
+                "y": 677
             }
         },
         "tiles.tsx": {
@@ -34,15 +34,13 @@
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "json",
     "openFiles": [
-        "tiles.tsx",
-        "station1.json",
         "station1.tmx"
     ],
     "project": "relay.tiled-project",
     "recentFiles": [
-        "tiles.tsx",
+        "station1.tmx",
         "station1.json",
-        "station1.tmx"
+        "tiles.tsx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }

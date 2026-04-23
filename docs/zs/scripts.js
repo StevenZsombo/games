@@ -707,6 +707,7 @@ class Button extends Clickable {
 	/**@param {RenderingContext} screen  */
 	draw(screen) {
 		if (!this.visible) return
+		this.draw_before?.(screen)
 		if (this.rad) { //context is restored below
 			screen.save()
 			MM.RotateContext(screen, this.rad, this.centerX, this.centerY)
@@ -768,6 +769,7 @@ class Button extends Clickable {
 		MM.drawImage(screen, this.img, this, this.opacity, this.rad, this.imgScale)
 	}
 
+	draw_before = null
 	draw_more = null
 
 	draw_text(screen) {

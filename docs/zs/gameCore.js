@@ -150,7 +150,7 @@ class GameCoreLayerCore {
     draw_layers(screen) {
         for (const layer of this.layers) {
             for (const item of layer) {
-                item.draw(screen)  //drawables should ahve a draw, but whatevs
+                item.draw?.(screen)  //drawables should ahve a draw, but whatevs
             }
         }
     }

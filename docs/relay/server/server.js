@@ -1,6 +1,40 @@
 class Game extends GameCore {
     initialize_more() {
+        const loca = this.loca = new Loca(this.rect, "station1")
+        /**@type {Player[]} */
+        const players = this.players = []
+        for (const _ of MM.range(10)) {
+            let place = MM.choice([...loca.grid.keys()])
+            place = place.split(",").map(Number)
+            players.push(new Player("player", place[0], place[1], loca))
+        }
+        this.add_drawable(loca, 0)
+        loca.add_drawable(players, 7)
+        this.me = players[0]
+        this.me.update = this.me.updateControllable
+        this.sinteract = new Clickable(this.rect)
+        this.sinteract.draw = null
+        this.add_drawable(this.sinteract, 9) //above everything else
+        this.winteract = new Clickable(this.rect)
+        this.winteract.draw = null
+        loca.add_drawable(this.winteract, 9) //above everything else
 
+        this.winteract.on_click = (pos) => {
+            this.me.setTarget(...loca.getIJ(pos))
+        }
+        const targetingDrawable = this.targetingDrawable = {
+            draw(ctx) {
+                players.forEach(p => {
+                    if (!p.target) return
+                    const tgt = p.target.map(x => (x + .5) * GRAPHICS.SIZE)
+                    const c = p.centerXY
+                    MM.drawCircle(ctx, ...tgt, GRAPHICS.SIZE * .2,
+                        { color: "red", outline: 0 })
+                    MM.drawLine(ctx, ...c, ...tgt, { color: "red", width: 3 })
+                })
+            }
+        }
+        loca.add_drawable(this.targetingDrawable, 6) //just below players, above regular stuff
 
     }
     //#endregion
