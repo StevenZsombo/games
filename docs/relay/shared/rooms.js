@@ -15,8 +15,9 @@ class Grid extends Map {
 
 class Loca extends GameWorld {
     tag = "Loca"
-    constructor(backgroundimgfile) {
+    constructor(backgroundimgfile, name) {
         super(globalThis.game.rect.copy)
+        this.name = name ?? backgroundimgfile //doubles as name for now
         /**@type {Grid} */
         const grid = this.grid = new Grid()
         const floors = MAP.layers.find(x => x.name === "floors")
@@ -60,6 +61,12 @@ class Loca extends GameWorld {
     zoom(worldX, worldY, zoomLevel) {
         this.worldRect.resizeFixed(this.bg.width / zoomLevel, this.bg.height / zoomLevel, worldX, worldY)
     }
+    
+    
+
+    createPlayer() { 
+        
+    }
 }
 
 
@@ -73,7 +80,7 @@ class Player extends Button {
      * @param {Location} loca 
      * @param {Game} game 
      */
-    constructor(imgfilename, i, j, loca, game) {
+    constructor(imgfilename, name, id, i, j, loca, game) {
         game ??= globalThis.game
         if (!(loca instanceof Loca)) throw new Error("invalid location for player spawn")
         if (!loca.grid.valid(i, j)) throw new Error("invalid i,j for player spawn!")
@@ -81,6 +88,8 @@ class Player extends Button {
             width: GRAPHICS.SIZE, height: GRAPHICS.SIZE, transparent: true,
             imgScale: 1,
         })
+        this.name = name
+        this.id = id
 
         const img = new Image()
         img.onload = () => this.img = img

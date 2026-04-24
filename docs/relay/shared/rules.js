@@ -26,6 +26,10 @@ const GRAPHICS = {
 
 
 Chat.library = {
+    defaultSpamInterval: 800,
+    defaultSpamRetries: 1,
+    defaultWeeInterval: 400,
+    defaultWeeRetries: 3,
     client: {
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) } //broadcast
     },

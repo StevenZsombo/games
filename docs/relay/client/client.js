@@ -1,14 +1,29 @@
 class Game extends GameCore {
     //#region initialize_more
-    
+
+
+    createLoca(backgroundimgfile) {
+        this.loca = new Loca(backgroundimgfile)
+        this.me = new Player("player", "test", 0, 10, 10, this.loca, this)
+        this.loca.players.push(this.me)
+
+    }
+    createPlayer(playerName) {
+        this.me = new Player("player", playerName, 0, 10, 10, this.loca, this)
+    }
+    changeLoca(backgroundimgfile) {
+        this.loca = new Loca(backgroundimgfile)
+    }
+
     initialize_more() {
+        this.createLoca("station1")
 
 
     }
     //#endregion
 
-    BROADCAST_RECEIVE(params) { 
-        
+    BROADCAST_RECEIVE(params) {
+
     }
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
