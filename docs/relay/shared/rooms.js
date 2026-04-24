@@ -15,8 +15,8 @@ class Grid extends Map {
 
 class Loca extends GameWorld {
     tag = "Loca"
-    constructor(fromRect, backgroundimgfile) {
-        super(fromRect)
+    constructor(backgroundimgfile) {
+        super(globalThis.game.rect.copy)
         /**@type {Grid} */
         const grid = this.grid = new Grid()
         const floors = MAP.layers.find(x => x.name === "floors")
@@ -164,19 +164,18 @@ class Player extends Button {
         this.path?.length
             ? this.waddleTo(...this.path.shift())
             : (this.target = null)
-        if (!this.waddleNextStep && this.rad) { //gently snap back to 0 rad
-            if (Math.abs(this.rad) < 0.001) this.rad = 0
-            else this.rad *= 0.1
+        if (!this.waddleNextStep && this.rad)  //gently snap back to 0 rad
+            this._update_compensateWaddle()
 
-        }
+    }
+    _update_compensateWaddle() {
+        if (Math.abs(this.rad) < 0.001) this.rad = 0
+        else this.rad *= 0.0
     }
     drift = null
     updateDrifting(dt) {
         if (!this.drift) {
-            if (this.rad) {
-                if (Math.abs(this.rad < 0.001)) this.rad = 0
-                else this.rad *= 0.1
-            }
+            if (this.rad) this._update_compensateWaddle()
             return
         }
         let tx = this.drift[0] * GRAPHICS.SIZE
@@ -186,7 +185,8 @@ class Player extends Button {
         //normalize?
         const mag = Math.hypot(dx, dy)
         if (mag < GRAPHICS.SIZE * GRAPHICS.DRIFT_SNAP_SIZE_COEFFICIENT) {
-            this.topleftat(tx, ty)
+            // this.topleftat(tx, ty) //done by setIJ
+            this.setIJ(...this.drift)
             this.drift = null
             return
         }

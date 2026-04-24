@@ -32,7 +32,7 @@ const persons = listener.persons
 
 class Game extends GameCore {
     initialize_more() {
-        const loca = this.loca = new Loca(this.rect, "station1")
+        const loca = this.loca = new Loca("station1")
         /**@type {Player[]} */
         const players = this.players = []
         for (const _ of MM.range(10)) {
