@@ -54,11 +54,13 @@ class Chat {
         /** @type {Map<string, Function>} id -> callback*/
         this.on_failCallbacks = new Map()
 
+        this.eggs("time", Date.now) //for debugging, syncing clocks and HEARTBEAT
         this.lastHeartbeat = null //will be Date.now() after each call
         this.lastHeartbeatClockwork = this.isServer ? null : setInterval(() => {
             this.lastHeartbeat && Date.now() - this.lastHeartbeat > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
         }, 31_000)
 
+        // this.initLibrary(this.isServer ? "server" : "client") //call in game instead to avoid bugs
         this.connect(ip, isServer)
     }
 
@@ -568,7 +570,7 @@ class Chat {
      */
     initLibrary(clientOrServer) {
         const chatLibrary = Chat.library ?? Chat.getLibrary?.()
-        if (!chatLibrary) throw new Error("no Chat.library, no Chat.getLibrary")
+        if (!chatLibrary) console.log("no Chat.library, no Chat.getLibrary")
         chatLibrary.defaultWeeInterval && (Chat.defaultWeeInterval = chatLibrary.defaultWeeInterval)
         chatLibrary.defaultWeeRetries && (Chat.defaultWeeRetries = chatLibrary.defaultWeeRetries)
         chatLibrary.defaultSpamInterval && (Chat.defaultSpamInterval = chatLibrary.defaultSpamInterval)
@@ -764,7 +766,7 @@ class Chat {
             for (let i = 0; i < tests; i++) {
                 setTimeout(() => {
                     sent++
-                    this.wee("bounce", i,
+                    this.wee("time", i,
                         { retries, interval, on_retry: () => retried++, targetPerson: target })
                         .then(() => delivered++).catch(() => failed++)
                         .then(() => resolved++)
