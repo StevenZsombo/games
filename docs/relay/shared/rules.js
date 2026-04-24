@@ -27,7 +27,7 @@ const GRAPHICS = {
 
 Chat.library = {
     client: {
-        "bc": (params) => { BROADCAST_RECEIVE(params) } //broadcast
+        "bc": (params) => { game?.BROADCAST_RECEIVE(params) } //broadcast
     },
     server: {
 
