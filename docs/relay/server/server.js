@@ -43,7 +43,7 @@ class Game extends GameCore {
         this.add_drawable(loca, 0)
         loca.add_drawable(players, 6)
         this.me = players[0]
-        this.me.update = this.me.updateControllable
+        this.me.turn_controllable()
         this.sinteract = new Clickable(this.rect)
         this.sinteract.draw = null
         this.add_drawable(this.sinteract, 7)
@@ -97,12 +97,21 @@ class Game extends GameCore {
         zoomSlider.leftY = this.HEIGHT * .25
         zoomSlider.rightX = this.WIDTH - zoomSlider.movingButton.width - 20
         zoomSlider.rightY = this.HEIGHT - zoomSlider.leftY
+        /*zoomSlider.integer = true
+        zoomSlider.min = 0
+        zoomSlider.max = 4
+        zoomSlider.zoomLevels = [.25, .5, 1, 2, 4]
+        zoomSlider.on_value_change = () => {
+            this.loca.zoom(this.me.cx, this.me.cy, zoomSlider.zoomLevels[zoomSlider.value])
+        }
+        zoomSlider.value = 2*/
         zoomSlider.min = -2
         zoomSlider.max = 2
         zoomSlider.on_value_change = () => {
             this.loca.zoom(this.me.cx, this.me.cy, 2 ** zoomSlider.value)
         }
         zoomSlider.value = 0
+
         this.add_drawable(zoomSlider, 8)
 
 

@@ -137,7 +137,7 @@ class Player extends Button {
             "",
             {
                 on_end: () => {
-                    this.rad = 0
+                    // this.rad = 0 //will push back gently
                     this.setIJ(i, j)
                     this.waddleNextStep = null
                     this.canMove = true
@@ -160,14 +160,25 @@ class Player extends Button {
     }
     updateControllable(dt) {
         if (!this.canMove) return
-        if (!this.target) return
+        // if (!this.target) return
         this.path?.length
             ? this.waddleTo(...this.path.shift())
             : (this.target = null)
+        if (!this.waddleNextStep && this.rad) { //gently snap back to 0 rad
+            if (Math.abs(this.rad) < 0.001) this.rad = 0
+            else this.rad *= 0.1
+
+        }
     }
     drift = null
     updateDrifting(dt) {
-        if (!this.drift) return
+        if (!this.drift) {
+            if (this.rad) {
+                if (Math.abs(this.rad < 0.001)) this.rad = 0
+                else this.rad *= 0.1
+            }
+            return
+        }
         let tx = this.drift[0] * GRAPHICS.SIZE
         let ty = this.drift[1] * GRAPHICS.SIZE
         const dx = tx - this.x
@@ -183,6 +194,13 @@ class Player extends Button {
         //this.move(dx / mag * GRAPHICS.CRAWL_VELOCITY, dy / mag * GRAPHICS.CRAWL_VELOCITY)
         //drifting
         this.move(dx * GRAPHICS.DRIFT_COEFFICENT, dy * GRAPHICS.DRIFT_COEFFICENT)
+        this.rad = this.game.dtSin
+    }
+
+    turn_controllable() {
+        this.drift = null
+        this.update = this.updateControllable
+        return this
     }
 
 }

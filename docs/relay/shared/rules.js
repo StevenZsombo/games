@@ -13,7 +13,7 @@ const GRAPHICS = {
     WADDLE_TIME: 200,
     CRAWL_VELOCITY: 1 / 200 * 64, //drift is better
     DRIFT_COEFFICENT: 0.03,
-    DRIFT_SNAP_SIZE_COEFFICIENT: 0.1,
+    DRIFT_SNAP_SIZE_COEFFICIENT: 0.05,
     ALLOWED_MOVES: [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, -1], [-1, 1], [1, -1]],
     ALLOW_OOB_FOLLOW: false,
     ALLOW_CAMERA_FOLLOW: true,
