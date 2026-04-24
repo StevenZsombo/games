@@ -25,129 +25,67 @@ var univ = {
 }
 //#endregion
 
+class Person extends Participant {
+    initialize() {
+        let i = 0
+        while (pool.players.has(i)) i++
+        this.p = pool.getPlayer(i, pool.getLoca(0))
+    }
+
+    ij(i, j) {
+        this.p.i = i
+        this.p.j = j
+    }
+    enter() {
+        return {
+            playerID: this.p.id, locaID: this.p.loca.id
+        }
+    }
+}
+
+
 const listener = new Listener()
 chat = listener.chat
 const persons = listener.persons
 
+const on_broadcast_extras = []
+const broadcast_interval = setInterval(() => {
+    on_broadcast_extras.forEach(fn => fn())
+}, RULES.SERVER_BROADCAST_INTERVAL)
 
-class Game extends GameCore {
+class Game extends GameShared {
+
+
+
+
     initialize_more() {
-        /**@type {Map<string,Loca} */
-        this.levels = new Map()
-        const loca = this.loca = new Loca("station1")
-        this.levels.set(loca.name, loca)
-        /**@type {Player[]} */
-        const players = this.players = []
-        for (const _ of MM.range(10)) {
-            let place = MM.choice([...loca.grid.keys()])
-            place = place.split(",").map(Number)
-            players.push(new Player("player", place[0], place[1], loca))
-        }
-        this.add_drawable(loca, 0)
-        loca.add_drawable(players, 6)
-        this.me = players[0]
-        this.me.make_controllable()
-        this.sinteract = new Clickable(this.rect)
-        this.sinteract.draw = null
-        this.add_drawable(this.sinteract, 7)
-        this.winteract = new Clickable(this.rect)
-        this.winteract.draw = null
-        loca.add_drawable(this.winteract, 9) //above everything else
+        chat.initLibrary("server")
+        this.loca = pool.getLoca(0)
+        this.levels = [this.loca]
 
 
-        let dragHasMoved = false
-        this.winteract.on_click = (pos) => {
-            this.winteract.last_clickedAt = Date.now()
-            dragHasMoved = false
-        }
-        this.winteract.on_release = (pos) => {
-            // if (interactionMode.currentKey === "legs")
-            if (Date.now() - this.winteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE)
-                // if (!dragHasMoved)
-                this.me.setTarget(...loca.getIJ(pos))
-        }
-        this.sinteract.on_drag = (pos) => {
-            if (!dragHasMoved && (this.sinteract.last_held?.x !== pos.x || this.sinteract.last_held?.y !== pos.y))
-                dragHasMoved = true
-            // if (interactionMode.currentKey === "eyes")
-            this.loca.worldRect.move(
-                (this.sinteract.last_held.x - pos.x) / this.loca.scaleX,
-                (this.sinteract.last_held.y - pos.y) / this.loca.scaleY)
-        }
-        const targetingDrawable = this.targetingDrawable = {
-            draw(ctx) {
-                players.forEach(p => {
-                    if (!p.target) return
-                    const tgt = p.target.map(x => (x + .5) * GRAPHICS.SIZE)
-                    const c = p.centerXY
-                    MM.drawCircle(ctx, ...tgt, GRAPHICS.SIZE * .2,
-                        { color: "red", outline: 0 })
-                    MM.drawLine(ctx, ...c, ...tgt, { color: "red", width: 3 })
-                })
-            }
-        }
-        loca.add_drawable(targetingDrawable, 8) //just below players, above regular stuff
+        this.initPlayer(0, "Game master")
+        this.me.on_changeIJextras.length = 0
+        this.initInteractables()
 
 
-        const zoomSlider = this.zoomSlider = new Slider(new Button({
-            width: 30,
-            height: 60,
-            x: this.WIDTH - 50 - 20,
-            y: 20,
-        }))
-        zoomSlider.isBlocking = true
-        zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - 20
-        zoomSlider.leftY = this.HEIGHT * .25
-        zoomSlider.rightX = this.WIDTH - zoomSlider.movingButton.width - 20
-        zoomSlider.rightY = this.HEIGHT - zoomSlider.leftY
-        /*zoomSlider.integer = true
-        zoomSlider.min = 0
-        zoomSlider.max = 4
-        zoomSlider.zoomLevels = [.25, .5, 1, 2, 4]
-        zoomSlider.on_value_change = () => {
-            this.loca.zoom(this.me.cx, this.me.cy, zoomSlider.zoomLevels[zoomSlider.value])
-        }
-        zoomSlider.value = 2*/
-        zoomSlider.min = -2
-        zoomSlider.max = 2
-        zoomSlider.on_value_change = () => {
-            this.loca.zoom(this.me.cx, this.me.cy, 2 ** zoomSlider.value)
-        }
-        zoomSlider.value = 0
-
-        this.add_drawable(zoomSlider, 8)
+        this.add_drawable(this.loca)
 
 
 
+        on_broadcast_extras.push(this.BROADCAST_SEND.bind(this))
 
-
-
-
-
-
-
-        /*
-        const interactionMode = this.interactionMode = new StateManager()
-        interactionMode.trans(interactionMode.create("legs"))
-        interactionMode.create("eyes")
-        interactionMode.create("hand")
-        const interactionModeButtons = this.interactionModeButtons = new Panel()
-        this.add_drawable(interactionModeButtons, 7); //above world effects e.g. targetingDrawable
-        ["legs", "eyes", "hand"].forEach((x, i) => {
-            const b = new Button({
-                width: 100, height: 100,
-                outline: 0, outline_color: "blue",
-                txt: x, tag: x, isBlocking: true
-            })
-            b.bottomat(this.HEIGHT - 20)
-            b.leftat(i * (b.width + 20) + 20)
-            interactionModeButtons.push(b)
-            b.on_click = () => interactionMode.trans(b.tag)
-        })
-        Button.make_radio(interactionModeButtons.components, true)
-        */
     }
     //#endregion
+
+
+    BROADCAST_SEND() {
+        const l = []
+        for (const loca of pool.locas.values()) {
+            l.push([loca.id, loca.players.map(p => [p.id, p.i, p.j])])
+        }
+        chat.spam("bc", { l })
+    }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
     ///                                                                                                              ///

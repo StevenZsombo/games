@@ -460,9 +460,11 @@ class Chat {
      * @returns {{woo: number, value: any, ?targetID: string}}
      */
     weeToWooHandler(message, person) {
+        const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
+        if (!fn) throw new Error("no eggs for " + message.value)
         const msg = {
             woo: message.wee,
-            value: this.handlerFunctionsWeeWooSpamEggs.get(message.value)?.(message.params, person)
+            value: fn(message.params, person)
         }
         if (this.isServer) {
             if (!person) { throw new Error("server cannot wee willy-nilly") }
@@ -549,7 +551,9 @@ class Chat {
      * @returns {void}
      */
     spamToEggsHandler(message, person) { //no return value - won't be sent back
-        this.handlerFunctionsWeeWooSpamEggs.get(message.value)?.(message.params, person)
+        const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
+        if (!fn) throw new Error("no eggs for " + message.value)
+        fn(message.params, person)
     }
     /**
      * @param {string} spam
@@ -857,9 +861,6 @@ class ChatServer extends Chat {
 }
 //#endregion
 
-//#region Listener
-
-//#endregion
 
 
 
@@ -970,7 +971,7 @@ class Participant {
         this.data = {} //game-specific
 
     }
-
+    /**@param {Participant|Person} person  */
     static check(person) {
         if (!person.initialized) person.initialize_core()
         return person
@@ -1098,7 +1099,7 @@ class Listener {
         }
         person = participants.get(nameID)
         if (person.name !== name) person.name = name //check for rename
-        return person
+        return Participant.check(person)
     }
 
     receiveMessageServer(message) {

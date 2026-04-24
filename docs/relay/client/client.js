@@ -1,30 +1,44 @@
-class Game extends GameCore {
+const person = {
+    name: "Bob",
+    get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
+    playerID: MM.randomInt(1, 99),
+    locaID: 0
+}
+
+class Game extends GameShared {
     //#region initialize_more
 
 
-    createLoca(backgroundimgfile) {
-        this.loca = new Loca(backgroundimgfile)
-        this.me = new Player("player", "test", 0, 10, 10, this.loca, this)
-        this.loca.players.push(this.me)
 
-    }
-    createPlayer(playerName) {
-        this.me = new Player("player", playerName, 0, 10, 10, this.loca, this)
-    }
-    changeLoca(backgroundimgfile) {
-        this.loca = new Loca(backgroundimgfile)
-    }
+    async initialize_more() {
+        chat.initLibrary("client")
+        this.person = person
+        const enterResponse = await chat.wee("enter")
+        console.log(enterResponse)
+        Object.assign(person, enterResponse)
+        this.loca = pool.getLoca(person.locaID)
+        this.initPlayer(person.playerID, person.name)
+        this.initInteractables()
 
-    initialize_more() {
-        this.createLoca("station1")
+        this.add_drawable(this.loca)
 
 
     }
     //#endregion
 
+    /**@param {Broadcast} params  */
     BROADCAST_RECEIVE(params) {
-
+        const loca = this.loca
+        const l = params.l
+        for (const [locaID, playerDataArr] of l) {
+            if (locaID !== loca.id) continue
+            for (const [playerID, i, j] of playerDataArr) {
+                pool.getPlayer(playerID, loca).drift = [i, j]
+            }
+        }
     }
+
+
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///

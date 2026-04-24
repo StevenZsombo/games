@@ -1132,7 +1132,7 @@ class Malleable {
 	}
 
 	check(...params) {
-		if (!this.interactable) return
+		if (!this.visible) return
 		let anyHit = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
 			anyHit = this.components[i].check?.(...params) || anyHit
@@ -1729,7 +1729,7 @@ class Slider extends Panel {
 	assignMovingButton(movingButton) {
 		if (this.movingButton) {
 			this.movingButton.eraseClickables()
-			this.components.splice(this.components.indexOf(this.movingButton))
+			this.components.splice(this.components.indexOf(this.movingButton), 1)
 			this.movingButton = null
 		}
 		movingButton._drag_force_within = true

@@ -90,7 +90,7 @@ class MM {
         return Math.hypot(x - u, y - w)
     }
     static distV(pos1, pos2) {
-        return Math.hypot(pos1.x - pos2.y, pos1.y - pos2.y)
+        return Math.hypot(pos1.x - pos2.x, pos1.y - pos2.y)
     }
 
     static drawTextSingleDepr(screen, txt, x, y, {

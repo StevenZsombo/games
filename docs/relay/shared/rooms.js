@@ -1,3 +1,4 @@
+//#region Grid, Cell
 class Cell {
     constructor(i, j, state) {
         this.i = i; this.j = j;
@@ -9,14 +10,15 @@ class Grid extends Map {
     /**@returns {Cell}*/at(i, j) { return this.get(`${i},${j}`) }
     /**@returns {Boolean}*/valid(i, j) { return this.has(`${i},${j}`) }
 }
+//#endregion
 
 
-
-
+//#region Loca
 class Loca extends GameWorld {
     tag = "Loca"
-    constructor(backgroundimgfile, name) {
+    constructor(backgroundimgfile, name, id) {
         super(globalThis.game.rect.copy)
+        this.id = id
         this.name = name ?? backgroundimgfile //doubles as name for now
         /**@type {Grid} */
         const grid = this.grid = new Grid()
@@ -61,43 +63,58 @@ class Loca extends GameWorld {
     zoom(worldX, worldY, zoomLevel) {
         this.worldRect.resizeFixed(this.bg.width / zoomLevel, this.bg.height / zoomLevel, worldX, worldY)
     }
-    
-    
 
-    createPlayer() { 
-        
+
+    /**@param {Player} player  */
+    spawnPlayer(player) {
+        if (!player) throw new Error("loca.spawnPlayer did not get a player")
+        player.loca = this
+        const randIJ = MM.choice(Array.from(this.grid.keys())).split(",").map(Number)
+        player.setIJ(...randIJ)
+        this.players.push(player)
+        this.add_drawable(player, 6)
+        return player
     }
+    /**@param {Player} player  */
+    removePlayer(player) {
+        const ind = this.players.indexOf(player)
+        this.remove_drawable(player)
+        if (ind !== -1) this.players.splice(ind, 1)
+    }
+
+    /**@type {Player[]}*/
+    players = []
 }
+//#endregion
 
 
-
-
+//#region Player
 class Player extends Button {
     /**
      * @param {string} imgfilename 
+     * @param {string} name 
+     * @param {number} id 
      * @param {number} i 
      * @param {number} j 
-     * @param {Location} loca 
-     * @param {Game} game 
      */
-    constructor(imgfilename, name, id, i, j, loca, game) {
-        game ??= globalThis.game
-        if (!(loca instanceof Loca)) throw new Error("invalid location for player spawn")
-        if (!loca.grid.valid(i, j)) throw new Error("invalid i,j for player spawn!")
+    constructor(imgfilename, name, id, i, j) {
+        // if (!(loca instanceof Loca)) throw new Error("invalid location for player spawn")
+        // if (!loca.grid.valid(i, j)) throw new Error("invalid i,j for player spawn!")
         super({
             width: GRAPHICS.SIZE, height: GRAPHICS.SIZE, transparent: true,
             imgScale: 1,
         })
         this.name = name
         this.id = id
+        /**@type {Loca} */
+        this.loca = null //will be set by loca.spawnPlayer
 
         const img = new Image()
         img.onload = () => this.img = img
         img.src = RULES.PICTURES_FOLDER + imgfilename + ".png"
 
         this.setIJ(i, j)
-        this.loca = loca
-        this.game = game
+        this.game = globalThis.game
         this.canMove = true
         /**@type {[number,number] | null} */
         this.target = null
@@ -160,14 +177,36 @@ class Player extends Button {
         this.target = [i, j]
         this.path = this.getPathTo(i, j)
     }
+    on_setIJextras = []
+    on_changeIJextras = []
     on_setIJ(i, j) { } //old i,j are still this.i,this.j
+    on_changeIJ(i, j) { } //old i,j are still this.i,this.j
     setIJ(i, j) {
         this.on_setIJ(i, j)
-        this.i = i
-        this.j = j
+        this.on_setIJextras.forEach(fn => fn(i, j))
+        this.setShallowIJ(i, j)
         this.reposition()
     }
+    setShallowIJ(i, j) {  //no reposition!
+        if (this.i !== i || this.j !== j) {
+            this.on_changeIJ(i, j)
+            this.on_changeIJextras.forEach(fn => fn(i, j))
+            this.i = i
+            this.j = j
+        }
+    }
+    setShallowIJfromCurrentXY() {
+        this.setShallowIJ(...this.loca.getIJ(this))
+    }
+    lastSent = 0
     updateControllable(dt) {
+        if (this.drift
+            && Date.now() - this.lastSent > 300
+            && (this.i !== this.drift[0] || this.j !== this.drift[1])
+        ) {
+            chat.spam("ij", [this.i, this.j])
+            this.lastSent = Date.now()
+        }
         if (!this.canMove) return
         // if (!this.target) return
         this.path?.length
@@ -197,7 +236,6 @@ class Player extends Button {
         //normalize?
         const mag = Math.hypot(dx, dy)
         if (mag < GRAPHICS.SIZE * GRAPHICS.DRIFT_SNAP_SIZE_COEFFICIENT) {
-            // this.topleftat(tx, ty) //done by setIJ
             this.setIJ(...this.drift)
             this.drift = null
             return
@@ -206,6 +244,7 @@ class Player extends Button {
         //this.move(dx / mag * GRAPHICS.CRAWL_VELOCITY, dy / mag * GRAPHICS.CRAWL_VELOCITY)
         //drifting
         this.move(dx * GRAPHICS.DRIFT_COEFFICENT, dy * GRAPHICS.DRIFT_COEFFICENT)
+        // this.setShallowIJfromCurrentXY() //causes bugs??//
         this.rad = this.game.dtSin
     }
 
@@ -214,5 +253,11 @@ class Player extends Button {
         this.update = this.updateControllable
         return this
     }
+    /**@param {Loca} loca  */
+    changeLoca(loca) {
+        this.loca.removePlayer(this)
+        loca.spawnPlayer(this)
+    }
 
 }
+//#endregion

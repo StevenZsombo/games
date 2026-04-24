@@ -5,6 +5,9 @@ const RULES = {
 
     MAPFILE: "../tiled/station1.json",
 
+
+    SERVER_BROADCAST_INTERVAL: 50,
+
 }
 
 
@@ -24,17 +27,23 @@ const GRAPHICS = {
 }
 
 
-
+/**
+ * @typedef {Object} Broadcast
+ * @property {Array<[number, Array<[number, number, number]>]>} l
+ *   loca updates as [locaID, [...playerPositions]]
+ *   where playerPositions are [playerID, x, y]
+ */
 Chat.library = {
     defaultSpamInterval: 800,
-    defaultSpamRetries: 1,
+    defaultSpamRetries: 0,
     defaultWeeInterval: 400,
     defaultWeeRetries: 3,
     client: {
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) } //broadcast
     },
     server: {
-
+        "ij": ([i, j], person) => person.ij(i, j),
+        "enter": (_, person) => person.enter()
     },
 
 }

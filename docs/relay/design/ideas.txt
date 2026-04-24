@@ -1,0 +1,4 @@
+Reactive world elements
+- doors that open when players are near
+- flickering light
+- auto light in unexplored / competitive spaces
