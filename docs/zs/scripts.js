@@ -797,7 +797,12 @@ class Button extends Clickable {
 			opacity: this.opacity,
 			...this.textSettings
 		})
-
+	}
+	draw_text_colored(screen) {
+		MM.drawTextColored(screen, this.txt, this, {
+			fontSize: this.fontSize,
+			font: this.font_font
+		})
 	}
 
 
@@ -852,6 +857,11 @@ class Button extends Clickable {
 
 		}
 		return radio_group
+	}
+	/**@param {Button} button @returns {Button} */
+	static make_text_colored(button) {
+		button.draw_text = button.draw_text_colored
+		return button
 	}
 
 	/** @param {Button} button @returns {Button} */

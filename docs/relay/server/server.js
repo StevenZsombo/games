@@ -43,7 +43,7 @@ class Game extends GameCore {
         this.add_drawable(loca, 0)
         loca.add_drawable(players, 6)
         this.me = players[0]
-        this.me.turn_controllable()
+        this.me.make_controllable()
         this.sinteract = new Clickable(this.rect)
         this.sinteract.draw = null
         this.add_drawable(this.sinteract, 7)

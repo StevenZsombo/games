@@ -364,6 +364,27 @@ class MM {
     }
     //#endregion
 
+    static drawTextColored(screen, textArrWithColor, rect,
+        { fontSize = 12, font = "mySerif", fontEmphasis = "" } = {}) {
+        screen.save()
+        screen.textAlign = "center"
+        screen.textBaseline = "middle"
+        screen.font = `${fontEmphasis} ${fontSize}px ${font}`
+        if (typeof textArrWithColor === 'string') textArrWithColor = [[textArrWithColor]]
+        let totalWidth = 0
+        for (const [text] of textArrWithColor) {
+            totalWidth += screen.measureText(text).width
+        }
+        let x = rect.centerX - totalWidth / 2
+        const y = rect.centerY
+        for (const [text, color] of textArrWithColor) {
+            screen.fillStyle = color || "black"
+            screen.fillText(text, x + screen.measureText(text).width / 2, y)
+            x += screen.measureText(text).width
+        }
+        screen.restore()
+    }
+
     //#region MM.drawImage
     /*drawImage(image, dx, dy)
     drawImage(image, dx, dy, dWidth, dHeight)

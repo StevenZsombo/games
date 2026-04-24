@@ -200,7 +200,7 @@ class Player extends Button {
         this.rad = this.game.dtSin
     }
 
-    turn_controllable() {
+    make_controllable() {
         this.drift = null
         this.update = this.updateControllable
         return this
