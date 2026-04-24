@@ -495,7 +495,8 @@ class Game extends GameCore {
             .map(Button.fromRect).map(x => x.stretch(.8, .8))
         studs.forEach(fm.add)
 
-        const select = (b, i) => {
+        const select = (b) => {
+            console.log(b, b.txt, chat)
             chat.forceName(b.txt, true)
             localStorage.setItem("isNameSetByStudent", 1)
             fm.close()
@@ -517,14 +518,19 @@ class Game extends GameCore {
                 if (!allowRelease) return
                 allowRelease = false
                 const cb = GameEffects.confirmBox(`Are you really ${b.txt}?`)
-                const a = q => this.animator.add_anim(Anim.stepper(q, 700,
+                const animate = q => this.animator.add_anim(Anim.stepper(q, 700,
                     "height y",
                     [0, q.centerY],
                     [q.height, q.y], { lerp: Math.sqrt }
                 ))
-                a(cb.screenRect)
+                animate(cb.screenRect)
                 cb.button.color = "antiquewhite"
-                cb.promise().then(() => select(b, i)).catch(() => allowRelease = true)
+                cb.promise().then(() => {
+                    select(b)
+                }).catch(err => {
+                    console.error(err)
+                    allowRelease = true
+                })
 
                 // chat.silentReload() //no longer necessary -> server handles renames!
             }
@@ -560,6 +566,7 @@ class Game extends GameCore {
             const nameID = localStorage.getItem("nameID") //keep nameID?
             localStorage.clear() //also resets penalties and game rules
             nameID && localStorage.setItem("nameID", nameID)
+            // localStorage.setItem("nameIDtimestamp", Date.now()) //done by chat now.
             this.acquireName() //ask for name again, which sets a recent timestamp
             return
         }
@@ -1474,6 +1481,7 @@ class QPane extends Panel {
         })
         const delButton = calculatorButtons.at(-1).copy
         delButton.txt = "Del"
+        delButton.fontSize = 40
         delButton.move(
             0, calculatorButtons[3].y - calculatorButtons[0].y)
         delButton.on_click = () => {
@@ -1508,7 +1516,7 @@ class QPane extends Panel {
             const latestGuess = +this.guess
             chat.wee("attempt", [this.id, latestGuess])
                 .then((success) => {
-                    if (success) GameEffects.fireworksShow(4)
+                    // if (success) GameEffects.fireworksShow(2)
                 })
                 .catch(() => {
                     const a = GameEffects.popup(

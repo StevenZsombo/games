@@ -302,6 +302,7 @@ class Chat {
             }
         }
 
+
     }
 
 
@@ -336,8 +337,10 @@ class Chat {
             } else {
                 this.nameID = MM.randomID()
                 localStorage.setItem("nameID", this.nameID)
-                localStorage.setItem("nameIDtimestamp", Date.now()) //leave timestamp to know when to erase
             }
+        }
+        if (!localStorage.getItem("nameIDtimestamp")) {
+            localStorage.setItem("nameIDtimestamp", Date.now())
         }
         return this.nameID
     }
@@ -383,9 +386,10 @@ class Chat {
         const p = pingRecord.filter(x => x != null)
         if (!p.length) return
         const sorted = [...p].sort((a, b) => a - b)
+        const round = x => (Math.round(100 * x)) / 100
         return {
-            average: p.reduce((s, t) => s + t) / p.length,
-            recent: p.slice(-10).reduce((s, t) => s + t) / (p.slice(-10).length),
+            average: round(p.reduce((s, t) => s + t) / p.length),
+            recent: round(p.slice(-10).reduce((s, t) => s + t) / (p.slice(-10).length)),
             best: sorted.slice(0, 3),
             worst: sorted.slice(-3)
         }
@@ -1025,7 +1029,7 @@ class Listener {
         // this.on_participant_recovery = null //takes person
 
     }
-
+    get personsAsArray() { return Array.from(this.persons.values()) }
 
 
     coreHandleNameAlreadyExists(person) {
@@ -1064,8 +1068,6 @@ class Listener {
         if (message.connected) {//sent only by node //also has connectedAddress, may differ?
             if (participants.has(nameID)) { //must be a reconnect
                 person = participants.get(nameID)
-                //check for rename
-                if (person.name !== name) person.name = name
                 person.isConnected = true
                 person.reconnections++
                 person.connectedAddress = message.connectedAddress ?? "WS failed to send connectedAddress??"
@@ -1092,7 +1094,9 @@ class Listener {
             this.coreHandleEarlyJoin(nameID)
             return null //nothing else should have been sent
         }
-        return person = participants.get(nameID)
+        person = participants.get(nameID)
+        if (person.name !== name) person.name = name //check for rename
+        return person
     }
 
     receiveMessageServer(message) {
