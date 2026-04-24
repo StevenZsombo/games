@@ -178,6 +178,9 @@ class Player extends Button {
             if (this.rad) this._update_compensateWaddle()
             return
         }
+        if (this.drift[0] === this.i && this.drift[1] === this.j) {
+            return //this way i can spam update drift without a worry in the world
+        }
         let tx = this.drift[0] * GRAPHICS.SIZE
         let ty = this.drift[1] * GRAPHICS.SIZE
         const dx = tx - this.x
