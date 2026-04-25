@@ -6,9 +6,10 @@ var univ = {
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
     showFramerate: true,
-    imageSmoothingEnabled: false,
-    // imageSmoothingQuality: "high", // options: "low", "medium", "high"
-    canvasStyleImageRendering: "pixelated",
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high", // options: "low", "medium", "high"
+    canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
+
     //BROKEN
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     //BROKEN
@@ -26,11 +27,15 @@ var univ = {
 //#endregion
 
 class Person extends Participant {
+    /**@type {Player} */
+    get player() { return this.p }
+    set player(val) { this.p = val }
     initialize() {
         let i = 0
         while (pool.players.has(i)) i++
         this.p = pool.getPlayer(i, pool.getLoca(0))
     }
+
 
     ij(i, j) {
         this.p.i = i
@@ -59,7 +64,8 @@ class Game extends GameShared {
 
 
 
-    initialize_more() {
+    async initialize_more() {
+        await chat.asapPromise()
         chat.initLibrary("server")
         this.initChat()
         this.loca = pool.getLoca(0)
@@ -72,23 +78,23 @@ class Game extends GameShared {
 
     }
     //#endregion
-
-    CRITICAL_key = 0
-
-    CRITICAL_SEND(targetList, params) {//for keeping up game state.
-        this.CRITICAL_key++
-        let payload
-        targetList
-            ? chat.targetSpam(targetList, "critical", params)
-            : chat.spam("critical", params)
+    /**@param {Person} person  */
+    respondFULL_SYNC_EVENTS(person) {
+        // const payload = {}
+        // person.wee("full",payload)
+        return 123456
     }
 
     BROADCAST_SEND() {
-        const l = []
+        const payload = []
         for (const loca of pool.locas.values()) {
-            l.push([loca.id, loca.players.map(p => [p.id, p.i, p.j])])
+            payload.push({
+                l: loca.id,
+                p: loca.players.map(p => [p.id, p.i, p.j]),
+                e: loca.eventCount
+            })
         }
-        chat.spam("bc", { l, e: this.CRITICAL_key })
+        chat.spam("bc", payload)
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///

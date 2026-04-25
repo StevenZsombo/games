@@ -30,10 +30,9 @@ class Game extends GameShared {
     /**@param {Broadcast} params  */
     BROADCAST_RECEIVE(params) {
         const loca = this.loca
-        const l = params.l
-        for (const [locaID, playerDataArr] of l) {
-            if (locaID !== loca.id) continue
-            for (const [playerID, i, j] of playerDataArr) {
+        for (const item of params) {
+            if (item.l !== loca.id) continue
+            for (const [playerID, i, j] of item.p) {
                 pool.getPlayer(playerID, loca).drift = [i, j]
             }
         }
@@ -110,10 +109,11 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: false,
-    imageSmoothingEnabled: false,
-    // imageSmoothingQuality: "high", // options: "low", "medium", "high"
-    canvasStyleImageRendering: "pixelated",
+    showFramerate: true,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high", // options: "low", "medium", "high"
+    canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
+
     //BROKEN
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     //BROKEN

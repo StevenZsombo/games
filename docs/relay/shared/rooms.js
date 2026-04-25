@@ -66,7 +66,6 @@ class Loca extends GameWorld {
             bg.height = this.worldRect.height = raw.height
             bg.img = cropper.resize(raw, raw.width, raw.height)
             this.add_drawable(bg, 0) //layer 0 for background map
-
         }
         raw.src = RULES.MAP_BACKGROUND_FOLDER + backgroundimgfile + ".png"
     }
@@ -139,9 +138,25 @@ class Loca extends GameWorld {
         return terminal
     }
 
+
+    eventCount = 0
+    static EVENTS = {
+        break: /**@param {Terminal} terminal */
+            terminal => { },
+        repair:/**@param {Terminal} terminal */
+            terminal => { },
+        capture:/**@param {Terminal} terminal @param {Team} team */
+            (terminal, team) => { },
+        lose: (terminal, team) => { },
+    }
+    /**@param {function | string} whichone  */
+    eventHappened(whichone) {
+        this.eventCount++
+        typeof whichone === 'string' ? Loca.EVENTS[whichone]() : whichone()
+    }
+
 }
 //#endregion
-
 
 //#region Player
 class Player extends Button {
@@ -333,8 +348,12 @@ class Player extends Button {
         loca.spawnPlayer(this)
     }
 
-    draw_more(ctx) {
-        MM.drawText(ctx, this.name, this.copy.topat(this.bottom), { textBaseline: "top" })
+    draw_more = function (ctx) { //weird-ass rule. methods don't overwrite field properties
+        console.log("yay")
+        MM.drawText(ctx, this.name, this.copyRect.topat(this.bottom), {
+            textBaseline: "top", fontSize: 28
+
+        })
     }
 
 }

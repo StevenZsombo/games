@@ -749,10 +749,8 @@ class Button extends Clickable {
 			} else {
 				draw_color = this.color
 			}
-
 			this.draw_color = draw_color
 			this.draw_background(screen)
-
 		}
 		if (this.img != null) {
 			this.draw_image(screen)
@@ -761,6 +759,7 @@ class Button extends Clickable {
 		if (this.txt != null) {
 			this.draw_text(screen)
 		}
+		this.draw_more_in_rad?.(screen)
 		if (this.rad) {
 			screen.restore() //started above, should go at the end
 		}
@@ -785,9 +784,16 @@ class Button extends Clickable {
 	draw_image(screen) {
 		MM.drawImage(screen, this.img, this, this.opacity, this.rad, this.imgScale)
 	}
+	/**@param {RenderingContext} screen  */
+	draw_image_noAA(screen) {
+		screen.imageSmoothingEnabled = false
+		MM.drawImage(screen, this.img, this, this.opacity, this.rad, this.imgScale)
+		screen.imageSmoothingEnabled = univ.imageSmoothingEnabled
+	}
 
 	draw_before = null
 	draw_more = null
+	draw_more_in_rad = null
 
 	draw_text(screen) {
 		MM.drawText(screen, this.txt, this, {
@@ -1747,6 +1753,7 @@ class Slider extends Panel {
 		}
 		this.movingButton = movingButton
 		this.components.push(movingButton)
+		movingButton.isBlocking = true
 		this.value = this.min
 		return this
 	}
