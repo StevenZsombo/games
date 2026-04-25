@@ -3,7 +3,7 @@
     "expandedProjectPaths": [
         "."
     ],
-    "exportAsImage.visibleLayersOnly": false,
+    "exportAsImage.visibleLayersOnly": true,
     "fileStates": {
         "station1.json": {
             "scale": 0.125,
@@ -40,6 +40,7 @@
         "station1.tmx"
     ],
     "project": "relay.tiled-project",
+    "property.type": "float",
     "recentFiles": [
         "station1.tmx",
         "station1.json",

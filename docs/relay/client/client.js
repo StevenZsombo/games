@@ -17,10 +17,10 @@ class Game extends GameShared {
         console.log(enterResponse)
         Object.assign(person, enterResponse)
         this.loca = pool.getLoca(person.locaID)
-        this.initPlayer(person.playerID, person.name)
+        this.initPlayer(person.playerID, person.name) //gives this.me
         this.initInteractables()
 
-        this.add_drawable(this.loca)
+        this.add_drawable(this.loca, 1)
 
 
     }
@@ -47,7 +47,8 @@ class Game extends GameShared {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-
+        this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
+        
 
 
 

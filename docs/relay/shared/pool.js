@@ -1,3 +1,4 @@
+//#region Pool
 class Pool {
     static singletonAlreadyExists = false
     LIMIT = 100
@@ -5,6 +6,8 @@ class Pool {
     players = new Map()
     /**@type {Map<number,Loca} */
     locas = new Map()
+    /**@type {Map<number,Terminal} */
+    terminals = new Map()
     constructor() {
         if (Pool.singletonAlreadyExists) throw new Error("Pool singleton already exists")
         else Pool.singletonAlreadyExists = true
@@ -16,8 +19,23 @@ class Pool {
         if (!loca) throw new Error("pool can't spawn new player: no loca given")
         p = new Player("player", "player_" + id, id, 10, 10)
         this.players.set(id, p)
-        if (loca) loca.spawnPlayer(p)
+        loca.spawnPlayer(p)
         return p
+    }
+    /**
+     * @param {number} id 
+     * @param {string} type 
+     * @param {Loca} loca 
+     * @param {Rect} rect
+     */
+    getTerminal(id, type, loca, rect) {
+        let t = this.terminals.get(id)
+        if (t) return t
+        if (!loca) throw new Error("pool can't spawn new terminal: no loca given")
+        if (!rect) throw new Error("pool can't spawn new terminal: no ijArr given")
+        t = new Terminal(type, id)
+        loca.spawnTerminal(t, rect)
+        return t
     }
     getLoca(id) {
         return this.locas.get(id) ??
@@ -30,10 +48,11 @@ class Pool {
         this.players.clear()
     }
 }
-
 const pool = new Pool()
+//#endregion
 
 
+//#region GameShared
 class GameShared extends GameCore {
     initPlayer(id, name) {
         if (!this.loca) throw new Error("can't initPlayer without a loca")
@@ -42,52 +61,120 @@ class GameShared extends GameCore {
         this.me.name = name
         this.loca.spawnPlayer(this.me)
         this.me.make_controllable()
-        /*this.me.on_changeIJextras.push((i, j) => {
-            chat.spam("ij", [i, j])
-        })*/
-        
+
 
     }
 
     initInteractables() {
         if (!this.loca) throw new Error("can't initInteractables without a loca")
+        /**@type {Loca}*/this.loca
         if (!this.me) throw new Error("can't initPlayer without a player this.me")
+        /**@type {Player} */this.me
         this.sinteract = new Clickable(this.rect)
         this.sinteract.draw = null
-        this.add_drawable(this.sinteract, 7)
+        this.sinteract.collidepoint = () => true
+        this.add_drawable(this.sinteract, 0) //below even the loca - should be blocked by EVERYTHING
+        this.tinteract = new Clickable(this.rect)
+        this.tinteract.draw = null //will be defined in a moment, just mentioning it
+        this.tinteract.collidepoint = () => true
+        this.add_drawable(this.tinteract, 7) //on top = above everything save popups
         this.winteract = new Clickable(this.rect)
         this.winteract.draw = null
-        this.loca.add_drawable(this.winteract, 9) //above everything else
+        this.tinteract.collidepoint = () => true
+        this.loca.add_drawable(this.winteract, 0) //below everything else
         let dragHasMoved = false
+        this.winteract.last_clickedAt = Date.now()
         this.winteract.on_click = () => {
             this.winteract.last_clickedAt = Date.now()
             dragHasMoved = false
         }
         this.winteract.on_release = (pos) => {
-            if (Date.now() - this.winteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE)
+            if (Date.now() - this.winteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE) {
                 this.me.setTarget(...this.loca.getIJ(pos))
+                shouldFollow = true //moving -> shouldFollow
+            } else shouldFollow = false
         }
+        this.sinteract.last_clickedAt = Date.now()
+        this.sinteract.on_click = () => {
+            this.sinteract.last_clickedAt = Date.now()
+        }
+        this.sinteract.last_heldAt = Date.now()
         this.sinteract.on_drag = (pos) => {
+            if (Date.now() - this.sinteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE) {
+                return
+            }
+            this.sinteract.last_heldAt = Date.now()
             if (!dragHasMoved && (this.sinteract.last_held?.x !== pos.x || this.sinteract.last_held?.y !== pos.y))
                 dragHasMoved = true
             this.loca.worldRect.move(
                 (this.sinteract.last_held.x - pos.x) / this.loca.scaleX,
                 (this.sinteract.last_held.y - pos.y) / this.loca.scaleY)
         }
-        const targetingDrawable = this.targetingDrawable = {
-            draw: (ctx) => {
-                // pool.players.forEach(p => {
-                const p = this.me
-                if (!p.target) return
-                const tgt = p.target.map(x => (x + .5) * GRAPHICS.SIZE)
-                const c = p.centerXY
-                MM.drawCircle(ctx, ...tgt, GRAPHICS.SIZE * .2,
-                    { color: "red", outline: 0 })
-                MM.drawLine(ctx, ...c, ...tgt, { color: "red", width: 3 })
-                // })
+        let circleTime = null
+        this.tinteract.last_clickedAt = Date.now()
+        this.tinteract.on_click = () => this.tinteract.last_clickedAt = Date.now()
+        this.tinteract.on_hold = () => {
+            circleTime = Date.now() - this.tinteract.last_clickedAt
+        }
+        this.tinteract.on_release = (pos) => {
+            if (circleTime > GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE) {
+                const { x, y } = this.loca.screenToWorldV(pos)
+                /**@type {Terminal} */
+                const terminal = this.loca.eventInteractables.components.find(b => b.collidepoint(x, y))?.terminal
+                terminal && terminal.onInspectViaInteraction()
+            }
+            circleTime = null
+        }
+        let shouldFollow = true
+        const followCondition = () =>
+            shouldFollow ||
+            (shouldFollow = (Date.now() - this.sinteract.last_heldAt > GRAPHICS.CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK))
+        this.sinteract.update = (dt) => {
+            if (GRAPHICS.ALLOW_OOB_FOLLOW && !this.sinteract.last_held && followCondition()
+            ) {
+                const me = this.me
+                const w = this.loca.worldRect
+                if (me.x - me.width < w.x) w.x = me.x - me.width
+                else if (me.x + me.width * 2 > w.right) w.rightat(me.x + me.width * 2)
+                if (me.y - me.height < w.y) w.y = me.y - me.height
+                else if (me.y + me.height * 2 > w.bottom) w.bottomat(me.y + me.height * 2)
+            }
+            if (GRAPHICS.ALLOW_CAMERA_FOLLOW && !this.sinteract.last_held && followCondition()) {
+                const coeff = GRAPHICS.CAMERA_FOLLOW_COEFFICIENT
+                const { cx, cy } = this.me
+                const { centerX, centerY } = this.loca.worldRect
+                const dx = cx - centerX
+                const dy = cy - centerY
+                this.loca.worldRect.move(dx * coeff, dy * coeff)
             }
         }
+        /**@type {{time:number,x:number,y:number}|null}*/
+        this.tinteract.draw = /**@param {RenderingContext} ctx */(ctx) => {
+            if (!circleTime) return
+            const t = circleTime / GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE
+            if (t < 0.33) return
+            ctx.strokeStyle = "red"
+            ctx.beginPath()
+            ctx.arc(this.mouser.x, this.mouser.y, 30, -NINETYDEG, -NINETYDEG + t * TWOPI)
+            ctx.stroke()
+        }
+
+        const targetingDrawable = this.targetingDrawable = {
+            draw:
+                /**@param {RenderingContext} ctx  */
+                (ctx) => {
+                    const p = this.me
+                    if (!p.target) return
+                    const tgt = p.target.map(x => (x + .5) * GRAPHICS.SIZE)
+                    const c = p.centerXY
+                    MM.drawCircle(ctx, ...tgt, GRAPHICS.SIZE * .2,
+                        { color: "red", outline: 0 })
+                    MM.drawLine(ctx, ...c, ...tgt, { color: "red", width: 3 })
+
+                }
+        }
         this.loca.add_drawable(targetingDrawable, 8) //just below players, above regular stuff
+
 
 
         const zoomSlider = this.zoomSlider = new Slider(new Button({
@@ -118,4 +205,48 @@ class GameShared extends GameCore {
 
         this.add_drawable(zoomSlider, 8)
     }
+
+
+    /**@type {Map<string,number>} code && when?*/
+    badnessMap = new Map()
+    badnessButton = null
+    badnessCodes = {
+        "ij": ["Failed to send position to server."],
+        "attempt": ["Failed to send answer to server."],
+        "travel": ["Failed to send travel request to server."]
+    }
+    badness(code) {
+        if (!this.badnessButton) {
+            const bb = this.badnessButton = Button.fromRect(this.rect.copy.splitCell(-1, -1, 5, 3.5).move(-20, -20))
+            this.add_drawable(this.badnessButton)
+            bb.color = "red"
+            bb.tag = "badnessButton"
+            bb.check = null //no interactions, just info!
+            bb.update = () => {
+                if (!this.badnessMap.size) { bb.visible = false; return }
+                bb.visible = true
+                bb.txt = ""
+                bb.textSettings = { textBaseline: "top" }
+                for (const [code, val] of this.badnessMap) {
+                    const found = this.badnessCodes[code]
+                    if (Date.now() - val > (found[1] ?? 10_000)) this.badnessMap.delete(code)
+                    else bb.txt += (found[0] ?? ("UNKOWN ERROR" + code)) + "\n"
+                }
+                bb.txt += "\nTry again, or ask the teacher for help."
+            }
+        }
+        this.badnessMap.set(code, Date.now())
+    }
+    goodness(code) {
+        if (!this.badnessMap.has(code)) return
+        this.badnessMap.delete(code)
+        GameEffects.popup("No problems.", {
+            sizeFrac: [1 / 5 * .8, 1 / 3.5 * .4],
+            posFrac: [.9, .9],
+            travelTime: 300,
+            floatTime: 800,
+            moreButtonSettings: { color: "lightgreen" }
+        })
+    }
 }
+//#endregion

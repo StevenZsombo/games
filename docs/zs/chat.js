@@ -467,7 +467,7 @@ class Chat {
             value: fn(message.params, person)
         }
         if (this.isServer) {
-            if (!person) { throw new Error("server cannot wee willy-nilly") }
+            if (!person) { throw new Error("server cannot woo back without a target") }
             /*let targetID = typeof person === 'string' ? person : person.nameID
             targetID && (msg.targetID = targetID)*/
             msg.targetID = person.nameID

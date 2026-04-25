@@ -1133,11 +1133,11 @@ class Malleable {
 
 	check(...params) {
 		if (!this.visible) return
-		let anyHit = false
+		let anyBlock = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
-			anyHit = this.components[i].check?.(...params) || anyHit
+			anyBlock = (this.components[i].check?.(...params) && this.components[i].isBlocking) || anyBlock
 		}
-		return anyHit
+		return anyBlock
 	}
 
 	update(dt) {

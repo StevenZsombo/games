@@ -110,7 +110,7 @@ class StateManager {
     /**@returns {State} */
     to(newState) {
         if (newState instanceof State) return newState
-        if (typeof newState !== 'string') throw new Error(`Invalid key/state ${newState}.`)
+        if (typeof newState !== 'string' && typeof newState !== 'number') throw new Error(`Invalid key/state ${newState}.`)
         if (!this.states.has(newState)) throw new Error(`Invalid key/state ${newState}.`)
         return this.states.get(newState)
     }

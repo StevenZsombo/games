@@ -35,6 +35,7 @@ class Person extends Participant {
     ij(i, j) {
         this.p.i = i
         this.p.j = j
+        this.p.reposition()
     }
     enter() {
         return {
@@ -62,14 +63,7 @@ class Game extends GameShared {
         chat.initLibrary("server")
         this.loca = pool.getLoca(0)
         this.levels = [this.loca]
-
-
-        this.initPlayer(0, "Game master")
-        this.me.on_changeIJextras.length = 0
-        this.initInteractables()
-
-
-        this.add_drawable(this.loca)
+        this.add_drawable(this.loca, 1) //no player for server. sadge.
 
 
 
@@ -78,13 +72,22 @@ class Game extends GameShared {
     }
     //#endregion
 
+    CRITICAL_key = 0
+
+    CRITICAL_SEND(targetList, params) {//for keeping up game state.
+        this.CRITICAL_key++
+        let payload
+        targetList
+            ? chat.targetSpam(targetList, "critical", params)
+            : chat.spam("critical", params)
+    }
 
     BROADCAST_SEND() {
         const l = []
         for (const loca of pool.locas.values()) {
             l.push([loca.id, loca.players.map(p => [p.id, p.i, p.j])])
         }
-        chat.spam("bc", { l })
+        chat.spam("bc", { l, e: this.CRITICAL_key })
     }
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
@@ -92,25 +95,9 @@ class Game extends GameShared {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
+
     update_more(dt) {
-        this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
-        // this.loca.worldRect.moveToContain(this.me.copyRect.stretch(3, 3)) //track player
-        if (GRAPHICS.ALLOW_OOB_FOLLOW && !this.sinteract.last_held) {
-            const me = this.me
-            const w = this.loca.worldRect
-            if (me.x - me.width < w.x) w.x = me.x - me.width
-            else if (me.x + me.width * 2 > w.right) w.rightat(me.x + me.width * 2)
-            if (me.y - me.height < w.y) w.y = me.y - me.height
-            else if (me.y + me.height * 2 > w.bottom) w.bottomat(me.y + me.height * 2)
-        }
-        if (GRAPHICS.ALLOW_CAMERA_FOLLOW && !this.sinteract.last_held) {
-            const coeff = GRAPHICS.FOLLOW_CAMERA_COEFFICIENT
-            const { cx, cy } = this.me
-            const { centerX, centerY } = this.loca.worldRect
-            const dx = cx - centerX
-            const dy = cy - centerY
-            this.loca.worldRect.move(dx * coeff, dy * coeff)
-        }
+        this.dtSin = Math.sin(this.dtTotal / 90) * 0.2 //cause why not lol
 
 
     }

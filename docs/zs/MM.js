@@ -1545,6 +1545,13 @@ class MM {
         a.remove()
     }
 
+    static fetchSyncText(url) {// Synchronous XMLHttpRequest (deprecated, freezes the page)
+        const xhr = new XMLHttpRequest()
+        xhr.open('GET', url, false)  // false = synchronous
+        xhr.send()
+        return xhr.responseText
+    }
+
 
     static exportJSON(data, filename = "data.json", alsoAlert = false) {
         if (alsoAlert)
