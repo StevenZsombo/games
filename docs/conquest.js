@@ -4,7 +4,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "smooth",
@@ -2021,6 +2021,10 @@ const switchStage = () => {
     } else if (next === "plot") {
         game.scorePanel.deactivate()
         plotPanel = Gimmicks.plotHighscore(game.highscore)
+        setTimeout(() => {
+            if (stage !== "plot" || !MASTER.ALLOW_SCREENSHOTS) return
+            Cropper.screenshot("conquestPlot")
+        }, 500)
         game.add_drawable(plotPanel, 7)
         plotPanel.isBlocking = true
         plotPanel.components[0].isBlocking = true

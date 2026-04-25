@@ -549,7 +549,7 @@ class Cropper {
 			const url = URL.createObjectURL(blob)
 			const a = document.createElement("a")
 			a.href = url
-			const fullName = filename + (doNotTimestamp ? "" : ":" + MM.time() + ".png")
+			const fullName = filename + (doNotTimestamp ? "" : ":" + MM.time()) + ".png"
 			a.download = fullName.split(":").join("_")
 			// document.body.appendChild(a) //not needed in modern browsers
 			a.click()
