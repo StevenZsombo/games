@@ -7,7 +7,7 @@ var univ = {
     showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
-    canvasStyleImageRendering: "smooth",
+    canvasStyleImageRendering: "auto",
     //BROKEN
     fontFile: null, // "resources/victoriabold.png" //set to null otherwise
     //BROKEN

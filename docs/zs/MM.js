@@ -1322,7 +1322,11 @@ class MM {
 
     }
 
-
+    /**
+     * @param {number} x @param {number} y the point
+     * @param {number} a @param {number} b line one end
+     * @param {number} c @param {number} d line other end
+     */
     static closestPointOnSegment(x, y, a, b, c, d) {
         const dx = c - a
         const dy = d - b

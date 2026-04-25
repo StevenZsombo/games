@@ -194,6 +194,7 @@ class Player extends Button {
         this.update = this.updateDrifting
 
     }
+
     static ALLOWED_MOVES = GRAPHICS.ALLOWED_MOVES_WITH_DIAGONAL
     getPathTo(i, j) {
         if (!this.loca.grid.valid(i, j)) return null
