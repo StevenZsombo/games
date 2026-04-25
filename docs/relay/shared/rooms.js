@@ -347,13 +347,12 @@ class Player extends Button {
         this.loca.removePlayer(this)
         loca.spawnPlayer(this)
     }
-
+    /**@this {Player} */
     draw_more = function (ctx) { //weird-ass rule. methods don't overwrite field properties
-        console.log("yay")
-        MM.drawText(ctx, this.name, this.copyRect.topat(this.bottom), {
-            textBaseline: "top", fontSize: 28
-
-        })
+        MM.drawText(ctx, this.name, {
+            x: this.x, y: this.y + this.height, width: this.width
+            //height:0 implicitly
+        }, { textBaseline: "top", fontSize: 28 })
     }
 
 }
