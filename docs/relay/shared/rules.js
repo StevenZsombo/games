@@ -3,7 +3,7 @@ const RULES = {
     PICTURES_FOLDER: "../pictures/",
     MAP_BACKGROUND_FOLDER: "../tiled/",
 
-    MAPFILE: "../tiled/station1.json",
+    MAPFILE: "../tiled/station2.json",
 
 
     SERVER_BROADCAST_INTERVAL: 50,
@@ -49,7 +49,8 @@ Chat.library = {
     defaultWeeInterval: 250,
     defaultWeeRetries: 8,
     client: {
-        "bc": (params) => { game?.BROADCAST_RECEIVE(params) } //broadcast
+        "eval": params => eval(params),
+        "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast
     },
     server: {
         "ij": ([i, j], person) => person.ij(i, j),

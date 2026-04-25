@@ -20,8 +20,27 @@
             "scale": 0.33,
             "selectedLayer": 4,
             "viewCenter": {
-                "x": 1281.818181818182,
+                "x": 1459.090909090909,
                 "y": 495.4545454545455
+            }
+        },
+        "station2.json": {
+            "scale": 0.45768229166666663,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1270.5320056899004,
+                "y": 272.02275960170704
+            }
+        },
+        "station2.tmx": {
+            "expandedObjectLayers": [
+                4
+            ],
+            "scale": 0.33,
+            "selectedLayer": 4,
+            "viewCenter": {
+                "x": 778.7878787878788,
+                "y": 657.5757575757576
             }
         },
         "tiles.tsx": {
@@ -35,13 +54,14 @@
     "loadedWorlds": [
     ],
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
-    "map.lastUsedFormat": "json",
+    "map.lastUsedFormat": "tmx",
     "openFiles": [
         "station1.tmx"
     ],
     "project": "relay.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "station2.json",
         "station1.tmx",
         "station1.json",
         "tiles.tsx"

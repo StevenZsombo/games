@@ -12,6 +12,7 @@ class Game extends GameShared {
 
     async initialize_more() {
         chat.initLibrary("client")
+        this.initChat()
         this.person = person
         const enterResponse = await chat.wee("enter")
         console.log(enterResponse)
@@ -48,7 +49,7 @@ class Game extends GameShared {
     //#region update_more
     update_more(dt) {
         this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
-        
+
 
 
 

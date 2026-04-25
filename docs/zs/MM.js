@@ -1905,6 +1905,10 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         }
         return partitions;
     }
+    /**@param {string} str  */
+    static capitalizeFirstLetter(str) {
+        return str[0].toUpperCase() + str.slice(1)
+    }
 
     /**
      * @param {string} txt

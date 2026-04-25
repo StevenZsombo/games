@@ -128,6 +128,9 @@ class Loca extends GameWorld {
                 if (terminal.button.isBlocking) return
                 terminal.button.opacity = 0; terminal.button.visible = false
             }
+            b.on_click = () => {
+                terminal.tryAction()
+            }
             ev.on_enter = () => terminal.onStandingOnEnter()
             ev.on_leave = () => terminal.onStandingOnLeave()
             this.eventInteractables.push(b)
@@ -384,6 +387,7 @@ class Terminal {
         this.id = id
         const row = Terminal.DATA.find(x => x[0] === type)
         if (!row) throw new Error("invalid terminal type")
+        this.type = type
         this.terminal = row[0]
         this.delay = row[1]
         this.question = row[2]
@@ -410,10 +414,16 @@ class Terminal {
     putStandingOnText() {
         this.button.txt = this.getStandingOnText()
     }
-    onInspectViaInteraction() {
-        GameEffects.popup(this.getInspectFromAfarText() + " details go here", { moreButtonSettings: { color: "pink" } })
+    getInspectLongClickText() {
+        return `${this.pretty} creates:\n`
+            + this.resources.map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
     }
+    onInspectViaLongClick() {
+        GameEffects.popup(this.getInspectLongClickText(), { moreButtonSettings: { color: "pink" } })
+    }
+    isStandingOn = false
     onStandingOnEnter() {
+        this.isStandingOn = true
         const b = this.button
         b.isBlocking = true
         b.visible = true
@@ -421,9 +431,16 @@ class Terminal {
         this.putStandingOnText()
     }
     onStandingOnLeave() {
+        this.isStandingOn = false
         const b = this.button
         b.isBlocking = false
         b.visible = false
+    }
+    tryAction() {
+        if (!this.isStandingOn) return
+        GameEffects.popup(
+            `You can ${this.action} the ${this.pretty}`,
+            { moreButtonSettings: { color: "lightgreen" } })
     }
 
 }

@@ -39,7 +39,7 @@ class Pool {
     }
     getLoca(id) {
         return this.locas.get(id) ??
-            this.locas.set(id, new Loca("station1", "station1_" + id, id)).get(id)
+            this.locas.set(id, new Loca("station2", "station_" + id, id)).get(id)
     }
 
 
@@ -54,6 +54,10 @@ const pool = new Pool()
 
 //#region GameShared
 class GameShared extends GameCore {
+    initChat() {
+        chat.on_join = () => this.goodness("conn")
+        chat.on_disconnect = () => this.badness("conn")
+    }
     initPlayer(id, name) {
         if (!this.loca) throw new Error("can't initPlayer without a loca")
         this.playerID = id
@@ -121,7 +125,7 @@ class GameShared extends GameCore {
                 const { x, y } = this.loca.screenToWorldV(pos)
                 /**@type {Terminal} */
                 const terminal = this.loca.eventInteractables.components.find(b => b.collidepoint(x, y))?.terminal
-                terminal && terminal.onInspectViaInteraction()
+                terminal && terminal.onInspectViaLongClick()
             }
             circleTime = null
         }
@@ -211,6 +215,7 @@ class GameShared extends GameCore {
     badnessMap = new Map()
     badnessButton = null
     badnessCodes = {
+        "conn": ["Lost connection! Reconnecting..."],
         "ij": ["Failed to send position to server."],
         "attempt": ["Failed to send answer to server."],
         "travel": ["Failed to send travel request to server."]

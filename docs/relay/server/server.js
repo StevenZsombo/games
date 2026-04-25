@@ -61,6 +61,7 @@ class Game extends GameShared {
 
     initialize_more() {
         chat.initLibrary("server")
+        this.initChat()
         this.loca = pool.getLoca(0)
         this.levels = [this.loca]
         this.add_drawable(this.loca, 1) //no player for server. sadge.
