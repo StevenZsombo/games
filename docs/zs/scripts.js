@@ -1764,3 +1764,50 @@ class Slider extends Panel {
 //#endregion
 
 
+//#region FeedBasic
+class FeedBasic {
+	/**@type {Map<string, Button & {close:Function}>} */
+	buttons = new Map()
+	/**
+	 * @param {Rect} bgRect 
+	 * @param {Button} [moreButtonSettings={}] 
+	 * @param {boolean} [alsoResize=false] 
+	 */
+	constructor(bgRect, moreButtonSettings = {}, alsoResize = false) {
+		this.bgRect = bgRect
+		this.templateButton = new Button(moreButtonSettings)
+		this.alsoResize = alsoResize
+	}
+	rearrange() {
+		if (!this.buttons.size) return
+		const arr = Array.from(this.buttons.values())
+		Rect.packCol(arr, this.bgRect, 20, "t", this.alsoResize)
+		if (arr.at(-1).bottom > this.bgRect.bottom)
+			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
+	}
+	add(txt) {
+		if (this.buttons.has(txt)) return
+		const b = this.templateButton.copy
+		b.close = () => this.delete(txt)
+		b.txt = txt
+		this.buttons.set(txt, b)
+		this.rearrange()
+
+	}
+	delete(txt) {
+		if (!this.buttons.has(txt)) return
+		this.buttons.delete(txt)
+		this.rearrange()
+	}
+	clear() {
+		this.buttons.clear()
+		this.rearrange()
+	}
+
+	draw(ctx) {
+		for (const b of this.buttons.values())
+			b.draw(ctx)
+	}
+
+}
+//#endregion
