@@ -892,7 +892,11 @@ class Game extends GameCore {
             const parr = []
 
             if (!this.attacksAllowed && !this.isPaused) {
-                if (!RULES.STUDENTS) {
+                if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
+                    parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."
+                        + "\nMaps are in the Steven/games/docs/conquest/maps folder."
+                    ])
+                } else if (!RULES.STUDENTS) {
                     parr.push(["STUDENTS",
                         () => (async () => {
                             // const students = (await(await fetch(RULES.STUDENTSFILE)).text()).split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
@@ -905,10 +909,6 @@ class Game extends GameCore {
                             .then(() => spop(`${RULES.STUDENTS.length} students loaded.`))
                             .catch(err => badpop(`Error: ${err}`)),
                         "Load in student names.\nIn the Steven/games/docs/conquest folder, listed line by line!"])
-                } else if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
-                    parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."
-                        + "\nMaps are in the Steven/games/docs/conquest/maps folder."
-                    ])
                 } else if (Question.ALL.length == 0) {
                     parr.push(
                         ["BUCKETS", () => {
