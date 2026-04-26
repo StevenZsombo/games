@@ -13,11 +13,12 @@ class Game extends GameShared {
         chat.initLibrary("client")
         this.initChat()
         this.person = person
-        const enterResponse = await chat.wee("enter")
+        const enterResponse = await chat.wee("enter", person)
         console.log(enterResponse)
         Object.assign(person, enterResponse)
         this.loca = pool.getLoca(person.locaID)
         this.initPlayer(person.playerID, person.name) //gives this.me
+        await this.loca.bgReadyPromise
         this.initInteractables()
 
         this.add_drawable(this.loca, 1)
@@ -27,7 +28,7 @@ class Game extends GameShared {
     }
 
     initialize_more() {
-
+        this.debugMode()
     }
     //#endregion
 
@@ -98,6 +99,18 @@ class Game extends GameShared {
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+    isInDebugMode = false
+    debugMode() {
+        if (this.isInDebugMode) return
+        const debugButton = Button.fromRect(this.rect.splitCell(2, 1, 15, 15))
+        debugButton.isBlocking = true
+        debugButton.txt = "DEBUG"
+        debugButton.on_click =
+            GameEffects.dropDownDebugFunctionsFromAnObject(dev, true)
+
+        this.add_drawable(debugButton, 7)
+        this.isInDebugMode = true
+    }
 
 
 } //this is the last closing brace for class Game
@@ -141,6 +154,7 @@ var univ = {
 //#region dev options
 /// dev options
 const dev = {
+    fullscreen: () => MM.toggleFullscreen(true),
 
 
 }/// end of dev

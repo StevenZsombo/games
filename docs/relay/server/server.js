@@ -42,9 +42,11 @@ class Person extends Participant {
         this.p.j = j
         this.p.reposition()
     }
-    enter() {
+    enter(personData) {
         return {
-            playerID: this.p.id, locaID: this.p.loca.id
+            playerID: this.p.id,
+            locaID: this.p.loca.id,
+            name: `${this.p.name}`
         }
     }
 }
@@ -68,7 +70,10 @@ class Game extends GameShared {
         chat.initLibrary("server")
         this.initChat()
         this.loca = pool.getLoca(0)
+        //loca.bgReadyPromise would be useful here!
         this.levels = [this.loca]
+        await this.loca.bgReadyPromise
+        this.loca.worldRect.putOver(this.loca.bg)
         this.add_drawable(this.loca, 1) //no player for server. sadge.
 
 

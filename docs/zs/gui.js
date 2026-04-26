@@ -484,6 +484,41 @@ class Cropper {
 
 	}
 
+
+
+
+	/**
+	 * @param {string} source 
+	 * @returns {Promise<HTMLImageElement>} 
+	 */
+	static loadImagePromise(source) {
+		return new Promise((resolve, reject) => {
+			const img = new Image()
+			// img.crossOrigin = "Anonymous" //what the actual fuck on earth
+			img.onload = () => resolve(img)
+			img.onerror = err => reject(err)
+			img.src = source
+		})
+	}
+
+	async loadImageToDataURLPromise(source) {
+		const img = await this.loadImagePromise(source)
+		this.secondCanvas.width = img.width
+		this.secondCanvas.height = img.height
+		this.ctx.drawImage(img, 0, 0)
+		return this.secondCanvas.toDataURL()
+	}
+
+	static async loadImageToNewCanvasPromise(source) {
+		const img = await this.loadImagePromise(source)
+		const newCanvas = document.createElement("canvas")
+		newCanvas.width = img.width
+		newCanvas.height = img.height
+		newCanvas.getContext("2d").drawImage(img, 0, 0)
+		return newCanvas
+	}
+
+
 	/**@returns {HTMLImageElement} */
 	resize(img, width, height) {
 		this.secondCanvas.width = width

@@ -3,10 +3,10 @@ const RULES = {
     PICTURES_FOLDER: "../pictures/",
     MAP_BACKGROUND_FOLDER: "../tiled/",
 
-    MAPFILE: "../tiled/station2.json",
+    MAPFILE: "../tiled/home1.json",
 
 
-    SERVER_BROADCAST_INTERVAL: 50,
+    SERVER_BROADCAST_INTERVAL: 200,
     CLIENT_THROTTLE_FALLBACK_POS_INTERVAL: 2000, //if drift from server is out of sync
 
 }
@@ -23,7 +23,7 @@ const GRAPHICS = {
     SIZE: 64,
     WADDLE_TIME: 200,
     CRAWL_VELOCITY: 1 / 200 * 64, //drift is better
-    DRIFT_COEFFICENT: 0.04,
+    DRIFT_COEFFICENT: 0.037, //fuck if i know
     DRIFT_SNAP_SIZE_COEFFICIENT: 0.2,
     ALLOWED_MOVES_WITHOUT_DIAGONAL: [[-1, 0], [1, 0], [0, -1], [0, 1]],
     ALLOWED_MOVES_WITH_DIAGONAL: [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, -1], [-1, 1], [1, -1]],
@@ -32,7 +32,8 @@ const GRAPHICS = {
     CAMERA_FOLLOW_COEFFICIENT: 0.03,
     TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: 800, //probably large enough that it's not accidental
     CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 2000, //probably large enough to allow a pathing click
-
+    SMOOTHING_DISABLED_FOR_BG: true,
+    DOWNSCALING: 0, //0 or 1 to disable, higher = worse. //STUPID don't use
 
 }
 
@@ -50,13 +51,15 @@ Chat.library = {
     defaultWeeRetries: 8,
     client: {
         "eval": params => eval(params),
-        "popup": txt => { GameEffects.popup(txt), undefined },
+        "popup": txt => { GameEffects.popup(txt) },
+        "reload": () => { chat.delayedReload() },
+        "debug": () => { game.debugMode() },
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast
 
     },
     server: {
         "ij": ([i, j], person) => { person.ij(i, j) },
-        "enter": (_, person) => person.enter(),
+        "enter": (personData, person) => person.enter(personData),
         "full": (_, person) => game.respondFULL_SYNC_EVENTS(person)
     },
 

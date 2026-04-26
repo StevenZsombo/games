@@ -39,7 +39,7 @@ class Pool {
     }
     getLoca(id) {
         return this.locas.get(id) ??
-            this.locas.set(id, new Loca("station2", "station_" + id, id)).get(id)
+            this.locas.set(id, new Loca("home1", "station_" + id, id)).get(id)
     }
 
 
@@ -63,7 +63,7 @@ class GameShared extends GameCore {
         this.playerID = id
         this.me = pool.getPlayer(this.playerID, this.loca)
         this.me.name = name
-        this.loca.spawnPlayer(this.me)
+        // this.loca.spawnPlayer(this.me) //done by the pool
         this.me.make_controllable()
 
 
@@ -82,7 +82,7 @@ class GameShared extends GameCore {
         this.tinteract.draw = null //will be defined in a moment, just mentioning it
         this.tinteract.collidepoint = () => true
         this.add_drawable(this.tinteract, 7) //on top = above everything save popups
-        this.winteract = new Clickable(this.rect)
+        this.winteract = new Clickable(this.loca.bg.copyRect)
         this.winteract.draw = null
         this.tinteract.collidepoint = () => true
         this.loca.add_drawable(this.winteract, 0) //below everything else

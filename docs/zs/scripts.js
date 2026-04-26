@@ -688,6 +688,10 @@ class Button extends Clickable {
 		const tobuild = { ...kwargs, ...rect }
 		return new Button(tobuild)
 	}
+	static fromRectShallow(rect) {
+		const { x, y, width, height } = rect
+		return new Button({ x, y, width, height })
+	}
 
 	static fromButton(but, kwargs = {}) {
 		let temp = but.copy

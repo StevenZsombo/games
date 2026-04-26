@@ -60,14 +60,33 @@ class Loca extends GameWorld {
 
 
         const bg = this.bg = new Button({ transparent: true, x: 0, y: 0 })
-        const raw = new Image()
-        raw.onload = () => {
-            bg.width = this.worldRect.width = raw.width
-            bg.height = this.worldRect.height = raw.height
-            bg.img = cropper.resize(raw, raw.width, raw.height)
-            this.add_drawable(bg, 0) //layer 0 for background map
-        }
-        raw.src = RULES.MAP_BACKGROUND_FOLDER + backgroundimgfile + ".png"
+        const src = RULES.MAP_BACKGROUND_FOLDER + backgroundimgfile + ".png"
+        this.bgReadyPromise = Cropper.loadImageToNewCanvasPromise(src).then(newCanvas => {
+            //stupid
+            /*if (GRAPHICS.DOWNSCALING && GRAPHICS.DOWNSCALING !== 1) {
+                const downscaledCanvas = document.createElement("canvas")
+                downscaledCanvas.width = newCanvas.width / GRAPHICS.DOWNSCALING
+                downscaledCanvas.height = newCanvas.height / GRAPHICS.DOWNSCALING
+                downscaledCanvas.getContext("2d").drawImage(newCanvas, 0, 0, downscaledCanvas.width, downscaledCanvas.height)
+                newCanvas = downscaledCanvas
+                console.log(`$DOWNSCALING ${GRAPHICS.DOWNSCALING} times:`, downscaledCanvas)
+            }*/
+            bg.width = newCanvas.width
+            bg.height = newCanvas.height
+            bg.img = newCanvas
+            bg.check = null
+            bg.draw = (screen) => {
+                if (GRAPHICS.SMOOTHING_DISABLED_FOR_BG) {
+                    screen.imageSmoothingEnabled = false
+                    screen.drawImage(bg.img, 0, 0)
+                    screen.imageSmoothingEnabled = true
+                } else {
+                    screen.drawImage(bg.img, 0, 0)
+                }
+            }
+            this.add_drawable(bg, 0)
+        })
+
     }
     getIJ(pos) {
         const { x, y } = pos
@@ -109,7 +128,9 @@ class Loca extends GameWorld {
         this.terminals.push(terminal)
         if (!this.eventStateManager.has(terminal.id)) {
             const ev = this.eventStateManager.create(terminal.id)
-            Terminal.get_ijArr(rect).forEach(([i, j]) => {
+            const rectIJData = Terminal.getRectIJData(rect)
+            rectIJData.ijArr.forEach(([i, j]) => {
+                if (!this.grid.valid(i, j)) throw new Error(`map rect ${rect} lies outside the floor at (${i},${j})`)
                 this.grid.at(i, j).eventState = terminal.id
             })
             /**@type {Button & {terminal:Terminal}} creating terminal button*/
@@ -133,6 +154,24 @@ class Loca extends GameWorld {
             ev.on_enter = () => terminal.onStandingOnEnter()
             ev.on_leave = () => terminal.onStandingOnLeave()
             this.eventInteractables.push(b)
+
+            /**@type {Button & {terminal:Terminal}} creating terminal button*/
+            const l = Button.fromRectShallow(b.copyRect)
+            l.transparent = true
+            l.terminal = terminal
+            l.check = null
+            l.dynamicText = () => l.terminal.txt
+            l.fontSize = 32
+            b.draw_more = l.draw.bind(l) //lazy-like lol
+            if (rectIJData.isVertical) {
+                const { i, j } = rectIJData.topleft
+                l.rad = this.grid.valid(i - 1, j) ? NINETYDEG : -NINETYDEG
+                l.width = b.height
+                l.height = b.width
+                l.centerinRect(b)
+                //im so clever lol
+            }
+
         }
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
@@ -243,7 +282,10 @@ class Player extends Button {
         ))
     }
     setTarget(i, j) {
-        if (!this.loca.grid.valid(i, j)) return
+        if (!this.loca.grid.valid(i, j)) {
+            console.log("invalid target", { i, j })
+            return
+        }
         if (this.target?.[0] === i && this.target?.[1] === j) return //already getting there
         this.target = [i, j]
         this.path = this.getPathTo(i, j)
@@ -365,30 +407,31 @@ class Player extends Button {
 //#region Terminal
 class Terminal {
     static DATA = [
-        ["terminal", "delay", "question", "pretty", "action", "energy", "food", "water", "parts", "metals", "titanium", "alloy"],
-        ["reactor", 15, 0, "Reactor", "REPAIR", 40, 0, 0, 0, 0, 0, 0],
-        ["solar", 20, 10, "Solar Array", "REPAIR", 25, 0, 0, 0, 0, 0, 0],
-        ["hydro", 12, 20, "Hydroponics", "REPAIR", 0, 15, 10, 0, 0, 0, 0],
-        ["water", 10, 20, "Water recycler", "REPAIR", 0, 0, 25, 0, 0, 0, 0],
-        ["cargo", 8, 20, "Cargo bay", "REPAIR", 0, 10, 0, 10, 0, 0, 0],
-        ["comms", 12, 50, "Comms array", "REPAIR", 0, 0, 0, 30, 0, 0, 0],
-        ["fab", 10, 60, "Fabricator", "REPAIR", 0, 0, 20, 5, 0, 0, 0],
-        ["med", 10, 30, "Medical bay", "REPAIR", 0, 0, 0, 10, 0, 0, 0],
-        ["life", 20, 10, "Life support", "REPAIR", 0, 10, 15, 0, 0, 0, 0],
-        ["machine", 12, 50, "Machine shop", "REPAIR", 0, 0, 25, 0, 0, 0, 0],
-        ["shuttle", 0, 0, "Shuttle bay", "USE", 0, 0, 0, 0, 0, 0, 0],
-        ["access", 0, 0, "Upgrade center", "USE", 0, 0, 0, 0, 0, 0, 0],
-        ["door", 0, 0, "ACCESS KEY NEEDED", "USE", 0, 0, 0, 0, 0, 0, 0],
-        ["mining", 15, 60, "Mining station", "CAPTURE", 10, 0, 0, 0, 10, 5, 0],
-        ["scrapyard", 10, 40, "Scrapyard", "CAPTURE", 0, 0, 0, 15, 0, 10, 0],
-        ["data", 12, 70, "Data vault", "CAPTURE", 0, 0, 0, 30, 5, 5, 5],
-        ["supply", 15, 80, "Supply depot", "CAPTURE", 0, 0, 15, 0, 10, 0, 5],
-        ["fusion", 10, 90, "Fusion core", "CAPTURE", 20, 0, 0, 0, 0, 10, 10],
-        ["alloy", 20, 100, "Alloy plant", "CAPTURE", 30, 0, 0, 0, 20, 0, 0],
-        ["research", 12, 85, "Research lab", "CAPTURE", 10, 0, 0, 0, 0, 15, 5],
+        ['terminal', 'delay', 'bucket', 'pretty', 'action', 'energy', 'water', 'food', 'parts', 'antimatter', 'coolant', 'minerals', 'salvage', 'description'],
+        ['reactor', 15, 0, 'Reactor', 'REPAIR', 50, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['solar', 8, 10, 'Solar Array', 'REPAIR', 30, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['life', 12, 0, 'Life Support', 'REPAIR', 0, 20, 20, 0, 0, 0, 0, 0, 0],
+        ['water', 6, 10, 'Water Recycler', 'REPAIR', 0, 30, 0, 0, 0, 0, 0, 0, 0],
+        ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 0, 0],
+        ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 0, 0],
+        ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 0, 0],
+        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0],
+        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0],
+        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0],
+        ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.'],
+        ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.'],
+        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['mining', 5, 30, 'Mining station', 'CAPTURE', 0, 0, 0, 0, 0, 0, 15, 0, 0],
+        ['scrapyard', 5, 30, 'Scrapyard', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 15, 0],
+        ['data', 5, 30, 'Data vault', 'CAPTURE', 0, 0, 0, 0, 0, 5, 5, 5, 0],
+        ['supply', 5, 30, 'Supply depot', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['fusion', 5, 40, 'Fusion core', 'CAPTURE', 0, 0, 0, 0, 15, 0, 0, 0, 0],
+        ['alloy', 5, 30, 'Alloy plant', 'CAPTURE', 0, 0, 0, 0, 0, 0, 10, 5, 0],
+        ['research', 5, 40, 'Research lab', 'CAPTURE', 0, 0, 0, 0, 5, 5, 0, 5, 0],
     ]
 
-    static get_ijArr({ x, y, width, height } = {}) {
+    static getRectIJData({ x, y, width, height } = {}) {
         const xlow = Math.floor(x / GRAPHICS.SIZE)
         const xhi = Math.floor((x + width) / GRAPHICS.SIZE)
         const ylow = Math.floor(y / GRAPHICS.SIZE)
@@ -397,10 +440,16 @@ class Terminal {
         for (let i = xlow; i <= xhi; i++)
             for (let j = ylow; j <= yhi; j++)
                 ijArr.push([i, j])
-        return ijArr
+        const topleft = { i: xlow, j: ylow }
+        const isVertical = (xhi - xlow) < (yhi - ylow)
+        return { ijArr, topleft, isVertical }
     }
     /**@type {Button & {terminal:Terminal}} creating terminal button*/
     button = null //will be set by loca.spawnTerminal
+    /**@type {Button & {terminal:Terminal}} */
+    label = null //will be set by loca.spawnTerminal
+    /**@type {string} */
+    txt = null //will be set dynamically!
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
@@ -412,12 +461,13 @@ class Terminal {
         this.question = row[2]
         this.pretty = row[3]
         this.action = row[4]
+        this.description = row.at(-1) || ""
         const firstUnusedRow = 5
         //will be used by resource fill below
         /**@type {Array<[string,number]>} [resource type, gain] */
         this.resources = []
         row.forEach((val, i) => {
-            if (i < firstUnusedRow || !val) return
+            if (i < firstUnusedRow || i == Terminal.DATA[0].length - 1 || !val) return
             this.resources.push([Terminal.DATA[0][i], val])
         })
     }
@@ -425,13 +475,13 @@ class Terminal {
         return this.pretty
     }
     putInspectFromAfarText() {
-        this.button.txt = this.getInspectFromAfarText()
+        this.txt = this.getInspectFromAfarText()
     }
     getStandingOnText() {
         return this.pretty + "\n" + this.action
     }
     putStandingOnText() {
-        this.button.txt = this.getStandingOnText()
+        this.txt = this.getStandingOnText()
     }
     getInspectLongClickText() {
         return `${this.pretty} creates:\n`
