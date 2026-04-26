@@ -1569,6 +1569,29 @@ class MM {
         } catch (err) { console.error(err) }
     }
 
+    static importAnyTextFile(onlyAccept = null) {
+        return new Promise((resolve, reject) => {
+            const input = document.createElement("input")
+            input.type = "file"
+            if (onlyAccept) input.accept = onlyAccept
+            input.onchange = ev => {
+                const file = ev.target.files[0]
+                if (!file) reject(new Error("No file selected!"))
+                const reader = new FileReader()
+                reader.onload = (e) => {
+                    try {
+                        resolve(e.target.result)
+                    } catch (error) { reject(error) }
+                    input.remove()
+                }
+                reader.onerror = err => reject(err)
+                reader.readAsText(file)
+            }
+            input.oncancel = () => reject(new Error("File selection cancelled")) //may not exist?
+            input.click()
+        })
+    }
+
     static importJSON(alsoAlert = false) {
         if (alsoAlert)
             alert(`Your browser will now ask you to open a file.\nSelect a file you exported earlier to load in that data.`)

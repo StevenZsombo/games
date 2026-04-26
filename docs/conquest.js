@@ -40,9 +40,10 @@ var univ = {
             }
             catch (err) { console.error("Failed loading localStorage", err) }
             try {
-                const students = (await (await fetch(RULES.STUDENTSFILE)).text()).split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
-                if (students.length) RULES.STUDENTS = students
-
+                if (RULES.STUDENTSFILE) {
+                    const students = (await (await fetch(RULES.STUDENTSFILE)).text()).split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
+                    if (students.length) RULES.STUDENTS = students
+                }
             }
             catch (err) { console.error("failed loading " + RULES.STUDENTSFILE, err) }
             beforeMainPassedToBeCalled()
@@ -350,7 +351,7 @@ const shared = { //can be inquired about if active
     RULES: RULES,
 }
 const sharedFunc = {
-    teamsData: () => RULES.STUDENTS.map(x => Participant.to(x)?.kingdom?.id ?? -1),
+    teamsData: () => (RULES.STUDENTS ?? []).map(x => Participant.to(x)?.kingdom?.id ?? -1),
     territoriesFullData: () => game.territories.map(x => ( //dummy me. this is read from map.json
         {
             id: x.id,
@@ -889,10 +890,24 @@ class Game extends GameCore {
         const SERVERBUTTON = () => {
             /**@type {[label:string,fn:Function,inspecText:string]} */
             const parr = []
+
             if (!this.attacksAllowed && !this.isPaused) {
-                if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
+                if (!RULES.STUDENTS) {
+                    parr.push(["STUDENTS",
+                        () => (async () => {
+                            // const students = (await(await fetch(RULES.STUDENTSFILE)).text()).split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
+                            // if (students.length) RULES.STUDENTS = students
+                            const txt = await MM.importAnyTextFile()
+                            const students = txt.split("\n").map(MM.lettersNumbersSpacesOnly).filter(x => x.length >= 3)
+                            if (!students) throw new Error("No students found.")
+                            RULES.STUDENTS = students
+                        })()                //really looks like balls lol
+                            .then(() => spop(`${RULES.STUDENTS.length} students loaded.`))
+                            .catch(err => badpop(`Error: ${err}`)),
+                        "Load in student names.\nIn the Steven/games/docs/conquest folder, listed line by line!"])
+                } else if (RULES.PICTURE_BACKGROUND_MAP === "nomap.png") {
                     parr.push(["LOADMAP", MANAGER.loadFromFile, "Load a map to start the game with."
-                        + "\nMaps are in the Steven/games/docs/maps folder."
+                        + "\nMaps are in the Steven/games/docs/conquest/maps folder."
                     ])
                 } else if (Question.ALL.length == 0) {
                     parr.push(

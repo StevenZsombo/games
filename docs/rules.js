@@ -1,11 +1,10 @@
 //#region RULES.
 var RULES = ({
-    STUDENTS: Array.from({ length: 35 }, (_, i) => `${i}student`),
-    STUDENTSFILE: "conquest/students.txt", //can be null
+    STUDENTS: null,//Array.from({ length: 35 }, (_, i) => `${i}student`), //should be null!
+    STUDENTSFILE: null,//"conquest/students.txt", //should be null!
     //["Alice", "Chris", "Cloris", "Coro", "Eden", "Eily", "Ethan Deng", "Ethan Jiang", "George", "Gwendolyn", "Harry", "Howell", "Kevin", "Kimberly", "Kyrie", "Lu", "Lucas", "Michael", "Percy", "Sebastian", "Selina", "Seraphim", "Tommy", "Zoey"],
     //strArr or null
-    STUDENTS_POSITIONS: null, //STUDENT-size array of [x,y] for their buttons
-
+    STUDENTS_POSITIONS: null, //STUDENT-size array of [x,y] for their buttons //todo, not yet implemented
     NUMBER_OF_TEAMS: 0, //////////////////////////////////
     NUMBER_OF_TERRITORIES: 0, /////////////////////////////////
     PICTURE_BACKGROUND_MAP: "nomap.png", //cannot null //with extension ///////////////////////////
