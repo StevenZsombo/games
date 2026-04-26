@@ -62,9 +62,8 @@ const broadcast_interval = setInterval(() => {
 class Game extends GameShared {
 
 
-
-
-    async initialize_more() {
+    async initialize_async() {
+        this.BGCOLOR = "rgb(4,4,28)"
         await chat.asapPromise()
         chat.initLibrary("server")
         this.initChat()
@@ -76,6 +75,10 @@ class Game extends GameShared {
 
         on_broadcast_extras.push(this.BROADCAST_SEND.bind(this))
 
+    }
+
+    initialize_more() {
+        this.initialize_async()
     }
     //#endregion
     /**@param {Person} person  */

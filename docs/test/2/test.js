@@ -1,49 +1,71 @@
-const person = {
-    name: "Bob",
-    get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
-    playerID: MM.randomInt(1, 99),
-    locaID: 0
+var univ = {
+    isOnline: false, //server is offline!
+    PORT: 80,
+    framerateUnlocked: false,
+    dtUpperLimit: 1000 / 15,//1000 / 30,
+    denybuttons: false,
+    showFramerate: true,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high", // options: "low", "medium", "high"
+    canvasStyleImageRendering: "auto",
+    //BROKEN
+    fontFile: null, // "resources/victoriabold.png" //set to null otherwise
+    //BROKEN
+    filesList: "", //space-separated
+    on_each_start: null,
+    on_first_run: null,
+    on_first_run_blocking: null,
+    on_first_run_async: null, //async function. overrides on_first_run_blocking
+    on_next_game_once: null,
+    on_beforeunload: null,
+    allowQuietReload: true,
+    acquireNameStr: "Your English name (at least 4 letters):", //for chat
+    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 
-class Game extends GameShared {
+
+
+
+class Game extends GameCore {
+
     //#region initialize_more
-
-
-    async initialize_async() {
-        chat.initLibrary("client")
-        this.initChat()
-        this.person = person
-        const enterResponse = await chat.wee("enter")
-        console.log(enterResponse)
-        Object.assign(person, enterResponse)
-        this.loca = pool.getLoca(person.locaID)
-        this.initPlayer(person.playerID, person.name) //gives this.me
-        this.initInteractables()
-
-        this.add_drawable(this.loca, 1)
-        this.bgDrawObj = GameEffects.getStarDrawerObject(this.screen)
-        this.BGCOLOR = null
-        return
-    }
-
     initialize_more() {
+        this.BGCOLOR = "black"
+        const a = Button.fromRect(game.rect.copy.stretch(.9, .9))
+
+        const canvas = document.createElement("canvas")
+        canvas.width = a.width
+        canvas.height = a.height
+        const ctx = canvas.getContext("2d")
+        const stars = []
+        for (let i = 0; i < 200; i++) {
+            stars.push({
+                x: MM.random(0, canvas.width),
+                y: MM.random(0, canvas.height),
+                phase: MM.random(0, TWOPI),
+                freq: TWOPI / 1000 * MM.random(0.1, 1),
+                size: MM.random(.8, 2.8)
+            })
+        }
+        a.draw_before = () => {
+            // ctx.fillStyle = "midnightblue"
+            // ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.fillStyle = "rgb(0,0,12)"
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            stars.forEach(u => {
+                ctx.beginPath()
+                ctx.arc(u.x, u.y, u.size, 0, TWOPI)
+                ctx.fillStyle = `rgba(255,255,255,${(Math.sin(Date.now() * u.freq + u.phase) + 1) / 2 * 0.7 + 0.3})`
+                ctx.fill()
+            })
+        }
+        a.img = canvas
+        this.add_drawable(a)
+
+
 
     }
     //#endregion
-
-    /**@param {Broadcast} params  */
-    BROADCAST_RECEIVE(params) {
-        const loca = this.loca
-        for (const item of params) {
-            if (item.l !== loca.id) continue
-            for (const [playerID, i, j] of item.p) {
-                pool.getPlayer(playerID, loca).drift = [i, j]
-            }
-        }
-    }
-
-
-
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
     ///                                                                                                              ///
@@ -51,10 +73,7 @@ class Game extends GameShared {
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
     update_more(dt) {
-        this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
-        this.bgDrawObj.offsetX = -200 - this.loca.worldRect.cx / 20
-        this.bgDrawObj.offsetY = -200 - this.loca.worldRect.cy / 20
-        this.bgDrawObj.draw()
+
 
 
 
@@ -101,42 +120,6 @@ class Game extends GameShared {
 
 
 } //this is the last closing brace for class Game
-
-
-
-
-
-
-
-//#region univ
-var univ = {
-    isOnline: true, //server is offline!
-    PORT: 80,
-    framerateUnlocked: false,
-    dtUpperLimit: 1000 / 15,//1000 / 30,
-    denybuttons: false,
-    showFramerate: true,
-    imageSmoothingEnabled: true,
-    imageSmoothingQuality: "high", // options: "low", "medium", "high"
-    canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
-
-    //BROKEN
-    fontFile: null, // "resources/victoriabold.png" //set to null otherwise
-    //BROKEN
-    filesList: "", //space-separated
-    on_each_start: null,
-    on_first_run: null,
-    on_first_run_blocking: null,
-    on_first_run_async: null,
-    //async function. overrides on_first_run_blocking
-    on_next_game_once: null,
-    on_beforeunload: null,
-    allowQuietReload: true,
-    acquireNameStr: "Your English name (at least 4 letters):", //for chat
-    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
-}
-//#endregion
-
 
 //#region dev options
 /// dev options

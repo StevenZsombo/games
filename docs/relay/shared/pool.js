@@ -107,12 +107,13 @@ class GameShared extends GameCore {
             if (Date.now() - this.sinteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE) {
                 return
             }
+            shouldFollow = false
             this.sinteract.last_heldAt = Date.now()
             if (!dragHasMoved && (this.sinteract.last_held?.x !== pos.x || this.sinteract.last_held?.y !== pos.y))
                 dragHasMoved = true
-            this.loca.worldRect.move(
-                (this.sinteract.last_held.x - pos.x) / this.loca.scaleX,
-                (this.sinteract.last_held.y - pos.y) / this.loca.scaleY)
+            const dx = (this.sinteract.last_held.x - pos.x) / this.loca.scaleX
+            const dy = (this.sinteract.last_held.y - pos.y) / this.loca.scaleY
+            this.loca.worldRect.move(dx, dy)
         }
         let circleTime = null
         this.tinteract.last_clickedAt = Date.now()
@@ -187,6 +188,8 @@ class GameShared extends GameCore {
             x: this.WIDTH - 50 - 20,
             y: 20,
         }))
+        zoomSlider.lineSettings.color = "rgba(100,100,100,0.8)"
+        zoomSlider.movingButton.opacity = 0// 1 - 0.8 //i suck //terribly
         zoomSlider.isBlocking = true
         zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - 20
         zoomSlider.leftY = this.HEIGHT * .25

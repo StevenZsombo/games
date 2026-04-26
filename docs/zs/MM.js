@@ -2604,5 +2604,37 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
         return w
     }
+
+
+
+    static getStarDrawerObject(ctx, {
+        width = 1920 + 400, height = 1080 + 400,
+        starCount = 200 } = {}) {
+        const stars = []
+        for (let i = 0; i < starCount; i++) {
+            stars.push({
+                x: MM.random(0, width),
+                y: MM.random(0, height),
+                phase: MM.random(0, TWOPI),
+                freq: TWOPI / 1000 * MM.random(0.1, 1),
+                size: MM.random(.8, 2.8)
+            })
+        }
+        return {
+            offsetX: -200,
+            offsetY: -200,
+            draw() {
+                ctx.fillStyle = "rgb(0,0,12)"
+                ctx.fillRect(0, 0, width, height)
+                stars.forEach(u => {
+                    ctx.beginPath()
+                    ctx.arc(u.x + this.offsetX, u.y + this.offsetY, u.size, 0, TWOPI)
+                    ctx.fillStyle = `rgba(255,255,255,${(Math.sin(Date.now() * u.freq + u.phase) + 1) / 2 * 0.7 + 0.3})`
+                    ctx.fill()
+                })
+            },
+
+        }
+    }
 }
 //#endregion

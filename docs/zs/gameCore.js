@@ -243,6 +243,11 @@ class GameCore extends GameCoreLayerCore {
         univ.on_next_game_once = null
         univ.on_each_start?.()
 
+        if (this.initialize_async) {
+            this.initialize_async().then(() => this.start_finally())
+        } else this.start_finally()
+    }
+    start_finally() {
         /**@type {boolean} */
         this.isRunning = true
         this.isDrawing = true
