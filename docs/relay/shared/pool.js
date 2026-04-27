@@ -183,7 +183,7 @@ class GameShared extends GameCore {
 
 
         const zoomSlider = this.zoomSlider = new Slider(new Button({
-            width: 30,
+            width: 35,
             height: 60,
             x: this.WIDTH - 50 - 20,
             y: 20,
@@ -191,10 +191,26 @@ class GameShared extends GameCore {
         zoomSlider.lineSettings.color = "rgba(100,100,100,0.8)"
         zoomSlider.movingButton.opacity = 0// 1 - 0.8 //i suck //terribly
         zoomSlider.isBlocking = true
-        zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - 20
+        zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - 20 - 20
         zoomSlider.leftY = this.HEIGHT * .25
-        zoomSlider.rightX = this.WIDTH - zoomSlider.movingButton.width - 20
+        zoomSlider.rightX = this.WIDTH - zoomSlider.movingButton.width - 20 - 20
         zoomSlider.rightY = this.HEIGHT - zoomSlider.leftY
+        zoomSlider.movingButton.on_click
+        zoomSlider.adjustZoomOfLoca = () => this.loca.zoom(this.me.cx, this.me.cy, 2 ** zoomSlider.value)
+        let anim = null
+        zoomSlider.adjustZoomOfLocaAnimateToInteger = () => {
+            if (anim) {
+                anim.on_end = null
+                this.animator.earlyDitch(anim)
+            }
+            const nearestInt = Math.round(zoomSlider.value)
+            const curr = zoomSlider.value
+            anim = this.animator.add_anim(Anim.custom(zoomSlider, 600, t => {
+                zoomSlider.value = Anim.interpol(curr, nearestInt, t)
+                zoomSlider.adjustZoomOfLoca()
+            }, "", { ditch: true, on_end: () => zoomSlider.value = nearestInt }))
+        }
+        zoomSlider.movingButton.on_click = () => this.mouser.on_release_once = () => zoomSlider.adjustZoomOfLocaAnimateToInteger()
         /*zoomSlider.integer = true
         zoomSlider.min = 0
         zoomSlider.max = 4
@@ -203,12 +219,11 @@ class GameShared extends GameCore {
             this.loca.zoom(this.me.cx, this.me.cy, zoomSlider.zoomLevels[zoomSlider.value])
         }
         zoomSlider.value = 2*/
-        zoomSlider.min = -2
+        zoomSlider.min = -1
         zoomSlider.max = 2
-        zoomSlider.on_value_change = () => {
-            this.loca.zoom(this.me.cx, this.me.cy, 2 ** zoomSlider.value)
-        }
-        zoomSlider.value = 0
+        zoomSlider.on_value_change = () => zoomSlider.adjustZoomOfLoca()
+        zoomSlider.value = 1
+        zoomSlider.adjustZoomOfLoca()
 
         this.add_drawable(zoomSlider, 8)
     }

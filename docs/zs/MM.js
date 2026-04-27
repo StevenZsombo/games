@@ -2412,7 +2412,7 @@ class GameEffects {
                 .filter(x => typeof x[1] === 'function')
                 .filter(x => allowParameters || x[1].length == 0)
                 .map(x => x[1].length == 0 ? x : [x[0], x[1].apply(x[1], Array(x[1].length).fill().map(prompt))])
-            ])
+            ], null, null, null, { width: 400 })
     }
 
     /**@deprecated */

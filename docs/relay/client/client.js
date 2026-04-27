@@ -102,7 +102,7 @@ class Game extends GameShared {
     isInDebugMode = false
     debugMode() {
         if (this.isInDebugMode) return
-        const debugButton = Button.fromRect(this.rect.splitCell(2, 1, 15, 15))
+        const debugButton = Button.fromRect(this.rect.splitCell(1, 8, 15, 15))
         debugButton.isBlocking = true
         debugButton.txt = "DEBUG"
         debugButton.on_click =
