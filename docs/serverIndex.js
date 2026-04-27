@@ -83,6 +83,7 @@ const mimeTypes = {
     '.txt': 'text/plain',
     '.xml': 'application/xml',
     '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.pdf': 'application/pdf',
     // Add more as needed
 };
 

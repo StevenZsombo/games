@@ -1340,6 +1340,28 @@ class MM {
         }
     }
 
+    /**
+     * Raycast to line segment
+     * @param {number} x @param {number} y the point
+     * @param {number} u @param {number} w vector of ray direction (need not be unit)
+     * @param {number} a @param {number} b line one end
+     * @param {number} c @param {number} d line other end
+     * @returns {hit: Boolean, t:number, r:?number} 
+     *  t = distance to hit as a multiple of length(u,w)
+     *  r = position along segment (a,b)->(c,d) normalized to 0<=t<=1
+     */
+    static raycastToSegment(x, y, u, w, a, b, c, d) {
+        const dx = c - a
+        const dy = d - b
+        const denom = u * dy - w * dx
+        if (!denom) return { hit: false, t: Infinity, r: null } //parallel
+        const t = ((a - x) * dy - (b - y) * dx) / denom
+        const r = ((a - x) * w - (b - y) * u) / denom
+        if (t >= 0 && r >= 0 && r <= 1) {
+            return { hit: true, t, r }
+        } return { hit: false, t: Infinity, r: null }
+    }
+
 
     static brokenLineFunction(...polyXYXYXY) {
         const xs = polyXYXYXY.filter((_, i) => !(i % 2))
