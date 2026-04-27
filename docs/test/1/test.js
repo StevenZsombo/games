@@ -51,6 +51,7 @@ class Game extends GameCore {
         boxes.push(Button.fromRect(game.rect.copy, { transparent: true }))
         this.bulb = bulb
 
+        this.BGCOLOR = "black"
 
         const aaa = [[10, 10], [0, 0], [1031.2131142560377, 861.0019508241604], [517.1833268231082, 226.61527296664445], [1341.5129561886797, 438.9876389823139], [68.23899469564182, 377.1634584717009], [256.5267451274219, 810.5276894602601], [1533.114100069109, 168.80017045406044], [899.7855652569532, 148.872802186686], [1124.7841090421944, 530.124696045996], [572.1420632226298, 637.9575004035892], [838.6944688455603, 793.0750371904547], [966.2141380125144, 453.62926194312996]]
         aaa.forEach((x, i) => game.layersFlat[i].topleftat(...x))
@@ -110,6 +111,13 @@ class Game extends GameCore {
         //every triangle is a hit followed by the next hit
         screen.fillStyle = "rgba(225, 255, 0,0.6)"
         trueHits.push(trueHits[0])
+        /**@type {CanvasGradient} */
+        const g = screen.createRadialGradient(this.bulb.cx, this.bulb.cy, 0,
+            this.bulb.cx, this.bulb.cy, 600)
+        g.addColorStop(0, "rgba(255,255,0,.6)")
+        // g.addColorStop(.2, "rgba(255,255,0,.2)")
+        g.addColorStop(1, "rgba(100,100,0,0.1)")
+        screen.fillStyle = g
         for (let i = 0; i < trueHits.length - 1; i++) {
             screen.beginPath()
             screen.moveTo(this.bulb.cx, this.bulb.cy)
