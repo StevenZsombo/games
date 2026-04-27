@@ -30,8 +30,10 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        this.add_drawable(Button.fromRect(this.rect.splitCell(1, 1, 8, 1),
-            { txt: "Drag stuff", fontSize: 40, transparent: true }))
+        const inst = Button.fromRect(this.rect.splitCell(1, 1, 8, 1),
+            { txt: "Drag stuff", fontSize: 40, transparent: true })
+        inst.font_color = "white"
+        this.add_drawable(inst)
         const nrBoxes = 10
         const boxes = []
 
@@ -44,7 +46,7 @@ class Game extends GameCore {
             }))
         this.add_drawable(boxes)
         boxes.forEach(Button.make_draggable)
-        const bulb = new Button({ x: 500, y: 500, width: 20, height: 20, color: "orange" })
+        const bulb = new Button({ x: 500, y: 500, width: 20, height: 20, color: "yellow" })
         MM.pipe(bulb, Button.make_circle, Button.make_draggable)
         this.add_drawable(bulb)
         this.boxes = boxes
