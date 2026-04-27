@@ -10,10 +10,16 @@ class Game extends GameShared {
 
 
     async initialize_async() {
+        wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
+        wDiv.addLine("Connecting...")
+        await chat.asapPromise()
         chat.initLibrary("client")
         this.initChat()
         this.person = person
+        wDiv.add("Entering...")
         const enterResponse = await chat.wee("enter", person)
+        wDiv.add("Server response: OK\n")
+        wDiv.hide()
         console.log(enterResponse)
         Object.assign(person, enterResponse)
         this.loca = pool.getLoca(person.locaID)
@@ -28,7 +34,9 @@ class Game extends GameShared {
     }
 
     initialize_more() {
-        this.debugMode()
+        if (RULES.DEBUG_MODE) this.debugMode()
+
+
     }
     //#endregion
 
@@ -138,7 +146,16 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: null,
-    on_first_run: null,
+    on_first_run: () => {
+        window.onerror = (event, source, lineno, colno, error) => {
+            if (!location.hash.includes("noerror"))
+                wDiv.error(`ERROR: ${event}, source: ${source}, lineno: ${lineno}, colno: ${colno}, error: ${error}`)
+        }
+        window.onunhandledrejection = (event) => {
+            if (!location.hash.includes("noerror"))
+                wDiv.error("UNHANDLED: " + event?.stack.reason)
+        }
+    },
     on_first_run_blocking: null,
     on_first_run_async: null,
     //async function. overrides on_first_run_blocking

@@ -1789,13 +1789,14 @@ class FeedBasic {
 		if (arr.at(-1).bottom > this.bgRect.bottom)
 			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
 	}
-	add(txt) {
+	add(txt, timeout) {
 		if (this.buttons.has(txt)) return
 		const b = this.templateButton.copy
 		b.close = () => this.delete(txt)
 		b.txt = txt
 		this.buttons.set(txt, b)
 		this.rearrange()
+		timeout && Number.isFinite(timeout) && setTimeout(() => this.delete(txt), timeout)
 
 	}
 	delete(txt) {

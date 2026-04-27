@@ -5,9 +5,13 @@ const RULES = {
 
     MAPFILE: "../tiled/home1.json",
 
+    NUMBER_OF_TEAMS: 6,
+
 
     SERVER_BROADCAST_INTERVAL: 200,
     CLIENT_THROTTLE_FALLBACK_POS_INTERVAL: 2000, //if drift from server is out of sync
+
+    DEBUG_MODE: true,
 
 }
 /*

@@ -52,6 +52,10 @@ class Person extends Participant {
 }
 
 
+const spop = (...a) => game.spop(...a)
+const bpop = (...a) => game.bpop(...a)
+const RELOAD = () => { spop("Ordered reload."); chat.spam("reload") }
+
 const listener = new Listener()
 chat = listener.chat
 const persons = listener.persons
@@ -65,6 +69,7 @@ class Game extends GameShared {
 
 
     async initialize_async() {
+        await chat.asapPromise()
         this.BGCOLOR = "rgb(4,4,28)"
         await chat.asapPromise()
         chat.initLibrary("server")
@@ -76,6 +81,9 @@ class Game extends GameShared {
         this.loca.worldRect.putOver(this.loca.bg)
         this.add_drawable(this.loca, 1) //no player for server. sadge.
 
+        spop("Loaded.")
+        RELOAD()
+
 
 
         on_broadcast_extras.push(this.BROADCAST_SEND.bind(this))
@@ -83,8 +91,14 @@ class Game extends GameShared {
     }
 
     initialize_more() {
-        this.initialize_async()
+        this.spopFeed = new FeedBasic(this.rect.splitCell(1, 1, 1.5, 3).move(20, 20), { color: "lightgreen" }, true)
+        this.bpopFeed = new FeedBasic(this.rect.splitCell(1, -1, 1.5, 3).move(-20, 20), { color: "red" }, true)
+        this.add_drawable([this.spopFeed, this.bpopFeed])
     }
+    spop(txt, timeout = 1500) { this.spopFeed.add(txt, timeout) }
+    bpop(txt, timeout = 1500) { this.bpopFeed.add(txt, timeout) }
+
+
     //#endregion
     /**@param {Person} person  */
     respondFULL_SYNC_EVENTS(person) {

@@ -13,11 +13,11 @@ class Pool {
         else Pool.singletonAlreadyExists = true
     }
     /**@param {number} id @param {Loca} loca  */
-    getPlayer(id, loca) {
+    getPlayer(id, loca, team) {
         let p = this.players.get(id)
         if (p) return p
         if (!loca) throw new Error("pool can't spawn new player: no loca given")
-        p = new Player("player", "player_" + id, id, 10, 10)
+        p = new Player("player", "player_" + id, id, team)
         this.players.set(id, p)
         loca.spawnPlayer(p)
         return p

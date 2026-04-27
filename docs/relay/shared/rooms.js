@@ -159,6 +159,7 @@ class Loca extends GameWorld {
             const l = Button.fromRectShallow(b.copyRect)
             l.transparent = true
             l.terminal = terminal
+            terminal.label = l
             l.check = null
             l.dynamicText = () => l.terminal.txt
             l.fontSize = 32
@@ -206,7 +207,7 @@ class Player extends Button {
      * @param {number} i 
      * @param {number} j 
      */
-    constructor(imgfilename, name, id, i, j) {
+    constructor(imgfilename, name, id, team) {
         // if (!(loca instanceof Loca)) throw new Error("invalid location for player spawn")
         // if (!loca.grid.valid(i, j)) throw new Error("invalid i,j for player spawn!")
         super({
@@ -215,6 +216,7 @@ class Player extends Button {
         })
         this.name = name
         this.id = id
+        this.team = team //can be null
         /**@type {Loca} */
         this.loca = null //will be set by loca.spawnPlayer
 
@@ -222,7 +224,7 @@ class Player extends Button {
         img.onload = () => this.img = img
         img.src = RULES.PICTURES_FOLDER + imgfilename + ".png"
 
-        this.setIJ(i, j)
+        // this.setIJ(i, j) //will be done by loca
         this.game = globalThis.game
         this.canMove = true
         /**@type {[number,number] | null} */
@@ -403,114 +405,3 @@ class Player extends Button {
 
 
 
-
-//#region Terminal
-class Terminal {
-    static DATA = [
-        ['terminal', 'delay', 'bucket', 'pretty', 'action', 'energy', 'water', 'food', 'parts', 'antimatter', 'coolant', 'minerals', 'salvage', 'description'],
-        ['reactor', 15, 0, 'Reactor', 'REPAIR', 50, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['solar', 8, 10, 'Solar Array', 'REPAIR', 30, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['life', 12, 0, 'Life Support', 'REPAIR', 0, 20, 20, 0, 0, 0, 0, 0, 0],
-        ['water', 6, 10, 'Water Recycler', 'REPAIR', 0, 30, 0, 0, 0, 0, 0, 0, 0],
-        ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 0, 0],
-        ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 0, 0],
-        ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 0, 0],
-        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0],
-        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0],
-        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0],
-        ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.'],
-        ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.'],
-        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['mining', 5, 30, 'Mining station', 'CAPTURE', 0, 0, 0, 0, 0, 0, 15, 0, 0],
-        ['scrapyard', 5, 30, 'Scrapyard', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 15, 0],
-        ['data', 5, 30, 'Data vault', 'CAPTURE', 0, 0, 0, 0, 0, 5, 5, 5, 0],
-        ['supply', 5, 30, 'Supply depot', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['fusion', 5, 40, 'Fusion core', 'CAPTURE', 0, 0, 0, 0, 15, 0, 0, 0, 0],
-        ['alloy', 5, 30, 'Alloy plant', 'CAPTURE', 0, 0, 0, 0, 0, 0, 10, 5, 0],
-        ['research', 5, 40, 'Research lab', 'CAPTURE', 0, 0, 0, 0, 5, 5, 0, 5, 0],
-    ]
-
-    static getRectIJData({ x, y, width, height } = {}) {
-        const xlow = Math.floor(x / GRAPHICS.SIZE)
-        const xhi = Math.floor((x + width) / GRAPHICS.SIZE)
-        const ylow = Math.floor(y / GRAPHICS.SIZE)
-        const yhi = Math.floor((y + height) / GRAPHICS.SIZE)
-        const ijArr = []
-        for (let i = xlow; i <= xhi; i++)
-            for (let j = ylow; j <= yhi; j++)
-                ijArr.push([i, j])
-        const topleft = { i: xlow, j: ylow }
-        const isVertical = (xhi - xlow) < (yhi - ylow)
-        return { ijArr, topleft, isVertical }
-    }
-    /**@type {Button & {terminal:Terminal}} creating terminal button*/
-    button = null //will be set by loca.spawnTerminal
-    /**@type {Button & {terminal:Terminal}} */
-    label = null //will be set by loca.spawnTerminal
-    /**@type {string} */
-    txt = null //will be set dynamically!
-    constructor(type, id) {
-        if (id == null) throw new Error("terminal did not get an id")
-        this.id = id
-        const row = Terminal.DATA.find(x => x[0] === type)
-        if (!row) throw new Error("invalid terminal type")
-        this.type = type
-        this.terminal = row[0]
-        this.delay = row[1]
-        this.question = row[2]
-        this.pretty = row[3]
-        this.action = row[4]
-        this.description = row.at(-1) || ""
-        const firstUnusedRow = 5
-        //will be used by resource fill below
-        /**@type {Array<[string,number]>} [resource type, gain] */
-        this.resources = []
-        row.forEach((val, i) => {
-            if (i < firstUnusedRow || i == Terminal.DATA[0].length - 1 || !val) return
-            this.resources.push([Terminal.DATA[0][i], val])
-        })
-    }
-    getInspectFromAfarText() {
-        return this.pretty
-    }
-    putInspectFromAfarText() {
-        this.txt = this.getInspectFromAfarText()
-    }
-    getStandingOnText() {
-        return this.pretty + "\n" + this.action
-    }
-    putStandingOnText() {
-        this.txt = this.getStandingOnText()
-    }
-    getInspectLongClickText() {
-        return `${this.pretty} creates:\n`
-            + this.resources.map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
-    }
-    onInspectViaLongClick() {
-        GameEffects.popup(this.getInspectLongClickText(), { moreButtonSettings: { color: "pink" } })
-    }
-    isStandingOn = false
-    onStandingOnEnter() {
-        this.isStandingOn = true
-        const b = this.button
-        b.isBlocking = true
-        b.visible = true
-        b.opacity = 0
-        this.putStandingOnText()
-    }
-    onStandingOnLeave() {
-        this.isStandingOn = false
-        const b = this.button
-        b.isBlocking = false
-        b.visible = false
-    }
-    tryAction() {
-        if (!this.isStandingOn) return
-        GameEffects.popup(
-            `You can ${this.action} the ${this.pretty}`,
-            { moreButtonSettings: { color: "lightgreen" } })
-    }
-
-}
-//#endregion

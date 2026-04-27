@@ -799,6 +799,16 @@ class Cropper {
 	}
 
 
+	static defaultColors = Object.freeze([
+		"cyan", "pink", "orange", "gold",
+		"green", "brown", "silver", "purple",
+		"crimson", "lime", "indigo", "olive"
+	])
+	static defaultRGBs = Object.freeze( //from defaultColors.map(MM.namedColorToRGB)
+		[[0, 255, 255], [255, 192, 203], [255, 165, 0], [255, 255, 0], [0, 128, 0], [165, 42, 42], [192, 192, 192], [128, 0, 128], [220, 20, 60], [0, 255, 0], [75, 0, 130], [128, 128, 0]]
+	)
+
+
 
 }
 //#region customFont
