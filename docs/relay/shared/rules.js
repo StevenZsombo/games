@@ -40,12 +40,19 @@ const GRAPHICS = {
     DOWNSCALING: 0, //0 or 1 to disable, higher = worse. //STUPID don't use
 
 }
-
-
 /**
- * @typedef {{l: number, p: [number, number, number]}[]} Broadcast
- *   l is locaID
- *   p is positions array [playerID,i,j]
+ * @typedef {(
+ *   { l: number; p: [number, number, number][]; e: number } |
+ *   { t: number; e: number }
+ * )[]} Broadcast
+ * 
+ * - If object has `l`: 
+ *   - `l` is localID
+ *   - `p` is positions array [playerID, i, j]
+ *   - `e` is eventCount
+ * - If object has `t`:
+ *   - `t` is teamID
+ *   - `e` is eventCount
  */
 Chat.library = {
     defaultSpamInterval: 2000,
