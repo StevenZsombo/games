@@ -440,9 +440,10 @@ class GameWorld extends GameCoreLayerCore {
         }
     }
     make_button_on_screen_scroll_world_with_wheel(screenButton) {
-        screenButton.on_wheel = (delta) => {
+        screenButton.on_wheel = (delta, pos) => {
             const sf = delta > 0 ? 1.1 : 1 / 1.1
-            this.worldRect.stretch(sf, sf,)
+            const { x, y } = this.screenToWorldV(pos)
+            this.worldRect.zoom(x, y, sf, sf)
         }
 
     }

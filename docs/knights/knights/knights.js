@@ -14,8 +14,16 @@ class Game extends GameCore {
         const rc = this.rect.center
         let radius = 500
 
-        const kick = (b) => {
-            w.remove_drawable(b.next)
+        const ALLOW_RESIZE = false
+
+        const kickBy = (b) => {
+            // w.remove_drawable(b.next)
+            const stored = b.next
+            this.animator.add_anim(b.next, 5000, Anim.f.moveToRel,
+                {
+                    dx: (stored.x - rc.x) * 5, dy: (stored.y - rc.y) * 5,
+                    on_end: () => w.remove_drawable(stored)
+                })
             knights.delete(b.next)
             b.next.next.previous = b
             b.next = b.next.next
@@ -31,9 +39,9 @@ class Game extends GameCore {
             b.fontSize = 20
             b.next = knarr[(i + 1) % knarr.length]
             b.previous = knarr[((i - 1) + knarr.length) % knarr.length]
-            b.on_enter = () => { b.next.color = "red" }
-            b.on_leave = () => { b.next.color = b.color }
-            b.on_release = () => kick(b)
+            b.on_enter = () => (knights.size > 1) && setTimeout(() => { b.next.color = "red"; b.color = "darkred" }, 0)
+            b.on_leave = () => (knights.size > 1) && ((b.color = b.previous.color), b.next.color = b.previous.color)
+            b.on_release = () => kickBy(b)
         })
         const sinteract = Button.fromRect(this.rect, { visible: false })
         this.add_drawable(sinteract)
@@ -63,11 +71,12 @@ class Game extends GameCore {
 
 
         this.MEGAKICK = (delay = 300) => {
+            knights.forEach(b => b.eraseClickables())
             let curr = knights.values().next().value
             let last = null
             const kickie = () => {
-                if (last?.tag > curr.tag) recenter()
-                curr.on_release()
+                if (ALLOW_RESIZE) { if (last?.tag > curr.tag) recenter() }
+                kickBy(curr)
                 last = curr
                 curr = curr.next
             }
@@ -89,6 +98,18 @@ class Game extends GameCore {
                 this.remove_drawable(announce)
                 this.MEGAKICK()
             }, delayBeforeStart)
+        } else {
+            const lab = Button.fromRect(this.rect)
+            lab.resize(1600, 600)
+            this.add_drawable(lab)
+            lab.fontSize = 48
+            lab.txt =
+                "You can drag and zoom with the mouse/scrollwheel."
+                + "\nClicking a knight makes them kick the next knight out of the circle."
+                + "\n If knight 1 kicks first, and then always the next remaining knight kicks again,"
+                + "\nwhich knight will stay in the circle at the end?"
+            lab.on_click = () => { this.remove_drawable(lab) }
+
         }
 
     }
