@@ -33,7 +33,7 @@ const GRAPHICS = {
     ALLOWED_MOVES_WITH_DIAGONAL: [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, -1], [-1, 1], [1, -1]],
     ALLOW_OOB_FOLLOW: false,
     ALLOW_CAMERA_FOLLOW: true,
-    CAMERA_FOLLOW_COEFFICIENT: 0.03,
+    CAMERA_FOLLOW_COEFFICIENT: 0.02, //smoooooooooth
     TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: 800, //probably large enough that it's not accidental
     CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 2000, //probably large enough to allow a pathing click
     SMOOTHING_DISABLED_FOR_BG: true,
@@ -43,10 +43,9 @@ const GRAPHICS = {
 
 
 /**
- * @typedef {Object} Broadcast
- * @property {Array<[number, Array<[number, number, number]>]>} l
- *   loca updates as [locaID, [...playerPositions]]
- *   where playerPositions are [playerID, x, y]
+ * @typedef {{l: number, p: [number, number, number]}[]} Broadcast
+ *   l is locaID
+ *   p is positions array [playerID,i,j]
  */
 Chat.library = {
     defaultSpamInterval: 2000,

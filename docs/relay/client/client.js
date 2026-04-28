@@ -50,10 +50,10 @@ class Game extends GameShared {
     }
     //#endregion
 
-    /**@param {Broadcast} params  */
-    BROADCAST_RECEIVE(params) {
+    /**@param {Broadcast} broadCastData  */
+    BROADCAST_RECEIVE(broadCastData) {
         const loca = this.loca
-        for (const item of params) {
+        for (const item of broadCastData) {
             if (item.l !== loca.id) continue
             for (const [playerID, i, j] of item.p) {
                 pool.getPlayer(playerID, loca).drift = [i, j]
