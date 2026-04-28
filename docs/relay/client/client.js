@@ -2,13 +2,16 @@ const person = {
     name: "Bob",
     get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
     playerID: MM.randomInt(1, 99),
-    locaID: 0
+    locaID: 0,
+    teamID: 0,
+    teamColor: Team.ALL[0].color,
+    teamName: Team.ALL[0].name,
 }
 
 class Game extends GameShared {
     //#region initialize_more
 
-
+    hasFinishedLoading = false
     async initialize_async() {
         wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
         wDiv.addLine("Connecting...")
@@ -30,6 +33,13 @@ class Game extends GameShared {
         this.add_drawable(this.loca, 1)
         this.bgDrawObj = GameEffects.getStarDrawerObject(this.screen)
         this.BGCOLOR = null
+
+        this.feed = new FeedBasic(this.rect.splitCell(1, 1, 7 / 8, 6).move(20, 20),
+            { height: 100 }
+        )
+
+
+        this.hasFinishedLoading = true
         return
     }
 
@@ -61,6 +71,8 @@ class Game extends GameShared {
     //#region update_more
     update_more(dt) {
         this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
+
+        if (!this.hasFinishedLoading) return
         this.bgDrawObj.offsetX = -200 - this.loca.worldRect.cx / 20
         this.bgDrawObj.offsetY = -200 - this.loca.worldRect.cy / 20
         this.bgDrawObj.draw()
@@ -106,11 +118,10 @@ class Game extends GameShared {
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-    isInDebugMode = false
+    debugButton = null
     debugMode() {
-        if (this.isInDebugMode) return
-        const debugButton = Button.fromRect(this.rect.splitCell(1, 8, 15, 15))
+        if (this.debugButton) return
+        const debugButton = this.debugButton = Button.fromRect(this.rect.splitCell(1, 8, 15, 15))
         debugButton.isBlocking = true
         debugButton.txt = "DEBUG"
         debugButton.on_click =
@@ -118,6 +129,26 @@ class Game extends GameShared {
 
         this.add_drawable(debugButton, 7)
         this.isInDebugMode = true
+    }
+    debugModeEnd() {
+        this.remove_drawable(this.debugButton)
+        this.debugButton = null
+    }
+
+
+
+    ptc(txt, teamID) { //Popup Team Color
+        GameEffects.popup(txt, {
+            posFrac: [.5, .875], sizeFrac: [.6, .2],
+            floatTime: 2000,
+            moreButtonSettings:
+                { color: teamID != undefined ? Team.ALL[teamID].color : person.teamColor }
+        })
+    }
+    psr(txt, teamID) { //Popup Server Response
+        GameEffects.popup(txt, {
+            floatTime: 2000
+        })
     }
 
 
@@ -172,6 +203,7 @@ var univ = {
 /// dev options
 const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
+    endDebugMode: () => game.debugModeEnd()
 
 
 }/// end of dev

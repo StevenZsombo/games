@@ -95,8 +95,8 @@ class Game extends GameShared {
         this.bpopFeed = new FeedBasic(this.rect.splitCell(1, -1, 1.5, 3).move(-20, 20), { color: "red" }, true)
         this.add_drawable([this.spopFeed, this.bpopFeed])
     }
-    spop(txt, timeout = 1500) { this.spopFeed.add(txt, timeout) }
-    bpop(txt, timeout = 1500) { this.bpopFeed.add(txt, timeout) }
+    spop(txt, timeout = 1500) { this.spopFeed.add(txt, { timeout }) }
+    bpop(txt, timeout = 1500) { this.bpopFeed.add(txt, { timeout }) }
 
 
     //#endregion

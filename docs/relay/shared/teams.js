@@ -8,7 +8,11 @@ class Team {
     solvedQuestions = new Set() //not needed? would be nice not having to worry about
 
 
-    static defaultColors = Cropper.defaultColors
+    static defaultColors = Object.freeze([
+        "cyan", "pink", "orange", "gold",
+        "green", "brown", "silver", "purple",
+        "crimson", "lime", "indigo", "olive"
+    ])
     static ALL = Array.from({ length: RULES.NUMBER_OF_TEAMS }, (_, i) => new Team(i))
     //[]
     // static createThisMany(n) { Array(n).fill().forEach(new Team()) }
@@ -55,7 +59,7 @@ class Question {
             for (const qID of buckets)
                 if (teams.every(x => !x.seenQuestions.has(qID))) return qID
         }
-        
+
     }
 
 }

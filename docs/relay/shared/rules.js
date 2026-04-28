@@ -56,6 +56,8 @@ Chat.library = {
     client: {
         "eval": params => eval(params),
         "popup": txt => { GameEffects.popup(txt) },
+        "ptc": (txt, teamID) => { game.ptc(txt, teamID) },
+        "psr": (txt) => { game.psr(txt) },
         "reload": () => { chat.delayedReload() },
         "debug": () => { game.debugMode() },
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast

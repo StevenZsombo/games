@@ -473,8 +473,12 @@ class Game extends GameCore {
 
     acquireName() {
         let STUDENTS = RULES.STUDENTS
-        if (!STUDENTS) { //fallback
-            chat.forceName(prompt("What is your name?"), true)
+        if (!STUDENTS) { //fallback //no need anymore... should only be ableto join if server answers
+            // chat.forceName(prompt("What is your name?"), true)
+            // return
+            this.isRunning = false
+            this.isDrawing = false
+            alert("Game has not started yet, try again later.")
             return
         }
         const p = window.BROWSERshowLoading
