@@ -432,6 +432,21 @@ class GameWorld extends GameCoreLayerCore {
         )
     }
 
+    make_button_on_screen_drag_world(screenButton) {
+        screenButton.on_drag = (pos) => {
+            const old = this.screenToWorldV(screenButton.last_held)
+            const n = this.screenToWorldV(pos)
+            this.worldRect.move(-n.x + old.x, - n.y + old.y)
+        }
+    }
+    make_button_on_screen_scroll_world_with_wheel(screenButton) {
+        screenButton.on_wheel = (delta) => {
+            const sf = delta > 0 ? 1.1 : 1 / 1.1
+            this.worldRect.stretch(sf, sf,)
+        }
+
+    }
+
 }
 
 
