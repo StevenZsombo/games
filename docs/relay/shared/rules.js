@@ -59,6 +59,9 @@ Chat.library = {
     defaultSpamRetries: 0,
     defaultWeeInterval: 250,
     defaultWeeRetries: 8,
+    either: {
+        time: Date.now,
+    },
     client: {
         "eval": params => eval(params),
         "popup": txt => { GameEffects.popup(txt) },

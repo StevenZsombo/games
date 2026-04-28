@@ -461,7 +461,7 @@ class Chat {
      */
     weeToWooHandler(message, person) {
         const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
-        if (!fn) throw new Error("no eggs for " + message.value)
+        if (!fn) { console.error("no eggs for " + message.value); return }
         const msg = {
             woo: message.wee,
             value: fn(message.params, person)
@@ -998,12 +998,12 @@ class Participant {
     initialize() { }
     /**@see {@link Chat.wee} */
     wee(value, params, weeArgs) {
-        this.listener.chat.targetWee(this, value, params, weeArgs)
+        return this.listener.chat.targetWee(this, value, params, weeArgs)
     }
 
     /**@see {@link Chat.spam} */
     spam(value, params, spamArgs) {
-        this.listener.chat.targetSpam(this, value, params, spamArgs)
+        return this.listener.chat.targetSpam(this, value, params, spamArgs)
     }
 
 }

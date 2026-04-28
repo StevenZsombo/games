@@ -184,7 +184,7 @@ var univ = {
         }
         window.onunhandledrejection = (event) => {
             if (!location.hash.includes("noerror"))
-                wDiv.error("UNHANDLED: " + event?.stack.reason)
+                wDiv.error("UNHANDLED: " + (event.reason?.stack || event.reason))
         }
     },
     on_first_run_blocking: null,
