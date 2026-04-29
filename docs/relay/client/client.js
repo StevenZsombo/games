@@ -1,4 +1,4 @@
-const person = {
+const personData = {
     name: "Bob",
     get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
     playerID: MM.randomInt(1, 99),
@@ -18,15 +18,15 @@ class Game extends GameShared {
         await chat.asapPromise()
         chat.initLibrary("client")
         this.initChat()
-        this.person = person
+        this.personData = personData
         wDiv.add("Entering...")
-        const enterResponse = await chat.wee("enter", person)
+        const enterResponse = await chat.wee("enter", personData)
         wDiv.add("Server response: OK\n")
         wDiv.hide()
         console.log(enterResponse)
-        Object.assign(person, enterResponse)
-        this.loca = pool.getLoca(person.locaID)
-        this.initPlayer(person.playerID, person.name) //gives this.me
+        Object.assign(personData, enterResponse)
+        this.loca = pool.getLoca(personData.locaID)
+        this.initPlayer(personData.playerID, personData.name) //gives this.me
         await this.loca.bgReadyPromise
         this.initInteractables()
 
@@ -221,13 +221,29 @@ class Game extends GameShared {
             posFrac: [.5, .875], sizeFrac: [.6, .2],
             floatTime: 2000,
             moreButtonSettings:
-                { color: teamID != undefined ? Team.ALL[teamID].color : person.teamColor }
+                { color: teamID != undefined ? Team.ALL[teamID].color : personData.teamColor }
         })
     }
-    psr(txt, teamID) { //Popup Server Response
+    psr(txt) { //Popup Server Response
         GameEffects.popup(txt, {
             floatTime: 2000
         })
+    }
+
+    tryTravelTo(locaID) {
+        chat.wee("travel", locaID)
+            .then((response) => {
+                this.psr(response.deny || response.accept)
+                if (response.accept) {
+                    this.loca = null
+                    pool.locas.clear()
+                    this.loca = pool.getLoca(locaID)
+                }
+                this.goodness("travel")
+            })
+            .catch(() => {
+                this.badness("travel")
+            })
     }
 
 
@@ -282,9 +298,14 @@ var univ = {
 /// dev options
 const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
-    endDebugMode: () => game.debugModeEnd(),
     bgSmoothing: () => { GRAPHICS.SMOOTHING_DISABLED_FOR_BG = !GRAPHICS.SMOOTHING_DISABLED_FOR_BG; GameEffects.popup(`Smoothing: ${GRAPHICS.SMOOTHING_DISABLED_FOR_BG}`) },
-    owDebug: () => game.overworld ? game.unseeOverworld() : game.seeOverworld()
+    owDebug: () => game.overworld ? game.unseeOverworld() : game.seeOverworld(),
+    travelDebug: () => { game.tryTravelTo(+prompt("Enter locaID")) },
+    unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
+    // flush: () => { localStorage.clear(); chat.delayedReload() },
+    showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + chat.pingRecord, { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
+
+    endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
 
 }/// end of dev

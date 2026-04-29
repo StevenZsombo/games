@@ -1,6 +1,0 @@
-class Chocolate {
-   
-}
-
-
-Chocolate.readGalaxyFromJSON()

@@ -77,14 +77,19 @@ Chat.library = {
         "ptc": (txt, teamID) => { game.ptc(txt, teamID) },
         "psr": (txt) => { game.psr(txt) },
         "reload": () => { chat.delayedReload() },
+        "flush": () => { localStorage.clear(); chat.delayedReload(); },
         "debug": () => { game.debugMode() },
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast
+        "ping": () => chat.getPingStats(),
+        "pingRecord": () => chat.pingRecord,
 
     },
+    /**@type {Object<string, function (any, Person): any>} */
     server: {
         "ij": ([i, j], person) => { person.ij(i, j) },
         "enter": (personData, person) => person.enter(personData),
-        "full": (_, person) => game.respondFULL_SYNC_EVENTS(person)
+        "full": (_, person) => game.respondFULL_SYNC_EVENTS(person),
+        "travel": (locaID, person) => person.travel(locaID),
     },
 
 }

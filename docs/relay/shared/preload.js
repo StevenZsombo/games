@@ -32,6 +32,6 @@ const wDiv = (() => {
         hide() { div.style.display = "none" },
         error(txt) { api.show(); div.style.backgroundColor = "red", api.addLine(txt) }
     }
-    api.add("Welcome to my game! Please patiently wait for all assets to load.\n")
+    api.add("Hi! Please wait patiently for the game to load.\n")
     return api
 })()
