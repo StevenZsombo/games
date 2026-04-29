@@ -48,6 +48,7 @@ class Terminal {
     txt = null //will be set dynamically!
     /**@type {?Team} */
     team = null //can be null.
+    active = false //produces if active.
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
@@ -106,7 +107,7 @@ class Terminal {
         if (!ent.length) return this.pretty + "\n" + this.description
         return `${this.pretty} creates:\n`
             + Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
-            + " per minute"
+            + " every minute"
     }
     onInspectViaLongClick() {
         GameEffects.popup(this.getInspectLongClickText(), { moreButtonSettings: { color: "pink" } })

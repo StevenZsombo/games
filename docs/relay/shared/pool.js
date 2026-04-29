@@ -38,8 +38,9 @@ class Pool {
         return t
     }
     getLoca(id) {
-        return this.locas.get(id) ??
-            this.locas.set(id, new Loca("home1", "station_" + id, id)).get(id)
+        if (this.locas.has(id)) return this.locas.get(id)
+        const preset = Loca.PRESETS[id]
+        return this.locas.set(id, new Loca(preset.fromfile, preset.name, id)).get(id)
     }
 
 

@@ -16,12 +16,23 @@ class Grid extends Map {
 
 //#region Loca
 class Loca extends GameWorld {
+    static PRESETS = [
+        { name: "base1", fromfile: "home1" },
+        { name: "base2", fromfile: "home1" },
+        { name: "base3", fromfile: "home1" },
+        { name: "base4", fromfile: "home1" },
+        { name: "base5", fromfile: "home1" },
+        { name: "base6", fromfile: "home1" },
+        { name: "factory1", fromfile: "factory1" }
+    ]
+
     tag = "Loca"
     isBlocking = true
-    constructor(backgroundimgfile, name, id) {
-        super(globalThis.game.rect.copy)
-        this.id = id
-        this.name = name ?? backgroundimgfile //doubles as name for now
+    loadFromFile(fromfile) {
+        // const MAP = await(await fetch(RULES.MAP_FOLDER + fromfile + ".png")).json()
+        const textfilecontents = MM.fetchSyncText(RULES.MAP_FOLDER + fromfile + ".json")
+
+        const MAP = JSON.parse(textfilecontents)
         /**@type {Grid} */
         const grid = this.grid = new Grid()
         const floors = MAP.layers.find(x => x.name === "floors")
@@ -33,7 +44,6 @@ class Loca extends GameWorld {
                 }
             }
         }
-
         const eventInteractables = this.eventInteractables = new Panel()
         eventInteractables.isBlocking = true
         this.add_drawable(eventInteractables, 6)//just below the player(s)
@@ -44,7 +54,6 @@ class Loca extends GameWorld {
         this.controllableMoveToNewLocation = (i, j) => {
             this.trans(i, j)
         }
-
         const rects = MAP.layers.find(x => x.name === "rects").objects
         rects.forEach(objectData => {
             const but = new Button()
@@ -57,20 +66,17 @@ class Loca extends GameWorld {
                 but)  //spawns in automatically!
         })
 
+    }
+    constructor(fromfile, name, id) {
+        super(globalThis.game.rect.copy)
+        this.id = id
+        this.name = name//doubles as name for now
+        this.loadFromFile(fromfile)
 
 
         const bg = this.bg = new Button({ transparent: true, x: 0, y: 0 })
-        const src = RULES.MAP_BACKGROUND_FOLDER + backgroundimgfile + ".png"
+        const src = RULES.MAP_BACKGROUND_FOLDER + fromfile + ".png"
         this.bgReadyPromise = Cropper.loadImageToNewCanvasPromise(src).then(newCanvas => {
-            //stupid
-            /*if (GRAPHICS.DOWNSCALING && GRAPHICS.DOWNSCALING !== 1) {
-                const downscaledCanvas = document.createElement("canvas")
-                downscaledCanvas.width = newCanvas.width / GRAPHICS.DOWNSCALING
-                downscaledCanvas.height = newCanvas.height / GRAPHICS.DOWNSCALING
-                downscaledCanvas.getContext("2d").drawImage(newCanvas, 0, 0, downscaledCanvas.width, downscaledCanvas.height)
-                newCanvas = downscaledCanvas
-                console.log(`$DOWNSCALING ${GRAPHICS.DOWNSCALING} times:`, downscaledCanvas)
-            }*/
             bg.width = newCanvas.width
             bg.height = newCanvas.height
             bg.img = newCanvas
@@ -162,7 +168,7 @@ class Loca extends GameWorld {
             terminal.label = l
             l.check = null
             l.dynamicText = () => l.terminal.txt
-            l.fontSize = 32
+            l.fontSize = GRAPHICS.TERMINAL_FONTSIZE
             b.draw_more = l.draw.bind(l) //lazy-like lol
             if (rectIJData.isVertical) {
                 const { i, j } = rectIJData.topleft
@@ -194,6 +200,9 @@ class Loca extends GameWorld {
         this.eventCount++
         typeof whichone === 'string' ? Loca.EVENTS[whichone]() : whichone()
     }
+
+
+
 
 }
 //#endregion
@@ -397,7 +406,7 @@ class Player extends Button {
         MM.drawText(ctx, this.name, {
             x: this.x, y: this.y + this.height, width: this.width
             //height:0 implicitly
-        }, { textBaseline: "top", fontSize: 28 })
+        }, { textBaseline: "top", fontSize: GRAPHICS.PLAYER_FONTSIZE })
     }
 
 }

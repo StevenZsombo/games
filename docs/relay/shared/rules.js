@@ -4,6 +4,7 @@ const RULES = {
     MAP_BACKGROUND_FOLDER: "../tiled/",
 
     MAPFILE: "../tiled/home1.json",
+    MAP_FOLDER: "../tiled/",
 
     NUMBER_OF_TEAMS: 6,
 
@@ -25,6 +26,8 @@ layers
 
 const GRAPHICS = {
     SIZE: 64,
+    TERMINAL_FONTSIZE: 28,
+    PLAYER_FONTSIZE: 28,
     WADDLE_TIME: 200,
     CRAWL_VELOCITY: 1 / 200 * 64, //drift is better
     DRIFT_COEFFICENT: 0.037, //fuck if i know

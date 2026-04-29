@@ -203,7 +203,8 @@ var univ = {
 /// dev options
 const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
-    endDebugMode: () => game.debugModeEnd()
+    endDebugMode: () => game.debugModeEnd(),
+    bgSmoothing: () => { GRAPHICS.SMOOTHING_DISABLED_FOR_BG = !GRAPHICS.SMOOTHING_DISABLED_FOR_BG; GameEffects.popup(`Smoothing: ${GRAPHICS.SMOOTHING_DISABLED_FOR_BG}`) }
 
 
 }/// end of dev
