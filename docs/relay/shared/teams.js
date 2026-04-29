@@ -13,6 +13,7 @@ class Team {
         "green", "brown", "silver", "purple",
         "crimson", "lime", "indigo", "olive"
     ])
+    static defaultNames = Object.freeze(Team.defaultColors.map(x => MM.capitalizeFirstLetter(x)))
     static ALL = Array.from({ length: RULES.NUMBER_OF_TEAMS }, (_, i) => new Team(i))
     //[]
     // static createThisMany(n) { Array(n).fill().forEach(new Team()) }

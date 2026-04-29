@@ -16,6 +16,25 @@ class Grid extends Map {
 
 //#region Loca
 class Loca extends GameWorld {
+    static readGalaxyFromJSON() {
+        const replacer = name => {
+            const repstart = name.indexOf("#"); if (repstart === -1) return name;
+            const repend = (name.indexOf(" ", repstart) + 1) || (name.length + 1)
+            const extracted = +name.slice(repstart + 1, repend - 1)
+            return name.slice(0, repstart) + Team.defaultNames[extracted] + name.slice(repend - 1)
+        }
+        const txt = MM.fetchSyncText("../tiled/galaxy.json")
+        const map = JSON.parse(txt)
+        const presets = []
+        map.layers[0].objects.forEach(r => {
+            const { x, y, width, height } = r
+            const info = r.name
+            const [rawname, fromfile] = info.split(",")
+            const name = replacer(rawname)
+            presets.push({ x, y, width, height, name, fromfile })
+        })
+        return presets
+    }
     static PRESETS = [
         { name: "base1", fromfile: "home1", },
         { name: "base2", fromfile: "home1" },
@@ -25,7 +44,8 @@ class Loca extends GameWorld {
         { name: "base6", fromfile: "home1" },
         { name: "factory1", fromfile: "factory1" }
     ]
-    static templocations = [{ "x": 137.368421052632, "y": 784.736842105263, "width": 284.210526315789, "height": 140.526315789474 }, { "x": 222.631578947368, "y": 549.473684210526, "width": 307.894736842105, "height": 127.894736842105 }, { "x": 142.105263157895, "y": 303.157894736842, "width": 244.736842105263, "height": 127.894736842105 }, { "x": 363.157894736842, "y": 91.5789473684211, "width": 298.421052631579, "height": 134.210526315789 }, { "x": 588.947368421053, "y": 292.105263157895, "width": 295.263157894737, "height": 148.421052631579 }, { "x": 833.684210526316, "y": 540, "width": 235.263157894737, "height": 164.210526315789 }, { "x": 664.736842105263, "y": 757.894736842105, "width": 178.421052631579, "height": 138.947368421053 }, { "x": 1321.57894736842, "y": 628.421052631579, "width": 200.526315789474, "height": 186.315789473684 }, { "x": 1122.63157894737, "y": 318.947368421053, "width": 306.315789473684, "height": 99.4736842105263 }, { "x": 1094.21052631579, "y": 154.736842105263, "width": 258.947368421052, "height": 69.4736842105263 }, { "x": 1458.94736842105, "y": 64.7368421052632, "width": 285.78947368421, "height": 137.368421052632 }, { "x": 1623.15789473684, "y": 271.578947368421, "width": 156.315789473684, "height": 138.947368421053 }, { "x": 1670.52631578947, "y": 508.421052631579, "width": 184.736842105263, "height": 175.263157894737 }, { "x": 1710, "y": 791.052631578947, "width": 150, "height": 225.789473684211 }, { "x": 1340.52631578947, "y": 470.526315789474, "width": 225.78947368421, "height": 74.2105263157894 }, { "x": 1048.42105263158, "y": 797.368421052632, "width": 225.789473684211, "height": 195.789473684211 }, { "x": 1361.05263157895, "y": 903.157894736842, "width": 189.473684210526, "height": 121.578947368421 }, { "x": 903.157894736842, "y": 71.0526315789474, "width": 110.526315789474, "height": 121.578947368421 }]
+
+
 
     tag = "Loca"
     isBlocking = true
@@ -207,6 +227,10 @@ class Loca extends GameWorld {
 
 }
 //#endregion
+
+
+//// REMOVE LATER !!!!
+Loca.PRESETS = Loca.readGalaxyFromJSON()
 
 //#region Player
 class Player extends Button {

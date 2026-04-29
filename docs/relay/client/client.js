@@ -74,12 +74,12 @@ class Game extends GameShared {
         this.canChangeOverWorldState = false
         const overworld = this.overworld = new GameWorld(this.rect)
         this.add_drawable(overworld)
-        const targetplace = Loca.templocations[this.loca.id]
+        const targetplace = Loca.PRESETS[this.loca.id]
         const origplace = this.loca.screenRect.copy
         this.freezeInteractables()
         const locabuttons = overworld.locabuttons =
-            this.galaxyLocaIDs.map(i => Loca.templocations[i]).map(r =>
-                new Button({ ...r, opacity: 1 }))
+            this.galaxyLocaIDs.map(i => Loca.PRESETS[i]).map(r =>
+                new Button({ ...r, opacity: 1, txt: r.name }))
         overworld.add_drawable(locabuttons)
         GRAPHICS.STARS_HIDE_ON_OVERWORLD && (this.starsDrawable.visibleStars = false)
         const zoomOutFromLocaToOverWorld = Anim.custom(
