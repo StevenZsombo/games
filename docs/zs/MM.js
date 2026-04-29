@@ -2650,9 +2650,9 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
 
 
-    static getStarDrawerObject(ctx, {
+    static getStarDrawable({
         width = 1920 + 400, height = 1080 + 400,
-        starCount = 200 } = {}) {
+        starCount = 220 } = {}) {
         const stars = []
         for (let i = 0; i < starCount; i++) {
             stars.push({
@@ -2664,11 +2664,18 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             })
         }
         return {
-            offsetX: -200,
-            offsetY: -200,
-            draw() {
+            baseOffsetX: -200,
+            baseOffsetY: -200,
+            offsetX: 0,
+            offsetY: 0,
+            stars,
+            visible: true,
+            visibleStars: true,
+            draw(ctx) {
+                if (!this.visible) return
                 ctx.fillStyle = "rgb(0,0,12)"
                 ctx.fillRect(0, 0, width, height)
+                if (!this.visibleStars) return
                 stars.forEach(u => {
                     ctx.beginPath()
                     ctx.arc(u.x + this.offsetX, u.y + this.offsetY, u.size, 0, TWOPI)

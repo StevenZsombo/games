@@ -41,6 +41,12 @@ const GRAPHICS = {
     CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 2000, //probably large enough to allow a pathing click
     SMOOTHING_DISABLED_FOR_BG: true,
     DOWNSCALING: 0, //0 or 1 to disable, higher = worse. //STUPID don't use
+    OVERWORLD_TRANSITION_TIME: 1500,
+    STARS_COUNT: 220,
+    STARS_DIMENSIONS: [1920 + 400, 1080 + 400],
+    STARS_BASE_OFFSET: [-200, -200],
+    STARS_ANIMATE_ON_OVERWORLD: false,
+    STARS_HIDE_ON_OVERWORLD: false,
 
 }
 /**

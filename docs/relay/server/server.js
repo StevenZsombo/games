@@ -76,7 +76,8 @@ class Game extends GameShared {
         this.initChat()
         this.loca = pool.getLoca(0)
         //loca.bgReadyPromise would be useful here!
-        this.levels = [this.loca]
+        this.galaxy = new Set()
+        this.galaxy.add(this.loca)
         await this.loca.bgReadyPromise
         this.loca.worldRect.putOver(this.loca.bg)
         this.add_drawable(this.loca, 1) //no player for server. sadge.

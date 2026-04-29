@@ -617,6 +617,14 @@ class Anim {
 	static interpol(start, end, t) {
 		return start + t * (end - start)
 	}
+	static interpolRect(startRect, endRect, t) {
+		return {
+			x: startRect.x + t * (endRect.x - startRect.x),
+			y: startRect.y + t * (endRect.y - startRect.y),
+			width: startRect.width + t * (endRect.width - startRect.width),
+			height: startRect.height + t * (endRect.height - startRect.height),
+		}
+	}
 
 	custom() {
 		//func(t,obj), {orig:string[]} will be restored at the end

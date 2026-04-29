@@ -40,7 +40,10 @@ class Pool {
     getLoca(id) {
         if (this.locas.has(id)) return this.locas.get(id)
         const preset = Loca.PRESETS[id]
-        return this.locas.set(id, new Loca(preset.fromfile, preset.name, id)).get(id)
+        if (preset == null) throw new Error(`Loca.PRESETS has no ${id}`)
+        const retrievedLoca = new Loca(preset.fromfile, preset.name, id)
+        this.locas.set(id, retrievedLoca)
+        return retrievedLoca
     }
 
 
@@ -70,6 +73,7 @@ class GameShared extends GameCore {
 
     }
 
+    shouldFollowGlobal = true
     initInteractables() {
         if (!this.loca) throw new Error("can't initInteractables without a loca")
         /**@type {Loca}*/this.loca
@@ -78,15 +82,12 @@ class GameShared extends GameCore {
         this.sinteract = new Clickable(this.rect)
         this.sinteract.draw = null
         this.sinteract.collidepoint = () => true
-        this.add_drawable(this.sinteract, 0) //below even the loca - should be blocked by EVERYTHING
         this.tinteract = new Clickable(this.rect)
         this.tinteract.draw = null //will be defined in a moment, just mentioning it
         this.tinteract.collidepoint = () => true
-        this.add_drawable(this.tinteract, 7) //on top = above everything save popups
         this.winteract = new Clickable(this.loca.bg.copyRect)
         this.winteract.draw = null
         this.tinteract.collidepoint = () => true
-        this.loca.add_drawable(this.winteract, 0) //below everything else
         let dragHasMoved = false
         this.winteract.last_clickedAt = Date.now()
         this.winteract.on_click = () => {
@@ -133,8 +134,9 @@ class GameShared extends GameCore {
         }
         let shouldFollow = true
         const followCondition = () =>
-            shouldFollow ||
-            (shouldFollow = (Date.now() - this.sinteract.last_heldAt > GRAPHICS.CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK))
+            this.shouldFollowGlobal &&
+            (shouldFollow ||
+                (shouldFollow = (Date.now() - this.sinteract.last_heldAt > GRAPHICS.CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK)))
         this.sinteract.update = (dt) => {
             if (GRAPHICS.ALLOW_OOB_FOLLOW && !this.sinteract.last_held && followCondition()
             ) {
@@ -226,7 +228,20 @@ class GameShared extends GameCore {
         zoomSlider.value = 1
         zoomSlider.adjustZoomOfLoca()
 
-        this.add_drawable(zoomSlider, 8)
+        this.unfreezeInteractables()
+    }
+
+    freezeInteractables() {
+        this.remove_drawables_batch([this.sinteract, this.tinteract, this.zoomSlider])
+        this.loca.remove_drawable(this.winteract)
+        this.shouldFollowGlobal = false
+    }
+    unfreezeInteractables() {
+        this.add_drawable(this.sinteract, 0) //below even the loca - should be blocked by EVERYTHING
+        this.add_drawable(this.tinteract, 7) //on top = above everything save popups
+        this.add_drawable(this.zoomSlider, 8)
+        this.loca.add_drawable(this.winteract, 0) //below everything else
+        this.shouldFollowGlobal = true
     }
 
 
