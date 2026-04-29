@@ -440,11 +440,13 @@ class Game extends GameCore {
                 cb.yes.color = b.color
                 cb.no.color = "antiquewhite"
             }
+            /*
             b.on_hover = () =>
                 !this.animator.locked.has(b)
                 &&
                 this.animator.add_anim(Anim.stepper(b, 800, "rad", 0, .1,
                     { lerp: Anim.l.wave, ditch: true }))
+                    */
         })
         /*const h = ks[0].height
         ks.forEach(x => x.stretch(1, .1))
