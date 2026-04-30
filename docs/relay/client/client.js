@@ -12,8 +12,7 @@ class Game extends GameShared {
     //#region initialize_more
 
     hasFinishedLoading = false
-    async initialize_async() {
-        wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
+    async enter() {
         wDiv.addLine("Connecting...")
         await chat.asapPromise()
         chat.initLibrary("client")
@@ -46,12 +45,14 @@ class Game extends GameShared {
         )
 
 
+        if (RULES.DEBUG_MODE) this.debugMode()
         this.hasFinishedLoading = true
         return
     }
 
     initialize_more() {
-        if (RULES.DEBUG_MODE) this.debugMode()
+        wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
+        this.enter()
     }
     //#endregion
 
