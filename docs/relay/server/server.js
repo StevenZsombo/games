@@ -44,6 +44,7 @@ class Person extends Participant {
     }
     enter(personData) {
         this.team = Team.ALL[personData.teamID]
+        this.team.members.add(this)
         return { //cached in advance in RULES!
             playerID: this.p.id,
             locaID: this.p.loca.id,
@@ -59,6 +60,22 @@ class Person extends Participant {
         if (loca.isExlusiveToTeamID != null && loca.isExlusiveToTeamID != this.team.id) return { deny: `Your team is not allowed to visit ${loca.name}.` }
         this.p.changeLoca(loca)
         return { accept: `You will travel to ${loca.name}.` }
+    }
+    flush() {
+        this.wee("flush")
+            .then(() => spop("Flushed " + this.name))
+            .catch(() => bpop("Could not flush " + this.name))
+    }
+    rename(newName) {
+        if (!newName) return
+        this.wee("rename", newName)
+            .then(resp => {
+                this.p.name = resp
+                const ind = RULES.STUDENTS.indexOf(this.p.name)
+                if (ind !== -1) RULES.STUDENTS[ind] = resp
+                spop(`Renamed ${this.p.name} to ${resp}.`)
+            })
+            .catch(`Failed to rename ${this.p.name}.`)
     }
 }
 //#region 
@@ -79,7 +96,13 @@ const broadcast_interval = setInterval(() => {
 class Game extends GameShared {
 
     loadAllLoca() {
-        Loca.PRESETS.forEach((r, i) => r.name && this.galaxy.add(pool.getLoca(i)))
+        Loca.PRESETS.forEach((r, i) => {
+            r.name && this.galaxy.add(pool.getLoca(i))
+            if (r.homeOf) { //was read from presets already
+                Team.ALL[r.homeOf].homebase = pool.getLoca(i)
+            }
+
+        })
         this.galaxy.forEach(x => x.terminals.forEach(t => {
             t.button.eraseClickables()
             t.button.visible = true

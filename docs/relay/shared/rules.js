@@ -80,6 +80,7 @@ Chat.library = {
         "psr": (txt) => { game.psr(txt) },
         "reload": () => { chat.delayedReload() },
         "flush": () => { localStorage.clear(); chat.delayedReload(); },
+        "rename": (newName) => { chat.forceName(newName, true); return newName; },
         "debug": () => { game.debugMode() },
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast
         "ping": () => chat.getPingStats(),

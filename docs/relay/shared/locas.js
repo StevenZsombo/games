@@ -32,7 +32,10 @@ class Loca extends GameWorld {
             const info = r.name
             const [rawname, fromfile, assignData = {}] = info.split(",")
             const name = replacer(rawname, assignData)
-            presets.push({ x, y, width, height, name, fromfile, assignData })
+            const obj = { x, y, width, height, name, fromfile, assignData }
+            if (r.properties?.[0]?.name === "homeOf") obj["homeOf"] = r.properties[0].value
+            presets.push(obj)
+
         })
         return presets
     }
@@ -45,6 +48,7 @@ class Loca extends GameWorld {
         { name: "base6", fromfile: "home1" },
         { name: "factory1", fromfile: "factory1" }
     ]
+    static homebases = []
 
 
 

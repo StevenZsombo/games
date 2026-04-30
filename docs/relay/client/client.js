@@ -425,7 +425,7 @@ const dev = {
     unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
     // flush: () => { localStorage.clear(); chat.delayedReload() },
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + chat.pingRecord, { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
-     flush: () => { localStorage.clear(); chat.delayedReload() },
+    flush: () => { localStorage.clear(); chat.delayedReload() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
 

@@ -3,6 +3,8 @@ class Team {
     /**@type {Person[]} */
     members = new Set()
     get membersAsArray() { return Array.from(this.members) }
+    /**@type {?Loca} */
+    homebase = null
     seenQuestions = new Set()
     activeQuestions = new Set()
     solvedQuestions = new Set() //not needed? would be nice not having to worry about
