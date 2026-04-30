@@ -24,6 +24,7 @@ class Game extends GameShared {
         wDiv.hide()
         console.log(enterResponse)
         Object.assign(personData, enterResponse)
+        enterResponse.RULES && Object.assign(RULES, enterResponse.RULES)
         this.loca = pool.getLoca(personData.locaID)
         this.initPlayer(personData.playerID, personData.name) //gives this.me
         await this.loca.bgReadyPromise
@@ -38,8 +39,6 @@ class Game extends GameShared {
 
         }
         this.BGCOLOR = null
-
-
         this.feed = new FeedBasic(this.rect.splitCell(1, 1, 7 / 8, 6).move(20, 20),
             { height: 100 }
         )
@@ -52,10 +51,61 @@ class Game extends GameShared {
 
     initialize_more() {
         wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
-        this.enter()
+        this.onboardingProcess()
     }
     //#endregion
 
+    async onboardingProcess() {
+        const storedPersonData = localStorage.getItem("personData")
+        await this.welcomeSelect()
+        if (!storedPersonData) {
+            wDiv.hide()
+            await this.nameSelect()
+            await this.teamSelect()
+            const { nameID, ...saveData } = personData //nameID shall not be saved here
+            localStorage.setItem("personData", JSON.stringify(saveData))
+        } else Object.assign(personData, JSON.parse(storedPersonData))
+        this.enter()
+    }
+
+    async welcomeSelect() {
+        const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
+        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000)) {
+            localStorage.clear()
+            chat._acquireNameID()
+        }
+        const prom = new Promise(resolve => {
+            const buts = Array(4).fill().map((_, i) => new Button({
+                width: 600, height: 300, txt: "Click me!", visible: i == 0, on_click:
+                    function () {
+                        MM.toggleFullscreen(true)
+                        this.visible = false
+                        if (i == 3) {
+                            game.remove_drawables_batch(buts)
+                            resolve()
+                        } else { buts[i + 1].visible = true }
+                    }
+            }))
+            buts[0].topleftatV(this.rect.topleft)
+            buts[1].topat(0)
+            buts[1].rightat(this.rect.right)
+            buts[2].rightat(this.rect.right)
+            buts[2].bottomat(this.rect.bottom)
+            buts[3].leftat(0)
+            buts[3].bottomat(this.rect.bottom)
+            this.add_drawable(buts)
+        })
+        await prom
+    }
+
+    async nameSelect() {
+        await chat.asapPromise()
+
+    }
+
+    async teamSelect() {
+
+    }
 
     getStars() {
         const s = GameEffects.getStarDrawable({

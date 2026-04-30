@@ -1,4 +1,6 @@
 const RULES = {
+    STUDENTS: [],
+
     //mind that resources are ABOVE current folder for both client & server
     PICTURES_FOLDER: "../pictures/",
     MAP_BACKGROUND_FOLDER: "../tiled/",
@@ -90,6 +92,7 @@ Chat.library = {
         "enter": (personData, person) => person.enter(personData),
         "full": (_, person) => game.respondFULL_SYNC_EVENTS(person),
         "travel": (locaID, person) => person.travel(locaID),
+        "rules": () => game.diffRULES.getDifferenceJSONableOnly(RULES)
     },
 
 }

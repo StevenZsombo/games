@@ -47,7 +47,8 @@ class Person extends Participant {
         return { //cached in advance in RULES!
             playerID: this.p.id,
             locaID: this.p.loca.id,
-            name: `${this.p.name}`
+            name: `${this.p.name}`,
+            RULES: game.diffRULES.getDifferenceJSONableOnly(RULES)
         }
     }
     travel(locaID) {//accept or deny
@@ -80,6 +81,9 @@ class Game extends GameShared {
     loadAllLoca() { Loca.PRESETS.forEach((r, i) => r.name && this.galaxy.add(pool.getLoca(i))) }
 
     async initialize_async() {
+        this.diffRULES = MM.differenceManager(RULES)
+
+
         this.BGCOLOR = "rgb(4,4,28)"
         /**@type {Set<Loca} */
         this.galaxy = new Set()
@@ -96,6 +100,8 @@ class Game extends GameShared {
         chat.initLibrary("server")
         this.initChat()
         on_broadcast_extras.push(this.BROADCAST_SEND.bind(this))
+
+
 
         RELOAD()
 

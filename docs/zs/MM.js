@@ -1838,18 +1838,18 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
     /**@param {Object} original - must be stringifiable  */
     static differenceManager(original) {
         return {
-            snapshot: { ...original },
+            _snapshot: { ...original },
             getDifference(current) {
                 const diff = {}
-                for ([key, val] of Object.entries(current))
-                    if (val !== this.snapshot[key]) diff[key] = val
+                for (const [key, val] of Object.entries(current))
+                    if (val !== this._snapshot[key]) diff[key] = val
                 return diff
             },
-            snapshotJSONableOnly: JSON.parse(JSON.stringify(original)),
+            _snapshotJSONableOnly: JSON.parse(JSON.stringify(original)),
             getDifferenceJSONableOnly(current) {
                 const diff = {}
-                for ([key, val] of Object.entries(current))
-                    if (JSON.stringify(val) !== JSON.stringify(this.snapshotJSONableOnly[key])) diff[key] = val
+                for (const [key, val] of Object.entries(current))
+                    if (JSON.stringify(val) !== JSON.stringify(this._snapshotJSONableOnly[key])) diff[key] = val
                 return diff
             }
 

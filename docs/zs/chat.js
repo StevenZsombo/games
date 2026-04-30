@@ -331,7 +331,7 @@ class Chat {
     }
 
 
-    _acquireNameID() {
+    _acquireNameID() { //idempotent
         if (!this.nameID) { //consistent with Supabase
             const stored = localStorage.getItem("nameID")
             if (stored) {
@@ -341,8 +341,11 @@ class Chat {
                 localStorage.setItem("nameID", this.nameID)
             }
         }
-        if (!localStorage.getItem("nameIDtimestamp")) {
-            localStorage.setItem("nameIDtimestamp", Date.now())
+        if (localStorage.getItem("nameIDtimestamp")) {
+            this.nameIDtimestamp = +localStorage.getItem("nameIDtimestamp")
+        } else {
+            this.nameIDtimestamp = Date.now()
+            localStorage.setItem("nameIDtimestamp", this.nameIDtimestamp)
         }
         return this.nameID
     }
