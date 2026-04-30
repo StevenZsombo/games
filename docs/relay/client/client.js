@@ -13,6 +13,7 @@ class Game extends GameShared {
 
     hasFinishedLoading = false
     async enter() {
+        wDiv.show()
         wDiv.addLine("Connecting...")
         await chat.asapPromise()
         chat.initLibrary("client")
@@ -57,9 +58,16 @@ class Game extends GameShared {
 
     async onboardingProcess() {
         const storedPersonData = localStorage.getItem("personData")
-        await this.welcomeSelect()
         if (!storedPersonData) {
+            wDiv.addLine("Retrieving rules from server...")
+            await chat.asapPromise()
+            await chat.wee("rules", undefined, { retries: 10, interval: 2000 })
+                .then(r => Object.assign(RULES, r))
+                .catch(() => {
+                    wDiv.error("Failed to contact server.")
+                })
             wDiv.hide()
+            await this.welcomeSelect()
             await this.nameSelect()
             await this.teamSelect()
             const { nameID, ...saveData } = personData //nameID shall not be saved here
@@ -99,12 +107,74 @@ class Game extends GameShared {
     }
 
     async nameSelect() {
-        await chat.asapPromise()
-
+        const fm = new Panel()
+        fm.push(Button.fromRect(this.rect, { isBlocking: true, transparent: true }))
+        this.add_drawable(fm)
+        const lab = new Button({ x: 0, y: 0, width: this.rect.width, height: 200, txt: "Your name:" })
+        fm.push(lab)
+        const students = RULES.STUDENTS
+        if (!students || !students.length) throw new Error("Game did not start yet (no student list available.)")
+        const sq = Math.ceil(Math.sqrt(students.length))
+        const buts = this.rect.copy.stretch(1, .8).bottomat(this.rect.bottom)
+            .splitGrid(sq, sq).flat().slice(0, students.length)
+            .map(x => Button.fromRect(x))
+            .map(x => x.stretch(.9, .9))
+        let canClick = true
+        await new Promise(resolve =>
+            buts.forEach((x, i) => {
+                fm.push(x)
+                x.fontSize = 40
+                x.txt = students[i]
+                x.tag = students[i]
+                x.on_release = () => {
+                    if (!canClick) return
+                    canClick = false
+                    const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
+                    cb.promise().then(() => {
+                        personData.name = x.tag
+                        this.remove_drawable(fm)
+                        resolve()
+                    }).catch(() => canClick = true)
+                }
+            })
+        )
     }
 
     async teamSelect() {
-
+        const fm = new Panel()
+        fm.push(Button.fromRect(this.rect, { isBlocking: true, transparent: true }))
+        this.add_drawable(fm)
+        const lab = new Button({ x: 0, y: 0, width: this.rect.width, height: 200, txt: "Your team:" })
+        fm.push(lab)
+        const sq = Math.ceil(Math.sqrt(RULES.NUMBER_OF_TEAMS))
+        const buts = this.rect.copy.stretch(1, .8).bottomat(this.rect.bottom)
+            .splitGrid(sq, sq).flat().slice(0, RULES.NUMBER_OF_TEAMS)
+            .map(x => Button.fromRect(x))
+            .map(x => x.stretch(.9, .9))
+        let canClick = true
+        await new Promise(resolve =>
+            buts.forEach((x, i) => {
+                fm.push(x)
+                x.fontSize = 40
+                x.txt = Team.ALL[i].name
+                x.tag = Team.ALL[i].name
+                x.color = Team.ALL[i].color
+                x.on_release = () => {
+                    if (!canClick) return
+                    canClick = false
+                    const cb = GameEffects.confirmBox(`Joining team ${x.txt}?`, {
+                        buttonColor: x.color, yesColor: "white", noColor: "white"
+                    })
+                    cb.promise().then(() => {
+                        personData.teamID = x.tag
+                        personData.teamName = x.name
+                        personData.teamColor = x.color
+                        this.remove_drawable(fm)
+                        resolve()
+                    }).catch(() => canClick = true)
+                }
+            })
+        )
     }
 
     getStars() {
@@ -355,7 +425,7 @@ const dev = {
     unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
     // flush: () => { localStorage.clear(); chat.delayedReload() },
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + chat.pingRecord, { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
-
+     flush: () => { localStorage.clear(); chat.delayedReload() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
 

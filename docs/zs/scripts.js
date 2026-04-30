@@ -683,7 +683,7 @@ class Button extends Clickable {
 	get copyRect() {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
-
+	/**@param {Rect} rect @param {Button} [kwargs={}]   */
 	static fromRect(rect, kwargs = {}) {
 		const tobuild = { ...kwargs, ...rect }
 		return new Button(tobuild)
@@ -692,7 +692,7 @@ class Button extends Clickable {
 		const { x, y, width, height } = rect
 		return new Button({ x, y, width, height })
 	}
-
+	/**@param {Button} but @param {Button} [kwargs={}]   */
 	static fromButton(but, kwargs = {}) {
 		let temp = but.copy
 		Object.assign(temp, kwargs)

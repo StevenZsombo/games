@@ -464,7 +464,10 @@ class Chat {
      */
     weeToWooHandler(message, person) {
         const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
-        if (!fn) { console.error("no eggs for " + message.value); return }
+        if (!fn) {
+            // console.error("no eggs for " + message.value);
+            return
+        }
         const msg = {
             woo: message.wee,
             value: fn(message.params, person)
@@ -555,7 +558,7 @@ class Chat {
      */
     spamToEggsHandler(message, person) { //no return value - won't be sent back
         const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
-        if (!fn) throw new Error("no eggs for " + message.value)
+        if (!fn) return //throw new Error("no eggs for " + message.value)
         fn(message.params, person)
     }
     /**

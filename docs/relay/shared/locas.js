@@ -138,8 +138,11 @@ class Loca extends GameWorld {
     spawnPlayer(player) {
         if (!(player instanceof Player)) throw new Error("loca.spawnPlayer did not get a player")
         player.loca = this
+
+        //need more clever spawning....
         const randIJ = MM.choice(Array.from(this.grid.keys())).split(",").map(Number)
         player.setIJ(...randIJ)
+
         this.players.push(player)
         this.add_drawable(player, 7)
         return player
@@ -150,7 +153,7 @@ class Loca extends GameWorld {
         this.remove_drawable(player)
         if (ind !== -1) this.players.splice(ind, 1)
     }
-
+    /**@type {Terminal[]} */
     terminals = []
     /**@param {Terminal} terminal @param {Rect} rect */
     spawnTerminal(terminal, rect) {

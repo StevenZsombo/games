@@ -78,7 +78,14 @@ const broadcast_interval = setInterval(() => {
 
 class Game extends GameShared {
 
-    loadAllLoca() { Loca.PRESETS.forEach((r, i) => r.name && this.galaxy.add(pool.getLoca(i))) }
+    loadAllLoca() {
+        Loca.PRESETS.forEach((r, i) => r.name && this.galaxy.add(pool.getLoca(i)))
+        this.galaxy.forEach(x => x.terminals.forEach(t => {
+            t.button.eraseClickables()
+            t.button.visible = true
+            t.onStandingOnEnter()
+        }))
+    }
 
     async initialize_async() {
         this.diffRULES = MM.differenceManager(RULES)
@@ -104,6 +111,9 @@ class Game extends GameShared {
 
 
         RELOAD()
+
+
+        RULES.STUDENTS = "Ann Bob Cecil Dan Frank".split(" ")
 
     }
 
