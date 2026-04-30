@@ -60,6 +60,8 @@ class Game extends GameCore {
     //#region initialize_more
     initialize_more() {
 
+        GameEffects.latexButton(true)
+
 
     }
     //#endregion

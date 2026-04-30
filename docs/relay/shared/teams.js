@@ -51,15 +51,18 @@ class Question {
 
 
     /**
-     * @param {Team[]} teams 
+     * @param {Team[]} whichTeams 
      * @param {number} minBucket 
      */
-    static pickQuestionID(teams, minBucket) {
+    static pickQuestionID(whichTeams, minBucket) {
         if (!chat.isServer) throw new Error("clients should not call Question.pickQuestionID")
+        if (!Array.isArray(whichTeams)) whichTeams = [whichTeams]
         for (let i = minBucket; i < 100; i++) {
             for (const qID of buckets)
-                if (teams.every(x => !x.seenQuestions.has(qID))) return qID
+                if (whichTeams.every(x => !x.seenQuestions.has(qID))) return qID
         }
+        //if no questions can be found:
+        bpop(`Out of questions for ${whichTeams.join("&")}.`)
 
     }
 
