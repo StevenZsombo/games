@@ -319,6 +319,35 @@ const WHITELIST = (person) => {
 const INVALIDATE = (id) => {
     game.invalidate(id)
 }
+/**@param {Kingdom} kingdom*/
+const BOUNTYCOUNTS = kingdom => {
+    const res = []
+    const highest = Math.floor(kingdom.capital.value / (kingdom.territories.size - 1))
+    for (let i = 0; i < highest; i += 100)
+        res.push(i)
+    return res
+}
+/**@param {Kingdom} kingdom @param {number} siphon */
+const BOUNTY = (kingdom, siphon) => {
+    const cap = kingdom.capital
+    const others = Array.from(kingdom.territories).filter(x => x !== cap)
+    if (others.length * siphon > cap.value) {
+        badpop(`Cannot set bounty: capital value is not high enough.`)
+        return false
+    }
+    cap.value -= others.length * siphon
+    others.forEach(x => x.value += siphon)
+    return true
+}
+const BOUNTYBUTTON = () => {
+    const onaction = (k) => GameEffects.dropDownMenu(BOUNTYCOUNTS(k).map(x => [x, () => BOUNTY(k, x)]))
+    const arr = game.kingdoms.map(x => [x.name, () => onaction(x)])
+    const teams = GameEffects.dropDownMenu(arr, null, null, null, null, game.overlay)
+    teams.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
+    teams.menuButtons.at(-1).color = "white"
+    teams.menuButtons.forEach(x => x.hover_color = null)
+
+}
 
 
 //#region connectionInfoButton
@@ -987,6 +1016,7 @@ class Game extends GameCore {
             MASTER.ALLOW_PLOT &&
                 parr.push(["PLOT", PLOT, "Share the plots with the students."])
             parr.push(["PING", PING, "Test the ping of each connected student."])
+            parr.push(["BOUNTY", BOUNTYBUTTON, "Set a bounty on a kingdom. Each of its provinces will\nsiphon a certain amount of points from the capital."])
             parr.push(["HARDREFRESH", HARDREFRESH, "Fully synchronizes each connected student."])
             parr.push(["RELOAD", RELOAD, "Reloads the browser page of each connected student."])
 
