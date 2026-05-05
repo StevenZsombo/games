@@ -346,7 +346,7 @@ const BOUNTYBUTTON = () => {
     teams.menuButtons.slice(0, -1).forEach((x, i) => x.color = game.kingdoms[i].color)
     teams.menuButtons.at(-1).color = "white"
     teams.menuButtons.forEach(x => x.hover_color = null)
-
+    SHARE("valuesData")
 }
 
 
