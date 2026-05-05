@@ -7,9 +7,6 @@ Conquest game:
 Sugggestions that I plan to implement + planned features:
 - Attack reminders.
 
-- Map editor.
-- Question bank verifier.
-- No-code post game analysis
 
 
 

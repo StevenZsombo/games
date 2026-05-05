@@ -1,6 +1,5 @@
-Alice
+Ace
 Bob
-Claire
-Daniel
+Cat
+Dan
 Eve
-Frank

@@ -1,18 +1,20 @@
 Before starting the game:
 1.  List your students in Steven/games/docs/conquest/students.txt.
-    One line per name, English letters only, at least 3 letters in each name.
+    One line per name, English letters only,  must have at least 3 letters in each name.
 2.  Run the server executable.
     It will tell you the IP address students can connect to LATER.
 3.  Run the Electron application.
-    It should load the game with an empty map.
-4.  SERVER -> LOADMAP then select the right map from Steven/games/docs/conquest/maps.
-5.  SERVER -> BUCKETS to set the buckets file (it is in Steven/secrets)
-6.  SERVER -> MAXATTACKS -> 1 to start with.
+    It should load the game with an empty map, or partially load the latest game.
+4.  dev -> ERASE QUICKSAVES either way.
+5.  SERVER -> LOADMAP then select the right map from Steven/games/docs/conquest/maps.
+6.  SERVER -> STUDENTS then select your student list.
+7.  SERVER -> BUCKETS to set the buckets file from Steven/secrets.
+8.  SERVER -> MAXATTACKS -> 1 to start with.
     Can increase later.
 
 Students can now start joining to the IP address.
 Ask them to close all apps and tabs, and open a browser. 
-    (Prefer: Chrome = Edge = Opera > Firefox > Safari).
+    (Prefer: Chrome = Edge = Opera >= Firefox > Chinese built-ins > Safari).
 Connect to "Student" wifi, disconnect 5G.
 1.  If a student has an (X) next to their name then they lost connection.
     Small handheld devices may lose connection repeatedly. It is not an issue in general.
@@ -20,16 +22,22 @@ Connect to "Student" wifi, disconnect 5G.
 
 Student management:
 Click on team-colored banner, then pick a student.
+You can order them to select a different kingdom, name, rename them manually, whitelist* them,
+    or "flush" their device (which erases all their client-side stored data, resetting everything).
 
 During the game:
 SERVER -> INVALIDATE -> QUESTIONID to remove a faulty question from the question bank.
 Gradually increase SERVER -> MAXATTACKS throughout the game. Use your judgement.
+SERVER -> BOUNTY -> KINGDOM -> VALUE will have each of their territories siphon
+    that many points from their capital.
 
 Ending the game:
 1.  SERVER -> END -> Yes to end the game.
 2.  SERVER -> DISPLAY to show students the server screen.
 3.  SERVER -> DOWNLOAD to let students download a copy of the server screen,
     mind that this includes the popups so you should wait for those to disappear first.
+4.  SERVER -> PLOT lets students see and download the plot of their scores over time.
+
 
 After the game:
 1.  Close both the Electron and the server app.
@@ -40,9 +48,33 @@ After the game:
 - You can make a timelapse out of the "timelapse" pictures in the Steven/clipped folder 
   if you wish on https://sisik.eu/images-to-video
 
+- After I confirm receiving, you can erase each of these, and the entire Steven/clipped folder.
+
+
+*Whitelisting and anticheat:
+- Anticheat, if enabled, triggers when the browser tab/window running the game loses focus or visibility.
+  The teacher is notified via a server-side popup, and can also see the student's device flaring up in red.
+  Clicking the popup absolves the student.
+  Whitelisting a student disables anticheat for their device permanently. (Can "Flush" to reset.)
+- Punitive version: students are prevented for a while from interacting with the game.
+  How long this timeout is increases each offense. Recommended when merging classes.
+- Non-punitive version: students are not prevented from interacting with the game, but the server is still
+  notified and the student's UI flares up in red.
+- Known issues:
+  Taking a screenshot might trigger anticheat (I wish it would not, but that is up to the OS.)
+  Closing a popup from a different app (e.g. WeChat) might trigger anticheat.
+  In certain browsers, even interacting with the native browser UI might trigger anticheat.
+  Does not work on cellphones. (Their OS allows apps to remain focused when minimized.)
 
 
 Client (student)-side issues & fixes:
+
+Typo or autocomplete in the IP address. 
+   -The IP adress consists only of digits and dots (.) - no other characters or whitespaces.
+    If other characters are present, browsers will perform a search or fail to navigate.
+   -If the protocol autocompletes, it must be http:// and NOT https://
+   -If the port autocompletes, it must be :80 and NOT :8000, :8080 or any other.
+    (This only happens if the student played an earlier version of the game.)
 
 Most common problems: too many open tabs, too many open apps, background apps using up the bandwidth.
 Solution to each of these: turn off 5G, close all applications and close all tabs.
@@ -51,9 +83,7 @@ Can't enter fullscreen - tap the student's name in the right-upper corner.
 Image won't center, is too zoomed in, is too zoomed out - tap the gray header "Conquest game" several times.
 
 Stuck on loading screen - tap the text several times to flush and refresh.
-
-Page won't load entirely: double-check the IP address, and make sure that autocomplete did not add any ports
-(it tends to correct 10.40.1.219 to the incorrect 10.40.1.2019:8000 for example).
+Do NOT tell the students that they can do this.
 
 Slow to load or has noticeable input lag - throttling due to low battery or too many other apps running.
 
