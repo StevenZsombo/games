@@ -113,7 +113,8 @@ var univ = {
                     + (
                         `\n\nThe timer will not decrease until you move back to the game,`
                         + `\nand will restart each time you use other apps.`
-                        + `\nThe timer will get much longer on repeated offence.`)
+                        + `\nThe timer will get longer on repeated offence.`)
+                    + `\n\nIf the system put you on timeout unfairly, talk to your teacher.`
                 penWindow = popup
             }
             const endPen = (alsoProtect = false) => {
@@ -158,6 +159,21 @@ var univ = {
         betterPunish()
     },
     on_first_run: () => {
+        const checkForOldSession = () => {
+            const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
+            if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000))//older than 6 hours or none
+            {
+                //both mean that this is NOT the current conquest session
+                const nameID = localStorage.getItem("nameID") //keep nameID?
+                localStorage.clear() //also resets penalties and game rules
+                nameID && localStorage.setItem("nameID", nameID)
+                // localStorage.setItem("nameIDtimestamp", Date.now()) //done by chat now.
+                // this.acquireName() //ask for name again, which sets a recent timestamp
+                return
+            }
+        }
+        checkForOldSession()
+
         const channel = new BroadcastChannel('stevenGames')
         channel.onmessage = () => { window.close() }
         channel.postMessage('begonewithyou')
@@ -573,18 +589,6 @@ class Game extends GameCore {
         wProgress?.("\ninitalize_more()")
 
 
-
-        const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
-        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000))//older than 6 hours or none
-        {
-            //both mean that this is NOT the current conquest session
-            const nameID = localStorage.getItem("nameID") //keep nameID?
-            localStorage.clear() //also resets penalties and game rules
-            nameID && localStorage.setItem("nameID", nameID)
-            // localStorage.setItem("nameIDtimestamp", Date.now()) //done by chat now.
-            this.acquireName() //ask for name again, which sets a recent timestamp
-            return
-        }
         const isNameSetByStudent = localStorage.getItem("isNameSetByStudent")
         if (!isNameSetByStudent) {
             this.acquireName()
