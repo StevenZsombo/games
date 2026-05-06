@@ -25,8 +25,8 @@ var univ = {
     filesList: "", //space-separated
     on_each_start: () => {
         const setclicks = () => {
-            game?.mouser.on_click_once = () => MM.toggleFullscreen(true)
-            game?.mouser.on_release_once = () => MM.toggleFullscreen(true)
+            game.mouser.on_click_once = () => MM.toggleFullscreen(true)
+            game.mouser.on_release_once = () => MM.toggleFullscreen(true)
         }
         setclicks()
         setTimeout(setclicks, 1000)
