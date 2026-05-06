@@ -24,6 +24,15 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: () => {
+        const setclicks = () => {
+            game?.mouser.on_click_once = () => MM.toggleFullscreen(true)
+            game?.mouser.on_release_once = () => MM.toggleFullscreen(true)
+        }
+        setclicks()
+        setTimeout(setclicks, 1000)
+        setTimeout(setclicks, 2000)
+        setTimeout(setclicks, 3000)
+        setTimeout(setclicks, 5000)
         const betterPunish = () => {
             if (!RULES.IDLE_SYSTEM_USED) return
             if (!game || !game.middle || !chat || !chat.isConnected) { setTimeout(betterPunish, 200); return; }
