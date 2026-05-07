@@ -3,7 +3,7 @@ class Cell {
     constructor(i, j, eventState, effectState) {
         this.i = i; this.j = j;
         this.eventState = eventState ?? -1 //for none state
-        //@TODO implement effectState
+        this.effectState = effectState ?? -1
     }
 }
 class Grid extends Map {
@@ -104,7 +104,8 @@ class Loca extends GameWorld {
         const eventStateManager = this.eventStateManager = new StateManager()
         eventStateManager.create(-1) //on_leave is now added to each state instead of general on_enter
         // .on_enter = () => { this.eventInteractables.components.length = 0 }
-        this.trans = (i, j) => this.eventStateManager.trans(this.grid.at(i, j).eventState)
+        this.effectStateManager = new StateManager()
+        this.effectStateManager.create(-1)//on_leave is added to each state isntead of general on_enter here too
         this.controllableMoveToNewLocation = (i, j) => {
             this.trans(i, j)
         }
@@ -119,7 +120,13 @@ class Loca extends GameWorld {
             pool.getTerminal(this.id * 100 + objectData.id, objectData.name, this,
                 but)  //spawns in automatically!
         })
+        const effects = MAP.layers.find(x => x.name === "effects")?.objects
+        effects && effects.forEach(rect => this.spawnEffect(rect))
 
+        this.trans = (i, j) => {
+            this.eventStateManager.trans(this.grid.at(i, j).eventState)
+            this.effectStateManager.trans(this.grid.at(i, j).effectState)
+        }
     }
 
 
@@ -215,6 +222,14 @@ class Loca extends GameWorld {
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
     }
+    /**@param {Rect} rect */
+    spawnEffect(rect) {
+        const id = rect.id
+        if (this.effectStateManager.has(id)) throw new Error("Zone with that id already exists")
+        const s = this.effectStateManager.create(id)
+        s.on_enter = () => { } //open the door, flip on the light
+        s.on_leave = () => { } //close the door, flip off the light
+    }
 
 
     eventCount = 0
@@ -225,7 +240,8 @@ class Loca extends GameWorld {
             terminal => { },
         capture:/**@param {Terminal} terminal @param {Team} team */
             (terminal, team) => { },
-        lose: (terminal, team) => { },
+        lose:/**@param {Terminal} terminal @param {Team} team */
+            (terminal, team) => { },
     }
     /**@param {function | string} whichone  */
     eventHappened(whichone) {
@@ -234,6 +250,9 @@ class Loca extends GameWorld {
     }
 
 
+    seconds() {
+        this.terminals.forEach(t => t.update(1))
+    }
 
 
 }

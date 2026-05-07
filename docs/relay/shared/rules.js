@@ -1,5 +1,5 @@
 const RULES = {
-    STUDENTS: [],
+    STUDENTS: ["Ann", "Bob", "Eve", "Dan"],
 
     //mind that resources are ABOVE current folder for both client & server
     PICTURES_FOLDER: "../pictures/",
@@ -8,7 +8,16 @@ const RULES = {
     MAPFILE: "../tiled/home1.json",
     MAP_FOLDER: "../tiled/",
 
-    NUMBER_OF_TEAMS: 6,
+    QUESTION_FOLDER: "../questions/",
+    ACCURACY_FUNCTION: (attempt, solution) => {
+        //integers must be exact
+        if (Number.isInteger(solution)) return attempt == solution
+        //non-integers must be accurate to 3sf
+        return (attempt == solution) || (+attempt.toPrecision(3) == solution)
+    },
+
+
+    NUMBER_OF_TEAMS: 7,
 
 
     SERVER_BROADCAST_INTERVAL: 200,
@@ -93,7 +102,9 @@ Chat.library = {
         "enter": (personData, person) => person.enter(personData),
         "full": (_, person) => game.respondFULL_SYNC_EVENTS(person),
         "travel": (locaID, person) => person.travel(locaID),
-        "rules": () => game.diffRULES.getDifferenceJSONableOnly(RULES)
+        "rules": () => game.diffRULES.getDifferenceJSONableOnly(RULES),
+        "question": (terminalID, person) => game.grabQuestionResponse(terminalID, person),
+        "attempt": (terminalID, person) => game.attemptResponse(terminalID, person),
     },
 
 }

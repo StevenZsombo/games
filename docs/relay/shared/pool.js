@@ -35,6 +35,7 @@ class Pool {
         if (!rect) throw new Error("pool can't spawn new terminal: no ijArr given")
         t = new Terminal(type, id)
         loca.spawnTerminal(t, rect)
+        this.terminals.set(id, t)
         return t
     }
     getLoca(id) {

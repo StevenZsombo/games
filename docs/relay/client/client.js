@@ -18,7 +18,6 @@ class Game extends GameShared {
         await chat.asapPromise()
         chat.initLibrary("client")
         this.initChat()
-        this.personData = personData
         wDiv.add("Entering...")
         const enterResponse = await chat.wee("enter", personData)
         wDiv.add("Server response: OK\n")
@@ -26,19 +25,8 @@ class Game extends GameShared {
         console.log(enterResponse)
         Object.assign(personData, enterResponse)
         enterResponse.RULES && Object.assign(RULES, enterResponse.RULES)
-        this.loca = pool.getLoca(personData.locaID)
-        this.initPlayer(personData.playerID, personData.name) //gives this.me
-        await this.loca.bgReadyPromise
-        this.initInteractables()
+        await this.enterOrTravelToLoca(pool.getLoca(personData.locaID))
 
-        this.add_drawable(this.loca, 1)
-        const stars = this.starsDrawable = this.getStars()
-        this.add_drawable(stars, 0)
-        stars.update = () => {
-            stars.offsetX = stars.baseOffsetX - this.loca.worldRect.cx / 20
-            stars.offsetY = stars.baseOffsetY - this.loca.worldRect.cy / 20
-
-        }
         this.BGCOLOR = null
         this.feed = new FeedBasic(this.rect.splitCell(1, 1, 7 / 8, 6).move(20, 20),
             { height: 100 }
@@ -55,6 +43,35 @@ class Game extends GameShared {
         this.onboardingProcess()
     }
     //#endregion
+    /**@param {Loca} loca  */
+    async enterOrTravelToLoca(loca) {
+        if (this.loca && (loca !== this.loca)) {
+            //just reload..... might fix later if i feel like i really must
+            chat.delayedReload()
+            /*pool.locas.delete(this.loca)
+            this.remove_drawable(this.loca)
+            if (this.me) {
+                this.me.loca = loca
+                loca.players.push(this.me) //fucked up
+            }
+            if (this.overworld) {
+                Object.assign(loca.screenRect, this.loca.screenRect.copy)
+            }*/
+        }
+        this.loca = loca
+        this.initPlayer(personData.playerID, personData.name) //gives this.me
+        await this.loca.bgReadyPromise
+        this.initInteractables()
+
+        this.add_drawable(this.loca, 1)
+        const stars = this.starsDrawable = this.getStars()
+        this.add_drawable(stars, 0)
+        stars.update = () => {
+            stars.offsetX = stars.baseOffsetX - this.loca.worldRect.cx / 20
+            stars.offsetY = stars.baseOffsetY - this.loca.worldRect.cy / 20
+        }
+        return
+    }
 
     async onboardingProcess() {
         const storedPersonData = localStorage.getItem("personData")
@@ -166,7 +183,7 @@ class Game extends GameShared {
                         buttonColor: x.color, yesColor: "white", noColor: "white"
                     })
                     cb.promise().then(() => {
-                        personData.teamID = x.tag
+                        personData.teamID = i
                         personData.teamName = x.name
                         personData.teamColor = x.color
                         this.remove_drawable(fm)
@@ -187,7 +204,7 @@ class Game extends GameShared {
         s.baseOffsetY = GRAPHICS.STARS_BASE_OFFSET[1]
         return s
     }
-
+    /**@type {GameWorld} */
     overworld = null
     canChangeOverWorldState = true
     seeOverworld() {
@@ -350,15 +367,21 @@ class Game extends GameShared {
             floatTime: 2000
         })
     }
+    ptt(txt) {
+        GameEffects.popup(txt, {
+            posFrac: [.725, .825], sizeFrac: [.525, .325],
+            floatTime: 5000,
+            moreButtonSettings:
+                { color: "red" }
+        })
+    }
 
     tryTravelTo(locaID) {
         chat.wee("travel", locaID)
             .then((response) => {
                 this.psr(response.deny || response.accept)
                 if (response.accept) {
-                    this.loca = null
-                    pool.locas.clear()
-                    this.loca = pool.getLoca(locaID)
+                    this.enterOrTravelToLoca(pool.getLoca(locaID))
                 }
                 this.goodness("travel")
             })

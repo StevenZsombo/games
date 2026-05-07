@@ -48,7 +48,9 @@ class Terminal {
     txt = null //will be set dynamically!
     /**@type {?Team} */
     team = null //can be null.
+    exposedTo = Team.ALL//can be null, should default to Team.ALL?
     active = false //produces if active.
+    seconds = 0
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
@@ -57,7 +59,7 @@ class Terminal {
         this.type = type
         this.terminal = row[0]
         this.delay = row[1]
-        this.question = row[2]
+        this.bucket = row[2]
         this.pretty = row[3]
         this.action = row[4]
         this.description = row.at(-3) || ""
@@ -129,9 +131,84 @@ class Terminal {
     }
     tryAction() {
         if (!this.isStandingOn) return
-        GameEffects.popup(
+        switch (this.action) {
+            case Terminal.ACTIONS.REPAIR:
+            case Terminal.ACTIONS.RESTORE:
+                this.grabQuestionClient()
+                break;
+            case Terminal.TRAVEL:
+            case Terminal.WORLDMAP:
+                game.seeOverworld()
+                break;
+            case Terminal.SEEUPGRADES:
+                break;
+            //CAPTURE,CLAIM,HACK are todo
+            default:
+                break;
+        }
+        /*GameEffects.popup(
             `You can ${this.action} the ${this.pretty}`,
-            { moreButtonSettings: { color: "lightgreen" } })
+            { moreButtonSettings: { color: "lightgreen" } })*/
+    }
+    /**@type {Question} */
+    question = null
+    grabQuestionServer() {
+        if (!this.question) {
+            const qID = Question.pickQuestionID((this.exposedTo || Team.ALL), (this.bucket || 0))//shitty
+            if (qID == null) return
+            this.question = Question.ALL[qID]
+        }
+    }
+    grabQuestionClient() {
+        chat.wee("question", this.id)
+            .then(qID => {
+                this.question = Question.ALL[qID]
+                if (qID == null) {
+                    game.ptt("Server is out of questions.\nTalk to your teacher.")
+                } else {
+                    GameEffects.popup("Loading question:" + qID)
+                }
+                game.goodness("question")
+            })
+            .catch(() => {
+                game.badness("question")
+            })
+    }
+    grabQuestionResponse() {//called on server by client "question"
+        this.grabQuestionServer()
+        return this.question?.id
+    }
+    grabQuestion() {
+        chat.isServer ? this.grabQuestionServer() : this.grabQuestionClient()
+    }
+
+    static ACTIONS = {
+        "REPAIR": "REPAIR",
+        "WORLDMAP": "WORLDMAP",
+        "TRAVEL": "TRAVEL",
+        "SEEUPGRADES": "SEEUPGRADES",
+        "CAPTURE": "CAPTURE",
+        "CLAIM": "CLAIM",
+        "HACK": "HACK", //TBD if i keep it
+        "RESTORE": "RESTORE",
+    }
+
+    update(dt = 1) { //call every second via clockwork?
+        if (!this.active) return
+        if (!this.team) {
+            this.active = false
+            return
+        }
+        this.seconds -= dt //dt=1 is called every second
+        if (this.seconds % 60 === 0) {
+            this.resources.forEach(r => {
+                this.team.wealth[r[0]] += r[1]
+            })
+        }
+        if (this.seconds <= 0) {
+            this.active = false
+            return
+        }
     }
 
 }

@@ -84,10 +84,10 @@ class Player extends Button {
         ))
     }
     setTarget(i, j) {
-        if (!this.loca.grid.valid(i, j)) {
+        /*if (!this.loca.grid.valid(i, j)) {
             console.log("invalid target", { i, j })
             return
-        }
+        }*/
         if (this.target?.[0] === i && this.target?.[1] === j) return //already getting there
         this.target = [i, j]
         this.path = this.getPathTo(i, j)

@@ -98,7 +98,7 @@ class Game extends GameShared {
     loadAllLoca() {
         Loca.PRESETS.forEach((r, i) => {
             r.name && this.galaxy.add(pool.getLoca(i))
-            if (r.homeOf) { //was read from presets already
+            if (r.homeOf != null) { //was read from presets already
                 Team.ALL[r.homeOf].homebase = pool.getLoca(i)
             }
 
@@ -133,10 +133,10 @@ class Game extends GameShared {
 
 
 
+
+
         RELOAD()
 
-
-        RULES.STUDENTS = "Ann Bob Cecil Dan Frank".split(" ")
 
     }
 
@@ -144,6 +144,13 @@ class Game extends GameShared {
         this.spopFeed = new FeedBasic(this.rect.splitCell(1, 1, 1.5, 3).move(20, 20), { color: "lightgreen" }, true)
         this.bpopFeed = new FeedBasic(this.rect.splitCell(1, -1, 1.5, 3).move(-20, 20), { color: "red" }, true)
         this.add_drawable([this.spopFeed, this.bpopFeed])
+
+        this.clockworkSecondsExtras = []
+        this.animator.createClockwork(1000, () => this.clockworkSecondsExtras.forEach(fn => fn()))
+
+        // this.clockworkUpdateTerminals = () => { pool.locas.forEach(l => l.terminals.forEach(t => t.update(1))) }
+        this.clockworkUpdateTerminals = () => { pool.locas.forEach(l => l.seconds(1)) }
+        this.clockworkSecondsExtras.push(this.clockworkUpdateTerminals)
     }
     spop(txt, timeout = 1500) { this.spopFeed.add(txt, { timeout }) }
     bpop(txt, timeout = 1500) { this.bpopFeed.add(txt, { timeout }) }
@@ -168,6 +175,20 @@ class Game extends GameShared {
         }
         chat.spam("bc", payload)
     }
+
+
+    grabQuestionResponse(terminalID, person) {
+        if (!pool.terminals.has(terminalID)) {
+            console.error("invalid request for terminal " + terminalID)
+            return
+        }
+        const t = pool.getTerminal(terminalID)
+        return t.grabQuestionResponse()
+    }
+    attemptResponse(terminalID, person) {
+
+    }
+
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
     ///                                                                                                              ///
