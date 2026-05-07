@@ -680,8 +680,8 @@ Chat.getLibrary = () => {
             bounce: { client: x => x, server: x => x, },
             log: { client: v => console.log("%cserver:\n", 'background: #18f000de', v) },
             popup: {
-                client: txt => GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE),
-                server: txt => GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE),
+                client: txt => { GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE) },
+                server: txt => { GameEffects.popup(txt, undefined, GRAPHICS.POPUP_SERVER_RESPONSE) },
             }
         },
 
