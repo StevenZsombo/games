@@ -389,7 +389,106 @@ class Game extends GameShared {
                 this.badness("travel")
             })
     }
+    /**@type {Map<Terminal, Malleable>} */
+    qpanes = new Map()
+    /**@param {Terminal} terminal  */
+    openQPane(terminal) {
+        if (this.qpanes.has(terminal)) {
+            this.qpanes.get(terminal).activate()
+            return
+        }
+        if (terminal.question == null) return //throw new Error("openQPane but no terminal.question")
+        const p = new Malleable()
+        this.qpanes.set(terminal, p)
+        const questionButton = new Button({ color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR })
+        questionButton.leftat(GRAPHICS.LEFT)
+        questionButton.rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
+        questionButton.topat(GRAPHICS.TOP)
+        questionButton.bottomstretchat(this.HEIGHT - GRAPHICS.BOTTOM - GRAPHICS.ANSWER_AREA_HEIGHT)
+        questionButton.img = this.cropper.load_img(RULES.QUESTION_FOLDER + terminal.question + ".png")
 
+        const revealer = new Button({ width: 160, height: 60, color: "lightgray" })
+        revealer.rightat(questionButton.right)
+        revealer.topat(questionButton.top)
+        revealer.txt = `Q${terminal.question.id}`
+
+        const bottomBGArea = questionButton.copyRect
+        bottomBGArea.topat(questionButton.bottom)
+        const bottomButtons = questionButton.splitCol(1, 4, 2, 3)
+            .map(x => Button.fromRect(x, { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR }))
+        const [botYourAns, botAnswerSpace, botSubmit, botInfo] = bottomButtons
+        botYourAns.txt = "Your answer:"
+        botAnswerSpace.color = personData.teamColor
+        botAnswerSpace.font_font = "myMonospace"
+        botSubmit.color = personData.teamColor
+        botSubmit.txt = "Submit"
+        botInfo.txt = "Info goes here"
+
+        const calculatorBGArea = new Rect()
+        calculatorBGArea.leftat(questionButton.right)
+        calculatorBGArea.rightstretchat(this.WIDTH)
+        calculatorBGArea.height = calculatorBGArea.width * 2
+        calculatorBGArea.centeratY(Anim.interpol(questionButton.top, questionButton.bottom, .4))
+        const calculatorButtons = calculatorBGArea.splitGrid(5, 3).flat()
+            .map(x => Button.fromRect(x, {
+                color: personData.teamColor,
+                fontSize: 40,
+                font_font: "myMonospace"
+            }))
+            .map(x => x.shrinkToSquare().stretch(.95, .95))
+        const ans = botAnswerSpace
+        ans.txt = ""
+        const sendFancy = (b) => GameEffects.sendFancy(b, botAnswerSpace, 500)
+        calculatorButtons.forEach((x, i) => {
+            if (i < 9) {
+                x.txt = i + 1
+                x.on_release = () => {
+                    ans.txt += "" + i; sendFancy(x)
+                }
+            } else if (i == 9) {
+                x.txt = "+/-"
+                x.on_release = () => {
+                    ans.txt = ans.txt?.[0] === "-" ? ans.txt.slice(1) : "-" + ans.txt; sendFancy(x)
+                }
+            }
+            else if (i == 10) {
+                x.txt = "0"
+                x.on_release = () => {
+                    ans.txt += "" + "0"; sendFancy(x)
+                }
+            }
+            else if (i == 11) {
+                x.txt = "."
+                x.on_release = () => {
+                    ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
+                }
+            }
+            else if (i == 12) {
+                x.txt = "Del"
+                x.on_release = () => {
+                    ans.txt = ""; sendFancy(x)
+                }
+            }
+        })
+
+
+
+        p.push(questionButton, revealer)
+        // p.isBlocking = true
+        // p.forEach(x => x.isBlocking = true)
+        this.freezeInteractables()
+        this.add_drawable(p, 7) //just below the popups?
+    }
+
+    /**@param {Malleable} qpane*/
+    closeQPane(qpane) { //boilerplatey...
+        qpane.deactivate()
+        this.unfreezeInteractables()
+    }
+    /**@param {Malleable} qpane*/
+    destroyQPane(qpane) {
+        qpane.destroy()
+    }
 
 } //this is the last closing brace for class Game
 

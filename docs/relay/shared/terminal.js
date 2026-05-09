@@ -93,13 +93,13 @@ class Terminal {
 
 
     getInspectFromAfarText() {
-        return this.pretty
+        return this.pretty + (this.active ? "" : ("\n" + this.action))
     }
     putInspectFromAfarText() {
         this.txt = this.getInspectFromAfarText()
     }
     getStandingOnText() {
-        return this.pretty + "\n" + this.action
+        return this.pretty + (this.active ? "" : ("\n" + this.action))
     }
     putStandingOnText() {
         this.txt = this.getStandingOnText()
@@ -166,7 +166,7 @@ class Terminal {
                 if (qID == null) {
                     game.ptt("Server is out of questions.\nTalk to your teacher.")
                 } else {
-                    GameEffects.popup("Loading question:" + qID)
+                    game.openQPane(this)
                 }
                 game.goodness("question")
             })
