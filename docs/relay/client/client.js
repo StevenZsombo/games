@@ -28,9 +28,10 @@ class Game extends GameShared {
         await this.enterOrTravelToLoca(pool.getLoca(personData.locaID))
 
         this.BGCOLOR = null
-        this.feed = new FeedBasic(this.rect.splitCell(1, 1, 7 / 8, 6).move(20, 20),
-            { height: 100 }
+        this.feed = new FeedBasic(this.rect.copy.move(0, GRAPHICS.FEED_MARGIN),
+            { height: GRAPHICS.FEED_HEIGHT, width: GRAPHICS.FEED_WIDTH, x: GRAPHICS.FEED_MARGIN }
         )
+        this.add_drawable(this.feed, 8)
 
 
         if (RULES.DEBUG_MODE) this.debugMode()
@@ -101,7 +102,7 @@ class Game extends GameShared {
         }
         const prom = new Promise(resolve => {
             const buts = Array(4).fill().map((_, i) => new Button({
-                width: 600, height: 300, txt: "Click me!", visible: i == 0, on_click:
+                width: 600, height: 300, txt: "Click me!", visible: i == 0, on_release:
                     function () {
                         MM.toggleFullscreen(true)
                         this.visible = false
@@ -378,15 +379,15 @@ class Game extends GameShared {
 
     tryTravelTo(locaID) {
         chat.wee("travel", locaID)
+            .catch(() => {
+                this.badness("travel")
+            })
             .then((response) => {
                 this.psr(response.deny || response.accept)
                 if (response.accept) {
                     this.enterOrTravelToLoca(pool.getLoca(locaID))
                 }
                 this.goodness("travel")
-            })
-            .catch(() => {
-                this.badness("travel")
             })
     }
     /**@type {Map<Terminal, Malleable>} */
@@ -395,6 +396,7 @@ class Game extends GameShared {
     openQPane(terminal) {
         if (this.qpanes.has(terminal)) {
             this.qpanes.get(terminal).activate()
+            this.freezeInteractables()
             return
         }
         if (terminal.question == null) return //throw new Error("openQPane but no terminal.question")
@@ -405,35 +407,40 @@ class Game extends GameShared {
         questionButton.rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
         questionButton.topat(GRAPHICS.TOP)
         questionButton.bottomstretchat(this.HEIGHT - GRAPHICS.BOTTOM - GRAPHICS.ANSWER_AREA_HEIGHT)
-        questionButton.img = this.cropper.load_img(RULES.QUESTION_FOLDER + terminal.question + ".png")
+        questionButton.img = this.cropper.load_img(RULES.QUESTION_FOLDER + terminal.question.img + ".png")
 
         const revealer = new Button({ width: 160, height: 60, color: "lightgray" })
         revealer.rightat(questionButton.right)
         revealer.topat(questionButton.top)
         revealer.txt = `Q${terminal.question.id}`
 
-        const bottomBGArea = questionButton.copyRect
+        const bottomBGArea = Button.fromRectShallow(questionButton)
+        bottomBGArea.height = GRAPHICS.ANSWER_AREA_HEIGHT
         bottomBGArea.topat(questionButton.bottom)
-        const bottomButtons = questionButton.splitCol(1, 4, 2, 3)
-            .map(x => Button.fromRect(x, { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR }))
+        const bottomButtons = bottomBGArea.splitCol(2, 4, 2, 3)
+            .map(x => Button.fromRect(x, { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR, fontSize: 36 }))
         const [botYourAns, botAnswerSpace, botSubmit, botInfo] = bottomButtons
+        // bottomButtons.unshift(bottomBGArea)
         botYourAns.txt = "Your answer:"
         botAnswerSpace.color = personData.teamColor
-        botAnswerSpace.font_font = "myMonospace"
+        botAnswerSpace.fontSize = 60
+        // botAnswerSpace.font_font = "myMonospace"
         botSubmit.color = personData.teamColor
         botSubmit.txt = "Submit"
+        // Button.make_roundedRect(botSubmit)
         botInfo.txt = "Info goes here"
 
         const calculatorBGArea = new Rect()
         calculatorBGArea.leftat(questionButton.right)
         calculatorBGArea.rightstretchat(this.WIDTH)
+        calculatorBGArea.deflate(10, 10)
         calculatorBGArea.height = calculatorBGArea.width * 2
-        calculatorBGArea.centeratY(Anim.interpol(questionButton.top, questionButton.bottom, .4))
+        calculatorBGArea.centeratY(Anim.interpol(questionButton.top, questionButton.bottom, .5))
         const calculatorButtons = calculatorBGArea.splitGrid(5, 3).flat()
             .map(x => Button.fromRect(x, {
                 color: personData.teamColor,
                 fontSize: 40,
-                font_font: "myMonospace"
+                // font_font: "myMonospace"
             }))
             .map(x => x.shrinkToSquare().stretch(.95, .95))
         const ans = botAnswerSpace
@@ -442,52 +449,92 @@ class Game extends GameShared {
         calculatorButtons.forEach((x, i) => {
             if (i < 9) {
                 x.txt = i + 1
-                x.on_release = () => {
-                    ans.txt += "" + i; sendFancy(x)
+                x.on_click = () => {
+                    ans.txt += "" + (i + 1); sendFancy(x)
                 }
             } else if (i == 9) {
                 x.txt = "+/-"
-                x.on_release = () => {
+                x.on_click = () => {
                     ans.txt = ans.txt?.[0] === "-" ? ans.txt.slice(1) : "-" + ans.txt; sendFancy(x)
                 }
             }
             else if (i == 10) {
                 x.txt = "0"
-                x.on_release = () => {
+                x.on_click = () => {
                     ans.txt += "" + "0"; sendFancy(x)
                 }
             }
             else if (i == 11) {
                 x.txt = "."
-                x.on_release = () => {
+                x.on_click = () => {
                     ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
                 }
             }
             else if (i == 12) {
                 x.txt = "Del"
-                x.on_release = () => {
+                x.on_click = () => {
                     ans.txt = ""; sendFancy(x)
                 }
+            } else if (i == 13) {
+                x.stretch(3, 1)
+                x.move(0, calculatorButtons[4].y - calculatorButtons[0].y)
+                x.color = "lightgray"
+                x.txt = "Back to game"
+                x.on_release = () => { this.closeQPane() }
             }
         })
 
 
+        const submit = botSubmit
+        submit.on_release = () => {
+            if (ans.txt === "" || ans.txt == null) return
+            const attempt = +ans.txt
+            if (!Number.isFinite(attempt)) throw new Error("Somehow the number is invalid???")
+            ans.txt = ""
+            submit.txt = "Waiting..."
+            submit.interactable = false
+            const cleanup = () => {
+                submit.txt = "Submit"
+                submit.interactable = true
+            }
+            terminal.question.attemptClient(terminal, attempt)
+                .catch(() => {
+                    this.badness("attempt")
+                    cleanup()
+                })
+                .then((correct) => {
+                    this.goodness("attempt")
+                    cleanup()
+                    if (correct) {
+                        this.psr("Correct")
+                        this.destroyQPaneOfTerminal(terminal)
+                    }
+                    else {
+                        this.psr(`Your answer of ${attempt} is incorrect.`)
+                    }
+                })
 
-        p.push(questionButton, revealer)
+        }
+
+
+        p.push(questionButton, revealer, ...calculatorButtons, ...bottomButtons)
         // p.isBlocking = true
         // p.forEach(x => x.isBlocking = true)
-        this.freezeInteractables()
+        this.freezeInteractables(true)
         this.add_drawable(p, 7) //just below the popups?
     }
 
     /**@param {Malleable} qpane*/
     closeQPane(qpane) { //boilerplatey...
+        if (qpane === undefined) { this.qpanes.forEach(v => this.closeQPane(v)); return; }
         qpane.deactivate()
         this.unfreezeInteractables()
     }
-    /**@param {Malleable} qpane*/
-    destroyQPane(qpane) {
-        qpane.destroy()
+    /**@param {Terminal} terminal*/
+    destroyQPaneOfTerminal(terminal) {
+        this.closeQPane()
+        this.qpanes.get(terminal)?.destroy()
+        this.qpanes.delete(terminal)
     }
 
 } //this is the last closing brace for class Game
@@ -548,7 +595,9 @@ const dev = {
     // flush: () => { localStorage.clear(); chat.delayedReload() },
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + chat.pingRecord, { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
+    speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
+
 
 
 }/// end of dev

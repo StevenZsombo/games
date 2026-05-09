@@ -2182,7 +2182,7 @@ class GameEffects {
         const cp = b.copy
         Object.assign(cp, newParamsForCopy)
         cp.interactable = false
-        game.add_drawable(cp)
+        game.add_drawable(cp, 9)
 
         const startX = cp.centerX
         const startY = cp.centerY

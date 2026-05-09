@@ -172,19 +172,26 @@ class GameShared extends GameCore {
         zoomSlider.value = 1
         zoomSlider.adjustZoomOfLoca()
 
-        this.unfreezeInteractables()
-    }
 
-    freezeInteractables() {
-        this.remove_drawables_batch([this.sinteract, this.tinteract, this.zoomSlider])
-        this.loca.remove_drawable(this.winteract)
-        this.shouldFollowGlobal = false
-    }
-    unfreezeInteractables() {
+
         this.add_drawable(this.sinteract, 0) //below even the loca - should be blocked by EVERYTHING
         this.add_drawable(this.tinteract, 7) //on top = above everything save popups
         this.add_drawable(this.zoomSlider, 8)
         this.loca.add_drawable(this.winteract, 0) //below everything else
+
+        this.unfreezeInteractables()
+    }
+
+    freezeInteractables(doNotDisableCamera = false) {
+        for (const x of [this.sinteract, this.tinteract, this.winteract, this.zoomSlider, this.zoomSlider.movingButton])
+            x.interactable = false
+        this.zoomSlider.visible = true
+        this.shouldFollowGlobal = doNotDisableCamera
+    }
+    unfreezeInteractables() {
+        for (const x of [this.sinteract, this.tinteract, this.winteract, this.zoomSlider, this.zoomSlider.movingButton])
+            x.interactable = true
+        this.zoomSlider.visible = true
         this.shouldFollowGlobal = true
     }
 
@@ -201,7 +208,7 @@ class GameShared extends GameCore {
     badness(code) {
         if (!this.badnessButton) {
             const bb = this.badnessButton = Button.fromRect(this.rect.copy.splitCell(-1, -1, 5, 3.5).move(-20, -20))
-            this.add_drawable(this.badnessButton)
+            this.add_drawable(this.badnessButton, 9)  //completely on top
             bb.color = "red"
             bb.tag = "badnessButton"
             bb.check = null //no interactions, just info!

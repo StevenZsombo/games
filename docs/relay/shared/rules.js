@@ -58,11 +58,14 @@ const GRAPHICS = {
     STARS_ANIMATE_ON_OVERWORLD: false,
     STARS_HIDE_ON_OVERWORLD: false,
 
-    TOP: 40,
-    BOTTOM: 40,
-    LEFT: 10,
-    RIGHT: 360,
-    ANSWER_AREA_HEIGHT: 200,
+    TOP: 80,
+    BOTTOM: 80,
+    LEFT: 360,
+    RIGHT: 300,
+    ANSWER_AREA_HEIGHT: 80,
+    FEED_MARGIN: 10,
+    FEED_WIDTH: 330,
+    FEED_HEIGHT: 60,
     NEUTRAL_BUTTON_BG_COLOR: "antiquewhite"
 
 }
@@ -110,7 +113,7 @@ Chat.library = {
         "travel": (locaID, person) => person.travel(locaID),
         "rules": () => game.diffRULES.getDifferenceJSONableOnly(RULES),
         "question": (terminalID, person) => game.grabQuestionResponse(terminalID, person),
-        "attempt": (terminalID, person) => game.attemptResponse(terminalID, person),
+        "attempt": ([terminalID, guess], person) => game.attemptResponse(terminalID, guess, person),
     },
 
 }

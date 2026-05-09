@@ -185,8 +185,17 @@ class Game extends GameShared {
         const t = pool.getTerminal(terminalID)
         return t.grabQuestionResponse()
     }
-    attemptResponse(terminalID, person) {
-
+    attemptResponse(terminalID, guess, person) {
+        if (!pool.terminals.has(terminalID)) {
+            console.error("invalid request for terminal " + terminalID)
+            return
+        }
+        const t = pool.getTerminal(terminalID)
+        if (!t.question) {
+            console.error("invalid request for question " + terminalID)
+        }
+        const result = t.question.attemptServer(guess)
+        return result
     }
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

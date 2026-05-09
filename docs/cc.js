@@ -1521,7 +1521,7 @@ class QPane extends Panel {
             if (Date.now() - this.submissionTimestamps.at(-1) < this.submissionCooldown) {
                 return
             }
-            if (this.submissionTimestamps.length >= 2//third attempt
+            if (this.submissionTimestamps.length >= 5//sixth attempt
                 &&
                 Date.now() - this.submissionTimestamps.at(-3) < 20 * 1000) {//within 20s
                 this.submissionCooldown = RULES.SPAM_SUBMIT_PENALTY_LENGTH
