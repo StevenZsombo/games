@@ -55,7 +55,8 @@ class Loca extends GameWorld {
     tag = "Loca"
     isBlocking = true
     isVisibleGlobally = true
-    isExlusiveToTeamID = null
+    /**@type {?number} */
+    exlusiveToTeamID = null
     constructor(fromfile, name, id) {
         super(globalThis.game.rect.copy)
         this.id = id

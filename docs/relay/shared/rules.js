@@ -17,7 +17,7 @@ const RULES = {
     },
 
 
-    NUMBER_OF_TEAMS: 7,
+    NUMBER_OF_TEAMS: 6,
 
 
     SERVER_BROADCAST_INTERVAL: 200,
@@ -66,7 +66,8 @@ const GRAPHICS = {
     FEED_MARGIN: 10,
     FEED_WIDTH: 330,
     FEED_HEIGHT: 60,
-    NEUTRAL_BUTTON_BG_COLOR: "antiquewhite"
+    NEUTRAL_BUTTON_BG_COLOR: "linen",
+    NEUTRAL_LOCA_COLOR: "linen",
 
 }
 /**
@@ -79,6 +80,7 @@ const GRAPHICS = {
  *   - `l` is localID
  *   - `p` is positions array [playerID, i, j]
  *   - `e` is eventCount
+ *   - `o` is owner teamID, if any
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount

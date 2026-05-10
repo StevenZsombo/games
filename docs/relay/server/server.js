@@ -57,7 +57,7 @@ class Person extends Participant {
         if (locaID === undefined) return { deny: "Invalid location request." }
         if (!pool.locas.has(locaID)) return { deny: "Requested location does not exist." }
         const loca = pool.getLoca(locaID)
-        if (loca.isExlusiveToTeamID != null && loca.isExlusiveToTeamID != this.team.id) return { deny: `Your team is not allowed to visit ${loca.name}.` }
+        if (loca.exlusiveToTeamID != null && loca.exlusiveToTeamID != this.team.id) return { deny: `Your team is not allowed to visit ${loca.name}.` }
         this.p.changeLoca(loca)
         return { accept: `You will travel to ${loca.name}.` }
     }
@@ -110,6 +110,17 @@ class Game extends GameShared {
         }))
     }
 
+    loadAllTerminalInteractions() {
+        Team.ALL.forEach(team => {
+            if (!team.homebase) throw new Error(`team ${team.name} has no homebase`)
+            team.homebase.exlusiveToTeamID = team.id
+            team.homebase.terminals.forEach(t => {
+                t.exposedTo = [team]
+                t.team = team
+            })
+        })
+    }
+
     async initialize_async() {
         this.diffRULES = MM.differenceManager(RULES)
 
@@ -120,6 +131,9 @@ class Game extends GameShared {
         this.loadAllLoca()
         await Promise.all(Array.from(this.galaxy).map(x => x.bgReadyPromise))
         spop(`Loaded ${this.galaxy.size} locations.`)
+        this.loadAllTerminalInteractions()
+
+
         this.loca = this.galaxy.values().next().value
         this.loca.worldRect.putOver(this.loca.bg)
         this.add_drawable(this.loca, 1) //no player for server. sadge.
@@ -163,7 +177,7 @@ class Game extends GameShared {
         // person.wee("full",payload)
         return 123456
     }
-
+    //#region BROADCAST_SEND
     BROADCAST_SEND() {
         const payload = []
         for (const loca of pool.locas.values()) {
@@ -171,12 +185,13 @@ class Game extends GameShared {
             payload.push({
                 l: loca.id,
                 p: loca.players.map(p => [p.id, p.i, p.j]),
-                e: loca.eventCount
+                e: loca.eventCount,
+                o: loca.exlusiveToTeamID
             })
         }
         chat.spam("bc", payload)
     }
-
+    //#endregion
 
     grabQuestionResponse(terminalID, person) {
         if (!pool.terminals.has(terminalID)) {
@@ -186,6 +201,7 @@ class Game extends GameShared {
         const t = pool.getTerminal(terminalID)
         return t.grabQuestionResponse()
     }
+    /**@param {Person} person  */
     attemptResponse(terminalID, guess, person) {
         if (!pool.terminals.has(terminalID)) {
             console.error("invalid request for terminal " + terminalID)
@@ -196,6 +212,7 @@ class Game extends GameShared {
             console.error("invalid request for question " + terminalID)
         }
         const result = t.question.attemptServer(guess)
+        if (result) person.team.solvedQuestionsIDs.add(t.question.id)
         return result
     }
 

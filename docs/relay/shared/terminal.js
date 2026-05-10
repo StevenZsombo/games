@@ -141,6 +141,9 @@ class Terminal {
                 game.seeOverworld()
                 break;
             case Terminal.ACTIONS.SEEUPGRADES:
+                GameEffects.popup("Guide on updates goes here.", {
+                    close_on_release: true, floatTime: 5000
+                }, GameEffects.popupPRESETS.megaBlue)
                 break;
             //CAPTURE,CLAIM,HACK are todo
             default:
@@ -157,6 +160,7 @@ class Terminal {
             const qID = Question.pickQuestionID((this.exposedTo || Team.ALL), (this.bucket || 0))//shitty
             if (qID == null) return
             this.question = Question.ALL[qID]
+            this.exposedTo.forEach(team => team.seenQuestionsIDs.add(qID))
         }
     }
     grabQuestionClient() {

@@ -227,11 +227,13 @@ class Game extends GameShared {
                 Object.assign(this.loca.screenRect, Anim.interpolRect(origplace, targetplace,
                     Anim.l.sqrt(t)))
                 locabuttons.forEach(x => x.opacity = 1 - t)
+                circleDrawable.opacity = 1 - t
                 if (GRAPHICS.STARS_ANIMATE_ON_OVERWORLD)
                     null
             }, "", {
             on_end: () => {
                 locabuttons.forEach(x => x.opacity = 0)
+                circleDrawable.opacity = 0
                 this.remove_drawable(this.loca)
                 this.canChangeOverWorldState = true
             }
@@ -242,12 +244,16 @@ class Game extends GameShared {
         const whereAmICurrently = locabuttons.find(x => x.locaID === this.loca.id)
         // whereAmICurrently.color = personData.teamColor
         const circleDrawable = {
-            draw: (ctx) => MM.drawEllipse(ctx,
-                whereAmICurrently.centerX, whereAmICurrently.centerY,
-                whereAmICurrently.width * .7, whereAmICurrently.height * .7,
-                { color: null, outline_color: personData.teamColor, outline: 5 })
+            opacity: 1,
+            draw(ctx) {
+                MM.drawEllipse(ctx,
+                    whereAmICurrently.centerX, whereAmICurrently.centerY,
+                    whereAmICurrently.width * .7, whereAmICurrently.height * .7,
+                    { color: null, outline_color: personData.teamColor, outline: 5, opacity: this.opacity })
+            }
         }
         this.overworld.add_drawable(circleDrawable)
+        this.overworld.circleDrawable = circleDrawable
 
         const addLocaButtonInteractions = () => {
             let latestMenu
@@ -280,6 +286,7 @@ class Game extends GameShared {
             null, GRAPHICS.OVERWORLD_TRANSITION_TIME, t => {
                 Object.assign(this.loca.screenRect, Anim.interpolRect(origplace, targetplace, t))
                 locabuttons.forEach(x => x.opacity = t)
+                overworld.circleDrawable.opacity = t
                 if (GRAPHICS.STARS_ANIMATE_ON_OVERWORLD)
                     null
             }, "", {
@@ -296,20 +303,23 @@ class Game extends GameShared {
         this.animator.add_anim(zoomInFromOverworldToLoca)
     }
 
+    //#region BROADCAST_RECEIVE
     galaxyLocaIDs = []
-
-    /**@param {Broadcast} broadCastData  */
-    BROADCAST_RECEIVE(broadCastData) {
+    latestBroadcastDetails = { data: [], time: 0 }
+    /**@param {Broadcast} broadcastData  */
+    BROADCAST_RECEIVE(broadcastData) {
+        this.latestBroadcastDetails.data = broadcastData
+        this.latestBroadcastDetails.time = Date.now()
         const myLoca = this.loca
-        for (const item of broadCastData) {
+        for (const item of broadcastData) {
             if (item.l !== myLoca.id) continue
             for (const [playerID, i, j] of item.p) {
                 pool.getPlayer(playerID, myLoca).drift = [i, j]
             }
         }
-        this.galaxyLocaIDs = broadCastData.map(x => x.l).filter(x => x != null)
+        this.galaxyLocaIDs = broadcastData.map(x => x.l).filter(x => x != null)
     }
-
+    //#endregion
 
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -535,7 +545,7 @@ class Game extends GameShared {
                     this.goodness("attempt")
                     cleanup()
                     if (correct) {
-                        this.psr("Correct")
+                        this.psr("Correct!")
                         this.destroyQPaneOfTerminal(terminal)
                     }
                     else {

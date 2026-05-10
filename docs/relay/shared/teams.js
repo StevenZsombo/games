@@ -5,9 +5,9 @@ class Team {
     get membersAsArray() { return Array.from(this.members) }
     /**@type {?Loca} */
     homebase = null
-    seenQuestions = new Set()
-    activeQuestions = new Set()
-    solvedQuestions = new Set() //not needed? would be nice not having to worry about
+    seenQuestionsIDs = new Set()
+    // activeQuestionsIDs = new Set() //not needed? would be nice not having to worry about
+    solvedQuestionsIDs = new Set()
 
 
     static defaultColors = Object.freeze([
@@ -71,7 +71,7 @@ class Question {
         if (!Array.isArray(whichTeams)) whichTeams = [whichTeams]
         for (let i = minBucket; i < 100; i++) {
             for (const qID of Question.BUCKETS[i])
-                if (whichTeams.every(x => !x.seenQuestions.has(qID))) return qID
+                if (whichTeams.every(x => !x.seenQuestionsIDs.has(qID))) return qID
         }
         //if no questions can be found:
         bpop(`Out of questions for ${whichTeams.map(x => x.name).join("&")}.`)
