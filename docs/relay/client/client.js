@@ -1,11 +1,13 @@
 const personData = {
-    name: "Bob",
+    name: "UNNAMED",
     get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
-    playerID: MM.randomInt(1, 99),
-    locaID: 0,
-    teamID: 0,
-    teamColor: Team.ALL[0].color,
-    teamName: Team.ALL[0].name,
+    playerID: -1,
+    locaID: -1,
+    teamID: -1,
+    teamColor: null,//str
+    teamName: null,//str
+    /**@type {number[]} */
+    teamWealth: [],//num[]
 }
 
 class Game extends GameShared {
@@ -33,6 +35,7 @@ class Game extends GameShared {
         )
         this.add_drawable(this.feed, 8)
 
+        this.loadUI()
 
         if (RULES.DEBUG_MODE) this.debugMode()
         this.hasFinishedLoading = true
@@ -44,6 +47,42 @@ class Game extends GameShared {
         this.onboardingProcess()
     }
     //#endregion
+    //#region loadUI
+    loadUI() {
+        const corner = this.corner = new Button({
+            x: 20,
+            width: GRAPHICS.LEFT * GRAPHICS.CORNER_WIDTH_COEFF - 20, height: GRAPHICS.LEFT * GRAPHICS.CORNER_HEIGHT_COEFF,
+            color: personData.teamColor,
+            opacity: 0.6,
+        })
+        // corner.on_enter = () => corner.opacity = 0; corner.on_leave = () => corner.opacity = 0.5
+        corner.bottomat(this.HEIGHT - 20)
+        corner.dynamicText = () => MM.tableStr(
+            personData.teamWealth.map((x, i) => [Team.resourceNames[i], x]))
+        corner.font_font = "myMonospace"
+        corner.fontSize = 20
+        corner.textSettings = { textBaseline: "top", textAlign: "left", opacity: 0, color: "white", }
+        this.add_drawable(corner, 7)
+
+        const header = this.header = new Button({
+            x: 0, y: 0, width: this.WIDTH, height: GRAPHICS.FEED_MARGIN,
+            color: personData.teamColor,//GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+        })
+        header.dynamicText = () => [
+            `name: ${personData.name}`,
+            `connection: ${chat.isConnected ? "ok" : "DISCONNECTED!!!"}`,
+            `nameID: ${personData.nameID}`,
+            `playerID: ${personData.playerID}`,
+            `teamID: ${personData.teamID}`,
+            `team: ${personData.teamName}`,
+            `locaID: ${personData.locaID}`,
+            `loca: ${this.loca.name}`
+
+        ].join(",   ")
+        this.add_drawable(header, 7)
+    }
+    //#endregion
+    //#region enter/travel
     /**@param {Loca} loca  */
     async enterOrTravelToLoca(loca) {
         if (this.loca && (loca !== this.loca)) {
@@ -73,7 +112,7 @@ class Game extends GameShared {
         }
         return
     }
-
+    //#endregion
     async onboardingProcess() {
         const storedPersonData = localStorage.getItem("personData")
         if (!storedPersonData) {
@@ -119,7 +158,9 @@ class Game extends GameShared {
             buts[2].bottomat(this.rect.bottom)
             buts[3].leftat(0)
             buts[3].bottomat(this.rect.bottom)
-            this.add_drawable(buts)
+
+            if (RULES.SKIP_INTRO) resolve()
+            else { this.add_drawable(buts) }
         })
         await prom
     }
@@ -150,6 +191,7 @@ class Game extends GameShared {
                     const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
                     cb.promise().then(() => {
                         personData.name = x.tag
+                        personData.playerID = i
                         this.remove_drawable(fm)
                         resolve()
                     }).catch(() => canClick = true)
@@ -185,7 +227,7 @@ class Game extends GameShared {
                     })
                     cb.promise().then(() => {
                         personData.teamID = i
-                        personData.teamName = x.name
+                        personData.teamName = x.tag
                         personData.teamColor = x.color
                         this.remove_drawable(fm)
                         resolve()
@@ -205,11 +247,13 @@ class Game extends GameShared {
         s.baseOffsetY = GRAPHICS.STARS_BASE_OFFSET[1]
         return s
     }
+    //#region overworld
     /**@type {GameWorld} */
     overworld = null
     canChangeOverWorldState = true
     seeOverworld() {
         if (this.overworld || !this.canChangeOverWorldState) return
+        if (!this.galaxyLocaIDs || !this.galaxyLocaIDs.length) return
         this.canChangeOverWorldState = false
         const overworld = this.overworld = new GameWorld(this.rect)
         this.add_drawable(overworld)
@@ -254,6 +298,12 @@ class Game extends GameShared {
         }
         this.overworld.add_drawable(circleDrawable)
         this.overworld.circleDrawable = circleDrawable
+        const addLocaButtonFlair = () => {
+            RULES.HOMEBASES.forEach((id, i) => {
+                locabuttons.find(x => x.locaID === id).color = Team.ALL[i].color
+            })
+        }
+        addLocaButtonFlair()
 
         const addLocaButtonInteractions = () => {
             let latestMenu
@@ -262,7 +312,7 @@ class Game extends GameShared {
                     latestMenu?.close()
                     latestMenu = GameEffects.dropDownMenu([
                         [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
-                    ], null, null, null, { width: 400 })
+                    ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
                 }
             })
             whereAmICurrently.on_release = () => {
@@ -302,7 +352,15 @@ class Game extends GameShared {
         this.overworld = null
         this.animator.add_anim(zoomInFromOverworldToLoca)
     }
+    //#endregion
 
+    //#region showUpgradesGuide
+    showUpgradesGuide() {
+        GameEffects.popup("Guide on updates goes here.", {
+            close_on_release: true, floatTime: 5000
+        }, GameEffects.popupPRESETS.megaBlue)
+    }
+    //#endregion
     //#region BROADCAST_RECEIVE
     galaxyLocaIDs = []
     latestBroadcastDetails = { data: [], time: 0 }
@@ -312,9 +370,16 @@ class Game extends GameShared {
         this.latestBroadcastDetails.time = Date.now()
         const myLoca = this.loca
         for (const item of broadcastData) {
-            if (item.l !== myLoca.id) continue
-            for (const [playerID, i, j] of item.p) {
-                pool.getPlayer(playerID, myLoca).drift = [i, j]
+            if (item.l != null) {
+                if (item.l !== myLoca.id) continue
+                for (const [playerID, i, j] of item.p) {
+                    pool.getPlayer(playerID, myLoca).drift = [i, j]
+                }
+            } else if (item.t != null) {
+                if (item.t !== personData.teamID) continue
+                personData.teamWealth = item.r
+                if (personData.teamWealth.slice(4).every(x => x == 0))
+                    personData.teamWealth = personData.teamWealth.slice(0, 4)
             }
         }
         this.galaxyLocaIDs = broadcastData.map(x => x.l).filter(x => x != null)
@@ -378,7 +443,7 @@ class Game extends GameShared {
     debugButton = null
     debugMode() {
         if (this.debugButton) return
-        const debugButton = this.debugButton = Button.fromRect(this.rect.splitCell(1, 8, 15, 15))
+        const debugButton = this.debugButton = Button.fromRect(this.rect.splitCell(1, -1, 15, 15))
         debugButton.isBlocking = true
         debugButton.txt = "DEBUG"
         debugButton.on_click =
@@ -386,6 +451,7 @@ class Game extends GameShared {
 
         this.add_drawable(debugButton, 7)
         this.isInDebugMode = true
+        this.framerate.isRunning = true
     }
     debugModeEnd() {
         this.remove_drawable(this.debugButton)
@@ -404,7 +470,8 @@ class Game extends GameShared {
     }
     psr(txt) { //Popup Server Response
         GameEffects.popup(txt, {
-            floatTime: 2000
+            floatTime: 2000, posFrac: [.5, .7],
+            moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR }
         })
     }
     ptt(txt) {
@@ -629,7 +696,7 @@ const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
     bgSmoothing: () => { GRAPHICS.SMOOTHING_DISABLED_FOR_BG = !GRAPHICS.SMOOTHING_DISABLED_FOR_BG; GameEffects.popup(`Smoothing: ${GRAPHICS.SMOOTHING_DISABLED_FOR_BG}`) },
     owDebug: () => game.overworld ? game.unseeOverworld() : game.seeOverworld(),
-    travelDebug: () => { game.tryTravelTo(+prompt("Enter locaID")) },
+    // travelDebug: () => { game.tryTravelTo(+prompt("Enter locaID")) },
     unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
     // flush: () => { localStorage.clear(); chat.delayedReload() },
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),

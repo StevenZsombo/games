@@ -141,9 +141,7 @@ class Terminal {
                 game.seeOverworld()
                 break;
             case Terminal.ACTIONS.SEEUPGRADES:
-                GameEffects.popup("Guide on updates goes here.", {
-                    close_on_release: true, floatTime: 5000
-                }, GameEffects.popupPRESETS.megaBlue)
+                game.showUpgradesGuide()
                 break;
             //CAPTURE,CLAIM,HACK are todo
             default:

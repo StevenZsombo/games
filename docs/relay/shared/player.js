@@ -197,7 +197,10 @@ class Player extends Button {
         MM.drawText(ctx, this.name, {
             x: this.x, y: this.y + this.height, width: this.width
             //height:0 implicitly
-        }, { textBaseline: "top", fontSize: GRAPHICS.PLAYER_FONTSIZE })
+        }, {
+            textBaseline: "top", fontSize: GRAPHICS.PLAYER_FONTSIZE,
+            color: "black" //this.team?.color ?? "black" //only server knows the teams, oops
+        })
     }
 
 }

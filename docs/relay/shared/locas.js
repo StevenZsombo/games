@@ -39,16 +39,7 @@ class Loca extends GameWorld {
         })
         return presets
     }
-    static PRESETS = [
-        { name: "base1", fromfile: "home1", },
-        { name: "base2", fromfile: "home1" },
-        { name: "base3", fromfile: "home1" },
-        { name: "base4", fromfile: "home1" },
-        { name: "base5", fromfile: "home1" },
-        { name: "base6", fromfile: "home1" },
-        { name: "factory1", fromfile: "factory1" }
-    ]
-    static homebases = []
+    static PRESETS = []
 
 
 
@@ -152,8 +143,11 @@ class Loca extends GameWorld {
         player.loca = this
 
         //need more clever spawning....
-        const randIJ = MM.choice(Array.from(this.grid.keys())).split(",").map(Number)
+        const randIJ =
+            this.zoneToSpawnPlayersIn ? MM.choice(this.zoneToSpawnPlayersIn)
+                : MM.choice(Array.from(this.grid.keys())).split(",").map(Number)
         player.setIJ(...randIJ)
+        this.worldRect.centerat(player.centerX - 400, player.centerY - 400)
 
         this.players.push(player)
         this.add_drawable(player, 7)
@@ -223,13 +217,20 @@ class Loca extends GameWorld {
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
     }
+    zoneToSpawnPlayersIn = []
     /**@param {Rect} rect */
     spawnEffect(rect) {
         const id = rect.id
         if (this.effectStateManager.has(id)) throw new Error("Zone with that id already exists")
-        const s = this.effectStateManager.create(id)
-        s.on_enter = () => { } //open the door, flip on the light
-        s.on_leave = () => { } //close the door, flip off the light
+        const ev = this.effectStateManager.create(id)
+        const rectIJData = Terminal.getRectIJData(rect)
+        rectIJData.ijArr.forEach(([i, j]) => {
+            if (!this.grid.valid(i, j)) throw new Error(`map rect ${rect} lies outside the floor at (${i},${j})`)
+            this.grid.at(i, j).effectState = id
+        })
+        if (rect.name == "spawn") this.zoneToSpawnPlayersIn = rectIJData.ijArr
+        // ev.on_enter = () => { } //open the door, flip on the light
+        // ev.on_leave = () => { } //close the door, flip off the light
     }
 
 

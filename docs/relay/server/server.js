@@ -27,13 +27,13 @@ var univ = {
 //#endregion
 //#region Person
 class Person extends Participant {
-    /**@type {Player} */
+    /**@returns {Player} */
     get player() { return this.p }
     set player(val) { this.p = val }
     initialize() {
-        let i = 0
+        /*let i = 0
         while (pool.players.has(i)) i++ //this is silly. player will choose name -> which are cached. their enter message will determine their player sprite
-        this.p = pool.getPlayer(i, pool.getLoca(0))
+        this.p = pool.getPlayer(i, pool.getLoca(0))*/
     }
 
 
@@ -42,16 +42,21 @@ class Person extends Participant {
         this.p.j = j
         this.p.reposition()
     }
+    //#region enter
     enter(personData) {
         this.team = Team.ALL[personData.teamID]
+        /**@type {Player} */
+        this.p = pool.getPlayer(personData.playerID, pool.getLoca(this.team.homebase.id))
+        this.name = this.p.name
         this.team.members.add(this)
-        return { //cached in advance in RULES!
+        return {
             playerID: this.p.id,
             locaID: this.p.loca.id,
-            name: `${this.p.name}`,
+            name: this.p.name,
             RULES: game.diffRULES.getDifferenceJSONableOnly(RULES)
         }
     }
+    //#endregion
     travel(locaID) {//accept or deny
         if (locaID == this.player.loca.id) return { deny: `You are already there.` }
         if (locaID === undefined) return { deny: "Invalid location request." }
@@ -119,25 +124,25 @@ class Game extends GameShared {
                 t.team = team
             })
         })
+        RULES.HOMEBASES = Team.ALL.map(x => x.homebase.id)
     }
 
     async initialize_async() {
         this.diffRULES = MM.differenceManager(RULES)
 
 
-        this.BGCOLOR = "rgb(4,4,28)"
+        // this.BGCOLOR = "rgb(4,4,28)"
         /**@type {Set<Loca} */
         this.galaxy = new Set()
         this.loadAllLoca()
         await Promise.all(Array.from(this.galaxy).map(x => x.bgReadyPromise))
         spop(`Loaded ${this.galaxy.size} locations.`)
         this.loadAllTerminalInteractions()
-
-
-        this.loca = this.galaxy.values().next().value
-        this.loca.worldRect.putOver(this.loca.bg)
-        this.add_drawable(this.loca, 1) //no player for server. sadge.
-
+        /*        this.loca = this.galaxy.values().next().value
+                this.loca.worldRect.putOver(this.loca.bg)
+                this.add_drawable(this.loca, 1) //no player for server. sadge.
+        */
+        this.showServerInterface()
 
         await chat.asapPromise()
         spop("Connected!")
@@ -170,6 +175,9 @@ class Game extends GameShared {
     bpop(txt, timeout = 1500) { this.bpopFeed.add(txt, { timeout }) }
 
 
+
+
+
     //#endregion
     /**@param {Person} person  */
     respondFULL_SYNC_EVENTS(person) {
@@ -186,7 +194,13 @@ class Game extends GameShared {
                 l: loca.id,
                 p: loca.players.map(p => [p.id, p.i, p.j]),
                 e: loca.eventCount,
-                o: loca.exlusiveToTeamID
+                o: loca.exlusiveToTeamID,
+            })
+        }
+        for (const team of Team.ALL) {
+            payload.push({
+                t: team.id,
+                r: Object.values(team.wealth),
             })
         }
         chat.spam("bc", payload)
@@ -215,6 +229,30 @@ class Game extends GameShared {
         if (result) person.team.solvedQuestionsIDs.add(t.question.id)
         return result
     }
+
+    showServerInterface() {
+        this.framerate.button.rightat(this.WIDTH - 20)
+        const buts = this.rect.splitRow(4, 2, 1).map(x => Button.fromRect(x, {
+            font_font: "myMonospace", textSettings: { textAlign: "left", textBaseline: "top" }
+        }).deflate(15, 15))
+        const [players, teams, misc] = buts
+        players.dynamicText = () =>
+            MM.tableStr(
+                listener.personsAsArray.map(/**@param {Person} x*/x => [x.player.name, x.team.name, x.player.loca.name])
+                , ["name", "team", "loca"])
+
+        teams.dynamicText = () => MM.tableStr(
+            Team.ALL.map(x => [x.name, ...Object.values(x.wealth), "   " + x.membersAsArray.map(x => x.p.name).join(", ")])
+            , ["team", ...Object.keys(Team.ALL[0].wealth), "   players"]
+        )
+
+        this.add_drawable(buts)
+    }
+    showParticularLoca() {
+
+    }
+
+
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///

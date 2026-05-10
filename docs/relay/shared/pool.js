@@ -17,7 +17,7 @@ class Pool {
         let p = this.players.get(id)
         if (p) return p
         if (!loca) throw new Error("pool can't spawn new player: no loca given")
-        p = new Player("player", "player_" + id, id, team)
+        p = new Player("player", RULES.STUDENTS[id] ?? ("unknown_" + id), id, team)
         this.players.set(id, p)
         loca.spawnPlayer(p)
         return p

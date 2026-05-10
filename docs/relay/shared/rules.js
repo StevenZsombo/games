@@ -1,5 +1,5 @@
 const RULES = {
-    STUDENTS: ["Ann", "Bob", "Eve", "Dan"],
+    STUDENTS: ["Ann", "Bob", "Eve", "Dan", "Fay", "Jay", "Seb", "Tom", "Zoe"],
 
     //mind that resources are ABOVE current folder for both client & server
     PICTURES_FOLDER: "../pictures/",
@@ -18,12 +18,14 @@ const RULES = {
 
 
     NUMBER_OF_TEAMS: 6,
+    HOMEBASES: [],
 
 
     SERVER_BROADCAST_INTERVAL: 200,
     CLIENT_THROTTLE_FALLBACK_POS_INTERVAL: 2000, //if drift from server is out of sync
 
     DEBUG_MODE: true,
+    SKIP_INTRO: true,
 
 }
 /*
@@ -63,11 +65,15 @@ const GRAPHICS = {
     LEFT: 360,
     RIGHT: 300,
     ANSWER_AREA_HEIGHT: 80,
-    FEED_MARGIN: 10,
+    FEED_MARGIN: 26,
     FEED_WIDTH: 330,
     FEED_HEIGHT: 60,
+    CORNER_WIDTH_COEFF: 0.7,
+    CORNER_HEIGHT_COEFF: 0.55,
     NEUTRAL_BUTTON_BG_COLOR: "linen",
     NEUTRAL_LOCA_COLOR: "linen",
+    NEUTRAL_DROPDOWNMENU_COLOR: "linen",
+    POPUP_SERVER_RESPONSE_COLOR: "linen"
 
 }
 /**
@@ -84,6 +90,7 @@ const GRAPHICS = {
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount
+ *   - `r` is wealthArray
  */
 Chat.library = {
     defaultSpamInterval: 2000,

@@ -25,6 +25,8 @@ class Team {
         this.color = this.name
     }
 
+    static resourceNames =
+        ['energy', 'water', 'food', 'parts', 'antimatter', 'coolant', 'minerals', 'salvage']
     wealth = {
         energy: 0, water: 0, food: 0, parts: 0, antimatter: 0, coolant: 0, minerals: 0, salvage: 0
     }
