@@ -167,6 +167,7 @@ class Game extends GameShared {
     BROADCAST_SEND() {
         const payload = []
         for (const loca of pool.locas.values()) {
+            // if (loca.players.length)
             payload.push({
                 l: loca.id,
                 p: loca.players.map(p => [p.id, p.i, p.j]),

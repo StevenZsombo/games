@@ -29,6 +29,9 @@ class GameShared extends GameCore {
         this.tinteract = new Clickable(this.rect)
         this.tinteract.draw = null //will be defined in a moment, just mentioning it
         this.tinteract.collidepoint = () => true
+        this.cinteract = new Clickable(this.rect)
+        this.cinteract.draw = null
+        this.cinteract.collidepoint = () => true
         this.winteract = new Clickable(this.loca.bg.copyRect)
         this.winteract.draw = null
         this.tinteract.collidepoint = () => true
@@ -173,7 +176,7 @@ class GameShared extends GameCore {
         zoomSlider.adjustZoomOfLoca()
 
 
-
+        this.add_drawable(this.cinteract, 0) //below everything - for closing menus //does NOT get deactivated
         this.add_drawable(this.sinteract, 0) //below even the loca - should be blocked by EVERYTHING
         this.add_drawable(this.tinteract, 7) //on top = above everything save popups
         this.add_drawable(this.zoomSlider, 8)

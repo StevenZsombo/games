@@ -51,7 +51,7 @@ const GRAPHICS = {
     TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: 800, //probably large enough that it's not accidental
     CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 2000, //probably large enough to allow a pathing click
     SMOOTHING_DISABLED_FOR_BG: true,
-    OVERWORLD_TRANSITION_TIME: 1500,
+    OVERWORLD_TRANSITION_TIME: 1000,
     STARS_COUNT: 220,
     STARS_DIMENSIONS: [1920 + 400, 1080 + 400],
     STARS_BASE_OFFSET: [-200, -200],

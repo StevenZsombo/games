@@ -136,11 +136,11 @@ class Terminal {
             case Terminal.ACTIONS.RESTORE:
                 this.grabQuestionClient()
                 break;
-            case Terminal.TRAVEL:
-            case Terminal.WORLDMAP:
+            case Terminal.ACTIONS.TRAVEL:
+            case Terminal.ACTIONS.WORLDMAP:
                 game.seeOverworld()
                 break;
-            case Terminal.SEEUPGRADES:
+            case Terminal.ACTIONS.SEEUPGRADES:
                 break;
             //CAPTURE,CLAIM,HACK are todo
             default:

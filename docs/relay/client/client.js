@@ -216,9 +216,10 @@ class Game extends GameShared {
         const targetplace = Loca.PRESETS[this.loca.id]
         const origplace = this.loca.screenRect.copy
         this.freezeInteractables()
+        /**@type {Array<Button&{name:string,locaID:number,fromfile:string}>} */
         const locabuttons = overworld.locabuttons =
-            this.galaxyLocaIDs.map(i => Loca.PRESETS[i]).map(r =>
-                new Button({ ...r, opacity: 1, txt: r.name }))
+            this.galaxyLocaIDs.map(i =>
+                new Button({ ...Loca.PRESETS[i], opacity: 1, txt: Loca.PRESETS[i].name, locaID: i }))
         overworld.add_drawable(locabuttons)
         GRAPHICS.STARS_HIDE_ON_OVERWORLD && (this.starsDrawable.visibleStars = false)
         const zoomOutFromLocaToOverWorld = Anim.custom(
@@ -234,9 +235,37 @@ class Game extends GameShared {
                 this.remove_drawable(this.loca)
                 this.canChangeOverWorldState = true
             }
-        }
-        )
+        })
+
         this.animator.add_anim(zoomOutFromLocaToOverWorld)
+
+        const whereAmICurrently = locabuttons.find(x => x.locaID === this.loca.id)
+        // whereAmICurrently.color = personData.teamColor
+        const circleDrawable = {
+            draw: (ctx) => MM.drawEllipse(ctx,
+                whereAmICurrently.centerX, whereAmICurrently.centerY,
+                whereAmICurrently.width * .7, whereAmICurrently.height * .7,
+                { color: null, outline_color: personData.teamColor, outline: 5 })
+        }
+        this.overworld.add_drawable(circleDrawable)
+
+        const addLocaButtonInteractions = () => {
+            let latestMenu
+            locabuttons.forEach(x => {
+                x.on_release = () => {
+                    latestMenu?.close()
+                    latestMenu = GameEffects.dropDownMenu([
+                        [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
+                    ], null, null, null, { width: 400 })
+                }
+            })
+            whereAmICurrently.on_release = () => {
+                latestMenu?.close()
+                this.unseeOverworld()
+            }
+        }
+        addLocaButtonInteractions() //best do this early :)
+
     }
     unseeOverworld() {
         if (!this.overworld || !this.canChangeOverWorldState) return
@@ -593,7 +622,7 @@ const dev = {
     travelDebug: () => { game.tryTravelTo(+prompt("Enter locaID")) },
     unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
     // flush: () => { localStorage.clear(); chat.delayedReload() },
-    showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + chat.pingRecord, { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
+    showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
     speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
