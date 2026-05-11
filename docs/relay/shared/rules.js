@@ -70,6 +70,7 @@ const GRAPHICS = {
     FEED_HEIGHT: 60,
     CORNER_WIDTH_COEFF: 0.7,
     CORNER_HEIGHT_COEFF: 0.55,
+    CORNER_FONT_COLOR: "black",
     NEUTRAL_BUTTON_BG_COLOR: "linen",
     NEUTRAL_LOCA_COLOR: "linen",
     NEUTRAL_DROPDOWNMENU_COLOR: "linen",
@@ -78,7 +79,7 @@ const GRAPHICS = {
 }
 /**
  * @typedef {(
- *   { l: number; p: [number, number, number][]; e: number } |
+ *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[] } |
  *   { t: number; e: number }
  * )[]} Broadcast
  * 
@@ -87,6 +88,7 @@ const GRAPHICS = {
  *   - `p` is positions array [playerID, i, j]
  *   - `e` is eventCount
  *   - `o` is owner teamID, if any
+ *   - `i` are inactive terminals
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount

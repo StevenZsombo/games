@@ -69,9 +69,12 @@ class Terminal {
         //will be used by resource fill below
         /**@type {Array<[string,number]>} [resource type, gain] */
         this.resources = {}
+        this.resourcesArray = []
         row.forEach((val, i) => {
-            if (i < firstUnusedRow || i >= firstUnusedRow + 8 || !val) return
-            this.resources[Terminal.DATA[0][i]] = val
+            if (i < firstUnusedRow || i >= firstUnusedRow + 8) return
+            this.resourcesArray.push(+val)
+            if (!val) return
+            this.resources[Team.resourceNames[i - firstUnusedRow]] = +val
         })
     }
 
@@ -164,10 +167,14 @@ class Terminal {
     grabQuestionClient() {
         chat.wee("question", this.id)
             .then(qID => {
-                this.question = Question.ALL[qID]
+                if (qID == -1) {
+                    //means terminal is inactive
+                    return
+                }
                 if (qID == null) {
-                    game.ptt("Server is out of questions.\nTalk to your teacher.")
+                    game.perr("Server is out of questions.\nTalk to your teacher.")
                 } else {
+                    this.question = Question.ALL[qID]
                     game.openQPane(this)
                 }
                 game.goodness("question")
@@ -177,6 +184,7 @@ class Terminal {
             })
     }
     grabQuestionResponse() {//called on server by client "question"
+        if (this.active) return -1 //active means no question there!
         this.grabQuestionServer()
         return this.question?.id
     }
@@ -195,7 +203,24 @@ class Terminal {
         "RESTORE": "RESTORE",
     }
 
-    update(dt = 1) { //call every second via clockwork?
+    activate() {
+        this.active = true
+        this.seconds = (+this.delay) * 60
+        this.produce()
+    }
+    activateRefreshClient() {
+        this.active = true
+        this.putStandingOnText()
+    }
+    deactivate() {
+        this.active = false
+    }
+    produce() {
+        for (const [key, val] of Object.entries(this.resources))
+            this.team.wealth[key] += val
+
+    }
+    secondsUpdate(dt = 1) { //call every second via clockwork?
         if (!this.active) return
         if (!this.team) {
             this.active = false
@@ -203,12 +228,10 @@ class Terminal {
         }
         this.seconds -= dt //dt=1 is called every second
         if (this.seconds % 60 === 0) {
-            this.resources.forEach(r => {
-                this.team.wealth[r[0]] += r[1]
-            })
+            this.produce()
         }
         if (this.seconds <= 0) {
-            this.active = false
+            this.deactivate()
             return
         }
     }

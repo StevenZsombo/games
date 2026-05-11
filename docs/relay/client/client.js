@@ -61,7 +61,10 @@ class Game extends GameShared {
             personData.teamWealth.map((x, i) => [Team.resourceNames[i], x]))
         corner.font_font = "myMonospace"
         corner.fontSize = 20
-        corner.textSettings = { textBaseline: "top", textAlign: "left", opacity: 0, color: "white", }
+        corner.textSettings = {
+            textBaseline: "top", textAlign: "left", opacity: 0,
+            color: GRAPHICS.CORNER_FONT_COLOR,
+        }
         this.add_drawable(corner, 7)
 
         const header = this.header = new Button({
@@ -370,12 +373,14 @@ class Game extends GameShared {
         this.latestBroadcastDetails.time = Date.now()
         const myLoca = this.loca
         for (const item of broadcastData) {
-            if (item.l != null) {
+            if (item.l != null) {//manage locas
                 if (item.l !== myLoca.id) continue
                 for (const [playerID, i, j] of item.p) {
                     pool.getPlayer(playerID, myLoca).drift = [i, j]
                 }
-            } else if (item.t != null) {
+                myLoca.terminals.forEach(x => x.active = true) //client has active by default
+                for (const tID of item.i) pool.getTerminalShallow(tID).active = false
+            } else if (item.t != null) {//manage teams
                 if (item.t !== personData.teamID) continue
                 personData.teamWealth = item.r
                 if (personData.teamWealth.slice(4).every(x => x == 0))
@@ -459,10 +464,10 @@ class Game extends GameShared {
     }
 
 
-
+    //#region ptc psr perr
     ptc(txt, teamID) { //Popup Team Color
         GameEffects.popup(txt, {
-            posFrac: [.5, .875], sizeFrac: [.6, .2],
+            posFrac: [.5, .925], sizeFrac: [.45, .1],
             floatTime: 2000,
             moreButtonSettings:
                 { color: teamID != undefined ? Team.ALL[teamID].color : personData.teamColor }
@@ -470,11 +475,11 @@ class Game extends GameShared {
     }
     psr(txt) { //Popup Server Response
         GameEffects.popup(txt, {
-            floatTime: 2000, posFrac: [.5, .7],
+            floatTime: 2000, posFrac: [.5, .8],
             moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR }
         })
     }
-    ptt(txt) {
+    perr(txt) {
         GameEffects.popup(txt, {
             posFrac: [.725, .825], sizeFrac: [.525, .325],
             floatTime: 5000,
@@ -482,7 +487,8 @@ class Game extends GameShared {
                 { color: "red" }
         })
     }
-
+    //#endregion
+    //#region tryTravelTo
     tryTravelTo(locaID) {
         chat.wee("travel", locaID)
             .catch(() => {
@@ -496,6 +502,8 @@ class Game extends GameShared {
                 this.goodness("travel")
             })
     }
+    //#endregion
+    //#region qpanes
     /**@type {Map<Terminal, Malleable>} */
     qpanes = new Map()
     /**@param {Terminal} terminal  */
@@ -608,12 +616,20 @@ class Game extends GameShared {
                     this.badness("attempt")
                     cleanup()
                 })
-                .then((correct) => {
+                .then((info) => {
                     this.goodness("attempt")
                     cleanup()
-                    if (correct) {
+                    if (info.exists === false) {
+                        this.psr("This question does not exist??? Talk to your teacher.")
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
+                    } else if (info.notyet === false) {
+                        this.psr("Someone else solved that question already.\nDo something else.")
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
+                    }
+                    else if (info.correct) {
                         this.psr("Correct!")
                         this.destroyQPaneOfTerminal(terminal)
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
                     }
                     else {
                         this.psr(`Your answer of ${attempt} is incorrect.`)
@@ -642,6 +658,7 @@ class Game extends GameShared {
         this.qpanes.get(terminal)?.destroy()
         this.qpanes.delete(terminal)
     }
+    //#endregion
 
 } //this is the last closing brace for class Game
 
@@ -702,6 +719,8 @@ const dev = {
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
     speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
+    hideWDiv: () => { wDiv.hide() },
+    removeWDiv: () => { wDiv.remove() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
 
