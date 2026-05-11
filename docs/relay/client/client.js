@@ -61,7 +61,7 @@ class Game extends GameShared {
             personData.teamWealth.map((x, i) => [Team.resourceNames[i], x]))
         corner.font_font = "myMonospace"
         corner.fontSize = 20
-        corner.textSettings = { textBaseline: "top", textAlign: "left", opacity: 0, color: "white", }
+        corner.textSettings = { textBaseline: "top", textAlign: "left", opacity: 0, color: GRAPHICS.CORNER_FONT_COLOR, }
         this.add_drawable(corner, 7)
 
         const header = this.header = new Button({
@@ -135,8 +135,10 @@ class Game extends GameShared {
 
     async welcomeSelect() {
         const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
-        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000)) {
+        const currentID = localStorage.getItem("nameID")
+        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000)) {//6 hours
             localStorage.clear()
+            chat.nameID = currentID
             chat._acquireNameID()
         }
         const prom = new Promise(resolve => {

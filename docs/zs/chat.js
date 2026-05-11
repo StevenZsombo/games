@@ -338,9 +338,9 @@ class Chat {
                 this.nameID = stored
             } else {
                 this.nameID = MM.randomID()
-                localStorage.setItem("nameID", this.nameID)
             }
         }
+        localStorage.setItem("nameID", this.nameID)
         if (localStorage.getItem("nameIDtimestamp")) {
             this.nameIDtimestamp = +localStorage.getItem("nameIDtimestamp")
         } else {
