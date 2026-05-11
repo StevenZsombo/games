@@ -1,6 +1,6 @@
 //#region Team
 class Team {
-    /**@type {Person[]} */
+    /**@type {Set<Person>} */
     members = new Set()
     get membersAsArray() { return Array.from(this.members) }
     /**@type {?Loca} */

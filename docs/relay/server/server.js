@@ -68,7 +68,13 @@ class Person extends Participant {
     }
     flush() {
         this.wee("flush")
-            .then(() => spop("Flushed " + this.name))
+            .then(() => {
+                spop("Flushed " + this.name)
+                if (!this.p) return
+                this.p.loca?.removePlayer(this.p)
+                this.team?.members.delete(this)
+                pool.players.delete(this.p.id)
+            })
             .catch(() => bpop("Could not flush " + this.name))
     }
     rename(newName) {

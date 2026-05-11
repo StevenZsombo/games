@@ -74,6 +74,7 @@ class Game extends GameShared {
         header.dynamicText = () => [
             `name: ${personData.name}`,
             `connection: ${chat.isConnected ? "ok" : "DISCONNECTED!!!"}`,
+            `chat.name: ${chat.name}`,
             `nameID: ${personData.nameID}`,
             `playerID: ${personData.playerID}`,
             `teamID: ${personData.teamID}`,
@@ -132,7 +133,10 @@ class Game extends GameShared {
             await this.teamSelect()
             const { nameID, ...saveData } = personData //nameID shall not be saved here
             localStorage.setItem("personData", JSON.stringify(saveData))
-        } else Object.assign(personData, JSON.parse(storedPersonData))
+        } else {
+            Object.assign(personData, JSON.parse(storedPersonData))
+            chat.forceName(personData.name, true)
+        }
         this.enter()
     }
 
@@ -194,6 +198,7 @@ class Game extends GameShared {
                     const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
                     cb.promise().then(() => {
                         personData.name = x.tag
+                        chat.forceName(personData.name, true)
                         personData.playerID = i
                         this.remove_drawable(fm)
                         resolve()
@@ -377,6 +382,7 @@ class Game extends GameShared {
         this.latestBroadcastDetails.data = broadcastData
         this.latestBroadcastDetails.time = Date.now()
         const myLoca = this.loca
+        if (!myLoca) return
         for (const item of broadcastData) {
             if (item.l != null) {//manage locas
                 if (item.l !== myLoca.id) continue
