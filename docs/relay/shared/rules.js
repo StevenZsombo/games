@@ -60,6 +60,8 @@ const GRAPHICS = {
     STARS_ANIMATE_ON_OVERWORLD: false,
     STARS_HIDE_ON_OVERWORLD: false,
 
+    ARE_POPUPS_BLOCKING: false,
+
     TOP: 80,
     BOTTOM: 80,
     LEFT: 360,
@@ -120,7 +122,7 @@ Chat.library = {
     server: {
         "ij": ([i, j], person) => { person.ij(i, j) },
         "enter": (personData, person) => person.enter(personData),
-        "full": (_, person) => game.respondFULL_SYNC_EVENTS(person),
+        "full": (what, person) => game.respondFULL_SYNC_EVENTS(what, person),
         "travel": (locaID, person) => person.travel(locaID),
         "rules": () => game.diffRULES.getDifferenceJSONableOnly(RULES),
         "question": (terminalID, person) => game.grabQuestionResponse(terminalID, person),

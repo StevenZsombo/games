@@ -53,7 +53,7 @@ class Person extends Participant {
             playerID: this.p.id,
             locaID: this.p.loca.id,
             name: this.p.name,
-            RULES: game.diffRULES.getDifferenceJSONableOnly(RULES)
+            RULES: game.diffRULES.getDifferenceJSONableOnly(RULES),
         }
     }
     //#endregion
@@ -64,7 +64,7 @@ class Person extends Participant {
         const loca = pool.getLoca(locaID)
         if (loca.exlusiveToTeamID != null && loca.exlusiveToTeamID != this.team.id) return { deny: `Your team is not allowed to visit ${loca.name}.` }
         this.p.changeLoca(loca)
-        return { accept: `You will travel to ${loca.name}.` }
+        return { accept: `You will travel to ${loca.name}.`, info: loca.getFullEvents() }
     }
     flush() {
         this.wee("flush")
@@ -74,6 +74,7 @@ class Person extends Participant {
                 this.p.loca?.removePlayer(this.p)
                 this.team?.members.delete(this)
                 pool.players.delete(this.p.id)
+                listener.persons.delete(this.nameID)
             })
             .catch(() => bpop("Could not flush " + this.name))
     }
@@ -129,7 +130,15 @@ class Game extends GameShared {
             team.homebase.terminals.forEach(t => {
                 t.exposedTo = [team]
                 t.team = team
+                //homebase lock everything with a prereq
+                if (t.type === "shuttle") {
+                    t.prereq = ["hazard"]
+                    team.homebase.eventHappenedServer(Loca.EVENTS.locked, t)
+                }
+                if (t.note) t.on_first_activate = () => team.homebase.checkPrereqTree()
+
             })
+
         })
         RULES.HOMEBASES = Team.ALL.map(x => x.homebase.id)
     }
@@ -186,11 +195,17 @@ class Game extends GameShared {
 
 
     //#endregion
-    /**@param {Person} person  */
-    respondFULL_SYNC_EVENTS(person) {
-        // const payload = {}
-        // person.wee("full",payload)
-        return 123456
+    /**@param {"l"|"t"} what @param {Person} person  */
+    respondFULL_SYNC_EVENTS(what, person) {
+        switch (what) {
+            case "l":
+                return person.p.loca.getFullEvents()
+            case "t":
+                /**@todo */
+                return undefined
+            default:
+                break;
+        }
     }
     //#region BROADCAST_SEND
     BROADCAST_SEND() {
@@ -258,8 +273,10 @@ class Game extends GameShared {
         const [players, teams, misc] = buts
         players.dynamicText = () =>
             MM.tableStr(
-                listener.personsAsArray.map(/**@param {Person} x*/x => [x.player.name, x.team.name, x.player.loca.name])
-                , ["name", "team", "loca"])
+                listener.personsAsArray.map(/**@param {Person} x*/x =>
+                    [x.player?.name, x.team?.id, x.team?.name,
+                    x.player?.loca?.name, x.player?.loca.id, x.player?.loca.eventCount])
+                , ["name", "team", "teamID", "loca", "locaID", "le"])
 
         teams.dynamicText = () => MM.tableStr(
             Team.ALL.map(x => [x.name, ...Object.values(x.wealth), "   " + x.membersAsArray.map(x => x.p.name).join(", ")])

@@ -15,7 +15,7 @@ class Terminal {
         ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar'],
         ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
         ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
-        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 0, 'hazard'],
+        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', "req hazard on homebase only", 0],
         ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 0, 0, 'See available upgrades.', 0, 0],
         ['mining', 5, 30, 'Mining station', 'CAPTURE', 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0],
         ['scrapyard', 5, 30, 'Scrapyard', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0],
@@ -39,6 +39,7 @@ class Terminal {
         ['plants', 0, 10, 'Plants', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['fridge', 0, 10, 'Fridge', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
+    static typeToPretty = (type) => Terminal.DATA.find(x => x[0] === type)[3]
 
     /**@type {Button & {terminal:Terminal}} creating terminal button*/
     button = null //will be set by loca.spawnTerminal
@@ -65,7 +66,9 @@ class Terminal {
         this.action = row[4]
         this.description = row.at(-3) || ""
         this.note = row.at(-2) || ""
+        /**@type {string[]} */
         this.prereq = (row.at(-1) || "").split(",").filter(x => x)
+        if (this.prereq.length) this.unlocked = false //otherwise true
         const firstUnusedRow = 5
         //will be used by resource fill below
         /**@type {Array<[string,number]>} [resource type, gain] */
@@ -97,13 +100,14 @@ class Terminal {
 
 
     getInspectFromAfarText() {
-        return this.pretty + (this.active ? "" : ("\n" + this.action))
+        return this.getStandingOnText()
     }
     putInspectFromAfarText() {
         this.txt = this.getInspectFromAfarText()
     }
     getStandingOnText() {
-        return this.pretty + (this.active ? "" : ("\n" + this.action))
+        return (!this.unlocked ? "(locked)\n" : "") + this.pretty + (this.active ? "" : ("\n" + this.action))
+
     }
     putStandingOnText() {
         this.txt = this.getStandingOnText()
@@ -113,10 +117,20 @@ class Terminal {
             + " every minute"
 
     }
+    getPrereqsPretty() {
+        return this.prereq.map(Terminal.typeToPretty).join(" and ")
+    }
     getInspectLongClickText() {
-        const ent = Object.entries(this.resources)
-        if (!ent.length) return this.pretty + "\n" + this.description
-        return `When active, the ${this.pretty} creates:\n` + this.getResourceInfoText()
+        const res =
+            !Object.keys(this.resources).length
+                ? ""
+                : `Once repaired, the ${this.pretty} will produce:\n` + this.getResourceInfoText()
+        const pre =
+            this.unlocked
+                ? ""
+                : `Requires ${this.getPrereqsPretty()} before it can be repaired.\n`
+        return `${pre}${res}${this.description}`
+
     }
     onInspectViaLongClick() {
         game.pinfo(this.getInspectLongClickText())
@@ -136,15 +150,26 @@ class Terminal {
         b.isBlocking = false
         b.visible = false
     }
-    onActionWhenAlreadyActive() {
-        const out = `The ${this.pretty} is active and is producing\n`
+    onActionWhenAlreadyActiveButNotYetUnlocked() {
+        const out =
+            `The ${this.pretty} requires ${this.getPrereqsPretty()}`
+            + `\nto be operational before it can be repaired.`
+        game.pinfo(out)
+    }
+    onActionWhenAlreadyActiveAndUnlocked() {
+        const out =
+            `The ${this.pretty} is active and is producing\n`
             + this.getResourceInfoText()
         game.pinfo(out)
-
     }
     tryAction() {
         if (!this.isStandingOn) return
-        if (this.active) { this.onActionWhenAlreadyActive(); return; }
+        if (this.active) {
+            this.unlocked
+                ? this.onActionWhenAlreadyActiveAndUnlocked()
+                : this.onActionWhenAlreadyActiveButNotYetUnlocked()
+            return
+        }
         switch (this.action) {
             case Terminal.ACTIONS.REPAIR:
             case Terminal.ACTIONS.RESTORE:
@@ -218,9 +243,18 @@ class Terminal {
 
     activate() {
         this.active = true
-        this.seconds = (+this.delay) * 60
+        if (this.delay)
+            this.seconds = (+this.delay) * 60
+        // else this.active = false //just produces
+        this.on_first_activate?.()
+        this.on_first_activate = null
+        this.on_each_activate?.()
         this.produce()
     }
+    /**@type {?Function} */
+    on_first_activate = null
+    /**@type {?Function} */
+    on_each_activate = null
     activateRefreshClient() {
         this.active = true
         this.putStandingOnText()
@@ -236,6 +270,7 @@ class Terminal {
     }
     secondsUpdate(dt = 1) { //call every second via clockwork?
         if (!this.active) return
+        if (!this.delay) return
         if (!this.team) {
             this.active = false
             return

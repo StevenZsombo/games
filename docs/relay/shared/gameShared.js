@@ -206,7 +206,9 @@ class GameShared extends GameCore {
         "conn": ["Lost connection! Reconnecting..."],
         "ij": ["Failed to send position to server."],
         "attempt": ["Failed to send answer to server."],
-        "travel": ["Failed to send travel request to server."]
+        "travel": ["Failed to send travel request to server."],
+        "fullL": ["Failed to request location data from server."],
+        "fullT": ["Failed to request team data from server."],
     }
     badness(code) {
         if (!this.badnessButton) {

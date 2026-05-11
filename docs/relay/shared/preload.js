@@ -30,6 +30,7 @@ const wDiv = (() => {
         remove() { div.remove() },
         show() { div.style.display = "" },
         hide() { div.style.display = "none" },
+        toggle() { div.style.display == "" ? div.style.display = "none" : div.style.display = "" },
         error(txt) { api.show(); div.style.backgroundColor = "red", api.addLine(txt) }
     }
     api.add("Hi! Please wait patiently for the game to load.\n")

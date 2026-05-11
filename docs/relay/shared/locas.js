@@ -217,6 +217,14 @@ class Loca extends GameWorld {
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
     }
+    checkPrereqTree() {
+        this.terminals.forEach(t => {
+            if (t.prereq == 0) return
+            if (t.unlocked) return
+            if (t.prereq.every(str => this.terminals.find(x => x.type === str).active))
+                this.eventHappenedServer(Loca.EVENTS.unlocked, t)
+        })
+    }
     zoneToSpawnPlayersIn = []
     /**@param {Rect} rect */
     spawnEffect(rect) {
@@ -236,6 +244,10 @@ class Loca extends GameWorld {
 
     eventCount = 0
     static EVENTS = {
+        unlocked: /**@param {Terminal} terminal */
+            terminal => { terminal.unlocked = true },
+        locked: /**@param {Terminal} terminal */
+            terminal => { terminal.unlocked = false },
         break: /**@param {Terminal} terminal */
             terminal => { },
         repair:/**@param {Terminal} terminal */
@@ -246,9 +258,24 @@ class Loca extends GameWorld {
             (terminal, team) => { },
     }
     /**@param {function | string} whichone  */
-    eventHappened(whichone) {
+    eventHappenedServer(whichone, ...params) {
         this.eventCount++
-        typeof whichone === 'string' ? Loca.EVENTS[whichone]() : whichone()
+        typeof whichone === 'string' ? Loca.EVENTS[whichone](...params) : whichone(...params)
+        /*
+        Not the original idea, but should work. eventCount increases without notifying client.
+        Then client checks their eventCount and asks server for an update if it does not match.
+        This reduces the need for granular updates, and will send full update to each client
+        but on an on-request basis.
+        */
+    }
+    getFullEvents() {
+        return {
+            e: this.eventCount,
+            data: this.terminals.map(x => [x.id, {
+                unlocked: x.unlocked,
+                // active: x.active
+            }])
+        }
     }
 
 

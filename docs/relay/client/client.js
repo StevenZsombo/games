@@ -8,6 +8,8 @@ const personData = {
     teamName: null,//str
     /**@type {number[]} */
     teamWealth: [],//num[]
+    locaEventCount: 0, //must reset on new loca!
+    teamEventCount: 0,
 }
 
 class Game extends GameShared {
@@ -79,7 +81,9 @@ class Game extends GameShared {
             `playerID: ${personData.playerID}`,
             `teamID: ${personData.teamID}`,
             `team: ${personData.teamName}`,
+            `e: ${personData.teamEventCount}`,
             `locaID: ${personData.locaID}`,
+            `e: ${personData.locaEventCount}`,
             `loca: ${this.loca.name}`
 
         ].join(",   ")
@@ -371,14 +375,26 @@ class Game extends GameShared {
 
     //#region showUpgradesGuide
     showUpgradesGuide() {
-        GameEffects.popup("Guide on updates goes here.", {
-            close_on_release: true, floatTime: 5000
+        const p = GameEffects.popup("", {
+            close_on_release: true, floatTime: 10000
         }, GameEffects.popupPRESETS.megaBlue)
+        p.dynamicText = () => {
+            return `Repair your homebase modules as follows:\n\n`
+                + this.loca.terminals
+                    .filter(x => x.prereq.length && !x.unlocked)
+                    .map(x => `${x.pretty} requires: ${x.getPrereqsPretty()}`)
+                    .join("\n")
+
+        }
     }
     //#endregion
     //#region BROADCAST_RECEIVE
     galaxyLocaIDs = []
-    latestBroadcastDetails = { data: [], time: 0, interactables: [] }
+    latestBroadcastDetails = {
+        data: [], time: 0, interactables: [],
+        alreadyQueingForL: false,
+        alreadyQueingForT: false,
+    }
     /**@param {Broadcast} broadcastData  */
     BROADCAST_RECEIVE(broadcastData) {
         this.latestBroadcastDetails.data = broadcastData
@@ -386,8 +402,7 @@ class Game extends GameShared {
         const myLoca = this.loca
         if (!myLoca) return
         for (const item of broadcastData) {
-            if (item.l != null) {//manage locas
-                if (item.l !== myLoca.id) continue
+            if (item.l != null && item.l === myLoca.id) {//manage locas
                 for (const [playerID, i, j] of item.p) {
                     pool.getPlayer(playerID, myLoca).drift = [i, j]
                 }
@@ -399,15 +414,41 @@ class Game extends GameShared {
                     if (term.active) this.destroyQPaneOfTerminal(term)
                 }
                 this.latestBroadcastDetails.interactables = item.i
-
-            } else if (item.t != null) {//manage teams
-                if (item.t !== personData.teamID) continue
+                if (item.e !== personData.locaEventCount) this.FULL_REQUEST("l")
+            } else if (item.t != null && item.t === personData.teamID) {//manage teams
                 personData.teamWealth = item.r
                 if (personData.teamWealth.slice(4).every(x => x == 0))
                     personData.teamWealth = personData.teamWealth.slice(0, 4)
             }
         }
         this.galaxyLocaIDs = broadcastData.map(x => x.l).filter(x => x != null)
+    }
+    /**@param {"l"|"t"} what  */
+    FULL_REQUEST(what) {
+        switch (what) {
+            case "l":
+                if (this.latestBroadcastDetails.alreadyQueingForL) return
+                this.latestBroadcastDetails.alreadyQueingForL = true
+                chat.wee("full", what)
+                    .catch(() => {
+                        this.badness("fullL")
+                    })
+                    .then(info => {
+                        this.FULL_PROCESS_LOCA(info)
+                        this.goodness("fullL")
+                    })
+                    .finally(() => this.latestBroadcastDetails.alreadyQueingForL = false)
+                break;
+            default:
+                break;
+        }
+    }
+    FULL_PROCESS_LOCA(info) {
+        info.data.forEach(([id, props]) => {
+            const t = pool.getTerminalShallow(id)
+            t && Object.assign(t, props)
+            personData.locaEventCount = info.e
+        })
     }
     //#endregion
 
@@ -490,24 +531,34 @@ class Game extends GameShared {
             posFrac: [.5, .925], sizeFrac: [.45, .1],
             floatTime: 2000,
             moreButtonSettings:
-                { color: teamID != undefined ? Team.ALL[teamID].color : personData.teamColor }
+            {
+                color: teamID != undefined ? Team.ALL[teamID].color : personData.teamColor,
+                isBlocking: GRAPHICS.ARE_POPUPS_BLOCKING
+            }
         })
     }
     psr(txt) { //Popup Server Response
         GameEffects.popup(txt, {
             floatTime: 2000, posFrac: [.5, .8],
-            moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR }
+            moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR, isBlocking: GRAPHICS.ARE_POPUPS_BLOCKING }
         })
     }
     pinfo(txt) {
-        GameEffects.popup(txt, { moreButtonSettings: { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR } })
+        GameEffects.popup(txt, {
+            posFrac: [.5, .8],
+            sizeFrac: [.75, .15],
+            floatTime: 2500,
+            moreButtonSettings: {
+                color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR, isBlocking: GRAPHICS.ARE_POPUPS_BLOCKING
+            }
+        })
     }
     perr(txt) {
         GameEffects.popup(txt, {
             posFrac: [.725, .825], sizeFrac: [.525, .325],
             floatTime: 5000,
             moreButtonSettings:
-                { color: "red" }
+                { color: "red", isBlocking: GRAPHICS.ARE_POPUPS_BLOCKING }
         })
     }
     //#endregion
@@ -520,7 +571,9 @@ class Game extends GameShared {
             .then((response) => {
                 this.psr(response.deny || response.accept)
                 if (response.accept) {
-                    this.enterOrTravelToLoca(pool.getLoca(locaID))
+                    const loca = pool.getLoca(locaID)
+                    this.FULL_PROCESS_LOCA(response.info)
+                    this.enterOrTravelToLoca(loca)
                 }
                 this.goodness("travel")
             })
@@ -744,7 +797,7 @@ const dev = {
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
     speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
-    hideWDiv: () => { wDiv.hide() },
+    toggleWDiv: () => { wDiv.toggle() },
     removeWDiv: () => { wDiv.remove() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
