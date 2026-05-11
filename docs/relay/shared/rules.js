@@ -88,7 +88,7 @@ const GRAPHICS = {
  *   - `p` is positions array [playerID, i, j]
  *   - `e` is eventCount
  *   - `o` is owner teamID, if any
- *   - `i` are inactive terminals
+ *   - `i` is array of interactable terminalID (!active && unlocked)
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount

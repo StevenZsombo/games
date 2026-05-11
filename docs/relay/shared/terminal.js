@@ -50,6 +50,7 @@ class Terminal {
     team = null //can be null.
     exposedTo = Team.ALL//can be null, should default to Team.ALL?
     active = false //produces if active.
+    unlocked = true
     seconds = 0
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
@@ -107,15 +108,18 @@ class Terminal {
     putStandingOnText() {
         this.txt = this.getStandingOnText()
     }
+    getResourceInfoText() {
+        return Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
+            + " every minute"
+
+    }
     getInspectLongClickText() {
         const ent = Object.entries(this.resources)
         if (!ent.length) return this.pretty + "\n" + this.description
-        return `${this.pretty} creates:\n`
-            + Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
-            + " every minute"
+        return `When active, the ${this.pretty} creates:\n` + this.getResourceInfoText()
     }
     onInspectViaLongClick() {
-        GameEffects.popup(this.getInspectLongClickText(), { moreButtonSettings: { color: "pink" } })
+        game.pinfo(this.getInspectLongClickText())
     }
     isStandingOn = false
     onStandingOnEnter() {
@@ -132,16 +136,25 @@ class Terminal {
         b.isBlocking = false
         b.visible = false
     }
+    onActionWhenAlreadyActive() {
+        const out = `The ${this.pretty} is active and is producing\n`
+            + this.getResourceInfoText()
+        game.pinfo(out)
+
+    }
     tryAction() {
         if (!this.isStandingOn) return
+        if (this.active) { this.onActionWhenAlreadyActive(); return; }
         switch (this.action) {
             case Terminal.ACTIONS.REPAIR:
             case Terminal.ACTIONS.RESTORE:
                 this.grabQuestionClient()
                 break;
             case Terminal.ACTIONS.TRAVEL:
-            case Terminal.ACTIONS.WORLDMAP:
                 game.seeOverworld()
+                break;
+            case Terminal.ACTIONS.WORLDMAP:
+                game.seeOverworld(false)
                 break;
             case Terminal.ACTIONS.SEEUPGRADES:
                 game.showUpgradesGuide()
@@ -151,7 +164,7 @@ class Terminal {
                 break;
         }
         /*GameEffects.popup(
-            `You can ${this.action} the ${this.pretty}`,
+            `You can ${ this.action } the ${ this.pretty }`,
             { moreButtonSettings: { color: "lightgreen" } })*/
     }
     /**@type {Question} */
@@ -216,6 +229,7 @@ class Terminal {
         this.active = false
     }
     produce() {
+        if (!this.unlocked) return
         for (const [key, val] of Object.entries(this.resources))
             this.team.wealth[key] += val
 

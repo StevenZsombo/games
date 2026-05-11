@@ -116,6 +116,7 @@ class Game extends GameShared {
     }
 
     loadAllTerminalInteractions() {
+        //homebase specific
         Team.ALL.forEach(team => {
             if (!team.homebase) throw new Error(`team ${team.name} has no homebase`)
             team.homebase.exlusiveToTeamID = team.id
@@ -195,7 +196,7 @@ class Game extends GameShared {
                 p: loca.players.map(p => [p.id, p.i, p.j]),
                 e: loca.eventCount,
                 o: loca.exlusiveToTeamID,
-                i: loca.terminals.filter(t => !t.active).map(t => t.id),
+                i: loca.terminals.filter(t => !t.active && t.unlocked).map(t => t.id),
             })
         }
         for (const team of Team.ALL) {

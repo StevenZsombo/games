@@ -254,7 +254,7 @@ class Game extends GameShared {
     /**@type {GameWorld} */
     overworld = null
     canChangeOverWorldState = true
-    seeOverworld() {
+    seeOverworld(allowTravel = true) {
         if (this.overworld || !this.canChangeOverWorldState) return
         if (!this.galaxyLocaIDs || !this.galaxyLocaIDs.length) return
         this.canChangeOverWorldState = false
@@ -283,6 +283,7 @@ class Game extends GameShared {
                 circleDrawable.opacity = 0
                 this.remove_drawable(this.loca)
                 this.canChangeOverWorldState = true
+                addLocaButtonInteractions()
             }
         })
 
@@ -313,9 +314,13 @@ class Game extends GameShared {
             locabuttons.forEach(x => {
                 x.on_release = () => {
                     latestMenu?.close()
-                    latestMenu = GameEffects.dropDownMenu([
-                        [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
-                    ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
+                    latestMenu =
+                        allowTravel
+                            ?
+                            GameEffects.dropDownMenu([
+                                [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
+                            ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
+                            : this.psr("Go to the Space Shuttle to TRAVEL.")
                 }
             })
             whereAmICurrently.on_release = () => {
@@ -323,7 +328,7 @@ class Game extends GameShared {
                 this.unseeOverworld()
             }
         }
-        addLocaButtonInteractions() //best do this early :)
+
 
     }
     unseeOverworld() {
@@ -451,7 +456,7 @@ class Game extends GameShared {
         const debugButton = this.debugButton = Button.fromRect(this.rect.splitCell(1, -1, 15, 15))
         debugButton.isBlocking = true
         debugButton.txt = "DEBUG"
-        debugButton.on_click =
+        debugButton.on_release =
             GameEffects.dropDownDebugFunctionsFromAnObject(dev, true)
 
         this.add_drawable(debugButton, 7)
@@ -464,7 +469,7 @@ class Game extends GameShared {
     }
 
 
-    //#region ptc psr perr
+    //#region ptc psr pinfo perr
     ptc(txt, teamID) { //Popup Team Color
         GameEffects.popup(txt, {
             posFrac: [.5, .925], sizeFrac: [.45, .1],
@@ -478,6 +483,9 @@ class Game extends GameShared {
             floatTime: 2000, posFrac: [.5, .8],
             moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR }
         })
+    }
+    pinfo(txt) {
+        GameEffects.popup(txt, { moreButtonSettings: { color: "pink" } })
     }
     perr(txt) {
         GameEffects.popup(txt, {
