@@ -371,7 +371,7 @@ class Game extends GameShared {
     //#endregion
     //#region BROADCAST_RECEIVE
     galaxyLocaIDs = []
-    latestBroadcastDetails = { data: [], time: 0 }
+    latestBroadcastDetails = { data: [], time: 0, interactables: [] }
     /**@param {Broadcast} broadcastData  */
     BROADCAST_RECEIVE(broadcastData) {
         this.latestBroadcastDetails.data = broadcastData
@@ -384,7 +384,14 @@ class Game extends GameShared {
                     pool.getPlayer(playerID, myLoca).drift = [i, j]
                 }
                 myLoca.terminals.forEach(x => x.active = true) //client has active by default
-                for (const tID of item.i) pool.getTerminalShallow(tID).active = false
+                for (const tID of item.i) {
+                    pool.getTerminalShallow(tID).active = false
+                }
+                for (const term of this.qpanes.keys()) {
+                    if (term.active) this.destroyQPaneOfTerminal(term)
+                }
+                this.latestBroadcastDetails.interactables = item.i
+
             } else if (item.t != null) {//manage teams
                 if (item.t !== personData.teamID) continue
                 personData.teamWealth = item.r
@@ -485,7 +492,7 @@ class Game extends GameShared {
         })
     }
     pinfo(txt) {
-        GameEffects.popup(txt, { moreButtonSettings: { color: "pink" } })
+        GameEffects.popup(txt, { moreButtonSettings: { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR } })
     }
     perr(txt) {
         GameEffects.popup(txt, {
@@ -662,8 +669,10 @@ class Game extends GameShared {
     }
     /**@param {Terminal} terminal*/
     destroyQPaneOfTerminal(terminal) {
+        const pane = this.qpanes.get(terminal)
+        if (!pane) return
         this.closeQPane()
-        this.qpanes.get(terminal)?.destroy()
+        pane.destroy()
         this.qpanes.delete(terminal)
     }
     //#endregion
