@@ -56,9 +56,12 @@ class Chat {
 
         this.eggs("time", Date.now) //for debugging, syncing clocks and HEARTBEAT
         this.lastHeartbeat = null //will be Date.now() after each call
+        this.onHeartbeatFail = () => console.error("Heartbeat failed")
         this.lastHeartbeatClockwork = this.isServer ? null : setInterval(() => {
-            this.lastHeartbeat && Date.now() - this.lastHeartbeat > 30_000 ? this.wee("time", undefined, { retries: 0, interval: 5_000 }) : null
-        }, 31_000)
+            this.lastHeartbeat && Date.now() - this.lastHeartbeat > 25_000 ?
+                this.wee("time", undefined, { retries: 0, interval: 5_000 })
+                    .catch(this.onHeartbeatFail) : null
+        }, 26_000)
 
         // this.initLibrary(this.isServer ? "server" : "client") //call in game instead to avoid bugs
         this.connect(ip, isServer)

@@ -61,7 +61,10 @@ class Game extends GameShared {
             personData.teamWealth.map((x, i) => [Team.resourceNames[i], x]))
         corner.font_font = "myMonospace"
         corner.fontSize = 20
-        corner.textSettings = { textBaseline: "top", textAlign: "left", opacity: 0, color: GRAPHICS.CORNER_FONT_COLOR, }
+        corner.textSettings = {
+            textBaseline: "top", textAlign: "left", opacity: 0,
+            color: GRAPHICS.CORNER_FONT_COLOR,
+        }
         this.add_drawable(corner, 7)
 
         const header = this.header = new Button({
@@ -71,6 +74,7 @@ class Game extends GameShared {
         header.dynamicText = () => [
             `name: ${personData.name}`,
             `connection: ${chat.isConnected ? "ok" : "DISCONNECTED!!!"}`,
+            `chat.name: ${chat.name}`,
             `nameID: ${personData.nameID}`,
             `playerID: ${personData.playerID}`,
             `teamID: ${personData.teamID}`,
@@ -129,7 +133,10 @@ class Game extends GameShared {
             await this.teamSelect()
             const { nameID, ...saveData } = personData //nameID shall not be saved here
             localStorage.setItem("personData", JSON.stringify(saveData))
-        } else Object.assign(personData, JSON.parse(storedPersonData))
+        } else {
+            Object.assign(personData, JSON.parse(storedPersonData))
+            chat.forceName(personData.name, true)
+        }
         this.enter()
     }
 
@@ -193,6 +200,7 @@ class Game extends GameShared {
                     const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
                     cb.promise().then(() => {
                         personData.name = x.tag
+                        chat.forceName(personData.name, true)
                         personData.playerID = i
                         this.remove_drawable(fm)
                         resolve()
@@ -253,7 +261,7 @@ class Game extends GameShared {
     /**@type {GameWorld} */
     overworld = null
     canChangeOverWorldState = true
-    seeOverworld() {
+    seeOverworld(allowTravel = true) {
         if (this.overworld || !this.canChangeOverWorldState) return
         if (!this.galaxyLocaIDs || !this.galaxyLocaIDs.length) return
         this.canChangeOverWorldState = false
@@ -282,6 +290,7 @@ class Game extends GameShared {
                 circleDrawable.opacity = 0
                 this.remove_drawable(this.loca)
                 this.canChangeOverWorldState = true
+                addLocaButtonInteractions()
             }
         })
 
@@ -312,9 +321,13 @@ class Game extends GameShared {
             locabuttons.forEach(x => {
                 x.on_release = () => {
                     latestMenu?.close()
-                    latestMenu = GameEffects.dropDownMenu([
-                        [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
-                    ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
+                    latestMenu =
+                        allowTravel
+                            ?
+                            GameEffects.dropDownMenu([
+                                [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
+                            ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
+                            : this.psr("Go to the Space Shuttle to TRAVEL.")
                 }
             })
             whereAmICurrently.on_release = () => {
@@ -322,7 +335,7 @@ class Game extends GameShared {
                 this.unseeOverworld()
             }
         }
-        addLocaButtonInteractions() //best do this early :)
+
 
     }
     unseeOverworld() {
@@ -365,19 +378,29 @@ class Game extends GameShared {
     //#endregion
     //#region BROADCAST_RECEIVE
     galaxyLocaIDs = []
-    latestBroadcastDetails = { data: [], time: 0 }
+    latestBroadcastDetails = { data: [], time: 0, interactables: [] }
     /**@param {Broadcast} broadcastData  */
     BROADCAST_RECEIVE(broadcastData) {
         this.latestBroadcastDetails.data = broadcastData
         this.latestBroadcastDetails.time = Date.now()
         const myLoca = this.loca
+        if (!myLoca) return
         for (const item of broadcastData) {
-            if (item.l != null) {
+            if (item.l != null) {//manage locas
                 if (item.l !== myLoca.id) continue
                 for (const [playerID, i, j] of item.p) {
                     pool.getPlayer(playerID, myLoca).drift = [i, j]
                 }
-            } else if (item.t != null) {
+                myLoca.terminals.forEach(x => x.active = true) //client has active by default
+                for (const tID of item.i) {
+                    pool.getTerminalShallow(tID).active = false
+                }
+                for (const term of this.qpanes.keys()) {
+                    if (term.active) this.destroyQPaneOfTerminal(term)
+                }
+                this.latestBroadcastDetails.interactables = item.i
+
+            } else if (item.t != null) {//manage teams
                 if (item.t !== personData.teamID) continue
                 personData.teamWealth = item.r
                 if (personData.teamWealth.slice(4).every(x => x == 0))
@@ -448,7 +471,7 @@ class Game extends GameShared {
         const debugButton = this.debugButton = Button.fromRect(this.rect.splitCell(1, -1, 15, 15))
         debugButton.isBlocking = true
         debugButton.txt = "DEBUG"
-        debugButton.on_click =
+        debugButton.on_release =
             GameEffects.dropDownDebugFunctionsFromAnObject(dev, true)
 
         this.add_drawable(debugButton, 7)
@@ -461,10 +484,10 @@ class Game extends GameShared {
     }
 
 
-
+    //#region ptc psr pinfo perr
     ptc(txt, teamID) { //Popup Team Color
         GameEffects.popup(txt, {
-            posFrac: [.5, .875], sizeFrac: [.6, .2],
+            posFrac: [.5, .925], sizeFrac: [.45, .1],
             floatTime: 2000,
             moreButtonSettings:
                 { color: teamID != undefined ? Team.ALL[teamID].color : personData.teamColor }
@@ -472,11 +495,14 @@ class Game extends GameShared {
     }
     psr(txt) { //Popup Server Response
         GameEffects.popup(txt, {
-            floatTime: 2000, posFrac: [.5, .7],
+            floatTime: 2000, posFrac: [.5, .8],
             moreButtonSettings: { color: GRAPHICS.POPUP_SERVER_RESPONSE_COLOR }
         })
     }
-    ptt(txt) {
+    pinfo(txt) {
+        GameEffects.popup(txt, { moreButtonSettings: { color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR } })
+    }
+    perr(txt) {
         GameEffects.popup(txt, {
             posFrac: [.725, .825], sizeFrac: [.525, .325],
             floatTime: 5000,
@@ -484,7 +510,8 @@ class Game extends GameShared {
                 { color: "red" }
         })
     }
-
+    //#endregion
+    //#region tryTravelTo
     tryTravelTo(locaID) {
         chat.wee("travel", locaID)
             .catch(() => {
@@ -498,6 +525,8 @@ class Game extends GameShared {
                 this.goodness("travel")
             })
     }
+    //#endregion
+    //#region qpanes
     /**@type {Map<Terminal, Malleable>} */
     qpanes = new Map()
     /**@param {Terminal} terminal  */
@@ -610,12 +639,20 @@ class Game extends GameShared {
                     this.badness("attempt")
                     cleanup()
                 })
-                .then((correct) => {
+                .then((info) => {
                     this.goodness("attempt")
                     cleanup()
-                    if (correct) {
+                    if (info.exists === false) {
+                        this.psr("This question does not exist??? Talk to your teacher.")
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
+                    } else if (info.notyet === false) {
+                        this.psr("Someone else solved that question already.\nDo something else.")
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
+                    }
+                    else if (info.correct) {
                         this.psr("Correct!")
                         this.destroyQPaneOfTerminal(terminal)
+                        terminal.activateRefreshClient() //resets the prompt to REPAIR etc
                     }
                     else {
                         this.psr(`Your answer of ${attempt} is incorrect.`)
@@ -640,10 +677,13 @@ class Game extends GameShared {
     }
     /**@param {Terminal} terminal*/
     destroyQPaneOfTerminal(terminal) {
+        const pane = this.qpanes.get(terminal)
+        if (!pane) return
         this.closeQPane()
-        this.qpanes.get(terminal)?.destroy()
+        pane.destroy()
         this.qpanes.delete(terminal)
     }
+    //#endregion
 
 } //this is the last closing brace for class Game
 
@@ -704,6 +744,8 @@ const dev = {
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
     speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
+    hideWDiv: () => { wDiv.hide() },
+    removeWDiv: () => { wDiv.remove() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
 
 

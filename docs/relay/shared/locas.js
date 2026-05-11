@@ -253,7 +253,7 @@ class Loca extends GameWorld {
 
 
     seconds() {
-        this.terminals.forEach(t => t.update(1))
+        this.terminals.forEach(t => t.secondsUpdate(1))
     }
 
 

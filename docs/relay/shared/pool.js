@@ -12,7 +12,7 @@ class Pool {
         if (Pool.singletonAlreadyExists) throw new Error("Pool singleton already exists")
         else Pool.singletonAlreadyExists = true
     }
-    /**@param {number} id @param {Loca} loca  */
+    /**@param {number} id @param {Loca} loca @returns {Player}  */
     getPlayer(id, loca, team) {
         let p = this.players.get(id)
         if (p) return p
@@ -27,6 +27,7 @@ class Pool {
      * @param {string} type 
      * @param {Loca} loca 
      * @param {Rect} rect
+     * @returns {Terminal}
      */
     getTerminal(id, type, loca, rect) {
         let t = this.terminals.get(id)
@@ -38,6 +39,11 @@ class Pool {
         this.terminals.set(id, t)
         return t
     }
+    /**@param {number} id  @returns {Terminal|null} */
+    getTerminalShallow(id) {
+        return this.terminals.get(id) //will be undefined if not yet loaded
+    }
+    /**@param {number} id @returns {Loca} */
     getLoca(id) {
         if (this.locas.has(id)) return this.locas.get(id)
         const preset = Loca.PRESETS[id]

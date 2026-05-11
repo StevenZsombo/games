@@ -68,7 +68,13 @@ class Person extends Participant {
     }
     flush() {
         this.wee("flush")
-            .then(() => spop("Flushed " + this.name))
+            .then(() => {
+                spop("Flushed " + this.name)
+                if (!this.p) return
+                this.p.loca?.removePlayer(this.p)
+                this.team?.members.delete(this)
+                pool.players.delete(this.p.id)
+            })
             .catch(() => bpop("Could not flush " + this.name))
     }
     rename(newName) {
@@ -116,6 +122,7 @@ class Game extends GameShared {
     }
 
     loadAllTerminalInteractions() {
+        //homebase specific
         Team.ALL.forEach(team => {
             if (!team.homebase) throw new Error(`team ${team.name} has no homebase`)
             team.homebase.exlusiveToTeamID = team.id
@@ -195,6 +202,7 @@ class Game extends GameShared {
                 p: loca.players.map(p => [p.id, p.i, p.j]),
                 e: loca.eventCount,
                 o: loca.exlusiveToTeamID,
+                i: loca.terminals.filter(t => !t.active && t.unlocked).map(t => t.id),
             })
         }
         for (const team of Team.ALL) {
@@ -206,7 +214,7 @@ class Game extends GameShared {
         chat.spam("bc", payload)
     }
     //#endregion
-
+    //#region grabQuestionResponse
     grabQuestionResponse(terminalID, person) {
         if (!pool.terminals.has(terminalID)) {
             console.error("invalid request for terminal " + terminalID)
@@ -215,6 +223,8 @@ class Game extends GameShared {
         const t = pool.getTerminal(terminalID)
         return t.grabQuestionResponse()
     }
+    //#endregion
+    //#region attemptResponse
     /**@param {Person} person  */
     attemptResponse(terminalID, guess, person) {
         if (!pool.terminals.has(terminalID)) {
@@ -224,12 +234,22 @@ class Game extends GameShared {
         const t = pool.getTerminal(terminalID)
         if (!t.question) {
             console.error("invalid request for question " + terminalID)
+            return { exists: false } //does not exist
         }
-        const result = t.question.attemptServer(guess)
-        if (result) person.team.solvedQuestionsIDs.add(t.question.id)
-        return result
+        if (t.active) return { notyet: false } //has been solved already
+        const attemptInfo = { correct: t.question.attemptServer(guess) }
+        if (attemptInfo.correct) {
+            person.team.solvedQuestionsIDs.add(t.question.id)
+            t.activate()
+            t.question = null
+            chat.targetSpam(t.team.membersAsArray, "ptc",
+                `${person.p.name} repaired the ${t.pretty}.`)
+        }
+        return attemptInfo
     }
+    //#endregion
 
+    //#region showServerInterface
     showServerInterface() {
         this.framerate.button.rightat(this.WIDTH - 20)
         const buts = this.rect.splitRow(4, 2, 1).map(x => Button.fromRect(x, {
@@ -252,7 +272,7 @@ class Game extends GameShared {
 
     }
 
-
+    //#endregion
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///

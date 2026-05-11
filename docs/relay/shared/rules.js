@@ -79,7 +79,7 @@ const GRAPHICS = {
 }
 /**
  * @typedef {(
- *   { l: number; p: [number, number, number][]; e: number } |
+ *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[] } |
  *   { t: number; e: number }
  * )[]} Broadcast
  * 
@@ -88,6 +88,7 @@ const GRAPHICS = {
  *   - `p` is positions array [playerID, i, j]
  *   - `e` is eventCount
  *   - `o` is owner teamID, if any
+ *   - `i` is array of interactable terminalID (!active && unlocked)
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount

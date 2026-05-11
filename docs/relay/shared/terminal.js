@@ -50,6 +50,7 @@ class Terminal {
     team = null //can be null.
     exposedTo = Team.ALL//can be null, should default to Team.ALL?
     active = false //produces if active.
+    unlocked = true
     seconds = 0
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
@@ -69,9 +70,12 @@ class Terminal {
         //will be used by resource fill below
         /**@type {Array<[string,number]>} [resource type, gain] */
         this.resources = {}
+        this.resourcesArray = []
         row.forEach((val, i) => {
-            if (i < firstUnusedRow || i >= firstUnusedRow + 8 || !val) return
-            this.resources[Terminal.DATA[0][i]] = val
+            if (i < firstUnusedRow || i >= firstUnusedRow + 8) return
+            this.resourcesArray.push(+val)
+            if (!val) return
+            this.resources[Team.resourceNames[i - firstUnusedRow]] = +val
         })
     }
 
@@ -104,15 +108,18 @@ class Terminal {
     putStandingOnText() {
         this.txt = this.getStandingOnText()
     }
+    getResourceInfoText() {
+        return Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
+            + " every minute"
+
+    }
     getInspectLongClickText() {
         const ent = Object.entries(this.resources)
         if (!ent.length) return this.pretty + "\n" + this.description
-        return `${this.pretty} creates:\n`
-            + Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
-            + " every minute"
+        return `When active, the ${this.pretty} creates:\n` + this.getResourceInfoText()
     }
     onInspectViaLongClick() {
-        GameEffects.popup(this.getInspectLongClickText(), { moreButtonSettings: { color: "pink" } })
+        game.pinfo(this.getInspectLongClickText())
     }
     isStandingOn = false
     onStandingOnEnter() {
@@ -129,16 +136,25 @@ class Terminal {
         b.isBlocking = false
         b.visible = false
     }
+    onActionWhenAlreadyActive() {
+        const out = `The ${this.pretty} is active and is producing\n`
+            + this.getResourceInfoText()
+        game.pinfo(out)
+
+    }
     tryAction() {
         if (!this.isStandingOn) return
+        if (this.active) { this.onActionWhenAlreadyActive(); return; }
         switch (this.action) {
             case Terminal.ACTIONS.REPAIR:
             case Terminal.ACTIONS.RESTORE:
                 this.grabQuestionClient()
                 break;
             case Terminal.ACTIONS.TRAVEL:
-            case Terminal.ACTIONS.WORLDMAP:
                 game.seeOverworld()
+                break;
+            case Terminal.ACTIONS.WORLDMAP:
+                game.seeOverworld(false)
                 break;
             case Terminal.ACTIONS.SEEUPGRADES:
                 game.showUpgradesGuide()
@@ -148,7 +164,7 @@ class Terminal {
                 break;
         }
         /*GameEffects.popup(
-            `You can ${this.action} the ${this.pretty}`,
+            `You can ${ this.action } the ${ this.pretty }`,
             { moreButtonSettings: { color: "lightgreen" } })*/
     }
     /**@type {Question} */
@@ -164,10 +180,14 @@ class Terminal {
     grabQuestionClient() {
         chat.wee("question", this.id)
             .then(qID => {
-                this.question = Question.ALL[qID]
+                if (qID == -1) {
+                    //means terminal is inactive
+                    return
+                }
                 if (qID == null) {
-                    game.ptt("Server is out of questions.\nTalk to your teacher.")
+                    game.perr("Server is out of questions.\nTalk to your teacher.")
                 } else {
+                    this.question = Question.ALL[qID]
                     game.openQPane(this)
                 }
                 game.goodness("question")
@@ -177,6 +197,7 @@ class Terminal {
             })
     }
     grabQuestionResponse() {//called on server by client "question"
+        if (this.active) return -1 //active means no question there!
         this.grabQuestionServer()
         return this.question?.id
     }
@@ -195,7 +216,25 @@ class Terminal {
         "RESTORE": "RESTORE",
     }
 
-    update(dt = 1) { //call every second via clockwork?
+    activate() {
+        this.active = true
+        this.seconds = (+this.delay) * 60
+        this.produce()
+    }
+    activateRefreshClient() {
+        this.active = true
+        this.putStandingOnText()
+    }
+    deactivate() {
+        this.active = false
+    }
+    produce() {
+        if (!this.unlocked) return
+        for (const [key, val] of Object.entries(this.resources))
+            this.team.wealth[key] += val
+
+    }
+    secondsUpdate(dt = 1) { //call every second via clockwork?
         if (!this.active) return
         if (!this.team) {
             this.active = false
@@ -203,12 +242,10 @@ class Terminal {
         }
         this.seconds -= dt //dt=1 is called every second
         if (this.seconds % 60 === 0) {
-            this.resources.forEach(r => {
-                this.team.wealth[r[0]] += r[1]
-            })
+            this.produce()
         }
         if (this.seconds <= 0) {
-            this.active = false
+            this.deactivate()
             return
         }
     }
