@@ -248,6 +248,7 @@ class Loca extends GameWorld {
             terminal => { terminal.unlocked = true },
         locked: /**@param {Terminal} terminal */
             terminal => { terminal.unlocked = false },
+        refresh: () => { },
         break: /**@param {Terminal} terminal */
             terminal => { },
         repair:/**@param {Terminal} terminal */
@@ -267,6 +268,10 @@ class Loca extends GameWorld {
         This reduces the need for granular updates, and will send full update to each client
         but on an on-request basis.
         */
+    }
+    cheatAll() {
+        this.terminals.forEach(x => { x.unlocked = true; if (x.hasTodo) x.activate() })
+        this.eventHappenedServer(Loca.EVENTS.refresh)
     }
     getFullEvents() {
         return {

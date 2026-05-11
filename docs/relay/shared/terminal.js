@@ -64,6 +64,7 @@ class Terminal {
         this.bucket = row[2]
         this.pretty = row[3]
         this.action = row[4]
+        this.hasTodo = Terminal.ACTIONS.hasTodo.includes(this.action)
         this.description = row.at(-3) || ""
         this.note = row.at(-2) || ""
         /**@type {string[]} */
@@ -80,6 +81,8 @@ class Terminal {
             if (!val) return
             this.resources[Team.resourceNames[i - firstUnusedRow]] = +val
         })
+        this.hasResources = this.resourcesArray.some(x => x)
+
     }
 
 
@@ -122,7 +125,7 @@ class Terminal {
     }
     getInspectLongClickText() {
         const res =
-            !Object.keys(this.resources).length
+            !this.hasResources
                 ? ""
                 : `Once repaired, the ${this.pretty} will produce:\n` + this.getResourceInfoText()
         const pre =
@@ -157,10 +160,11 @@ class Terminal {
         game.pinfo(out)
     }
     onActionWhenAlreadyActiveAndUnlocked() {
-        const out =
-            `The ${this.pretty} is active and is producing\n`
+        const status =
+            `The ${this.pretty} is active.`
+        const res = !this.hasResources ? "" : ` and is producing\n`
             + this.getResourceInfoText()
-        game.pinfo(out)
+        game.pinfo(status + res)
     }
     tryAction() {
         if (!this.isStandingOn) return
@@ -239,7 +243,17 @@ class Terminal {
         "CLAIM": "CLAIM",
         "HACK": "HACK", //TBD if i keep it
         "RESTORE": "RESTORE",
+        hasTodo: ["REPAIR", "CAPTURE", "CLAIM", "HACK", "RESTORE"]
     }
+    /**@deprecated */
+    static TODOS = {
+        "REPAIR": 0,
+        "CAPTURE": 0,
+        "CLAIM": 0,
+        "HACK": 0,
+        "RESTORE": 0,
+    }
+
 
     activate() {
         this.active = true

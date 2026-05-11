@@ -73,6 +73,8 @@ const GRAPHICS = {
     CORNER_WIDTH_COEFF: 0.7,
     CORNER_HEIGHT_COEFF: 0.55,
     CORNER_FONT_COLOR: "black",
+    CORNER_OPACITY: 0.2,
+    TODO_HEIGHT_MULTIPLIER: 1.2,
     NEUTRAL_BUTTON_BG_COLOR: "linen",
     NEUTRAL_LOCA_COLOR: "linen",
     NEUTRAL_DROPDOWNMENU_COLOR: "linen",
@@ -111,7 +113,7 @@ Chat.library = {
         "psr": (txt) => { game.psr(txt) },
         "reload": () => { chat.delayedReload() },
         "flush": () => { localStorage.clear(); chat.delayedReload(); },
-        "rename": (newName) => { chat.forceName(newName, true); return newName; },
+        "rename": (newName) => { personData.rename(newName); return personData.name; },
         "debug": () => { game.debugMode() },
         "bc": (params) => { game?.BROADCAST_RECEIVE(params) }, //broadcast
         "ping": () => chat.getPingStats(),

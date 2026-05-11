@@ -267,17 +267,17 @@ class Game extends GameShared {
     //#region showServerInterface
     showServerInterface() {
         this.framerate.button.rightat(this.WIDTH - 20)
-        const buts = this.rect.splitRow(4, 2, 1).map(x => Button.fromRect(x, {
+        const buts = this.rect.splitRow(4, 1.8, 1).map(x => Button.fromRect(x, {
             font_font: "myMonospace", textSettings: { textAlign: "left", textBaseline: "top" }
         }).deflate(15, 15))
         const [players, teams, misc] = buts
         players.dynamicText = () =>
             MM.tableStr(
                 listener.personsAsArray.map(/**@param {Person} x*/x =>
-                    [x.player?.name, x.team?.id, x.team?.name,
-                    x.player?.loca?.name, x.player?.loca.id, x.player?.loca.eventCount])
-                , ["name", "team", "teamID", "loca", "locaID", "le"])
-
+                    [x.player?.name, x.team?.id, x.team?.name, x.nameID,
+                    x.player?.loca.id, x.player?.loca.eventCount, x.player?.loca?.name,])
+                , ["name", "team", "teamID", "nameID", "locaID", "le", "loca"])
+        players.on_release = () => this.personsMenu()
         teams.dynamicText = () => MM.tableStr(
             Team.ALL.map(x => [x.name, ...Object.values(x.wealth), "   " + x.membersAsArray.map(x => x.p.name).join(", ")])
             , ["team", ...Object.keys(Team.ALL[0].wealth), "   players"]
@@ -291,6 +291,32 @@ class Game extends GameShared {
 
     //#endregion
 
+
+
+    //#region menus
+    /**@param {(Participant | Person)[]} [persons=listener.personsAsArray]  */
+    personsMenu(persons = listener.personsAsArray) {
+        if (!persons.length) return
+        const ddm = GameEffects.dropDownMenu(
+            persons.map(x => [x.name, () => this.individualMenu(x)])
+            , null, null, null, { width: 400 }
+        )
+        this.mouser.on_release_once = () => this.extras_temp.push(ddm.close)
+
+    }
+    /**@param {Person } person  */
+    individualMenu(person) {
+        const parr = []
+        parr.push(["Flush", () => person.flush(), "Flush this player"])
+        parr.push(["Rename", async () => {
+            person.rename(await GameEffects.inputBoxFromRectPromise(new Rect(this.mouser.x, this.mouser.y, 300, 50)))
+        }, "Rename this player"])
+
+        const ddm = GameEffects.dropDownMenu(parr,
+            null, null, null, { width: 400 })
+        this.mouser.on_release_once = () => this.extras_temp.push(ddm.close)
+    }
+    //#endregion
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                         ^^^^INITIALIZE^^^^                                                   ///
     ///                                                                                                              ///

@@ -1,11 +1,30 @@
 const personData = {
     name: "UNNAMED",
     get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
+    rename(newName) {
+        chat.forceName(newName || this.name, true)
+        this.name = chat.name
+        this.save()
+    },
+    save() {
+        const { nameID, ...saveData } = this //nameID shall not be saved here
+        localStorage.setItem("personData", JSON.stringify(saveData))
+    },
+    load() { },
     playerID: -1,
     locaID: -1,
     teamID: -1,
+    setTeamID(teamID) {
+        this.teamID = teamID
+        this.teamColor = Team.ALL[teamID].color
+        this.teamName = Team.ALL[teamID].name
+        this.team = Team.ALL[teamID].team
+        this.teamHomebaseID = RULES.HOMEBASES[teamID]
+    },
     teamColor: null,//str
     teamName: null,//str
+    team: null, //team
+    teamHomebaseID: null, //num
     /**@type {number[]} */
     teamWealth: [],//num[]
     locaEventCount: 0, //must reset on new loca!
@@ -55,7 +74,7 @@ class Game extends GameShared {
             x: 20,
             width: GRAPHICS.LEFT * GRAPHICS.CORNER_WIDTH_COEFF - 20, height: GRAPHICS.LEFT * GRAPHICS.CORNER_HEIGHT_COEFF,
             color: personData.teamColor,
-            opacity: 0.6,
+            opacity: GRAPHICS.CORNER_OPACITY,
         })
         // corner.on_enter = () => corner.opacity = 0; corner.on_leave = () => corner.opacity = 0.5
         corner.bottomat(this.HEIGHT - 20)
@@ -69,13 +88,29 @@ class Game extends GameShared {
         }
         this.add_drawable(corner, 7)
 
+        const todos = this.todos = Button.fromButton(corner.copy)
+        todos.stretch(1, GRAPHICS.TODO_HEIGHT_MULTIPLIER)
+        todos.bottomat(corner.top - 20)
+        todos.width = GRAPHICS.LEFT - GRAPHICS.FEED_MARGIN
+        todos.dynamicText = () => {
+            const urgent = this.loca.terminals
+                .filter(x => !x.active && x.unlocked && x.hasTodo)
+            if (urgent.length) return urgent
+                .map(x => `${x.action[0] + (x.action.slice(1).toLowerCase())} the ${x.pretty}`)
+                .join("\n")
+            return `No tasks left here.\n\nTravel to another location\nusing the Space Shuttle.`
+        }
+
+        this.add_drawable(todos, 7)
+
+
         const header = this.header = new Button({
             x: 0, y: 0, width: this.WIDTH, height: GRAPHICS.FEED_MARGIN,
             color: personData.teamColor,//GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
         })
         header.dynamicText = () => [
             `name: ${personData.name}`,
-            `connection: ${chat.isConnected ? "ok" : "DISCONNECTED!!!"}`,
+            `ping: ${chat.isConnected ? `${chat.pingRecord.at(-1)}ms` : "DISCONNECTED!!!"}`,
             `chat.name: ${chat.name}`,
             `nameID: ${personData.nameID}`,
             `playerID: ${personData.playerID}`,
@@ -135,11 +170,10 @@ class Game extends GameShared {
             await this.welcomeSelect()
             await this.nameSelect()
             await this.teamSelect()
-            const { nameID, ...saveData } = personData //nameID shall not be saved here
-            localStorage.setItem("personData", JSON.stringify(saveData))
+            personData.save()
         } else {
             Object.assign(personData, JSON.parse(storedPersonData))
-            chat.forceName(personData.name, true)
+            personData.rename()
         }
         this.enter()
     }
@@ -240,9 +274,7 @@ class Game extends GameShared {
                         buttonColor: x.color, yesColor: "white", noColor: "white"
                     })
                     cb.promise().then(() => {
-                        personData.teamID = i
-                        personData.teamName = x.tag
-                        personData.teamColor = x.color
+                        personData.setTeamID(i)
                         this.remove_drawable(fm)
                         resolve()
                     }).catch(() => canClick = true)
@@ -285,6 +317,8 @@ class Game extends GameShared {
                 Object.assign(this.loca.screenRect, Anim.interpolRect(origplace, targetplace,
                     Anim.l.sqrt(t)))
                 locabuttons.forEach(x => x.opacity = 1 - t)
+                this.corner.opacity = t
+                this.todos.opacity = t
                 circleDrawable.opacity = 1 - t
                 if (GRAPHICS.STARS_ANIMATE_ON_OVERWORLD)
                     null
@@ -292,6 +326,8 @@ class Game extends GameShared {
             on_end: () => {
                 locabuttons.forEach(x => x.opacity = 0)
                 circleDrawable.opacity = 0
+                this.corner.visible = false
+                this.todos.visible = false
                 this.remove_drawable(this.loca)
                 this.canChangeOverWorldState = true
                 addLocaButtonInteractions()
@@ -350,12 +386,15 @@ class Game extends GameShared {
         const origplace = this.loca.screenRect.copy
         const targetplace = this.rect.copy
         this.add_drawable(this.loca)
-
+        this.corner.visible = true
+        this.todos.visible = true
         const zoomInFromOverworldToLoca = Anim.custom(
             null, GRAPHICS.OVERWORLD_TRANSITION_TIME, t => {
                 Object.assign(this.loca.screenRect, Anim.interpolRect(origplace, targetplace, t))
                 locabuttons.forEach(x => x.opacity = t)
                 overworld.circleDrawable.opacity = t
+                this.corner.opacity = 1 - t
+                this.todos.opacity = 1 - t
                 if (GRAPHICS.STARS_ANIMATE_ON_OVERWORLD)
                     null
             }, "", {
@@ -363,6 +402,8 @@ class Game extends GameShared {
                 this.remove_drawable(overworld)
                 Object.assign(this.loca.screenRect, this.rect.copy)
                 this.unfreezeInteractables()
+                this.corner.opacity = 0
+                this.todos.opacity = 0
                 GRAPHICS.STARS_HIDE_ON_OVERWORLD && (this.starsDrawable.visibleStars = true)
                 this.canChangeOverWorldState = true
             }
@@ -547,7 +588,7 @@ class Game extends GameShared {
         GameEffects.popup(txt, {
             posFrac: [.5, .8],
             sizeFrac: [.75, .15],
-            floatTime: 2500,
+            floatTime: 3500,
             moreButtonSettings: {
                 color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR, isBlocking: GRAPHICS.ARE_POPUPS_BLOCKING
             }
@@ -786,7 +827,7 @@ var univ = {
 
 
 //#region dev options
-/// dev options
+/// dev options dev.dev.dev.
 const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
     bgSmoothing: () => { GRAPHICS.SMOOTHING_DISABLED_FOR_BG = !GRAPHICS.SMOOTHING_DISABLED_FOR_BG; GameEffects.popup(`Smoothing: ${GRAPHICS.SMOOTHING_DISABLED_FOR_BG}`) },
@@ -797,6 +838,7 @@ const dev = {
     showPingRecord: () => GameEffects.popup(Object.entries(chat.getPingStats()).join("; ") + '\n' + MM.reshape(chat.pingRecord, 30).join("\n"), { floatTime: 5000, close_on_release: true }, GameEffects.popupPRESETS.megaBlue),
     flush: () => { localStorage.clear(); chat.delayedReload() },
     speedHack: () => { GRAPHICS.WADDLE_TIME = 20 },
+    goHome: () => { game.tryTravelTo(personData.teamHomebaseID) },
     toggleWDiv: () => { wDiv.toggle() },
     removeWDiv: () => { wDiv.remove() },
     endDebugMode: () => { game.debugModeEnd(); game.framerate.isRunning = false; game.remove_drawable(game.framerate.button) },
