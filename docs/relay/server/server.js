@@ -44,6 +44,7 @@ class Person extends Participant {
     }
     //#region enter
     enter(personData) {
+        if (personData.whatGame !== "space") return { denied: true }
         this.team = Team.ALL[personData.teamID]
         /**@type {Player} */
         this.p = pool.getPlayer(personData.playerID, pool.getLoca(this.team.homebase.id))
@@ -134,8 +135,20 @@ class Game extends GameShared {
                 if (t.type === "shuttle") {
                     t.prereq = ["hazard"]
                     team.homebase.eventHappenedServer(Loca.EVENTS.locked, t)
+
                 }
                 if (t.note) t.on_first_activate = () => team.homebase.checkPrereqTree()
+                if (t.type === "hazard") {
+                    t.on_first_activate = () => {
+                        team.homebase.checkPrereqTree()
+                        this.animator.add_anim(Anim.delay(RULES.MINUTES_AFTER_HAZARD * 60 * 1000, {
+                            on_end: () => {
+                                console.log("Homebase other stuff loading for " + team.name)
+                                GameEffects.popup("Homebase other stuff loading for " + team.name)
+                            }
+                        }))
+                    }
+                }
 
             })
 

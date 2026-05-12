@@ -133,8 +133,8 @@ class GameShared extends GameCore {
 
 
         const zoomSlider = this.zoomSlider = new Slider(new Button({
-            width: 35,
-            height: 60,
+            width: 40,
+            height: 90,
             x: this.WIDTH - 50 - 20,
             y: 20,
         }))

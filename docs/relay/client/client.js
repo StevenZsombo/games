@@ -42,7 +42,13 @@ class Game extends GameShared {
         chat.initLibrary("client")
         this.initChat()
         wDiv.add("Entering...")
-        const enterResponse = await chat.wee("enter", personData)
+        const enterResponse = await chat.wee("enter", { whatGame: "space", ...personData })
+        if (enterResponse.denied) {
+            wDiv.show()
+            wDiv.addLine("Server refused connection.")
+            wDiv.addLine("Talk to your teacher.")
+            return
+        }
         wDiv.add("Server response: OK\n")
         wDiv.hide()
         console.log(enterResponse)

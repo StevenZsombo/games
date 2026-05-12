@@ -24,6 +24,8 @@ const RULES = {
     SERVER_BROADCAST_INTERVAL: 200,
     CLIENT_THROTTLE_FALLBACK_POS_INTERVAL: 2000, //if drift from server is out of sync
 
+    MINUTES_AFTER_HAZARD: 3, //time after hazard unlocked to homebase other things to unlock
+
     DEBUG_MODE: true,
     SKIP_INTRO: true,
 
