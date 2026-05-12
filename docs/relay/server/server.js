@@ -261,7 +261,7 @@ class Game extends GameShared {
             t.team = person.team
             t.activate()
             t.question = null
-            if (t.action === Terminal.ACTIONS.CLAIM) t.loca.eventHappenedServer(Loca.EVENTS.erase, t)
+            if (Terminal.ACTIONS.willEraseList.includes(t.action)) t.loca.eventHappenedServer(Loca.EVENTS.erase, t)
             chat.targetSpam(t.team.membersAsArray, "ptc",
                 `${person.p.name} ${t.actionVerbPastLowerCase} the ${t.pretty}.`)
         }

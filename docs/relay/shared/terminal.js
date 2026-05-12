@@ -10,9 +10,9 @@ class Terminal {
         ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 0, 0, 'upgrade1', 'life'],
         ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 0, 0, 'base', 0],
         ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 0, 0, 'upgrade1', 'cargo'],
-        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0, 'upgrade2', 'comms'],
-        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0, 'upgrade2', 'water,hydro'],
-        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar'],
+        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0, 'upgrade2', 'comms,water,hydro'],
+        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0, 'upgrade2', 'water,hydro,comms,solar'],
+        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar,comms,water,hydro'],
         ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
         ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
         ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'req hazard on homebase only', 0],
@@ -30,8 +30,8 @@ class Terminal {
         ['chestparts', 0, 20, 'Parts box', 'CLAIM', 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0],
         ['smallenergy', 0, 0, 'Small battery', 'CLAIM', 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['smallwater', 0, 0, 'Small water bottle', 'CLAIM', 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['smallfood', 0, 0, 'Small chocolate bar', 'CLAIM', 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['smallparts', 0, 0, 'Small electronics box', 'CLAIM', 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0],
+        ['smallfood', 0, 0, 'Small candy bar', 'CLAIM', 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['smallparts', 0, 0, 'Small circuits', 'CLAIM', 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0],
         ['chestantimatter', 0, 40, 'Antimatter traces', 'CLAIM', 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0],
         ['chestcoolant', 0, 40, 'Coolant remains', 'CLAIM', 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0],
         ['chestmineral', 0, 40, 'Mineral residue', 'CLAIM', 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0],
@@ -263,7 +263,8 @@ class Terminal {
         "CAPTURE": "CAPTURE",
         "CLAIM": "CLAIM",
         "RESTORE": "RESTORE",
-        hasTodoList: ["REPAIR", "RESTORE", "CLAIM", "CAPTURE"]
+        hasTodoList: ["REPAIR", "RESTORE", "CLAIM", "CAPTURE"],
+        willEraseList: ["RESTORE", "CLAIM"]
     }
     /**@deprecated */
     static TODOS = {
