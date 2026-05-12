@@ -108,6 +108,9 @@ class Game extends GameShared {
         }
 
         this.add_drawable(todos, 7)
+        this.cornersUI = [this.corner, this.todos]
+        this.hideCornersUI = () => { this.cornersUI.forEach(x => x.deactivate()) }
+        this.showCornersUI = () => { this.cornersUI.forEach(x => x.activate()) }
 
 
         const header = this.header = new Button({
@@ -185,13 +188,6 @@ class Game extends GameShared {
     }
 
     async welcomeSelect() {
-        const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
-        const currentID = localStorage.getItem("nameID")
-        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > 6 * 60 * 60 * 1000)) {//6 hours
-            localStorage.clear()
-            chat.nameID = currentID
-            chat._acquireNameID()
-        }
         const prom = new Promise(resolve => {
             const buts = Array(4).fill().map((_, i) => new Button({
                 width: 600, height: 300, txt: "Click me!", visible: i == 0, on_release:
@@ -426,17 +422,100 @@ class Game extends GameShared {
 
     //#region showUpgradesGuide
     showUpgradesGuide() {
-        const p = GameEffects.popup("", {
-            close_on_release: true, floatTime: 10000
-        }, GameEffects.popupPRESETS.megaBlue)
-        p.dynamicText = () => {
-            return `Repair your homebase modules as follows:\n\n`
-                + this.loca.terminals
-                    .filter(x => x.prereq.length && !x.unlocked)
-                    .map(x => `${x.pretty} requires: ${x.getPrereqsPretty()}`)
-                    .join("\n")
-
+        const homebase = pool.getLoca(personData.teamHomebaseID)
+        if (homebase.terminals.find(x => x.type === "shuttle").unlocked) {
+            this.pinfo("Your base is fully upgraded."
+                + "\nGo to the Space Shuttle to explore other locations."
+            )
+            return
         }
+        const ts = Object.fromEntries(
+            homebase.terminals.filter(x => x.note).map(x => [x.type, x])
+        )
+        console.log(ts)
+        const tiers = [
+            ["reactor", "life", "cargo"],
+            ["solar", "water", "hydro", "comms"],
+            ["anti", "med", "fab"],
+            ["hazard"],
+            ["shuttle"],
+        ]
+        const lines = [
+            ["reactor", "solar"], ["life", "water"], ["life", "hydro"], ["cargo", "comms"],
+            ["solar", "anti"], ["water", "med"], ["hydro", "med"], ["comms", "fab"],
+            ["anti", "hazard"], ["med", "hazard"], ["fab", "hazard"],
+            ["hazard", "shuttle"]
+        ]
+        const bgRatio = .9
+        const bg = this.rect.copy.stretch(bgRatio, bgRatio)
+        const w = new GameWorld(bg)
+        const buts = {}
+        const topRatio = 0.12
+        const toplabel = Button.fromRect(bg.copy.stretch(1, topRatio).topat(bg.top))
+        toplabel.txt = `Homebase upgrade plan:`
+        toplabel.color = personData.teamColor
+        toplabel.fontSize = 36
+        w.add_drawable(toplabel)
+        const cols = bg.copy.stretch(1, 1 - topRatio).bottomat(bg.bottom).splitCol(...tiers.map(_ => 1))
+        const cells = cols.map((x, i) => x.splitRow(...tiers[i].map(_ => 1)))
+        let minW = Infinity
+        let minH = Infinity
+        cells.forEach((col, i) => {
+            col.forEach((cell, j) => {
+                const b = Button.fromRect(cell)
+                /**@type {Terminal} */
+                const t = ts[tiers[i][j]]
+                b.terminal = t
+                b.txt = t.pretty
+                b.fontSize = 28
+                b.color = t.unlocked ? personData.teamColor : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+                w.add_drawable(b)
+                buts[tiers[i][j]] = b
+                if (b.width < minW) minW = b.width
+                if (b.height < minH) minH = b.height
+            })
+        })
+        const bgBut = Button.fromRectShallow(bg)
+        bgBut.color = GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+        bgBut.isBlocking = true
+        bgBut.on_click = () => cleanup()
+        w.add_drawable(bgBut, 2)
+        Object.values(buts).forEach(b => { b.resize(minW, minH); b.stretch(.7, .4) })
+        this.add_drawable(w)
+
+        const linesDrawable = {
+            draw(ctx) {
+                lines.forEach(([s, e]) => {
+                    MM.drawLine(ctx, buts[s].cx, buts[s].cy, buts[e].cx, buts[e].cy, {
+                        width: 8, color: buts[e].terminal.unlocked ? personData.teamColor : "black"
+                    })
+                    if (
+                        buts[s].terminal.unlocked && !buts[e].terminal.unlocked
+                        && !buts[s].terminal.active
+                    ) buts[s].rad = game.dtSin / 4
+                })
+            }
+        }
+        w.add_drawable(linesDrawable, 4)
+
+        const belowShuttle = Button.fromRectShallow(buts["shuttle"].copyRect)
+        belowShuttle.move(0, belowShuttle.height * 1.4)
+        belowShuttle.transparent = true
+        belowShuttle.fontSize = 28
+        belowShuttle.txt = `Unlocking the Space Shuttle\nwill let you explore\nother locations in space!`
+        w.add_drawable(belowShuttle)
+
+        this.hideCornersUI()
+        // this.freezeInteractables()
+        const cleanup = () => {
+            this.remove_drawable(w)
+            this.showCornersUI()
+            // this.unfreezeInteractables()
+        }
+
+
+        return
+
     }
     //#endregion
     //#region BROADCAST_RECEIVE
@@ -808,7 +887,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: RULES.DEBUG_MODE,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
@@ -827,6 +906,8 @@ var univ = {
             if (!location.hash.includes("noerror"))
                 wDiv.error("UNHANDLED: " + (event.reason?.stack || event.reason))
         }
+
+        chat.checkIfTooOld()
     },
     on_first_run_blocking: null,
     on_first_run_async: null,

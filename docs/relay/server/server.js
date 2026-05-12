@@ -69,15 +69,23 @@ class Person extends Participant {
     }
     flush() {
         this.wee("flush")
+            .catch(() => bpop("Could not flush " + this.name))
             .then(() => {
                 spop("Flushed " + this.name)
-                if (!this.p) return
-                this.p.loca?.removePlayer(this.p)
-                this.team?.members.delete(this)
-                pool.players.delete(this.p.id)
-                listener.persons.delete(this.nameID)
+                this.erase()
             })
-            .catch(() => bpop("Could not flush " + this.name))
+    }
+    erase() {
+        if (!this.p) return
+        this.p.loca?.removePlayer(this.p)
+        this.team?.members.delete(this)
+        pool.players.delete(this.p.id)
+        listener.persons.delete(this.nameID)
+    }
+    debug() {
+        this.wee("debug")
+            .catch(() => bpop("Failed to debug " + this.name))
+            .then(() => spop("Debug for " + this.name))
     }
     rename(newName) {
         if (!newName) return
@@ -191,7 +199,7 @@ class Game extends GameShared {
     initialize_more() {
         this.spopFeed = new FeedBasic(this.rect.splitCell(1, 1, 1.5, 3).move(20, 20), { color: "lightgreen" }, true)
         this.bpopFeed = new FeedBasic(this.rect.splitCell(1, -1, 1.5, 3).move(-20, 20), { color: "red" }, true)
-        this.add_drawable([this.spopFeed, this.bpopFeed])
+        this.add_drawable([this.spopFeed, this.bpopFeed], 7)
 
         this.clockworkSecondsExtras = []
         this.animator.createClockwork(1000, () => this.clockworkSecondsExtras.forEach(fn => fn()))
@@ -325,7 +333,9 @@ class Game extends GameShared {
     /**@param {Person } person  */
     individualMenu(person) {
         const parr = []
+        parr.push(["Debug", () => person.debug()])
         parr.push(["Flush", () => person.flush(), "Flush this player"])
+        parr.push(["Erase", () => person.erase(), "Erase this player from server"])
         parr.push(["Rename", async () => {
             person.rename(await GameEffects.inputBoxFromRectPromise(new Rect(this.mouser.x, this.mouser.y, 300, 50)))
         }, "Rename this player"])

@@ -26,8 +26,8 @@ const RULES = {
 
     MINUTES_AFTER_HAZARD: 3, //time after hazard unlocked to homebase other things to unlock
 
-    DEBUG_MODE: true,
-    SKIP_INTRO: true,
+    DEBUG_MODE: false,
+    SKIP_INTRO: false,
 
 }
 /*

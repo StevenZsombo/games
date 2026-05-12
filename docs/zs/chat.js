@@ -352,6 +352,15 @@ class Chat {
         }
         return this.nameID
     }
+    checkIfTooOld(tooOldMilliseconds = 6 * 60 * 60 * 1000) {
+        const nameIDtimestamp = localStorage.getItem("nameIDtimestamp")
+        if (!nameIDtimestamp || (Date.now() - nameIDtimestamp > tooOldMilliseconds)) {
+            const savedID = localStorage.getItem("nameID")
+            localStorage.clear()
+            if (savedID) localStorage.setItem("nameID", savedID)
+        }
+        this._acquireNameID()
+    }
 
     forceName(name, doNotReload = false) {
         this.name = name

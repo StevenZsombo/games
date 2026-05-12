@@ -135,15 +135,14 @@ class GameShared extends GameCore {
         const zoomSlider = this.zoomSlider = new Slider(new Button({
             width: 40,
             height: 90,
-            x: this.WIDTH - 50 - 20,
-            y: 20,
         }))
         zoomSlider.lineSettings.color = "rgba(100,100,100,0.8)"
         zoomSlider.movingButton.opacity = 0// 1 - 0.8 //i suck //terribly
         zoomSlider.isBlocking = true
-        zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - 20 - 20
+        const zoomSliderMarginRight = 15
+        zoomSlider.leftX = this.WIDTH - zoomSlider.movingButton.width - zoomSliderMarginRight
         zoomSlider.leftY = this.HEIGHT * .25
-        zoomSlider.rightX = this.WIDTH - zoomSlider.movingButton.width - 20 - 20
+        zoomSlider.rightX = zoomSlider.leftX
         zoomSlider.rightY = this.HEIGHT - zoomSlider.leftY
         zoomSlider.movingButton.on_click
         zoomSlider.adjustZoomOfLoca = () => this.loca.zoom(this.me.cx, this.me.cy, 2 ** zoomSlider.value)
