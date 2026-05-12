@@ -1008,13 +1008,13 @@ Please run them again to send your data.`
                 everyone.add(row.name)
             })
             const percentage = {}
-            Object.entries(completion).forEach(([lvl, names]) => percentage[lvl] = Number((names.size / everyone.size).toFixed(2)))
+            Object.entries(completion).forEach(([lvl, names]) => percentage[lvl] = Number((names.size / everyone.size)))
             // console.log({ percentage, completion, everyone })
             Object.keys(completion).forEach(lvl => {
                 const b = this.levelButtons.find(x => x.tag == lvl)
                 if (!b) { console.error("Level", lvl, "is not on the page."); return; }
                 progressBar(b, percentage[lvl])
-                this.inspector.addChild(b, `${percentage[lvl] * 100}% of players solved this.`)
+                this.inspector.addChild(b, `${Math.round(percentage[lvl] * 100 * 10) / 10}% of players solved this.`)
             })
         }).catch(e => console.error(e))
     }
