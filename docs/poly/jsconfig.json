@@ -13,7 +13,6 @@
         "./zs/sketch*.js",
         "./server*.js",
         "./cc.js",
-        "./game.js",
         "./platformer.js"
     ]
 }

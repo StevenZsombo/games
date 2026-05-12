@@ -60,7 +60,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const DEFAULT_PAGE_TO_SERVE = 'index.html';
+const DEFAULT_PAGE_TO_SERVE = 'template.html';
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'index.html';
 const PORT = 80;
 

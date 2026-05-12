@@ -98,7 +98,7 @@ Use the Share/Receive features instead.`
             navigator.permissions.query({
                 name: 'clipboard-read',
                 allowWithoutGesture: true
-            }).then(console.log)
+            }).then(console.log).catch(() => { }) //won't work on safari
             stgs.alreadyTriedAskingForClipboardPermission = true
         }
 
@@ -1177,7 +1177,14 @@ class Poly {
         return this
     }
     trimZeros() {
-        let largestNonzeroPower = this.arr.findLastIndex(x => x.numerator != 0)
+        // let largestNonzeroPower = this.arr.findLastIndex(x => x.numerator != 0)
+        let largestNonzeroPower = -1
+        for (let i = this.arr.length - 1; i >= 0; i--) {
+            if (this.arr[i].numerator != 0) {
+                largestNonzeroPower = i
+                break
+            }
+        }
         if (largestNonzeroPower == -1) this.arr = [new Rational(0)]
         this.arr = this.arr.slice(0, largestNonzeroPower + 1)
         return this

@@ -390,6 +390,9 @@ class MM {
     drawImage(image, dx, dy, dWidth, dHeight)
     drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)*/
     static drawImage(screen, img, rect, opacity = 0, rad = 0, imgScale = 0) {
+        if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+            return // Silently skip broken images for Safari
+        }
         if (opacity) { screen.save(); screen.globalAlpha = 1 - opacity }
         let { width, height } = img
         if (!imgScale) {//fit within automatically
