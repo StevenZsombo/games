@@ -10,9 +10,9 @@ class Terminal {
         ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 0, 0, 'upgrade1', 'life'],
         ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 0, 0, 'base', 0],
         ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 0, 0, 'upgrade1', 'cargo'],
-        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0, 'upgrade2', 'comms,water,hydro'],
+        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0, 'upgrade2', 'water,hydro,comms,solar'],
         ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0, 'upgrade2', 'water,hydro,comms,solar'],
-        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar,comms,water,hydro'],
+        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'water,hydro,comms,solar'],
         ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
         ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
         ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'req hazard on homebase only', 0],
@@ -42,6 +42,7 @@ class Terminal {
         ['door_extreme', 0, 70, 'High security door', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['plants', 0, 10, 'Plants', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['fridge', 0, 10, 'Fridge', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
     ]
     static typeToPretty = (type) => Terminal.DATA.find(x => x[0] === type)[3]
 
