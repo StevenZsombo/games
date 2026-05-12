@@ -96,7 +96,7 @@ class Game extends GameShared {
             const urgent = this.loca.terminals
                 .filter(x => !x.active && x.unlocked && x.hasTodo)
             if (urgent.length) return urgent
-                .map(x => `${x.action[0] + (x.action.slice(1).toLowerCase())} the ${x.pretty}`)
+                .map(x => `${x.actionVerbPresent} the ${x.pretty}`)
                 .join("\n")
             return `No tasks left here.\n\nTravel to another location\nusing the Space Shuttle.`
         }
@@ -488,6 +488,7 @@ class Game extends GameShared {
         info.data.forEach(([id, props]) => {
             const t = pool.getTerminalShallow(id)
             t && Object.assign(t, props)
+            if (t.deleted) pool.deleteTerminal(id)
             personData.locaEventCount = info.e
         })
     }

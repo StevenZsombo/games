@@ -214,6 +214,7 @@ class Loca extends GameWorld {
             }
 
         }
+        terminal.loca = this
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
     }
@@ -249,14 +250,11 @@ class Loca extends GameWorld {
         locked: /**@param {Terminal} terminal */
             terminal => { terminal.unlocked = false },
         refresh: () => { },
-        break: /**@param {Terminal} terminal */
-            terminal => { },
-        repair:/**@param {Terminal} terminal */
-            terminal => { },
-        capture:/**@param {Terminal} terminal @param {Team} team */
-            (terminal, team) => { },
-        lose:/**@param {Terminal} terminal @param {Team} team */
-            (terminal, team) => { },
+        erase: /**@param {Terminal}terminal */
+            terminal => {
+                terminal.deleted = true
+                //no need to delete from server i think },
+            },
     }
     /**@param {function | string} whichone  */
     eventHappenedServer(whichone, ...params) {
@@ -278,7 +276,7 @@ class Loca extends GameWorld {
             e: this.eventCount,
             data: this.terminals.map(x => [x.id, {
                 unlocked: x.unlocked,
-                // active: x.active
+                deleted: x.deleted
             }])
         }
     }

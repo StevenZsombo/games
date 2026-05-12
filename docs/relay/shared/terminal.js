@@ -15,7 +15,7 @@ class Terminal {
         ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar'],
         ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
         ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
-        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', "req hazard on homebase only", 0],
+        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'req hazard on homebase only', 0],
         ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 0, 0, 'See available upgrades.', 0, 0],
         ['mining', 5, 30, 'Mining station', 'CAPTURE', 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0],
         ['scrapyard', 5, 30, 'Scrapyard', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0],
@@ -28,6 +28,10 @@ class Terminal {
         ['chestwater', 0, 20, 'Ice blocks', 'CLAIM', 0, 120, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['chestfood', 0, 20, 'Nutrient packs', 'CLAIM', 0, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0],
         ['chestparts', 0, 20, 'Parts box', 'CLAIM', 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0],
+        ['smallenergy', 0, 0, 'Small battery', 'CLAIM', 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['smallwater', 0, 0, 'Small water bottle', 'CLAIM', 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['smallfood', 0, 0, 'Small chocolate bar', 'CLAIM', 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['smallparts', 0, 0, 'Small electronics box', 'CLAIM', 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0],
         ['chestantimatter', 0, 40, 'Antimatter traces', 'CLAIM', 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0],
         ['chestcoolant', 0, 40, 'Coolant remains', 'CLAIM', 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0],
         ['chestmineral', 0, 40, 'Mineral residue', 'CLAIM', 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0],
@@ -53,6 +57,9 @@ class Terminal {
     active = false //produces if active.
     unlocked = true
     seconds = 0
+    deleted = false
+    /**@type {?Loca} */
+    loca = null
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
@@ -64,7 +71,10 @@ class Terminal {
         this.bucket = row[2]
         this.pretty = row[3]
         this.action = row[4]
-        this.hasTodo = Terminal.ACTIONS.hasTodo.includes(this.action)
+        this.actionVerbPresent = this.action[0] + this.action.slice(1).toLowerCase()
+        this.actionVerbPast = this.actionVerbPresent + "ed"
+        this.actionVerbPastLowerCase = this.actionVerbPast.toLowerCase()
+        this.hasTodo = Terminal.ACTIONS.hasTodoList.includes(this.action)
         this.description = row.at(-3) || ""
         this.note = row.at(-2) || ""
         /**@type {string[]} */
@@ -117,21 +127,27 @@ class Terminal {
     }
     getResourceInfoText() {
         return Object.entries(this.resources).map(x => `${MM.capitalizeFirstLetter(x[0])} (${x[1]})`).join(", ")
-            + " every minute"
+            + (this.delay ? " every minute" : "")
 
     }
     getPrereqsPretty() {
         return this.prereq.map(Terminal.typeToPretty).join(" and ")
     }
     getInspectLongClickText() {
+        if (!this.delay) {
+            return (this.hasResources
+                ? `The ${this.pretty} will yield ${this.getResourceInfoText()}.`
+                : `This is a ${this.pretty}.`)
+                + (this.description ? "\n" + this.description : "")
+        }
         const res =
             !this.hasResources
                 ? ""
-                : `Once repaired, the ${this.pretty} will produce:\n` + this.getResourceInfoText()
+                : `Once ${this.actionVerbPast}, the ${this.pretty} will produce:\n` + this.getResourceInfoText()
         const pre =
             this.unlocked
                 ? ""
-                : `Requires ${this.getPrereqsPretty()} before it can be repaired.\n`
+                : `Requires ${this.getPrereqsPretty()} before it can be ${this.actionVerbPast}.\n`
         return `${pre}${res}${this.description}`
 
     }
@@ -156,15 +172,17 @@ class Terminal {
     onActionWhenAlreadyActiveButNotYetUnlocked() {
         const out =
             `The ${this.pretty} requires ${this.getPrereqsPretty()}`
-            + `\nto be operational before it can be repaired.`
+            + `\nto be operational before it can be ${this.actionVerbPast}.`
         game.pinfo(out)
     }
     onActionWhenAlreadyActiveAndUnlocked() {
+        if (!this.delay) return
         const status =
             `The ${this.pretty} is active.`
         const res = !this.hasResources ? "" : ` and is producing\n`
             + this.getResourceInfoText()
         game.pinfo(status + res)
+
     }
     tryAction() {
         if (!this.isStandingOn) return
@@ -177,6 +195,8 @@ class Terminal {
         switch (this.action) {
             case Terminal.ACTIONS.REPAIR:
             case Terminal.ACTIONS.RESTORE:
+            case Terminal.ACTIONS.CLAIM:
+            case Terminal.ACTIONS.CAPTURE:
                 this.grabQuestionClient()
                 break;
             case Terminal.ACTIONS.TRAVEL:
@@ -241,17 +261,15 @@ class Terminal {
         "SEEUPGRADES": "SEEUPGRADES",
         "CAPTURE": "CAPTURE",
         "CLAIM": "CLAIM",
-        "HACK": "HACK", //TBD if i keep it
         "RESTORE": "RESTORE",
-        hasTodo: ["REPAIR", "CAPTURE", "CLAIM", "HACK", "RESTORE"]
+        hasTodoList: ["REPAIR", "RESTORE", "CLAIM", "CAPTURE"]
     }
     /**@deprecated */
     static TODOS = {
         "REPAIR": 0,
-        "CAPTURE": 0,
-        "CLAIM": 0,
-        "HACK": 0,
         "RESTORE": 0,
+        "CLAIM": 0,
+        "CAPTURE": 0,
     }
 
 

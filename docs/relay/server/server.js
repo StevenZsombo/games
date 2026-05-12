@@ -255,10 +255,12 @@ class Game extends GameShared {
         const attemptInfo = { correct: t.question.attemptServer(guess) }
         if (attemptInfo.correct) {
             person.team.solvedQuestionsIDs.add(t.question.id)
+            t.team = person.team
             t.activate()
             t.question = null
+            if (t.action === Terminal.ACTIONS.CLAIM) t.loca.eventHappenedServer(Loca.EVENTS.erase, t)
             chat.targetSpam(t.team.membersAsArray, "ptc",
-                `${person.p.name} repaired the ${t.pretty}.`)
+                `${person.p.name} ${t.actionVerbPastLowerCase} the ${t.pretty}.`)
         }
         return attemptInfo
     }

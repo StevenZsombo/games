@@ -82,7 +82,7 @@ class Question {
     /**@param {Terminal} terminal @param {number} attempt  */
     attemptClient(terminal, attempt) {
         console.log(`Attempt: t${terminal.id},q${this.id}:${attempt}`)
-        return chat.wee("attempt", [terminal.id, attempt])
+        return chat.wee("attempt", [terminal.id, attempt], { retries: 0, interval: 1000 })
     }
 
     attemptServer(guess) {
