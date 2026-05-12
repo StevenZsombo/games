@@ -61,7 +61,7 @@ class Terminal {
     active = false //produces if active.
     unlocked = true
     seconds = 0
-    deleted = false
+    asleep = false
     /**@type {?Loca} */
     loca = null
     constructor(type, id) {

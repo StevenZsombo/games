@@ -43,15 +43,6 @@ class Pool {
     getTerminalShallow(id) {
         return this.terminals.get(id) //will be undefined if not yet loaded
     }
-    /**@param {number} id*/
-    deleteTerminal(id) {
-        const t = this.terminals.get(id)
-        if (!t) return
-        const loca = t.loca
-        t.loca.despawnTerminal(t)
-        this.terminals.delete(id)
-        console.log(`Deleted terminal ${t.id} from ${loca.name}`)
-    }
     /**@param {number} id @returns {Loca} */
     getLoca(id) {
         if (this.locas.has(id)) return this.locas.get(id)

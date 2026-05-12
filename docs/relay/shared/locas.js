@@ -166,7 +166,6 @@ class Loca extends GameWorld {
     spawnTerminal(terminal, rect) {
         if (!(terminal instanceof Terminal)) throw new Error("loca.spawnTerminal did not get a terminal")
         if (!(rect instanceof Rect)) throw new Error("loca.spawnTerminal did not get fromRect")
-        this.terminals.push(terminal)
         if (!this.eventStateManager.has(terminal.id)) {
             const ev = this.eventStateManager.create(terminal.id)
             const rectIJData = Terminal.getRectIJData(rect)
@@ -194,7 +193,6 @@ class Loca extends GameWorld {
             }
             ev.on_enter = () => terminal.onStandingOnEnter()
             ev.on_leave = () => terminal.onStandingOnLeave()
-            this.eventInteractables.push(b)
 
             /**@type {Button & {terminal:Terminal}} creating terminal button*/
             const l = Button.fromRectShallow(b.copyRect)
@@ -216,16 +214,25 @@ class Loca extends GameWorld {
 
         }
         terminal.loca = this
-        this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
+        this.wakeTerminal(terminal)
         return terminal
     }
     /**@param {Terminal} terminal  */
-    despawnTerminal(terminal) {
+    sleepTerminal(terminal) {
         this.remove_drawable(terminal)
-        const ind = this.eventInteractables.indexOf(terminal.button)
-        if (ind !== -1) this.eventInteractables.splice(ind, 1)
+        const ind1 = this.eventInteractables.indexOf(terminal.button)
+        if (ind1 !== -1) this.eventInteractables.splice(ind1, 1)
+        else console.error("Terminal missing when tryint to put to sleep", this)
         const ind2 = this.terminals.indexOf(terminal)
         if (ind2 !== -1) this.terminals.splice(ind2, 1)
+        else console.error("Terminal missing when tryint to put to sleep", this)
+    }
+    /**@param {Terminal} terminal */
+    wakeTerminal(terminal) {
+        this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
+        this.terminals.push(terminal)
+        this.eventInteractables.push(terminal.button)
+
     }
     checkPrereqTree() {
         this.terminals.forEach(t => {
@@ -267,7 +274,7 @@ class Loca extends GameWorld {
         refresh: () => { },
         erase: /**@param {Terminal}terminal */
             terminal => {
-                terminal.deleted = true
+                terminal.asleep = true
                 //no need to delete from server i think },
             },
     }
@@ -291,7 +298,7 @@ class Loca extends GameWorld {
             e: this.eventCount,
             data: this.terminals.map(x => [x.id, {
                 unlocked: x.unlocked,
-                deleted: x.deleted
+                asleep: x.asleep
             }])
         }
     }

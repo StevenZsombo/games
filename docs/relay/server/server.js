@@ -110,9 +110,15 @@ chat = listener.chat
 const persons = listener.persons
 
 const on_broadcast_extras = []
-const broadcast_interval = setInterval(() => {
-    on_broadcast_extras.forEach(fn => fn())
-}, RULES.SERVER_BROADCAST_INTERVAL)
+let broadcast_interval
+const broadcast_interval_changeInterval = (intervalDelay = RULES.SERVER_BROADCAST_INTERVAL) => {
+    clearInterval(broadcast_interval)
+    broadcast_interval = setInterval(() => {
+        on_broadcast_extras.forEach(fn => fn())
+    }, intervalDelay)
+}
+broadcast_interval_changeInterval()
+
 
 class Game extends GameShared {
 

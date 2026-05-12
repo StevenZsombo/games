@@ -149,8 +149,8 @@ class Player extends Button {
 
     }
     _update_compensateWaddle() {
-        if (Math.abs(this.rad) < 0.005) this.rad = 0
-        else this.rad *= 0.0
+        if (Math.abs(this.rad) < 0.01) this.rad = 0
+        else this.rad *= 0.8
     }
     drift = null
     updateDrifting(dt) {

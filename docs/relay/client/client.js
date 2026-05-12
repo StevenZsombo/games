@@ -120,6 +120,7 @@ class Game extends GameShared {
         header.dynamicText = () => [
             `name: ${personData.name}`,
             `ping: ${chat.isConnected ? `${chat.pingRecord.at(-1)}ms` : "DISCONNECTED!!!"}`,
+            `avgBC: ${game.latestBroadcastDetails.timesAverage()}`,
             `chat.name: ${chat.name}`,
             `nameID: ${personData.nameID}`,
             `playerID: ${personData.playerID}`,
@@ -524,11 +525,19 @@ class Game extends GameShared {
         data: [], time: 0, interactables: [],
         alreadyQueingForL: false,
         alreadyQueingForT: false,
+        timesLastTen: [],
+        timesAverage() { return Math.round(this.timesLastTen.reduce((s, t) => s + t, 0) / this.timesLastTen.length) },
+        recordTime() {
+            this.timesLastTen.push(Date.now() - this.time)
+            if (this.timesLastTen.length > 10) this.timesLastTen.shift()
+            this.time = Date.now()
+        }
+
     }
     /**@param {Broadcast} broadcastData  */
     BROADCAST_RECEIVE(broadcastData) {
         this.latestBroadcastDetails.data = broadcastData
-        this.latestBroadcastDetails.time = Date.now()
+        this.latestBroadcastDetails.recordTime()
         const myLoca = this.loca
         if (!myLoca) return
         for (const item of broadcastData) {
@@ -578,8 +587,10 @@ class Game extends GameShared {
         info.data.forEach(([id, props]) => {
             const t = pool.getTerminalShallow(id)
             if (t) {
+                const asleepBefore = t.asleep
                 Object.assign(t, props)
-                if (t.deleted) pool.deleteTerminal(id)
+                if (t.asleep != asleepBefore)
+                    t.asleep ? t.loca.sleepTerminal(t) : t.loca.wakeTerminal(t)
             }
             personData.locaEventCount = info.e
         })
@@ -805,8 +816,24 @@ class Game extends GameShared {
                 x.color = "lightgray"
                 x.txt = "Back to game"
                 x.on_release = () => { this.closeQPane() }
+            } else if (i == 14) {
+                x.leftat(calculatorButtons[1].left)
+                x.rightstretchat(calculatorButtons[2].right)
+                x.txt = "Fullscreen"
+                x.on_release = () => {
+                    p.deactivate()
+                    questionButton.putOver(this.rect)
+                    questionButton.activate()
+                }
+
             }
         })
+        const questionButtonOrigRect = questionButton.copyRect
+        questionButton.on_click = () => {
+            questionButton.putOver(questionButtonOrigRect)
+            p.activate()
+            this.mouser.blockNextRelease()
+        }
 
 
         const submit = botSubmit
