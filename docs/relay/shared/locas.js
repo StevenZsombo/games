@@ -46,6 +46,7 @@ class Loca extends GameWorld {
     tag = "Loca"
     isBlocking = true
     isVisibleGlobally = true
+    isHomebaseForTeam = null
     /**@type {?number} */
     exlusiveToTeamID = null
     constructor(fromfile, name, id) {
@@ -218,6 +219,14 @@ class Loca extends GameWorld {
         this.add_drawable(terminal, 4) //sub-layer. will probably add opaque effects
         return terminal
     }
+    /**@param {Terminal} terminal  */
+    despawnTerminal(terminal) {
+        this.remove_drawable(terminal)
+        const ind = this.eventInteractables.indexOf(terminal.button)
+        if (ind !== -1) this.eventInteractables.splice(ind, 1)
+        const ind2 = this.terminals.indexOf(terminal)
+        if (ind2 !== -1) this.terminals.splice(ind2, 1)
+    }
     checkPrereqTree() {
         this.terminals.forEach(t => {
             if (t.prereq == 0) return
@@ -225,6 +234,12 @@ class Loca extends GameWorld {
             if (t.prereq.every(str => this.terminals.find(x => x.type === str).active))
                 this.eventHappenedServer(Loca.EVENTS.unlocked, t)
         })
+    }
+    checkAreThereTasksLeft() {
+        if (this.isHomebaseForTeam) return true
+        if (this.terminals.filter(x => x.hasTodo && !x.active).length == 0) {
+            this.isVisibleGlobally = false
+        }
     }
     zoneToSpawnPlayersIn = []
     /**@param {Rect} rect */

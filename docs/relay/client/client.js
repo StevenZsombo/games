@@ -307,8 +307,10 @@ class Game extends GameShared {
         const origplace = this.loca.screenRect.copy
         this.freezeInteractables()
         /**@type {Array<Button&{name:string,locaID:number,fromfile:string}>} */
+        const includedLocas = Array.from(this.galaxyLocaIDs)
+        if (!includedLocas.includes(this.loca.id)) includedLocas.push(this.loca.id)
         const locabuttons = overworld.locabuttons =
-            this.galaxyLocaIDs.map(i =>
+            includedLocas.map(i =>
                 new Button({ ...Loca.PRESETS[i], opacity: 1, txt: Loca.PRESETS[i].name, locaID: i }))
         overworld.add_drawable(locabuttons)
         GRAPHICS.STARS_HIDE_ON_OVERWORLD && (this.starsDrawable.visibleStars = false)
@@ -351,7 +353,9 @@ class Game extends GameShared {
         this.overworld.circleDrawable = circleDrawable
         const addLocaButtonFlair = () => {
             RULES.HOMEBASES.forEach((id, i) => {
-                locabuttons.find(x => x.locaID === id).color = Team.ALL[i].color
+                const lb = locabuttons.find(x => x.locaID === id)
+                if (!lb) return
+                lb.color = Team.ALL[i]?.color ?? GRAPHICS.NEUTRAL_LOCA_COLOR
             })
         }
         addLocaButtonFlair()
@@ -367,7 +371,7 @@ class Game extends GameShared {
                             GameEffects.dropDownMenu([
                                 [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
                             ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
-                            : this.psr("Go to the Space Shuttle to TRAVEL.")
+                            : this.psr("The Observatory only lets you peek, not travel.\nUse the Space Shuttle to TRAVEL.")
                 }
             })
             whereAmICurrently.on_release = () => {
@@ -460,9 +464,10 @@ class Game extends GameShared {
                 personData.teamWealth = item.r
                 if (personData.teamWealth.slice(4).every(x => x == 0))
                     personData.teamWealth = personData.teamWealth.slice(0, 4)
+            } else if (item.g != null) {
+                this.galaxyLocaIDs = item.g
             }
         }
-        this.galaxyLocaIDs = broadcastData.map(x => x.l).filter(x => x != null)
     }
     /**@param {"l"|"t"} what  */
     FULL_REQUEST(what) {
@@ -487,8 +492,10 @@ class Game extends GameShared {
     FULL_PROCESS_LOCA(info) {
         info.data.forEach(([id, props]) => {
             const t = pool.getTerminalShallow(id)
-            t && Object.assign(t, props)
-            if (t.deleted) pool.deleteTerminal(id)
+            if (t) {
+                Object.assign(t, props)
+                if (t.deleted) pool.deleteTerminal(id)
+            }
             personData.locaEventCount = info.e
         })
     }
@@ -832,7 +839,7 @@ var univ = {
 const dev = {
     fullscreen: () => MM.toggleFullscreen(true),
     bgSmoothing: () => { GRAPHICS.SMOOTHING_DISABLED_FOR_BG = !GRAPHICS.SMOOTHING_DISABLED_FOR_BG; GameEffects.popup(`Smoothing: ${GRAPHICS.SMOOTHING_DISABLED_FOR_BG}`) },
-    owDebug: () => game.overworld ? game.unseeOverworld() : game.seeOverworld(),
+    owDebug: () => game.overworld ? game.unseeOverworld() : game.seeOverworld(true),
     // travelDebug: () => { game.tryTravelTo(+prompt("Enter locaID")) },
     unlockZoom: () => { game.zoomSlider.min = -4; game.zoomSlider.max = 5; game.zoomSlider.value = game.zoomSlider.value },
     // flush: () => { localStorage.clear(); chat.delayedReload() },

@@ -209,6 +209,7 @@ class Game extends GameShared {
     }
     //#region BROADCAST_SEND
     BROADCAST_SEND() {
+        const g = []
         const payload = []
         for (const loca of pool.locas.values()) {
             // if (loca.players.length)
@@ -219,6 +220,7 @@ class Game extends GameShared {
                 o: loca.exlusiveToTeamID,
                 i: loca.terminals.filter(t => !t.active && t.unlocked).map(t => t.id),
             })
+            if (loca.isVisibleGlobally) g.push(loca.id)
         }
         for (const team of Team.ALL) {
             payload.push({
@@ -226,6 +228,7 @@ class Game extends GameShared {
                 r: Object.values(team.wealth),
             })
         }
+        payload.push({ g: g })
         chat.spam("bc", payload)
     }
     //#endregion

@@ -75,6 +75,7 @@ class Terminal {
         this.actionVerbPast = this.actionVerbPresent + "ed"
         this.actionVerbPastLowerCase = this.actionVerbPast.toLowerCase()
         this.hasTodo = Terminal.ACTIONS.hasTodoList.includes(this.action)
+        if (this.hasTodo) this.on_first_activate = () => this.loca.checkAreThereTasksLeft()
         this.description = row.at(-3) || ""
         this.note = row.at(-2) || ""
         /**@type {string[]} */
@@ -296,6 +297,7 @@ class Terminal {
     }
     produce() {
         if (!this.unlocked) return
+        if (!this.team) { console.error(`Can't produce ${this.terminal.id} as it has no team.`); return; }
         for (const [key, val] of Object.entries(this.resources))
             this.team.wealth[key] += val
 

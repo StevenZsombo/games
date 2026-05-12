@@ -48,11 +48,7 @@ class Pool {
         const t = this.terminals.get(id)
         if (!t) return
         const loca = t.loca
-        const ind = loca.terminals.indexOf(t)
-        if (ind !== -1) {
-            loca.terminals.splice(ind, 1)
-            loca.remove_drawable(t) //how to fuck on earth can i remove this
-        }
+        t.loca.despawnTerminal(t)
         this.terminals.delete(id)
         console.log(`Deleted terminal ${t.id} from ${loca.name}`)
     }

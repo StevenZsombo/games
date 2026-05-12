@@ -84,7 +84,8 @@ const GRAPHICS = {
 /**
  * @typedef {(
  *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[] } |
- *   { t: number; e: number }
+ *   { t: number; e: number } |
+ *   { g: number[]}
  * )[]} Broadcast
  * 
  * - If object has `l`: 
@@ -97,6 +98,8 @@ const GRAPHICS = {
  *   - `t` is teamID
  *   - `e` is eventCount
  *   - `r` is wealthArray
+ * - If object has `g`:
+ *   - Is a list of visible locaIDs
  */
 Chat.library = {
     defaultSpamInterval: 2000,
