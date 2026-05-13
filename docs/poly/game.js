@@ -1285,7 +1285,7 @@ const dev = Object.freeze({
         const extracted = q.map(JSON.parse)
         const save = { name, nameID }
 
-        const keys = [stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
+        // const keys = [stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
         // const data = keys.map(x => [x, localStorage.getItem(x)])
 
         save[stgs.localUserSettingsName] = localStorage.getItem(stgs.localUserSettingsName)
