@@ -26,8 +26,8 @@ const RULES = {
 
     MINUTES_AFTER_HAZARD: 3, //time after hazard unlocked to homebase other things to unlock
 
-    DEBUG_MODE: false,
-    SKIP_INTRO: false,
+    DEBUG_MODE: true,
+    SKIP_INTRO: true,
 
 }
 /*
@@ -52,8 +52,12 @@ const GRAPHICS = {
     ALLOW_OOB_FOLLOW: false,
     ALLOW_CAMERA_FOLLOW: true,
     CAMERA_FOLLOW_COEFFICIENT: 0.02, //smoooooooooth
-    TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: 800, //probably large enough that it's not accidental
-    CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 2000, //probably large enough to allow a pathing click
+    TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: location.hash.includes("p") ? 800 : 300, //probably large enough that it's not accidental
+    CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 10 * 60 * 1000, //probably large enough to allow a pathing click
+    CAMERA_FOLLOW_WHEN_MOVING: false,
+    CAMERA_FOLLOW_WHEN_MOVING_OUTSIDE: true,
+    TODO_HAS_CIRCLES: true,
+    ALWAYS_SHOW_BUTTONS: true,
     SMOOTHING_DISABLED_FOR_BG: true,
     OVERWORLD_TRANSITION_TIME: 1000,
     STARS_COUNT: 220,
@@ -76,7 +80,9 @@ const GRAPHICS = {
     CORNER_HEIGHT_COEFF: 0.55,
     CORNER_FONT_COLOR: "black",
     CORNER_OPACITY: 0.2,
+    CORNER_BUTTON_OPENS_RESOURCES_GUIDE: true,
     TODO_HEIGHT_MULTIPLIER: 1.2,
+    TODOS_BUTTON_OPENS_UPGRADES_GUIDE: true,
     NEUTRAL_BUTTON_BG_COLOR: "linen",
     NEUTRAL_LOCA_COLOR: "linen",
     NEUTRAL_DROPDOWNMENU_COLOR: "linen",

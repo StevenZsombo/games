@@ -172,7 +172,8 @@ class Terminal {
         this.isStandingOn = false
         const b = this.button
         b.isBlocking = false
-        b.visible = false
+        if (!GRAPHICS.ALWAYS_SHOW_BUTTONS) b.visible = false
+        this.putInspectFromAfarText()
     }
     onActionWhenAlreadyActiveButNotYetUnlocked() {
         const out =
@@ -324,5 +325,8 @@ class Terminal {
         }
     }
 
+    get isInNeedOfAttention() {
+        return this.hasTodo && this.unlocked && !this.active
+    }
 }
 //#endregion

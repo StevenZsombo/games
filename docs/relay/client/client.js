@@ -96,6 +96,12 @@ class Game extends GameShared {
             color: GRAPHICS.CORNER_FONT_COLOR,
         }
         this.add_drawable(corner, 7)
+        if (GRAPHICS.CORNER_BUTTON_OPENS_RESOURCES_GUIDE) {
+            corner.isBlocking = true
+            corner.on_click = () => {
+                this.showResourcesGuide()
+            }
+        }
 
         const todos = this.todos = Button.fromButton(corner.copy)
         todos.stretch(1, GRAPHICS.TODO_HEIGHT_MULTIPLIER)
@@ -103,13 +109,19 @@ class Game extends GameShared {
         todos.width = GRAPHICS.LEFT - GRAPHICS.FEED_MARGIN
         todos.dynamicText = () => {
             const urgent = this.loca.terminals
-                .filter(x => !x.active && x.unlocked && x.hasTodo)
+                .filter(x => x.isInNeedOfAttention)
             if (urgent.length) return urgent
                 .map(x => `${x.actionVerbPresent} the ${x.pretty}`)
                 .join("\n")
             return `No tasks left here.\n\nTravel to another location\nusing the Space Shuttle.`
         }
-
+        if (GRAPHICS.TODOS_BUTTON_OPENS_UPGRADES_GUIDE) {
+            todos.isBlocking = true
+            todos.on_click = () => {
+                this.showUpgradesGuide()
+                // this.mouser.blockNextRelease()
+            }
+        }
         this.add_drawable(todos, 7)
         this.cornersUI = [this.corner, this.todos]
         this.hideCornersUI = () => { this.cornersUI.forEach(x => x.deactivate()) }
@@ -436,7 +448,11 @@ class Game extends GameShared {
         this.animator.add_anim(zoomInFromOverworldToLoca)
     }
     //#endregion
-
+    //#region showResourcesGuide
+    showResourcesGuide() {
+        GameEffects.popup("Resources guide goes here", {}, "megaBlue")
+    }
+    //#endregion
     //#region showUpgradesGuide
     showUpgradesGuide() {
         const homebase = pool.getLoca(personData.teamHomebaseID)
@@ -611,6 +627,7 @@ class Game extends GameShared {
                 Object.assign(t, props)
                 if (t.asleep != asleepBefore)
                     t.asleep ? t.loca.sleepTerminal(t) : t.loca.wakeTerminal(t)
+                t.isStandingOn ? t.putStandingOnText() : t.putInspectFromAfarText()
             }
             personData.locaEventCount = info.e
         })
@@ -624,8 +641,11 @@ class Game extends GameShared {
     ///                                               UPDATE                                                         ///
     /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region update_more
+    dtSin = 0
+    gentleSin = 1
     update_more(dt) {
         this.dtSin = Math.sin(this.dtTotal / 90) * 0.2
+        this.gentleSin = Math.sin(this.dtTotal / 180) * 0.02 + 1
 
         if (!this.hasFinishedLoading) return
 

@@ -44,7 +44,9 @@ class GameShared extends GameCore {
         this.winteract.on_release = (pos) => {
             if (Date.now() - this.winteract.last_clickedAt < GRAPHICS.TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE) {
                 this.me.setTarget(...this.loca.getIJ(pos))
-                shouldFollow = true //moving -> shouldFollow
+                if (GRAPHICS.CAMERA_FOLLOW_WHEN_MOVING) shouldFollow = true //moving -> shouldFollow
+                else if (GRAPHICS.CAMERA_FOLLOW_WHEN_MOVING_OUTSIDE
+                    && !this.loca.worldRect.collidepoint(this.me.x, this.me.y)) shouldFollow = true
             } else shouldFollow = false
         }
         this.sinteract.last_clickedAt = Date.now()
@@ -131,6 +133,23 @@ class GameShared extends GameCore {
         this.loca.add_drawable(targetingDrawable, 8) //just below players, above regular stuff
 
 
+        const todoDrawable = this.todoDrawable = {
+            draw: !GRAPHICS.TODO_HAS_CIRCLES ? null : (ctx) => {
+                this.loca.terminals
+                    .filter(x => x.isInNeedOfAttention)
+                    .forEach(t => {
+                        MM.drawEllipse(ctx,
+                            t.button.centerX, t.button.centerY,
+                            t.button.width * .8 * this.gentleSin, t.button.height * .8 * this.gentleSin,
+                            {
+                                outline_color: personData.teamColor ?? "black",
+                                color: null, outline: 10
+                            }
+                        )
+                    })
+            }
+        }
+        this.loca.add_drawable(todoDrawable, 7)
 
         const zoomSlider = this.zoomSlider = new Slider(new Button({
             width: 40,

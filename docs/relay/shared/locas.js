@@ -177,16 +177,19 @@ class Loca extends GameWorld {
             const b = (rect instanceof Button) ? Button.fromButton(rect.copy) : Button.fromRect(rect.copy)
             terminal.button = b
             b.terminal = terminal
-            b.visible = false
+            if (!GRAPHICS.ALWAYS_SHOW_BUTTONS) b.visible = false
             b.isBlocking = false
-            b.on_enter = () => {
-                if (terminal.button.isBlocking) return
-                terminal.button.opacity = 0.2; terminal.button.visible = true;
-                terminal.putInspectFromAfarText()
-            }
-            b.on_leave = () => {
-                if (terminal.button.isBlocking) return
-                terminal.button.opacity = 0; terminal.button.visible = false
+            terminal.putInspectFromAfarText()
+            if (!GRAPHICS.ALWAYS_SHOW_BUTTONS) {
+                b.on_enter = () => {
+                    if (terminal.button.isBlocking) return
+                    terminal.button.opacity = 0.2; terminal.button.visible = true;
+                    terminal.putInspectFromAfarText()
+                }
+                b.on_leave = () => {
+                    if (terminal.button.isBlocking) return
+                    terminal.button.opacity = 0; terminal.button.visible = false
+                }
             }
             b.on_click = () => {
                 terminal.tryAction()
