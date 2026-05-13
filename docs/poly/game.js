@@ -13,9 +13,13 @@ var univ = {
     on_each_start: null,
     cacheInterval: 3 * 60 * 1000,//null for no caching
     on_first_run: () => {
+        wDiv.addLine(stgs)
+        wDiv.show()
+        console.log()
         const existing = localStorage.getItem(stgs.localUserSettingsName)
         if (existing) Object.assign(userSettings, JSON.parse(existing))
         if (univ.cacheInterval) Supabase.readAllWins = MM.timeCachedFunction(Supabase.readAllWins, univ.cacheInterval, true)
+        wDiv.hide()
     },
     on_first_run_blocking: null, //null or function. must call main(canvas) at the end
     on_next_game_once: null,
