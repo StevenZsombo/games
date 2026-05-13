@@ -844,6 +844,15 @@ class MM {
             yield i
         }
     }
+    static rangeArr(startOrEnd, endExclusive = null) {
+        const [start, stop] = endExclusive !== null ? [startOrEnd, endExclusive] : [0, startOrEnd]
+        return Array.from({ length: stop - start }, (_, i) => i + start)
+    }
+    static factArr(n) {
+        //if (n == 0 || n == 1) return 1
+        return MM.rangeArr(1, n + 1).reduce((s, t) => s * t, 1)
+    }
+
     /**
     * Returns a generator of all integers from 0 (or start) to exclusive end.
     * @overload 

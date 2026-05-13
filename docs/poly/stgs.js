@@ -238,7 +238,7 @@ var levels = Object.freeze({
         on_start:/**@this {Reactor} */ function () {
             if (this.inputs.some(x => x.length == 1)) return
             const where = MM.randomInt(0, this.level.inputs.length - 1)
-            const what = [new Rational(MM.choice([...MM.range(-10, 10).filter(x => x != 0)]), MM.choice([2, 3, 4, 5, 6, 7]))]
+            const what = [new Rational(MM.choice([...MM.rangeArr(-10, 10).filter(x => x != 0)]), MM.choice([2, 3, 4, 5, 6, 7]))]
             this.inputs[where] = what
             this.outputsFiltered[where] = what//unfiltered for blank rows
             this.outputsUnfiltered[where] = what //???
@@ -470,13 +470,13 @@ var levels = Object.freeze({
     ),
     "e": new Level(
         "Your inputs are all [1]. Approximate Euler's number.", null,
-        (x, i, a) => MM.range(i + 1).reduce((s, t) => s.takeIntegral(), Poly.computed([1])).takeSubs(new Rational(1)).arr,
+        (x, i, a) => MM.rangeArr(i + 1).reduce((s, t) => s.takeIntegral(), Poly.computed([1])).takeSubs(new Rational(1)).arr,
         { func: () => [new Rational(1)] },
         { allowEarlyWin: true }
     ),
     "factorials": new Level(
         "Your inputs are all [1]. Generate the other factorials.", null,
-        (x, i, a) => [new Rational(MM.fact(i + 2))],
+        (x, i, a) => [new Rational(MM.factArr(i + 2))],
         { maxDenom: 1, maxNumer: 1, maxDegree: 0, negativeChance: 0 },
         { allowEarlyWin: true }
     ),
@@ -487,8 +487,8 @@ var levels = Object.freeze({
             return [diff.numerator > 0 ? a : b]
         }, {
         func: () => {
-            //const range = [...MM.range(-20, 20)].filter(x => x !== 0)
-            const range = [...MM.range(1, 20)]
+            //const range = [...MM.rangeArr(-20, 20)].filter(x => x !== 0)
+            const range = [...MM.rangeArr(1, 20)]
             const a = new Rational(MM.choice(range), MM.choice(range))
             let b = new Rational(MM.choice(range), MM.choice(range))
             if (a.isEqualTo(b)) b.multiplyByInt(2)
@@ -530,7 +530,7 @@ var levels = Object.freeze({
     ),
 
     "factorial": new Level(
-        "Your input is n. Return n!.", null, x => [new Rational(MM.fact(x[0].numerator))],
+        "Your input is n. Return n!.", null, x => [new Rational(MM.factArr(x[0].numerator))],
         { maxDenom: 1, maxNumer: 8, maxDegree: 0, negativeChance: 0 }
     ),
     "divtwelve": new Level(
@@ -1146,7 +1146,7 @@ var prototypeLevels = {
         [], null, {
         funcOut: function (inputs) {
             const primes = MM.choice(MM.primes(200), 4)
-            const others = MM.choice(MM.range(1, 200), 6)
+            const others = MM.choice(MM.rangeArr(1, 200), 6)
             inputs.length = 0
             inputs.push(...primes, ...others)
             const outputs = inputs.filter(x => MM.isPrime(x))
