@@ -1278,6 +1278,23 @@ const dev = Object.freeze({
         stgs.stage = pageManager.blank
         main()
         game.leaderboardsShow(undefined, undefined, true)
+    },
+    gimmickRestoreSaveFiles() {
+        const [name, nameID] = prompt("Copy name (tab) nameID from csv").split("\t")
+        const q = prompt("Copy the rows from csv").split("\n")
+        const extracted = q.map(JSON.parse)
+        const save = { name, nameID }
+
+        const keys = [stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
+        // const data = keys.map(x => [x, localStorage.getItem(x)])
+
+        save[stgs.localUserSettingsName] = localStorage.getItem(stgs.localUserSettingsName)
+        save[stgs.localDataName] = JSON.stringify(extracted.map(x => [x.stage, x.data]))
+        save[stgs.localVictoriesName] = JSON.stringify(extracted.map(x => x.stage))
+
+        MM.exportJSON(Object.entries(save), MM.lettersAndNumberOnly(`${name}_${nameID}_fromServer`) + ".json", true)
+
+
     }
 })/// end of dev
 

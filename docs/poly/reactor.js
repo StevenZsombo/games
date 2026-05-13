@@ -103,12 +103,14 @@ Use the Share/Receive features instead.`
             }).then(console.log).catch(() => { }) //won't work on safari
             stgs.alreadyTriedAskingForClipboardPermission = true
         }
-
-
-        navigator.clipboard.readText().then(str => this._interactiveImportFromJSON(str)).catch(error => {
+        const fallback = () => {
             this.POPUP("Cannot read the clipboard.\nPlease paste manually.",
                 1000, () => this._interactiveImportFromJSON(prompt("Please copy import data:")))
-        })
+        }
+        try {
+            navigator.clipboard.readText().then(str => this._interactiveImportFromJSON(str)).catch(_ =>
+                fallback())
+        } catch (err) { fallback() }
 
     }
     _interactiveImportFromJSON(str) {
@@ -284,8 +286,8 @@ Use the Share/Receive features instead.`
                 "Restart level by restoring to the saved state.\nPressing Ctrl+Z a lot does the same.",
                 "Save your progress.",
                 "Delete your latest save.",
-                "Copy your module configuration to the clipboard.\nPressing Ctrl+C does the same.",
-                "Load in module configuration from the clipboard.\nPressing Ctrl+V does the same.",
+                `Copy your module configuration to the clipboard.${stgs.ALLOW_KEYBOARD_COPYPASTE ? "\nPressing Ctrl + C does the same." : ""}`,
+                `Load in module configuration from the clipboard.${stgs.ALLOW_KEYBOARD_COPYPASTE ? "\nPressing Ctrl+V does the same." : ""}`,
 
             ]
             menu.menuButtons.slice(0, -1).forEach((x, i) => this.game.inspector.addChild(x, tooltips[i]))
