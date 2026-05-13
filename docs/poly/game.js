@@ -1289,7 +1289,7 @@ const dev = Object.freeze({
         // const data = keys.map(x => [x, localStorage.getItem(x)])
 
         save[stgs.localUserSettingsName] = localStorage.getItem(stgs.localUserSettingsName)
-        save[stgs.localDataName] = JSON.stringify(extracted.map(x => [x.stage, x.data]))
+        save[stgs.localDataName] = JSON.stringify(Object.fromEntries(extracted.map(x => [x.stage, x.data])))
         save[stgs.localVictoriesName] = JSON.stringify(extracted.map(x => x.stage))
 
         MM.exportJSON(Object.entries(save), MM.lettersAndNumberOnly(`${name}_${nameID}_fromServer`) + ".json", true)
