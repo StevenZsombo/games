@@ -73,6 +73,7 @@ class Game extends GameShared {
         chat.asapPromise().then(() => {
             chat.initLibrary("client")
             this.onboardingProcess()
+
         })
     }
     //#endregion
@@ -232,12 +233,6 @@ class Game extends GameShared {
             .map(x => Button.fromRect(x))
             .map(x => x.stretch(.9, .9))
         let canClick = true
-        const fromBroadcastPlayerToTeam =
-            Object.entries(this.latestBroadcastDetails.teamsAndPlayers ?? {})
-                .reduce((acc, [key, values]) => {
-                    values.forEach(value => { acc[value] = key })
-                    return acc
-                }, {})
 
         await new Promise(resolve =>
             buts.forEach((x, i) => {
@@ -245,13 +240,20 @@ class Game extends GameShared {
                 x.fontSize = 40
                 x.txt = students[i]
                 x.tag = students[i]
-                const isInTeam = fromBroadcastPlayerToTeam[i]
-                x.color = isInTeam != null
-                    ? Team.ALL[isInTeam].color
-                    : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+                x._taken = false
+                x.dynamicColor = () => {
+                    const teamInfo = Object.entries(this.latestBroadcastDetails.teamsAndPlayers)
+                        .find(x => x?.[1]?.includes(i))
+                    x._taken = teamInfo != null
+                    return x._taken ?
+                        Team.ALL[+teamInfo[0]].color ?? GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+                        : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+
+                }
 
                 x.on_release = () => {
                     if (!canClick) return
+                    if (x._taken) return
                     canClick = false
                     const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
                     cb.promise().then(() => {
