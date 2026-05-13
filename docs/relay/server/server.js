@@ -253,6 +253,7 @@ class Game extends GameShared {
             payload.push({
                 t: team.id,
                 r: Object.values(team.wealth),
+                m: team.membersAsArray.map(x => x.p.id)
             })
         }
         payload.push({ g: g })

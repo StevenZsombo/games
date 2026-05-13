@@ -36,10 +36,6 @@ class Game extends GameShared {
 
     hasFinishedLoading = false
     async enter() {
-        wDiv.show()
-        wDiv.addLine("Connecting...")
-        await chat.asapPromise()
-        chat.initLibrary("client")
         this.initChat()
         wDiv.add("Entering...")
         const enterResponse = await chat.wee("enter", { whatGame: "space", ...personData })
@@ -71,7 +67,13 @@ class Game extends GameShared {
 
     initialize_more() {
         wDiv.addLine(`All files loaded in ${wDiv.timePassed()} seconds\n`)
-        this.onboardingProcess()
+
+        wDiv.show()
+        wDiv.addLine("Connecting...")
+        chat.asapPromise().then(() => {
+            chat.initLibrary("client")
+            this.onboardingProcess()
+        })
     }
     //#endregion
     //#region loadUI
@@ -166,6 +168,7 @@ class Game extends GameShared {
         return
     }
     //#endregion
+    //#region onboarding
     async onboardingProcess() {
         const storedPersonData = localStorage.getItem("personData")
         if (!storedPersonData) {
@@ -229,12 +232,24 @@ class Game extends GameShared {
             .map(x => Button.fromRect(x))
             .map(x => x.stretch(.9, .9))
         let canClick = true
+        const fromBroadcastPlayerToTeam =
+            Object.entries(this.latestBroadcastDetails.teamsAndPlayers ?? {})
+                .reduce((acc, [key, values]) => {
+                    values.forEach(value => { acc[value] = key })
+                    return acc
+                }, {})
+
         await new Promise(resolve =>
             buts.forEach((x, i) => {
                 fm.push(x)
                 x.fontSize = 40
                 x.txt = students[i]
                 x.tag = students[i]
+                const isInTeam = fromBroadcastPlayerToTeam[i]
+                x.color = isInTeam != null
+                    ? Team.ALL[isInTeam].color
+                    : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+
                 x.on_release = () => {
                     if (!canClick) return
                     canClick = false
@@ -285,7 +300,7 @@ class Game extends GameShared {
             })
         )
     }
-
+    //#endregion
     getStars() {
         const s = GameEffects.getStarDrawable({
             width: GRAPHICS.STARS_DIMENSIONS[0],
@@ -373,7 +388,7 @@ class Game extends GameShared {
                             ?
                             GameEffects.dropDownMenu([
                                 [`Travel to ${x.name}`, () => this.tryTravelTo(x.locaID)]
-                            ], null, null, null, { width: 400, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
+                            ], null, null, null, { width: 600, color: GRAPHICS.NEUTRAL_DROPDOWNMENU_COLOR })
                             : this.psr("The Observatory only lets you peek, not travel.\nUse the Space Shuttle to TRAVEL.")
                 }
             })
@@ -526,6 +541,7 @@ class Game extends GameShared {
         alreadyQueingForL: false,
         alreadyQueingForT: false,
         timesLastTen: [],
+        teamsAndPlayers: {},
         timesAverage() { return Math.round(this.timesLastTen.reduce((s, t) => s + t, 0) / this.timesLastTen.length) },
         recordTime() {
             this.timesLastTen.push(Date.now() - this.time)
@@ -539,9 +555,9 @@ class Game extends GameShared {
         this.latestBroadcastDetails.data = broadcastData
         this.latestBroadcastDetails.recordTime()
         const myLoca = this.loca
-        if (!myLoca) return
+        // if (!myLoca) return
         for (const item of broadcastData) {
-            if (item.l != null && item.l === myLoca.id) {//manage locas
+            if (item.l != null && myLoca && item.l === myLoca?.id) {//manage locas
                 for (const [playerID, i, j] of item.p) {
                     pool.getPlayer(playerID, myLoca).drift = [i, j]
                 }
@@ -554,10 +570,13 @@ class Game extends GameShared {
                 }
                 this.latestBroadcastDetails.interactables = item.i
                 if (item.e !== personData.locaEventCount) this.FULL_REQUEST("l")
-            } else if (item.t != null && item.t === personData.teamID) {//manage teams
-                personData.teamWealth = item.r
-                if (personData.teamWealth.slice(4).every(x => x == 0))
-                    personData.teamWealth = personData.teamWealth.slice(0, 4)
+            } else if (item.t != null) {
+                this.latestBroadcastDetails.teamsAndPlayers[item.t] = item.m
+                if (personData.teamID != -1 && item.t === personData.teamID) {//manage teams
+                    personData.teamWealth = item.r
+                    if (personData.teamWealth.slice(4).every(x => x == 0))
+                        personData.teamWealth = personData.teamWealth.slice(0, 4)
+                }
             } else if (item.g != null) {
                 this.galaxyLocaIDs = item.g
             }

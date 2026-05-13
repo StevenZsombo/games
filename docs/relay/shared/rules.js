@@ -86,7 +86,7 @@ const GRAPHICS = {
 /**
  * @typedef {(
  *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[] } |
- *   { t: number; e: number } |
+ *   { t: number; e: number, r: number[], m:number[] } |
  *   { g: number[]}
  * )[]} Broadcast
  * 
@@ -100,6 +100,7 @@ const GRAPHICS = {
  *   - `t` is teamID
  *   - `e` is eventCount
  *   - `r` is wealthArray
+ *   - `m` is members playerID array
  * - If object has `g`:
  *   - Is a list of visible locaIDs
  */
