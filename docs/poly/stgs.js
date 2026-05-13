@@ -1170,7 +1170,8 @@ var stgs = {
     localUserSettingsName: "ZPsettings",
     alreadyTriedAskingForClipboardPermission: false,
     ALLOW_EXPORT_IMPORT_ALL: true,
-    SHOW_FULL_LEADERBOARD: false
+    SHOW_FULL_LEADERBOARD: false,
+    ALLOW_KEYBOARD_COPYPASTE: false,
 
 }/// end of settings
 //#endregion

@@ -41,8 +41,10 @@ class Reactor {
         this.isLogging = false
         this.otherButtons = []
         this.tasks = 999
-        this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
-        this.game.keyboarder.on_copy = this.grab.bind(this)
+        if (stgs.ALLOW_KEYBOARD_COPYPASTE) {
+            this.game.keyboarder.on_paste = this._interactiveImportFromJSON.bind(this)
+            this.game.keyboarder.on_copy = this.grab.bind(this)
+        }
         this.hasWonAlready = false
         this.loadedFromSaveData = null
         /**@type {Array<UndoAction>} */
