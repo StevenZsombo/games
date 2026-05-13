@@ -528,12 +528,13 @@ class Chat {
      */
     spam(value, params, {
         retries = Chat.defaultSpamRetries, interval = Chat.defaultSpamInterval, on_retry = null,
-        msgMore = {}, on_success = null, on_fail = null
+        msgMore = {}, on_success = null, on_fail = null, targetIDlist = null
     } = {}) {
         const uniqueID = this.nextUniqueIDSpam
         const flag = `s${uniqueID}`
         const msg = { ...msgMore, spam: uniqueID, value }
         params && (msg.params = params)
+        if (targetIDlist) msg.targetIDlist = targetIDlist
         const send = () => this.isConnected
             ? (this.sendMessage(msg), cleanup(), on_success?.())
             : this.on_join_sendMany.set(flag, msg)

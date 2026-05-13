@@ -248,7 +248,6 @@ class Game extends GameShared {
                     return x._taken ?
                         Team.ALL[+teamInfo[0]].color ?? GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
                         : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
-
                 }
 
                 x.on_release = () => {

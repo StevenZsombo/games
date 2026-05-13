@@ -1,5 +1,5 @@
 const RULES = {
-    STUDENTS: ["Ann", "Bob", "Eve", "Dan", "Fay", "Jay", "Seb", "Tom", "Zoe"],
+    STUDENTS: ["Aziz", "Darren", "Blake", "Vamsi", "Steven", "Fritz", "Alain", "other1", "other2"],
 
     //mind that resources are ABOVE current folder for both client & server
     PICTURES_FOLDER: "../pictures/",
