@@ -241,6 +241,7 @@ var levels = Object.freeze({
             const what = [new Rational(MM.choice([...MM.range(-10, 10).filter(x => x != 0)]), MM.choice([2, 3, 4, 5, 6, 7]))]
             this.inputs[where] = what
             this.outputsFiltered[where] = what//unfiltered for blank rows
+            this.outputsUnfiltered[where] = what //???
             this.inputRecords[where].latex.tex = Poly.computed(what).getTex()
             this.outputRecords[where].latex.tex = "\\color{lightgray}{" + Poly.computed(what).getTex() + "}"
         }
