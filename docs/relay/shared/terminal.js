@@ -65,7 +65,7 @@ class Terminal {
         let spl, cust
         if (type.includes("{")) {
             cust = Object.fromEntries(
-                type.slice(1, -1).split(",").map(x => x.split(":").map(x => x.trim()))
+                type.trim().slice(1, -1).trim().split(",").map(x => x.split(":").map(x => x.trim()))
             )
             type = "custom"
         }
