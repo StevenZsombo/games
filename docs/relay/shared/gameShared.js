@@ -190,7 +190,7 @@ class GameShared extends GameCore {
         zoomSlider.min = -1
         zoomSlider.max = 2
         zoomSlider.on_value_change = () => zoomSlider.adjustZoomOfLoca()
-        zoomSlider.value = 1
+        zoomSlider.value = 0
         zoomSlider.adjustZoomOfLoca()
 
 

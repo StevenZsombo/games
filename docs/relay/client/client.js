@@ -2,8 +2,11 @@ const personData = {
     name: "UNNAMED",
     get nameID() { return chat.nameID ?? (chat._acquireNameID(), chat.nameID) },
     rename(newName) {
-        chat.forceName(newName || this.name, true)
+        newName ??= this.name
+        const ind = RULES.STUDENTS.indexOf(this.name)
+        chat.forceName(newName, true)
         this.name = chat.name
+        if (ind !== -1) RULES.STUDENTS[ind] = this.name
         this.save()
     },
     save() {
@@ -38,7 +41,8 @@ class Game extends GameShared {
     async enter() {
         this.initChat()
         wDiv.add("Entering...")
-        const enterResponse = await chat.wee("enter", { whatGame: "space", ...personData })
+        const enterResponse = await chat.wee("enter", { whatGame: "space", ...personData },
+            { retries: 8, interval: 1000 })
         if (enterResponse.denied) {
             wDiv.show()
             wDiv.addLine("Server refused connection.")
@@ -50,6 +54,7 @@ class Game extends GameShared {
         console.log(enterResponse)
         Object.assign(personData, enterResponse)
         enterResponse.RULES && Object.assign(RULES, enterResponse.RULES)
+        personData.rename()
         await this.enterOrTravelToLoca(pool.getLoca(personData.locaID))
 
         this.BGCOLOR = null
@@ -110,10 +115,17 @@ class Game extends GameShared {
         todos.dynamicText = () => {
             const urgent = this.loca.terminals
                 .filter(x => x.isInNeedOfAttention)
-            if (urgent.length) return urgent
-                .map(x => `${x.actionVerbPresent} the ${x.pretty}`)
-                .join("\n")
-            return `No tasks left here.\n\nTravel to another location\nusing the Space Shuttle.`
+            const local = urgent.length
+                ? urgent
+                    .map(x => `${x.actionVerbPresent} the ${x.pretty}`)
+                    .join("\n")
+                : `No tasks left here.\n\nTRAVEL to another location\nusing the Shuttle Bay.`
+            const globalHBinfo =
+                this.loca.id !== personData.teamHomebaseID
+                    && this.latestBroadcastDetails.homebaseRequiresAttention
+                    ? "Homebase needs repairs! \n\n"
+                    : ""
+            return globalHBinfo + local
         }
         if (GRAPHICS.TODOS_BUTTON_OPENS_UPGRADES_GUIDE) {
             todos.isBlocking = true
@@ -187,11 +199,11 @@ class Game extends GameShared {
         if (!storedPersonData) {
             wDiv.addLine("Retrieving rules from server...")
             await chat.asapPromise()
-            await chat.wee("rules", undefined, { retries: 10, interval: 2000 })
-                .then(r => Object.assign(RULES, r))
+            await chat.wee("rules", undefined, { retries: 8, interval: 1000 })
                 .catch(() => {
                     wDiv.error("Failed to contact server.")
                 })
+                .then(r => Object.assign(RULES, r))
             wDiv.hide()
             await this.welcomeSelect()
             await this.nameSelect()
@@ -268,9 +280,8 @@ class Game extends GameShared {
                     canClick = false
                     const cb = GameEffects.confirmBox(`Are you really ${students[i]}?`)
                     cb.promise().then(() => {
-                        personData.name = x.tag
-                        chat.forceName(personData.name, true)
                         personData.playerID = i
+                        personData.rename(x.tag)
                         this.remove_drawable(fm)
                         resolve()
                     }).catch(() => canClick = true)
@@ -455,8 +466,15 @@ class Game extends GameShared {
     //#endregion
     //#region showUpgradesGuide
     showUpgradesGuide() {
+        if (this.loca !== personData.teamHomebaseID) {
+            this.pmega(this.todos.txt)
+            return
+        }
         const homebase = pool.getLoca(personData.teamHomebaseID)
-        if (homebase.terminals.find(x => x.type === "shuttle").unlocked) {
+        if (
+            homebase.terminals.every(x => !x.isInNeedOfAttention)
+            /*homebase.terminals.find(x => x.type === "shuttle").unlocked*/
+        ) {
             this.pinfo("Your base is fully upgraded."
                 + "\nGo to the Space Shuttle to explore other locations."
             )
@@ -482,6 +500,7 @@ class Game extends GameShared {
         const bgRatio = .9
         const bg = this.rect.copy.stretch(bgRatio, bgRatio)
         const w = new GameWorld(bg)
+        /**@type {Object<string,Button>} */
         const buts = {}
         const topRatio = 0.12
         const toplabel = Button.fromRect(bg.copy.stretch(1, topRatio).topat(bg.top))
@@ -501,7 +520,8 @@ class Game extends GameShared {
                 b.terminal = t
                 b.txt = t.pretty
                 b.fontSize = 28
-                b.color = t.unlocked ? personData.teamColor : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+                b.color = t.unlocked && t.active ? personData.teamColor : GRAPHICS.NEUTRAL_BUTTON_BG_COLOR
+                if (t.type === "shuttle" && buts["hazard"].terminal.unlocked) b.color = personData.teamColor
                 w.add_drawable(b)
                 buts[tiers[i][j]] = b
                 if (b.width < minW) minW = b.width
@@ -516,26 +536,30 @@ class Game extends GameShared {
         Object.values(buts).forEach(b => { b.resize(minW, minH); b.stretch(.7, .4) })
         this.add_drawable(w)
 
-        const linesDrawable = {
-            draw(ctx) {
+        const linesAndHighlightsDrawable = {
+            draw: (ctx) => {
                 lines.forEach(([s, e]) => {
                     MM.drawLine(ctx, buts[s].cx, buts[s].cy, buts[e].cx, buts[e].cy, {
                         width: 8, color: buts[e].terminal.unlocked ? personData.teamColor : "black"
                     })
-                    if (
-                        buts[s].terminal.unlocked && !buts[e].terminal.unlocked
-                        && !buts[s].terminal.active
-                    ) buts[s].rad = game.dtSin / 4
+                    if (buts[s].terminal.unlocked && !buts[e].terminal.unlocked
+                        && !buts[s].terminal.active)
+                        // buts[s].rad = game.dtSin / 4
+                        MM.drawEllipse(ctx, buts[s].centerX, buts[s].centerY,
+                            buts[s].width * .75 * this.gentleSin,
+                            buts[s].height * .75 * this.gentleSin,
+                            { outline: 5, outline_color: personData.teamColor, color: null }
+                        )
                 })
             }
         }
-        w.add_drawable(linesDrawable, 4)
+        w.add_drawable(linesAndHighlightsDrawable, 4)
 
         const belowShuttle = Button.fromRectShallow(buts["shuttle"].copyRect)
         belowShuttle.move(0, belowShuttle.height * 1.4)
         belowShuttle.transparent = true
         belowShuttle.fontSize = 28
-        belowShuttle.txt = `Unlocking the Space Shuttle\nwill let you explore\nother locations in space!`
+        belowShuttle.txt = `Unlocking the Shuttle Bay\nwill let you explore\nother locations in space!`
         w.add_drawable(belowShuttle)
 
         this.hideCornersUI()
@@ -555,6 +579,7 @@ class Game extends GameShared {
     galaxyLocaIDs = []
     latestBroadcastDetails = {
         data: [], time: 0, interactables: [],
+        homebaseRequiresAttention: 0,
         alreadyQueingForL: false,
         alreadyQueingForT: false,
         timesLastTen: [],
@@ -574,25 +599,26 @@ class Game extends GameShared {
         const myLoca = this.loca
         // if (!myLoca) return
         for (const item of broadcastData) {
-            if (item.l != null && myLoca && item.l === myLoca?.id) {//manage locas
-                for (const [playerID, i, j] of item.p) {
-                    pool.getPlayer(playerID, myLoca).drift = [i, j]
+            if (item.l != null) {//manage locas
+                if (myLoca && item.l === myLoca?.id) {
+                    for (const [playerID, i, j] of item.p) {
+                        pool.getPlayer(playerID, myLoca).drift = [i, j]
+                    }
+                    myLoca.terminals.forEach(x => x.active = true) //client has active by default
+                    for (const tID of item.i) {
+                        pool.getTerminalShallow(tID).active = false
+                    }
+                    for (const term of this.qpanes.keys()) {
+                        if (term.active) this.destroyQPaneOfTerminal(term)
+                    }
+                    this.latestBroadcastDetails.interactables = item.i
+                    if (item.e !== personData.locaEventCount) this.FULL_REQUEST("l")
                 }
-                myLoca.terminals.forEach(x => x.active = true) //client has active by default
-                for (const tID of item.i) {
-                    pool.getTerminalShallow(tID).active = false
-                }
-                for (const term of this.qpanes.keys()) {
-                    if (term.active) this.destroyQPaneOfTerminal(term)
-                }
-                this.latestBroadcastDetails.interactables = item.i
-                if (item.e !== personData.locaEventCount) this.FULL_REQUEST("l")
             } else if (item.t != null) {
-                this.latestBroadcastDetails.teamsAndPlayers[item.t] = item.m
+                this.latestBroadcastDetails.teamsAndPlayers[item.t] = item.m//players always save
                 if (personData.teamID != -1 && item.t === personData.teamID) {//manage teams
                     personData.teamWealth = item.r
-                    if (personData.teamWealth.slice(4).every(x => x == 0))
-                        personData.teamWealth = personData.teamWealth.slice(0, 4)
+                    this.latestBroadcastDetails.homebaseRequiresAttention = item.a
                 }
             } else if (item.g != null) {
                 this.galaxyLocaIDs = item.g
@@ -619,7 +645,7 @@ class Game extends GameShared {
                 break;
         }
     }
-    FULL_PROCESS_LOCA(info) {
+    FULL_PROCESS_LOCA(info, { pos, loca } = {}) {
         info.data.forEach(([id, props]) => {
             const t = pool.getTerminalShallow(id)
             if (t) {
@@ -631,6 +657,8 @@ class Game extends GameShared {
             }
             personData.locaEventCount = info.e
         })
+        pos && loca && pos.forEach(x => pool.getPlayer(x[0], this.loca).setShallowIJ(x[1], x[2]))
+
     }
     //#endregion
 
@@ -738,6 +766,17 @@ class Game extends GameShared {
             }
         })
     }
+    pmega(txt) {
+        GameEffects.popup(txt, {
+            posFrac: [.5, .5],
+            sizeFrac: [.8, .8],
+            floatTime: 3500,
+            close_on_release: true,
+            moreButtonSettings: {
+                color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR, isBlocking: true || GRAPHICS.ARE_POPUPS_BLOCKING
+            }
+        })
+    }
     perr(txt) {
         GameEffects.popup(txt, {
             posFrac: [.725, .825], sizeFrac: [.525, .325],
@@ -757,7 +796,7 @@ class Game extends GameShared {
                 this.psr(response.deny || response.accept)
                 if (response.accept) {
                     const loca = pool.getLoca(locaID)
-                    this.FULL_PROCESS_LOCA(response.info)
+                    this.FULL_PROCESS_LOCA(response.info)//, { pos: response.pos, loca })
                     this.enterOrTravelToLoca(loca)
                 }
                 this.goodness("travel")
@@ -776,13 +815,16 @@ class Game extends GameShared {
         }
         if (terminal.question == null) return //throw new Error("openQPane but no terminal.question")
         const p = new Malleable()
+        p.isBlocking = true
         this.qpanes.set(terminal, p)
         const questionButton = new Button({ color: GRAPHICS.NEUTRAL_BUTTON_BG_COLOR })
         questionButton.leftat(GRAPHICS.LEFT)
         questionButton.rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
         questionButton.topat(GRAPHICS.TOP)
         questionButton.bottomstretchat(this.HEIGHT - GRAPHICS.BOTTOM - GRAPHICS.ANSWER_AREA_HEIGHT)
+        questionButton.isBlocking = true
         questionButton.img = this.cropper.load_img(RULES.QUESTION_FOLDER + terminal.question.img + ".png")
+        questionButton.txt = terminal.question.txt
 
         const revealer = new Button({ width: 160, height: 60, color: "lightgray" })
         revealer.rightat(questionButton.right)
@@ -803,7 +845,7 @@ class Game extends GameShared {
         botSubmit.color = personData.teamColor
         botSubmit.txt = "Submit"
         // Button.make_roundedRect(botSubmit)
-        botInfo.txt = "Info goes here"
+        botInfo.txt = `${terminal.actionVerbGerund}\n${terminal.pretty}`
 
         const calculatorBGArea = new Rect()
         calculatorBGArea.leftat(questionButton.right)
@@ -842,7 +884,8 @@ class Game extends GameShared {
             else if (i == 11) {
                 x.txt = "."
                 x.on_click = () => {
-                    ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
+                    if (ans.txt === "") ans.txt = "0."
+                    else ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
                 }
             }
             else if (i == 12) {

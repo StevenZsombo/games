@@ -26,9 +26,9 @@ class Team {
     }
 
     static resourceNames =
-        ['energy', 'water', 'food', 'parts', 'antimatter', 'coolant', 'minerals', 'salvage']
+        ['energy', 'water', 'food', 'parts', 'antimatter']
     wealth = {
-        energy: 0, water: 0, food: 0, parts: 0, antimatter: 0, coolant: 0, minerals: 0, salvage: 0
+        energy: 0, water: 0, food: 0, parts: 0, antimatter: 0
     }
 }
 //#endregion
@@ -39,11 +39,12 @@ class Question {
         // [343, 2.5, 6.32, 7, 13, 20, 2.8, 0.6, 0.4, 14.3, 2.5, 0.667, 4.25, 7.11, -0.31, 3, 1.5, 3.38, 0.286, 2, 33, 0.25, 5, 1.4, -10, -1.2, -5, 0.25, 3.5, 2.04, 2.56, 16, 1.33, -1, 10, 21, 0.105, 0.096, 1.33, 942, 1.33, 8, -10, 3, 6, 3, 1.75, 45, 2.25, 3, -0.0741, 13, 13, 20, 11, -1.33, 2.5, 7.35, 30.5, 3.08, -45, 4.29, 21, 18, 4, 234, 2.43, 465, 1, 11, 70, 78.125, 2.09, 35, 107000, 7, 17, -54.5, 10.8, -20, -3.75, 288, 675, 3, 560, 140, 5.25, -1.125, 2, 0.556, 756, 116.6, 290, 2.36, 305.3, 278.1, 43, 28, 0.983, 414]
         Array.from({ length: 100, }, (_, i) => i / 10)
             .map((sol, i) => new Question(i, i, sol))
-    constructor(id, img, sol) {
+    constructor(id, img, sol, txt = null) {
         if (id == null || img == null || sol == null) throw new Error("new Question() called without parameters")
         this.id = id//Question.ALL.length
         this.img = img//this.id //for now, img = id (same as Conquest)
         this.sol = sol
+        this.txt = null
         // Question.ALL.push(this)
     }
 

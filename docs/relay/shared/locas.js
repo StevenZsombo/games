@@ -46,6 +46,7 @@ class Loca extends GameWorld {
     tag = "Loca"
     isBlocking = true
     isVisibleGlobally = true
+    /**@type {Team} */
     isHomebaseForTeam = null
     /**@type {?number} */
     exlusiveToTeamID = null
@@ -244,6 +245,9 @@ class Loca extends GameWorld {
             if (t.prereq.every(str => this.terminals.find(x => x.type === str).active))
                 this.eventHappenedServer(Loca.EVENTS.unlocked, t)
         })
+    }
+    get isAnyTerminalInNeedOfAttention() {
+        return this.terminals.some(x => x.isInNeedOfAttention)
     }
     checkAreThereTasksLeft() {
         if (this.isHomebaseForTeam) return true

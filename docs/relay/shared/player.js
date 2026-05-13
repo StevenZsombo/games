@@ -35,6 +35,8 @@ class Player extends Button {
         this.update = this.updateDrifting
 
     }
+    /**@type {Person} */
+    person = null
 
     static ALLOWED_MOVES = GRAPHICS.ALLOWED_MOVES_WITH_DIAGONAL
     getPathTo(i, j) {
@@ -194,10 +196,12 @@ class Player extends Button {
     }
     /**@this {Player} */
     draw_more = function (ctx) { //weird-ass rule. methods don't overwrite field properties
-        MM.drawText(ctx, this.name, {
-            x: this.x, y: this.y + this.height, width: this.width
-            //height:0 implicitly
-        }, {
+        MM.drawText(ctx,
+            RULES.STUDENTS[this.id]
+            , {
+                x: this.x, y: this.y + this.height, width: this.width
+                //height:0 implicitly
+            }, {
             textBaseline: "top", fontSize: GRAPHICS.PLAYER_FONTSIZE,
             color: "black" //this.team?.color ?? "black" //only server knows the teams, oops
         })

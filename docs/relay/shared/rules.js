@@ -4,8 +4,6 @@ const RULES = {
     //mind that resources are ABOVE current folder for both client & server
     PICTURES_FOLDER: "../pictures/",
     MAP_BACKGROUND_FOLDER: "../tiled/",
-
-    MAPFILE: "../tiled/home1.json",
     MAP_FOLDER: "../tiled/",
 
     QUESTION_FOLDER: "../questions/",
@@ -52,8 +50,8 @@ const GRAPHICS = {
     ALLOW_OOB_FOLLOW: false,
     ALLOW_CAMERA_FOLLOW: true,
     CAMERA_FOLLOW_COEFFICIENT: 0.02, //smoooooooooth
-    TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: location.hash.includes("p") ? 800 : 300, //probably large enough that it's not accidental
-    CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 10 * 60 * 1000, //probably large enough to allow a pathing click
+    TIME_NEEDED_TO_DRAG_BUT_DONT_MOVE: location.hash.includes("long") ? 800 : 300, //probably large enough that it's not accidental
+    CAMERA_AND_OOB_FOLLOW_DELAY_TO_ENABLE_SNAP_BACK: 6 * 60 * 60 * 1000, //probably large enough to allow a pathing click
     CAMERA_FOLLOW_WHEN_MOVING: false,
     CAMERA_FOLLOW_WHEN_MOVING_OUTSIDE: true,
     TODO_HAS_CIRCLES: true,
@@ -68,11 +66,11 @@ const GRAPHICS = {
 
     ARE_POPUPS_BLOCKING: false,
 
-    TOP: 80,
-    BOTTOM: 80,
+    TOP: 60,
+    BOTTOM: 60,
     LEFT: 360,
     RIGHT: 300,
-    ANSWER_AREA_HEIGHT: 80,
+    ANSWER_AREA_HEIGHT: 90,
     FEED_MARGIN: 26,
     FEED_WIDTH: 330,
     FEED_HEIGHT: 60,
@@ -80,8 +78,9 @@ const GRAPHICS = {
     CORNER_HEIGHT_COEFF: 0.55,
     CORNER_FONT_COLOR: "black",
     CORNER_OPACITY: 0.2,
-    CORNER_BUTTON_OPENS_RESOURCES_GUIDE: true,
-    TODO_HEIGHT_MULTIPLIER: 1.2,
+    CORNER_BUTTON_OPENS_RESOURCES_GUIDE: false,
+    // TODO_HEIGHT_MULTIPLIER: 1.2,
+    TODO_HEIGHT_MULTIPLIER: 1.6,
     TODOS_BUTTON_OPENS_UPGRADES_GUIDE: true,
     NEUTRAL_BUTTON_BG_COLOR: "linen",
     NEUTRAL_LOCA_COLOR: "linen",
@@ -91,7 +90,7 @@ const GRAPHICS = {
 }
 /**
  * @typedef {(
- *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[] } |
+ *   { l: number; p: [number, number, number][]; e: number, o:number, i:number[],a:0|1 } |
  *   { t: number; e: number, r: number[], m:number[] } |
  *   { g: number[]}
  * )[]} Broadcast
@@ -102,6 +101,7 @@ const GRAPHICS = {
  *   - `e` is eventCount
  *   - `o` is owner teamID, if any
  *   - `i` is array of interactable terminalID (!active && unlocked)
+ *   - `a` if homebase requires attention
  * - If object has `t`:
  *   - `t` is teamID
  *   - `e` is eventCount
@@ -121,7 +121,7 @@ Chat.library = {
     client: {
         "eval": params => eval(params),
         "popup": txt => { GameEffects.popup(txt) },
-        "ptc": (txt, teamID) => { game.ptc(txt, teamID) },
+        "ptc": ([txt, teamID]) => { game.ptc(txt, teamID) },
         "psr": (txt) => { game.psr(txt) },
         "reload": () => { chat.delayedReload() },
         "flush": () => { localStorage.clear(); chat.delayedReload(); },

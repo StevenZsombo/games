@@ -2,46 +2,41 @@
 //#region Terminal
 class Terminal {
     static DATA = [
-        ['terminal', 'delay', 'bucket', 'pretty', 'action', 'energy', 'water', 'food', 'parts', 'antimatter', 'coolant', 'minerals', 'salvage', 'description', 'note', 'prereq'],
-        ['reactor', 15, 0, 'Reactor', 'REPAIR', 50, 0, 0, 0, 0, 0, 0, 0, 0, 'base', 0],
-        ['solar', 8, 10, 'Solar Array', 'REPAIR', 30, 0, 0, 0, 0, 0, 0, 0, 0, 'upgrade1', 'reactor'],
-        ['life', 12, 0, 'Life Support', 'REPAIR', 0, 20, 20, 0, 0, 0, 0, 0, 0, 'base', 0],
-        ['water', 6, 10, 'Water Recycler', 'REPAIR', 0, 30, 0, 0, 0, 0, 0, 0, 0, 'upgrade1', 'life'],
-        ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 0, 0, 'upgrade1', 'life'],
-        ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 0, 0, 'base', 0],
-        ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 0, 0, 'upgrade1', 'cargo'],
-        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 0, 0, 'upgrade2', 'comms'],
-        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 0, 0, 'upgrade2', 'water,hydro'],
-        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 10, 0, 0, 0, 5, 0, 0, 0, 0, 'upgrade2', 'solar'],
-        ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
-        ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
-        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'req hazard on homebase only', 0],
-        ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 0, 0, 'See available upgrades.', 0, 0],
-        ['mining', 5, 30, 'Mining station', 'CAPTURE', 0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0],
-        ['scrapyard', 5, 30, 'Scrapyard', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 15, 0, 0, 0],
-        ['data', 5, 30, 'Data vault', 'CAPTURE', 0, 0, 0, 0, 0, 5, 5, 5, 0, 0, 0],
-        ['supply', 5, 30, 'Supply depot', 'CAPTURE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['fusion', 5, 40, 'Fusion core', 'CAPTURE', 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0],
-        ['alloy', 5, 30, 'Alloy plant', 'CAPTURE', 0, 0, 0, 0, 0, 0, 10, 5, 0, 0, 0],
-        ['research', 5, 40, 'Research lab', 'CAPTURE', 0, 0, 0, 0, 5, 5, 0, 5, 0, 0, 0],
-        ['chestenergy', 0, 20, 'Energy cells', 'CLAIM', 120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['chestwater', 0, 20, 'Ice blocks', 'CLAIM', 0, 120, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['chestfood', 0, 20, 'Nutrient packs', 'CLAIM', 0, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['chestparts', 0, 20, 'Parts box', 'CLAIM', 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0],
-        ['smallenergy', 0, 0, 'Small battery', 'CLAIM', 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['smallwater', 0, 0, 'Small water bottle', 'CLAIM', 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['smallfood', 0, 0, 'Small candy bar', 'CLAIM', 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['smallparts', 0, 0, 'Small circuits', 'CLAIM', 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0],
-        ['chestantimatter', 0, 40, 'Antimatter traces', 'CLAIM', 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0],
-        ['chestcoolant', 0, 40, 'Coolant remains', 'CLAIM', 0, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0],
-        ['chestmineral', 0, 40, 'Mineral residue', 'CLAIM', 0, 0, 0, 0, 0, 0, 80, 0, 0, 0, 0],
-        ['chestsalvage', 0, 40, 'Salvage pack', 'CLAIM', 0, 0, 0, 0, 0, 0, 0, 80, 0, 0, 0],
-        ['door_easy', 0, 0, 'Damaged door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['door_medium', 0, 20, 'Locked door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['door_hard', 0, 50, 'Reinforced door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['door_extreme', 0, 70, 'High security door', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['plants', 0, 10, 'Plants', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ['fridge', 0, 10, 'Fridge', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['terminal', 'delay', 'bucket', 'pretty', 'action', 'energy', 'water', 'food', 'parts', 'antimatter', 'cost', 'description', 'note', 'prereq'],
+        ['reactor', 15, 0, 'Reactor', 'REPAIR', 50, 0, 0, 0, 0, 0, 0, 'base', 0],
+        ['solar', 8, 10, 'Solar Array', 'REPAIR', 30, 0, 0, 0, 0, 0, 0, 'upgrade1', 'reactor'],
+        ['life', 12, 0, 'Life Support', 'REPAIR', 0, 20, 20, 0, 0, 0, 0, 'base', 0],
+        ['water', 6, 10, 'Water Recycler', 'REPAIR', 0, 30, 0, 0, 0, 0, 0, 'upgrade1', 'life'],
+        ['hydro', 13, 10, 'Hydroponics', 'REPAIR', 0, 0, 30, 0, 0, 0, 0, 'upgrade1', 'life'],
+        ['cargo', 4, 0, 'Cargo bay', 'REPAIR', 0, 0, 0, 20, 0, 0, 0, 'base', 0],
+        ['comms', 11, 10, 'Comms array', 'REPAIR', 0, 0, 0, 50, 0, 0, 0, 'upgrade1', 'cargo'],
+        ['fab', 13, 20, 'Fabricator', 'REPAIR', 0, 0, 0, 10, 0, 0, 0, 'upgrade2', 'comms'],
+        ['med', 14, 20, 'Medical bay', 'REPAIR', 0, 10, 10, 0, 0, 0, 0, 'upgrade2', 'water,hydro'],
+        ['anti', 20, 20, 'Antimatter Chamber', 'REPAIR', 0, 0, 0, 0, 1, 0, 0, 'upgrade2', 'solar'],
+        ['hazard', 0, 30, 'Space Hazard Unit', 'REPAIR', 0, 0, 0, 0, 0, 0, 'Allows you to explore space.', 'upgrade3', 'fab,med,anti'],
+        ['obs', 0, 0, 'Observatory', 'WORLDMAP', 0, 0, 0, 0, 0, 0, 'Lets you peek into the endless void of space.', 0, 0],
+        ['shuttle', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'req hazard on homebase only', 0],
+        ['shuttleHome', 0, 0, 'Shuttle bay', 'TRAVEL', 0, 0, 0, 0, 0, 0, 'Travel to new locations!', 'will turn to shuttle', 'hazard'],
+        ['upgrade', 0, 0, 'Upgrade center', 'SEEUPGRADES', 0, 0, 0, 0, 0, 0, 'See available upgrades.', 0, 0],
+        ['custom', 0, 0, '$$$$$', 'CLAIM', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['chestenergy', 0, 20, 'Energy cells', 'CLAIM', 200, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['chestwater', 0, 20, 'Ice blocks', 'CLAIM', 0, 200, 0, 0, 0, 0, 0, 0, 0],
+        ['chestfood', 0, 20, 'Nutrient packs', 'CLAIM', 0, 0, 200, 0, 0, 0, 0, 0, 0],
+        ['chestparts', 0, 20, 'Parts box', 'CLAIM', 0, 0, 0, 200, 0, 0, 0, 0, 0],
+        ['smallenergy', 0, 0, 'Small battery', 'CLAIM', 10, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['smallwater', 0, 0, 'Small water bottle', 'CLAIM', 0, 10, 0, 0, 0, 0, 0, 0, 0],
+        ['smallfood', 0, 0, 'Small candy bar', 'CLAIM', 0, 0, 10, 0, 0, 0, 0, 0, 0],
+        ['smallparts', 0, 0, 'Small circuits', 'CLAIM', 0, 0, 0, 10, 0, 0, 0, 0, 0],
+        ['anti3', 0, 30, 'Antimatter traces', 'CLAIM', 0, 0, 0, 0, 3, 0, 0, 0, 0],
+        ['anti5', 0, 40, 'Antimatter residue', 'CLAIM', 0, 0, 0, 0, 5, 0, 0, 0, 0],
+        ['anti8', 0, 50, 'Antimatter vein', 'CLAIM', 0, 0, 0, 0, 8, 0, 0, 0, 0],
+        ['anti10', 0, 60, 'Antimatter deposit', 'CLAIM', 0, 0, 0, 0, 10, 0, 0, 0, 0],
+        ['door_easy', 0, 0, 'Damaged door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['door_medium', 0, 20, 'Locked door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['door_hard', 0, 50, 'Reinforced door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['door_extreme', 0, 70, 'High security door', 'HACK', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['plants', 0, 10, 'Plants', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ['fridge', 0, 10, 'Fridge', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['sink', 0, 10, 'Sink', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['shower', 0, 10, 'Shower', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ['sofa', 0, 10, 'Sofa', 'RESTORE', 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -67,19 +62,24 @@ class Terminal {
     constructor(type, id) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
+        let spl, cust
+        if (type.includes("{")) { cust = JSON.parse(type); type = "custom" }
+        else if (type.includes(",")) { spl = type.split(","); type = spl[0] }
         const row = Terminal.DATA.find(x => x[0] === type)
         if (!row) throw new Error("invalid terminal type")
         this.type = type
         this.terminal = row[0]
         this.delay = row[1]
         this.bucket = row[2]
-        this.pretty = row[3]
+        this.pretty = spl?.[1].trim() ?? row[3]
         this.action = row[4]
         this.actionVerbPresent = this.action[0] + this.action.slice(1).toLowerCase()
+        this.actionVerbGerund = this.actionVerbPresent + "ing"
         this.actionVerbPast = this.actionVerbPresent + (this.actionVerbPresent.endsWith("e") ? "d" : "ed")
         this.actionVerbPastLowerCase = this.actionVerbPast.toLowerCase()
         this.hasTodo = Terminal.ACTIONS.hasTodoList.includes(this.action)
         if (this.hasTodo) this.on_first_activate = () => this.loca.checkAreThereTasksLeft()
+        this.cost = row.at(-4) || ""
         this.description = row.at(-3) || ""
         this.note = row.at(-2) || ""
         /**@type {string[]} */
@@ -89,13 +89,28 @@ class Terminal {
         //will be used by resource fill below
         /**@type {Array<[string,number]>} [resource type, gain] */
         this.resources = {}
-        this.resourcesArray = []
         row.forEach((val, i) => {
-            if (i < firstUnusedRow || i >= firstUnusedRow + 8) return
-            this.resourcesArray.push(+val)
+            if (i < firstUnusedRow || i >= firstUnusedRow + 5) return
             if (!val) return
             this.resources[Team.resourceNames[i - firstUnusedRow]] = +val
         })
+        if (type === "shuttleHome") {
+            this.type = "shuttle" //will be locked with prereq ["hazard"]
+        }
+        if (type === "custom") {
+            for (const [key, val] of Object.entries(cust)) {
+                if (key === "x") this.pretty = val
+                else if (key === "b" || key === "q") this.bucket = +val
+                else if (key === "e") this.resources.energy = +val
+                else if (key === "w") this.resources.water = +val
+                else if (key === "f") this.resources.food = +val
+                else if (key === "p") this.resources.parts = +val
+                else if (key === "a") this.resources.antimatter = +val
+                else this[key] = val
+            }
+        }
+
+        this.resourcesArray = Team.resourceNames.map(x => this.resources[x])
         this.hasResources = this.resourcesArray.some(x => x)
 
     }
@@ -124,7 +139,8 @@ class Terminal {
         this.txt = this.getInspectFromAfarText()
     }
     getStandingOnText() {
-        return (!this.unlocked ? "(locked)\n" : "") + this.pretty + (this.active ? "" : ("\n" + this.action))
+        // return (!this.unlocked ? "(locked)\n" : "") + this.pretty + (!this.unlocked || this.active ? "" : ("\n" + this.action))
+        return this.pretty + (!this.unlocked ? "\n(locked)" : this.active ? "" : ("\n" + this.action))
 
     }
     putStandingOnText() {
@@ -152,7 +168,7 @@ class Terminal {
         const pre =
             this.unlocked
                 ? ""
-                : `Requires ${this.getPrereqsPretty()} before it can be ${this.actionVerbPast}.\n`
+                : `Requires ${this.getPrereqsPretty()} before it can be ${this.actionVerbPastLowerCase}.\n`
         return `${pre}${res}${this.description}`
 
     }

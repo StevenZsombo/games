@@ -48,6 +48,7 @@ class Person extends Participant {
         this.team = Team.ALL[personData.teamID]
         /**@type {Player} */
         this.p = pool.getPlayer(personData.playerID, pool.getLoca(this.team.homebase.id))
+        this.p.person = this
         this.name = this.p.name
         this.team.members.add(this)
         return {
@@ -65,7 +66,11 @@ class Person extends Participant {
         const loca = pool.getLoca(locaID)
         if (loca.exlusiveToTeamID != null && loca.exlusiveToTeamID != this.team.id) return { deny: `Your team is not allowed to visit ${loca.name}.` }
         this.p.changeLoca(loca)
-        return { accept: `You will travel to ${loca.name}.`, info: loca.getFullEvents() }
+        return {
+            accept: `You will travel to ${loca.name}.`,
+            info: loca.getFullEvents(),
+            // pos: loca.players.map(x => [x.id, x.i, x.j])
+        }
     }
     flush() {
         this.wee("flush")
@@ -89,14 +94,15 @@ class Person extends Participant {
     }
     rename(newName) {
         if (!newName) return
+        const orig = this.p.name
         this.wee("rename", newName)
+            .catch(`Failed to rename ${this.p.name}.`)
             .then(resp => {
                 this.p.name = resp
-                const ind = RULES.STUDENTS.indexOf(this.p.name)
+                const ind = RULES.STUDENTS.indexOf(orig)
                 if (ind !== -1) RULES.STUDENTS[ind] = resp
-                spop(`Renamed ${this.p.name} to ${resp}.`)
+                spop(`Renamed ${orig} to ${resp}.`)
             })
-            .catch(`Failed to rename ${this.p.name}.`)
     }
 }
 //#region 
@@ -142,15 +148,11 @@ class Game extends GameShared {
         Team.ALL.forEach(team => {
             if (!team.homebase) throw new Error(`team ${team.name} has no homebase`)
             team.homebase.exlusiveToTeamID = team.id
+            team.homebase.isHomebaseForTeam = team
             team.homebase.terminals.forEach(t => {
                 t.exposedTo = [team]
                 t.team = team
                 //homebase lock everything with a prereq
-                if (t.type === "shuttle") {
-                    t.prereq = ["hazard"]
-                    team.homebase.eventHappenedServer(Loca.EVENTS.locked, t)
-
-                }
                 if (t.note) t.on_first_activate = () => team.homebase.checkPrereqTree()
                 if (t.type === "hazard") {
                     t.on_first_activate = () => {
@@ -253,7 +255,8 @@ class Game extends GameShared {
             payload.push({
                 t: team.id,
                 r: Object.values(team.wealth),
-                m: team.membersAsArray.map(x => x.p.id)
+                m: team.membersAsArray.map(x => x.p.id),
+                a: +(team.homebase.isAnyTerminalInNeedOfAttention)
             })
         }
         payload.push({ g: g })
@@ -290,8 +293,18 @@ class Game extends GameShared {
             t.activate()
             t.question = null
             if (Terminal.ACTIONS.willEraseList.includes(t.action)) t.loca.eventHappenedServer(Loca.EVENTS.erase, t)
-            chat.targetSpam(t.team.membersAsArray, "ptc",
-                `${person.p.name} ${t.actionVerbPastLowerCase} the ${t.pretty}.`)
+            const targets = t.loca.players.map(x => x.person)
+            const targetsOutside = person.team.membersAsArray.filter(x => !targets.includes(x))
+            const txtDisplay = `${person.p.name} ${t.actionVerbPastLowerCase} the ${t.pretty}.`
+            if (targets) chat.targetSpam(
+                targets,
+                "ptc",
+                [txtDisplay, person.team.id])
+            if (targetsOutside) chat.targetSpam(
+                targetsOutside,
+                "ptc",
+                ["(Homebase)\n" + txtDisplay, person.team.id])
+
         }
         return attemptInfo
     }
@@ -307,13 +320,20 @@ class Game extends GameShared {
         players.dynamicText = () =>
             MM.tableStr(
                 listener.personsAsArray.map(/**@param {Person} x*/x =>
-                    [x.player?.name, x.team?.id, x.team?.name, x.nameID,
+                    [x.player?.name, x.team?.id, x.team?.name, x.name, x.nameID,
                     x.player?.loca.id, x.player?.loca.eventCount, x.player?.loca?.name,])
-                , ["name", "team", "teamID", "nameID", "locaID", "le", "loca"])
+                , ["name", "team", "teamID", "chat.name", "nameID", "locaID", "le", "loca"])
         players.on_release = () => this.personsMenu()
         teams.dynamicText = () => MM.tableStr(
-            Team.ALL.map(x => [x.name, ...Object.values(x.wealth), "   " + x.membersAsArray.map(x => x.p.name).join(", ")])
-            , ["team", ...Object.keys(Team.ALL[0].wealth), "   players"]
+            Team.ALL.map(x => [
+                x.name,
+                ...Object.values(x.wealth),
+                "",
+                x.seenQuestionsIDs.size,
+                x.solvedQuestionsIDs.size,
+                x.membersAsArray.map(x => x.p.name).join(", "),
+            ])
+            , ["team", ...Object.keys(Team.ALL[0].wealth), "   ", "seen", "solved", "players"]
         )
 
         this.add_drawable(buts)
@@ -331,7 +351,7 @@ class Game extends GameShared {
     personsMenu(persons = listener.personsAsArray) {
         if (!persons.length) return
         const ddm = GameEffects.dropDownMenu(
-            persons.map(x => [x.name, () => this.individualMenu(x)])
+            persons.map(x => [x.p?.name ?? x.name, () => this.individualMenu(x)])
             , null, null, null, { width: 400 }
         )
         this.mouser.on_release_once = () => this.extras_temp.push(ddm.close)
