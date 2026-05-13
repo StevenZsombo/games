@@ -50,6 +50,8 @@ class Loca extends GameWorld {
     isHomebaseForTeam = null
     /**@type {?number} */
     exlusiveToTeamID = null
+    /**@type {Terminal} */
+    shuttle = null
     constructor(fromfile, name, id) {
         super(globalThis.game.rect.copy)
         this.id = id

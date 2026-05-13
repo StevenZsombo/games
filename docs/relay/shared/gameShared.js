@@ -135,18 +135,19 @@ class GameShared extends GameCore {
 
         const todoDrawable = this.todoDrawable = {
             draw: !GRAPHICS.TODO_HAS_CIRCLES ? null : (ctx) => {
-                this.loca.terminals
+                const att = this.loca.terminals
                     .filter(x => x.isInNeedOfAttention)
-                    .forEach(t => {
-                        MM.drawEllipse(ctx,
-                            t.button.centerX, t.button.centerY,
-                            t.button.width * .8 * this.gentleSin, t.button.height * .8 * this.gentleSin,
-                            {
-                                outline_color: personData.teamColor ?? "black",
-                                color: null, outline: 10
-                            }
-                        )
-                    })
+                if (att.length === 0) att.push(this.loca.shuttle)
+                att.forEach(t => {
+                    MM.drawEllipse(ctx,
+                        t.button.centerX, t.button.centerY,
+                        t.button.width * .8 * this.gentleSin, t.button.height * .8 * this.gentleSin,
+                        {
+                            outline_color: personData.teamColor ?? "black",
+                            color: null, outline: 10
+                        }
+                    )
+                })
             }
         }
         this.loca.add_drawable(todoDrawable, 7)

@@ -63,7 +63,12 @@ class Terminal {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
         let spl, cust
-        if (type.includes("{")) { cust = JSON.parse(type); type = "custom" }
+        if (type.includes("{")) {
+            cust = Object.fromEntries(
+                type.slice(1, -1).split(",").map(x => x.split(":").map(x => x.trim()))
+            )
+            type = "custom"
+        }
         else if (type.includes(",")) { spl = type.split(","); type = spl[0] }
         const row = Terminal.DATA.find(x => x[0] === type)
         if (!row) throw new Error("invalid terminal type")
@@ -94,9 +99,9 @@ class Terminal {
             if (!val) return
             this.resources[Team.resourceNames[i - firstUnusedRow]] = +val
         })
-        if (type === "shuttleHome") {
-            this.type = "shuttle" //will be locked with prereq ["hazard"]
-        }
+        if (type === "shuttleHome") this.type = "shuttle" //will be locked with prereq ["hazard"]
+        if (this.type === "shuttle") this.loca.shuttle = this
+
         if (type === "custom") {
             for (const [key, val] of Object.entries(cust)) {
                 if (key === "x") this.pretty = val
