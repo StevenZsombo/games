@@ -1818,3 +1818,122 @@ class FeedBasic {
 
 }
 //#endregion
+
+
+//#region CalculatorButtons
+class CalculatorButtons extends Malleable {
+	/**
+	 * @param {Rect} bg 
+	 * @param {function(number): Promise<{correct:boolean,reason:?string}>} verifyAnswer
+	*/
+	constructor(backgroundRect, verifyAnswer = null, { scaleFactor = .95, backgroundButton = null }) {
+		super()
+		const bg = this.bg = backgroundButton ?? (Button.fromRectShallow(backgroundRect || game.rect))
+		this.push(bg)
+		bg.visible = false
+		bg.transparent = true
+		bg.outline = 0
+		verifyAnswer && (this.verifyAnswer = verifyAnswer)
+		const calculatorButtons =
+			this.calculatorButtons =
+			bg.splitGrid(6, 3).flat().slice(0, -2)
+				.map(x => Button.fromRect(x, {
+					fontSize: 40,
+				}))
+				.map(x => x.shrinkToSquare().stretch(scaleFactor, scaleFactor))
+		const ans = this.ans = calculatorButtons.at(-1)
+		ans.rightstretchat(calculatorButtons[2].right)
+		ans.txt = ""
+		const sendFancy = (b) => GameEffects.sendFancy(b, ans, 500)
+		calculatorButtons.forEach((x, i) => {
+			if (i < 9) {
+				x.txt = i + 1
+				x.on_click = () => {
+					ans.txt += "" + (i + 1); sendFancy(x)
+				}
+			} else if (i == 9) {
+				x.txt = "+/-"
+				x.on_click = () => {
+					ans.txt = ans.txt?.[0] === "-" ? ans.txt.slice(1) : "-" + ans.txt; sendFancy(x)
+				}
+			}
+			else if (i == 10) {
+				x.txt = "0"
+				x.on_click = () => {
+					ans.txt += "" + "0"; sendFancy(x)
+				}
+			}
+			else if (i == 11) {
+				x.txt = "."
+				x.on_click = () => {
+					if (ans.txt === "") ans.txt = "0."
+					else ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
+				}
+			}
+			else if (i == 13) {
+				x.txt = "Del"
+				x.on_click = () => {
+					ans.txt = ""; sendFancy(x)
+				}
+			}
+		})
+
+
+		calculatorButtons.splice(-2, 1)
+		/**@type {Button} */
+		const submit = this.submit = calculatorButtons.at(-3)
+		calculatorButtons.at(-2).rightat(calculatorButtons[2].right) //swap, nicer.
+		submit.rightstretchat(calculatorButtons[1].right)
+		submit.txt = "Submit"
+		submit.on_release = () => {
+			if (ans.txt === "" || ans.txt == null) return
+			const guess = +ans.txt
+			console.log(`submitting ${guess}`)
+			if (!Number.isFinite(guess)) throw new Error("Somehow the number is invalid???")
+			ans.txt = ""
+			submit.txt = "Waiting..."
+			submit.interactable = false
+			const cleanup = () => {
+				submit.txt = "Submit"
+				submit.interactable = true
+			}
+
+			this.verifyAnswer(guess)
+				.catch((err) => this.on_error(guess, err))
+				.then((resp) => {
+					if (resp?.correct === undefined) { this.on_faulty_response(guess, resp); return }
+					this.on_response?.(resp)
+					resp.correct ? this.on_correct?.() : this.on_incorrect?.(resp.reason)
+				})
+				.finally(cleanup)
+		}
+		this.push(...calculatorButtons)
+		this.isBlocking = true
+		this.forEach(x => x.isBlocking = true)
+
+	}
+
+	async verifyAnswer(guess) {
+		throw new Error("verifyAnswer was not defined.")
+		return { correct: false, reason: "error" }
+	}
+	on_error(guess, err) {
+		GameEffects.popup(
+			`Failed to submit ${guess}. Please try again. ERROR CODE:\n${err}`,
+			{ sizeFrac: [.8, .15], moreButtonSettings: { color: "red" }, floatTime: 10_000, close_on_release: true })
+	}
+	on_faulty_response(guess, resp) {
+		GameEffects.popup(
+			`Faulty response to your submission ${guess}. Please try again. BAD RESPONSE;\n${JSON.stringify(resp)}`,
+			{ sizeFrac: [.8, .15], moreButtonSettings: { color: "red" }, floatTime: 10_000, close_on_release: true })
+
+	}
+	on_response(resp) {
+		resp.correct; resp.reason;
+	}
+	on_correct() { }
+	on_incorrect(reason) { }
+
+}
+
+//#endregion

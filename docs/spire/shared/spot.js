@@ -2,8 +2,10 @@ const em = new EventManager()
 const EVENTS = {
     correct: "correct", //spot
     incorrect: "incorrect", //guess
-    plan: "plan",
+    plan: "plan",//()
     climb: "climb",//()
+    boss: "boss",//()
+    noboss: "noboss",//()
     wait: "wait",//()
     hide: "hide",//()
     show: "show",//()
@@ -51,6 +53,8 @@ class Spot extends Malleable {
         })
         const label = this.label = Button.fromButton(button, {
             transparent: true,
+            outline: 0,
+            color: null,
             fontSize: GRAPHICS.FONT_BIG,
             isBlocking: false,
             spot: this
@@ -66,15 +70,20 @@ class Spot extends Malleable {
         /**@type {Set<Spot>} */
         this.below = new Set()
 
+        this.isHydra = false
+
         this.canMoveTo = false
         em.on("correct", spot => {
             if (this.below.has(spot)) this.canMoveTo = true
         })
         em.on("climb", () => { if (this.below.size == 0) this.canMoveTo = true })
-        em.on("hide", () => { this.label.txt = "HIDDEN"; this.label.transparent = false; this.hidden = true })
+        em.on("hide", () => {
+            this.label.txt = this.isHydra ? "Hydra" : "HIDDEN"
+            this.label.transparent = false; this.hidden = true
+        })
         em.on("show", () => {
             this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
-            this.label.transparent = true
+            this.label.transparent = !this.label.color
             this.hidden = false
         })
 
@@ -85,12 +94,18 @@ class Spot extends Malleable {
         else { this.button.on_release = () => this.onInteract() }
     }
     attempt(guess) {
-        guess == this.sol ? this.correctGuess() : this.incorrectGuess(guess)
+        const correct = RULES.ACCURACY_FUNCTION(guess, this.sol)
+        correct ? this.correctGuess() : this.incorrectGuess(guess)
+        return correct
+
     }
     correctGuess() {
         this.done = true
         this.label.txt = "SOLVED"
-        this.button.color = GRAPHICS.SPOT_COLOR_SOLVED
+        this.label.color = "rgba(20, 200, 20, 0.8)"
+        this.label.transparent = false
+        game.fullViewer.close()
+        // this.button.color = GRAPHICS.SPOT_COLOR_SOLVED
         em.emit("correct", this)
     }
     incorrectGuess(guess) {
@@ -99,14 +114,13 @@ class Spot extends Malleable {
     goFullscreen() {
         if (this.hidden) return
         const fullViewer = game.fullViewer
-        fullViewer.img = this.button.img
-        fullViewer.activate()
-        fullViewer.spot = this
+        fullViewer.open(this)
 
     }
     onInteract() {
+        if (this.isHydra) { return this.onInteractHydra() }
         if (!this.canMoveTo) this.goFullscreen()
-        else { GameEffects.popup("interaction placeholder") }
+        else this.goFullscreen()
     }
     setIMG(file) {
         if (file.endsWith(".png")) file = file.slice(0, -4)
@@ -118,6 +132,18 @@ class Spot extends Malleable {
         if (RULES.EDITOR) this.label.txt = this.sol
     }
 
+    makeHydra() {
+        Spot.ALL.forEach(x => {
+            x.isHydra = false
+        })
+        this.isHydra = true
+        this.hidden ? em.emit("hide") : em.emit("show")
+
+    }
+    onInteractHydra() {
+        game.startBossfight(this)
+    }
+
     toJSON() {
         return {
             id: this.id,
@@ -125,6 +151,7 @@ class Spot extends Malleable {
             y: this.button.y,
             sol: this.sol,
             file: this.file,
+            isHydra: this.isHydra,
             above: Array.from(this.above).map(x => x.id),
             below: Array.from(this.below).map(x => x.id),
         }
@@ -139,6 +166,7 @@ class Spot extends Malleable {
             x.file && spot.setIMG(x.file)
             x.above.forEach(k => spot.above.add(Spot.ALL[k]))
             x.below.forEach(k => spot.below.add(Spot.ALL[k]))
+            if (x.isHydra) spot.makeHydra()
         })
         if (RULES.EDITOR) Spot.ALL.forEach(x => x.label.txt = x.sol)
     }

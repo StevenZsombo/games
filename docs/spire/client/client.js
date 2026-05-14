@@ -2,6 +2,9 @@ class Game extends GameShared {
     //#region initialize_more
 
     initialize_more() {
+        /*if (!RULES.EDITOR) GameEffects.clickMeFourTimes().then(() => this.initShared())
+        else this.initShared()*/
+        if (!RULES.EDITOR && !RULES.SKIP_INTRO) GameEffects.clickMeFourTimes()
         this.initShared()
     }
     //#endregion
@@ -80,7 +83,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"

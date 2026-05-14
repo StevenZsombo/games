@@ -197,7 +197,7 @@ class MM {
         ctx.lineWidth = width
         ctx.beginPath()
         ctx.moveTo(x, y)
-        ctx.lineTo(u - (u - x) * .05, w - (w - y) * .05) //let 5% off so it does not reach beyond the triangle
+        ctx.lineTo(u - (u - x) * .025, w - (w - y) * .025) //let some% off so it does not reach beyond the triangle
         ctx.stroke()
         const angle = Math.atan2(w - y, u - x)
         ctx.beginPath()
@@ -2722,6 +2722,30 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             },
 
         }
+    }
+
+    static clickMeFourTimes() {
+        return new Promise(resolve => {
+            const bg = Button.fromRectShallow(game.rect, { color: "linen" })
+            game.add_drawable(bg, 9)
+            const four = Array(4).fill().map(_ => new Button({ width: 400, height: 400, x: 0, y: 0, txt: "Click me!" }))
+            four[1].rightat(game.rect.right)
+            four[2].rightat(game.rect.right)
+            four[2].bottomat(game.rect.bottom)
+            four[3].bottomat(game.rect.bottom)
+            game.add_drawable(four, 9)
+            four.forEach(x => x.deactivate())
+            four[0].activate()
+            const fs = () => MM.toggleFullscreen(true)
+            four.slice(0, -1).forEach((x, i) => x.on_release = () => {
+                x.deactivate(); four[i + 1].activate(); fs();
+                game.mouser.on_release_once = fs
+            })
+            four[3].on_release = () => {
+                game.once(() => game.remove_drawables_batch(four.concat(bg)))
+                resolve()
+            }
+        })
     }
 }
 //#endregion
