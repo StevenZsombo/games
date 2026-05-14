@@ -2,14 +2,9 @@ class Game extends GameShared {
     //#region initialize_more
 
     initialize_more() {
-        this.initShared()
+
     }
     //#endregion
-
-
-    advance() {
-        sm.skipTo(sm.currentKey + 1)
-    }
 
 
     ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,12 +70,12 @@ class Game extends GameShared {
 
 //#region univ
 var univ = {
-    isOnline: false, //server is offline!
+    isOnline: true, //server is offline!
     PORT: 80,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: RULES.DEBUG_MODE,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"

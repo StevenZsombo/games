@@ -162,6 +162,16 @@ class MM {
         ctx.globalAlpha = 1
     }
     //#endregion
+    //#region MM.drawEllipseOnRect
+    static drawEllipseOnRect(ctx, rect, { coeff = 0.7, gentleSin = 1, color = null, outline = 5, outline_color = "blue", opacity = 0 } = {}) {
+        MM.drawEllipse(ctx,
+            rect.centerX, rect.centerY,
+            rect.width * coeff * gentleSin,
+            rect.height * coeff * gentleSin,
+            { color, outline, outline_color, opacity }
+        )
+    }
+    //#endregion
     //#region MM.drawLine
     static drawLine(ctx, x, y, u, w, { color = "black", width = 5 } = {}) {
         //ctx.save()
@@ -1620,6 +1630,21 @@ class MM {
                 }
                 reader.onerror = err => reject(err)
                 reader.readAsText(file)
+            }
+            input.oncancel = () => reject(new Error("File selection cancelled")) //may not exist?
+            input.click()
+        })
+    }
+
+    static filePicker(onlyAccept = null) {
+        return new Promise((resolve, reject) => {
+            const input = document.createElement("input")
+            input.type = "file"
+            if (onlyAccept) input.accept = onlyAccept
+            input.onchange = ev => {
+                const file = ev.target.files[0]
+                if (!file) reject(new Error("No file selected!"))
+                resolve(ev.target.files[0])
             }
             input.oncancel = () => reject(new Error("File selection cancelled")) //may not exist?
             input.click()

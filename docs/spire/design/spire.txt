@@ -1,0 +1,20 @@
+Slay the spire game design:
+
+Play as pairs or individuals. One device per team. 
+Each location they visit holds a question or a bossfight challenge.
+
+Stage 1: planning. Students can see the full layout of spire, each location & question fully revealed. They should make a plan how to ascend instead of beginning to solve. (They can of course elect to start solving earlier, but doing so recklessly might put them in a very bad position later on).
+
+Stage 2: climb. Once the server orders the end of the planning stage, students can climb as they see fit. Clear, singular goal: ascend ever higher to reach the boss(es) at the top.
+
+Stage 3: boss fight. Everyone who arrives here can join in. The fastest team to arrive here will of course have the most time to deal damage to it.
+
+The boss will be a hydra! It starts with 20HP. It has multiple heads, each representing a question worth X marks. If you solve the question, you cut off the head and deal that much damage. The head will then regrow and a new question with similar mark value appears. The fight ends when the boss runs out of HP.
+
+Stage 4+: either end the game when the boss is defeated (short version),
+OR let students further ascend. Once the boss is defeated the teams who arrive later do not need to fight it (giving them the opportunity to catch up to the faster teams). Teams who fought the boss get a head start on the next planning stage (advantageous, but not decisive). The more damage they dealt to the boss, the shorter their next planning timer will be (.e.g the strongest team gets a 1-minute head start).
+
+Easy to prep questions for, very flexible on how long it will take (single floor or multi-floor with ever-larger hydras).
+
+
+Update on Stage 3: The hydra has 7 heads. You have 7 minutes to cut off the first head. It won't regrow. Then an ever-decreasing amount of time (e.g. 5 minutes, 3 minutes) to cut off the next head. This way the number of questions remains fixed, and they need to implement "how long will this take me?" in their strategy.

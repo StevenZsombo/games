@@ -688,9 +688,10 @@ class Button extends Clickable {
 		const tobuild = { ...kwargs, ...rect }
 		return new Button(tobuild)
 	}
-	static fromRectShallow(rect) {
+	/**@param {Rect} rect @param {Button} [kwargs={}]   */
+	static fromRectShallow(rect, kwargs = {}) {
 		const { x, y, width, height } = rect
-		return new Button({ x, y, width, height })
+		return new Button({ x, y, width, height, ...kwargs })
 	}
 	/**@param {Button} but @param {Button} [kwargs={}]   */
 	static fromButton(but, kwargs = {}) {
