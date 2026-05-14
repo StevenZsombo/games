@@ -60,7 +60,15 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const DEFAULT_PAGE_TO_SERVE = 'template.html';
+const DEFAULT_PAGE_TO_SERVE = (() => {
+    const fallback = "index.html"
+    try {
+        const content = fs.readFileSync(path.join(__dirname, 'serverPage.txt'), 'utf8').trim();
+        return content || fallback;
+    } catch {
+        return fallback;
+    }
+})(); console.log({ DEFAULT_PAGE_TO_SERVE });
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'index.html';
 const PORT = 80;
 
