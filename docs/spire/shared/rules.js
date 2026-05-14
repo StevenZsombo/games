@@ -25,10 +25,14 @@ const GRAPHICS = {
     SPOT_HEIGHT: 90 * 2,
     SPOT_COLOR: "lightgray",
     SPOT_COLOR_SOLVED: "lightgreen",
+    SPOT_COLOR_SOLVED_OPAQUE: "rgba(20, 200, 20, 0.8)",
     SPOT_HYDRA_SIZE_COEFF: [1.4, 1],
     SPOT_HYDRA_COLOR: "lightblue",
 
     SLIDE_TIME: 500,
+    CALCULA_BRINGUP_TIME: 500,
+    FULLVIEW_BRINGUP_TIME: 400,
+    ANSWER_SPACE_COLOR: "white",
 
 
     BOTTOM: 105,

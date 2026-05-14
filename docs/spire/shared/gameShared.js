@@ -1,13 +1,15 @@
 class GameShared extends GameCore {
     initShared() {
+        const spotMall = this.spotMall = new Malleable()
+        /**@type {Spot[]} */
+        spotMall.components = Spot.ALL
+        spotMall.isBlocking = true
+        this.add_drawable(spotMall, 4)
+        this.initData()
         this.initSpire()
         this.initBossfight()
         this.initEditor()
         this.initFake()
-        const spotMall = this.spotMall = new Malleable()
-        spotMall.components = Spot.ALL
-        spotMall.isBlocking = true
-        this.add_drawable(spotMall, 4)
         this.bot = new Button({
             width: this.WIDTH, height: GRAPHICS.BOTTOM,
             x: 0, y: this.HEIGHT - GRAPHICS.BOTTOM,
@@ -17,8 +19,6 @@ class GameShared extends GameCore {
             isBlocking: true
         })
         this.add_drawable(this.bot, 7)
-
-        this.playerSpot = Spot.ALL[0]
 
         const lineDrawable = this.lineDrawable = {
             draw: (ctx) => {
@@ -57,7 +57,12 @@ class GameShared extends GameCore {
         }
         this.add_drawable(sinteract, 1)
 
-
+        const detail = new Button({
+            width: 600, height: 120, y: 0, txt: "You solved this problem already.",
+            color: GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE, fontSize: GRAPHICS.FONT_SMALL
+        })
+        detail.rightat(this.WIDTH)
+        detail.deactivate()
         /**@type {Button&{spot:Spot,close:Function(),open:Function(Spot)}} */
         const fullViewer = this.fullViewer = Button.fromRectShallow(this.rect, {
             isBlocking: false,
@@ -70,10 +75,12 @@ class GameShared extends GameCore {
             /**@param {Spot} spot  */
             open(spot) {
                 this.spot = spot, this.img = spot.button.img; this.activate();
-                if (spot.canMoveTo) calcula.activate()
+                Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
+                if (spot.done) detail.activate()
+                else if (spot.canMoveTo) calculaAnimate()
             },
             close() {
-                this.deactivate(); calcula.deactivate(); this.spot = null;
+                this.deactivate(); calcula.deactivate(); detail.deactivate(); this.spot = null;
                 calcula.ans.txt = ""
                 calculaShowHide.txt = "Hide buttons"
             },
@@ -81,6 +88,7 @@ class GameShared extends GameCore {
         })
         fullViewer.spot = null
         this.add_drawable(fullViewer, 7)
+        this.add_drawable(detail, 7)
 
         const calculaBG = new Rect(0, 0, 300, 600)
         // calculaBG.rightat(this.WIDTH - 20)
@@ -92,6 +100,7 @@ class GameShared extends GameCore {
             if (!fullViewer.spot.canMoveTo) { throw new Error("invalid submission?") }
             return { correct: fullViewer.spot.attempt(guess) }
         }
+        calcula.ans.color = GRAPHICS.ANSWER_SPACE_COLOR
         this.add_drawable(calcula, 8)//just below the popups
 
         const calculaShowHide = this.calculaShowHide = Button.fromRectShallow(calcula.ans)
@@ -113,6 +122,24 @@ class GameShared extends GameCore {
 
         calcula.deactivate()
 
+        const origCalculaPos = calcula.calculatorButtons.map(x => ({ x: x.x, y: x.y }))
+        const calculaAnimate = () => {
+            calcula.activate()
+            calcula.calculatorButtons.forEach(x => x.interactable = false)
+            Anim.custom(calcula.calculatorButtons, GRAPHICS.CALCULA_BRINGUP_TIME, (t, obj) => {
+                obj.forEach((x, i) => {
+                    // x.x = Anim.interpol(calcula.ans.x, origCalculaPos[i].x, t)
+                    x.y = Anim.interpol(calcula.ans.y, origCalculaPos[i].y, t)
+
+                })
+            }, "", {
+                add: this,
+                ditch: true,
+                on_end: calcula.calculatorButtons.forEach(x => x.interactable = true)
+            })
+        }
+
+
         if (RULES.SCROLLWHEEL_SPEED) {
             this.mouser.on_wheel = (mouser) => {
                 let howmuch = RULES.SCROLLWHEEL_SPEED
@@ -130,9 +157,15 @@ class GameShared extends GameCore {
         em.on("climb", () => { sm.skipTo(2) })
         em.on("boss", () => { sm.skipTo(3); this.startBossfight() })
         em.on("noboss", () => { if (sm.currentKey >= 3) this.cancelBossfight() })
+        em.on("correct", () => {
+            if (!this.canDrag) {//means in bossfight}
+
+            }
+        })
         em.emit("hide")
         sm.states.get(0).on_enter = () => {
             em.emit("hide")
+            em.emit("wait")
             this.bot.color = "lightpink"
             GameEffects.popup("Please wait for the game to begin!", {
                 sizeFrac: [.6, .15], moreButtonSettings: {
@@ -143,8 +176,9 @@ class GameShared extends GameCore {
         }
         sm.states.get(1).on_enter = () => {
             em.emit("show")
+            em.emit("plan")
             this.bot.color = "gold"
-            GameEffects.popup("You can start planning.\nBest not to solve the questions yet.", {
+            GameEffects.popup("You can start planning.\nSolving questions immediately would be poor strategy.", {
                 sizeFrac: [.6, .15], moreButtonSettings: {
                     fontSize: GRAPHICS.FONT_MEDIUM, floatTime: 3000,
                     color: "gold"
@@ -153,6 +187,8 @@ class GameShared extends GameCore {
 
         }
         sm.states.get(2).on_enter = () => {
+            em.emit("show")
+            em.emit("climb")
             this.bot.color = "lightgreen"
             GameEffects.popup("Climb! Climb! Climb!", {
                 sizeFrac: [.6, .15], moreButtonSettings: {
@@ -160,8 +196,6 @@ class GameShared extends GameCore {
                     color: "lightgreen"
                 }
             })
-            console.log("SLIDE")
-            em.emit("show")
             if (!Spot.ALL.length) return
             const targetY = this.HEIGHT * 0.5
             this.isAcceptingInputs = false
@@ -170,11 +204,14 @@ class GameShared extends GameCore {
             console.log({ lowestSpot, targetY })
             let lastT = 0
             Anim.custom(null, GRAPHICS.SLIDE_TIME, t => {
+                if (!this.canDrag) return
                 Spot.moveAll((t - lastT) * dist)
                 lastT = t
             }, "", { add: game, on_end: () => this.isAcceptingInputs = true })
         }
         sm.states.get(3).on_enter = () => {
+            em.emit("show")
+            em.emit("boss")
             this.bot.color = "lightblue"
             /*GameEffects.popup("Defeat the Hydra! Cut off as many heads as you can!", {
                 sizeFrac: [.6, .15], moreButtonSettings: {
@@ -310,7 +347,7 @@ class GameShared extends GameCore {
         fake.topat(0)
         fake.rightat(this.WIDTH)
         fake.on_release = () => {
-            const arr = ["wait", "plan", "climb", "show", "hide"]
+            const arr = ["wait", "plan", "climb", "boss", "noboss", "show", "hide"]
             const parr = []
             parr.push(...arr.map(x => [x, () => em.emit(x)]))
             parr.push(["Import", () => this.importALL()])
@@ -322,39 +359,57 @@ class GameShared extends GameCore {
         this.add_drawable(fake)
     }
 
-    initSpire() {
-        if (RULES.DEMO) {
-            fetch(RULES.DEMO).then(x => x.json())
+    async initData() {
+        if (!RULES.EDITOR) {
+            await fetch(RULES.DEMOHEADS).then(x => x.json())
                 .then(x => this.importALL(x))
-                .then(() => game.once(() => sm.skipTo(0)))
+                .then(() => this.heads = [].concat(Spot.ALL))
+                .then(() => {
+                    fetch(RULES.DEMO).then(x => x.json())
+                        .then(x => {
+                            Spot.ALL.length = 0
+                            this.importALL(x)
+                        })
+                        .then(() => this.spire = [].concat(Spot.ALL))
+                        .then(() => {
+                            console.log({ spire: this.spire, heads: this.heads })
+                            game.once(() => sm.skipTo(0))
+                        })
+                })
+            return
         }
+        return
+    }
+
+    initSpire() {
+
     }
 
     initBossfight() {
-        this.spire = Spot.ALL
-        em.emit("hide")
-        Spot.ALL.length = 0
-        if (RULES.DEMOHEADS) {
-            fetch(RULES.DEMO).then(x => x.json())
-                .then(x => this.importALL(x))
-                .then(() => game.once(() => sm.skipTo(0)))
-        }
 
 
-        const bossBG = this.bossBG = Button.fromRectShallow(this.rect, {
+        /*const bossBG = this.bossBG = Button.fromRectShallow(this.rect, {
             isBlocking: true
-        })
+        })*/
 
     }
 
-    startBossfight() {
+    hotswap(spotArr) {
+        // this.remove_drawable(this.spotMall)
         this.fullViewer.close()
-        this.spotMall.deactivate()
+        Spot.ALL.length = 0
+        Spot.ALL.push(...spotArr)
+        // this.add_drawable(this.spotMall, 4)
+        // this.spotMall.components = Spot.ALL
+    }
+
+    startBossfight() {
+        this.hotswap(this.heads)
         this.canDrag = false
     }
 
     cancelBossfight() {
-        this.spotMall.activate()
+        this.hotswap(this.spire)
         this.canDrag = true
     }
 

@@ -79,17 +79,17 @@ class Spot extends Malleable {
         em.on("climb", () => { if (this.below.size == 0) this.canMoveTo = true })
         em.on("hide", () => {
             this.label.txt = this.isHydra ? "Hydra" : "HIDDEN"
-            this.label.transparent = false; this.hidden = true
+            this.label.transparent = false; this.isHidden = true
         })
         em.on("show", () => {
-            this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
-            this.label.transparent = !this.label.color
-            this.hidden = false
+            this.label.txt = this.isHydra ? "Hydra" : RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
+            this.label.transparent = !this.label.color //some weird logic thing
+            this.isHidden = false
         })
 
         this.sol = 666666
         this.done = false
-        this.hidden = true
+        this.isHidden = true
         if (RULES.EDITOR) { this.label.txt = this.sol }
         else { this.button.on_release = () => this.onInteract() }
     }
@@ -102,7 +102,7 @@ class Spot extends Malleable {
     correctGuess() {
         this.done = true
         this.label.txt = "SOLVED"
-        this.label.color = "rgba(20, 200, 20, 0.8)"
+        this.label.color = GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE
         this.label.transparent = false
         game.fullViewer.close()
         // this.button.color = GRAPHICS.SPOT_COLOR_SOLVED
@@ -112,13 +112,13 @@ class Spot extends Malleable {
         em.emit("incorrect", guess)
     }
     goFullscreen() {
-        if (this.hidden) return
+        if (this.isHidden) return
         const fullViewer = game.fullViewer
         fullViewer.open(this)
 
     }
     onInteract() {
-        if (this.isHydra) { return this.onInteractHydra() }
+        if (this.isHydra) { this.onInteractHydra(); return }
         if (!this.canMoveTo) this.goFullscreen()
         else this.goFullscreen()
     }
@@ -137,11 +137,16 @@ class Spot extends Malleable {
             x.isHydra = false
         })
         this.isHydra = true
-        this.hidden ? em.emit("hide") : em.emit("show")
+        this.isHidden ? em.emit("hide") : em.emit("show")
 
     }
     onInteractHydra() {
-        game.startBossfight(this)
+        if (this.isHidden) return
+        if (!this.canMoveTo) {
+            GameEffects.popup("You must first ascend the spire\nbefore fighting the Hydra.", { moreButtonSettings: { color: "lightblue" } })
+            return
+        }
+        em.emit("boss")
     }
 
     toJSON() {

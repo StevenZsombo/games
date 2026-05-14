@@ -1146,7 +1146,7 @@ class Malleable {
 		if (!this.visible) return
 		let anyBlock = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
-			anyBlock = (this.components[i].check?.(...params) && this.components[i].isBlocking) || anyBlock
+			anyBlock = (this.components[i]?.check?.(...params) && this.components[i].isBlocking) || anyBlock
 		}
 		return anyBlock
 	}
