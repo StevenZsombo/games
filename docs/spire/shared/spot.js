@@ -78,13 +78,16 @@ class Spot extends Malleable {
         })
         em.on("climb", () => { if (this.below.size == 0) this.canMoveTo = true })
         em.on("hide", () => {
-            this.label.txt = this.isHydra ? "Hydra" : "HIDDEN"
-            this.label.transparent = false; this.isHidden = true
+            this.isHidden = true
+            if (this.isHydra) { this.label.txt = "Hydra"; return }
+            this.label.txt = "HIDDEN"
+            this.label.transparent = false
         })
         em.on("show", () => {
-            this.label.txt = this.isHydra ? "Hydra" : RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
-            this.label.transparent = !this.label.color //some weird logic thing
             this.isHidden = false
+            if (this.isHydra) { this.label.txt = "Hydra"; return }
+            this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
+            this.label.transparent = !this.label.color //some weird logic thing
         })
 
         this.sol = 666666
@@ -124,8 +127,13 @@ class Spot extends Malleable {
     }
     setIMG(file) {
         if (file.endsWith(".png")) file = file.slice(0, -4)
-        this.file = file
         this.button.img = cropper.load_img(RULES.QUESTION_FOLDER + file + ".png")
+        this.file = file
+    }
+    setMaskIMG(mask) {
+        if (mask.endsWith(".png")) mask = mask.slice(0, -4)
+        this.label.img = cropper.load_img(RULES.QUESTION_FOLDER + file + ".png")
+        this.mask = mask
     }
     setSol(value) {
         this.sol = +value
@@ -156,6 +164,7 @@ class Spot extends Malleable {
             y: this.button.y,
             sol: this.sol,
             file: this.file,
+            mask: this.mask,
             isHydra: this.isHydra,
             above: Array.from(this.above).map(x => x.id),
             below: Array.from(this.below).map(x => x.id),
@@ -169,6 +178,7 @@ class Spot extends Malleable {
             const spot = Spot.ALL[x.id]
             spot.sol = x.sol
             x.file && spot.setIMG(x.file)
+            x.mask && spot.setMaskIMG(x.mask)
             x.above.forEach(k => spot.above.add(Spot.ALL[k]))
             x.below.forEach(k => spot.below.add(Spot.ALL[k]))
             if (x.isHydra) spot.makeHydra()
