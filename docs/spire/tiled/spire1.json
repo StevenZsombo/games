@@ -1,0 +1,27 @@
+{ "compressionlevel":-1,
+ "height":1,
+ "infinite":false,
+ "layers":[
+        {
+         "draworder":"topdown",
+         "id":2,
+         "name":"rects",
+         "objects":[],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }],
+ "nextlayerid":3,
+ "nextobjectid":13,
+ "orientation":"orthogonal",
+ "renderorder":"right-down",
+ "tiledversion":"1.12.1",
+ "tileheight":5400,
+ "tilesets":[],
+ "tilewidth":1920,
+ "type":"map",
+ "version":"1.10",
+ "width":1
+}
