@@ -224,6 +224,7 @@ class Mouser {
 		/**@type {?function(Mouser)}*/ this.on_release = null
 		/**@type {?function(Mouser)}*/ this.on_release_once = null
 		/**@type {?function(Mouser)}*/ this.on_blocked_release = null
+		/**@type {?function(Mouser)}*/ this.on_wheel = null
 
 		this.canvas = canvas
 		this.canvasRect = new Rect(0, 0, canvas.width, canvas.height)
@@ -342,9 +343,10 @@ class Mouser {
 			e.stopPropagation()
 		}
 		const wheel = (e) => {
+			this.wheel = e.deltaY
+			this.on_wheel?.(this)
 			e.preventDefault()
 			e.stopPropagation()
-			this.wheel = e.deltaY
 		}
 
 		/*

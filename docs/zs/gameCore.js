@@ -302,8 +302,9 @@ class GameCore extends GameCoreLayerCore {
         }
 
 
-
-
+    }
+    once(fn) {
+        this.extras_temp.push(fn)
     }
 
     update(dt, now) {

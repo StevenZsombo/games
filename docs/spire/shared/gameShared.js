@@ -1,137 +1,11 @@
-const em = new EventManager()
-const EVENTS = {
-    solve: "solve",
-    plan: "plan",
-    climb: "climb",
-    hide: "hide",
-    show: "show",
-}
-/**@type {StateManager & {skipTo:Function(i):void}} */
-const sm = new StateManager()
-sm.create(-1).txt = "Connecting"
-sm.trans(-1)
-sm.create(0).txt = "Waiting"
-sm.create(1).txt = "Planning"
-sm.create(2).txt = "Climbing"
-sm.create(3).txt = "Bossfight!"
-sm.create(4).txt = "Victory"
-sm.skipTo = (i) => {
-    while (sm.currentKey < i) {
-        sm.trans(sm.currentKey + 1)
-    }
-}
-/*stages:
--1 connecting
-0 waiting to start
-1 planning
-2 climb
-3 bossfight
-4 victory
- */
-
-class Spot extends Malleable {
-    isBlocking = true
-    /**@type {Spot[]} */
-    static ALL = []
-    constructor(id = null, x = MM.random(200, 1700), y = MM.random(200, 800)) {
-        super()
-        if (id != null && Spot.ALL[id]) throw new Error(`Spot with id ${id} already exists.`)
-        this.id = id ?? Spot.ALL.length
-        Spot.ALL.push(this)
-
-        const button = this.button = new Button({
-            x, y,
-            width: GRAPHICS.SPOT_WIDTH, height: GRAPHICS.SPOT_HEIGHT,
-            imgScale: 0,
-            color: GRAPHICS.SPOT_COLOR,
-            isBlocking: true, spot: this
-        })
-        const label = this.label = Button.fromButton(button, {
-            transparent: true,
-            fontSize: GRAPHICS.FONT_MEDIUM,
-            isBlocking: false, spot: this
-        })
-        if (RULES.EDITOR) {
-            Button.make_draggable(button)
-            Button.make_draggable(label)
-        }
-        this.push(button, label)
-
-        /**@type {Set<Spot>} */
-        this.above = new Set()
-        /**@type {Set<Spot>} */
-        this.below = new Set()
-
-        this.canMoveTo = false
-        em.on("solve", spot => { if (this.below.has(spot)) this.canMoveTo = true })
-        em.on("climb", () => { if (this.below.size == 0) this.canMoveTo = true })
-        em.on("hide", () => { this.label.txt = "HIDDEN"; this.label.transparent = false })
-        em.on("show", () => {
-            this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
-            this.label.transparent = true
-        })
-
-        this.sol = 1234567890
-        this.done = false
-        if (RULES.EDITOR) { this.label.txt = this.sol }
-        else { this.button.on_release = () => this.onInteract() }
-    }
-    attempt(guess) {
-        guess == this.sol ? this.correctGuess() : this.incorrectGuess()
-    }
-    correctGuess() {
-
-    }
-    incorrectGuess() {
-
-    }
-    goFullscreen() {
-        const fullViewer = game.fullViewer
-        fullViewer.img = this.button.img
-        fullViewer.activate()
-
-    }
-    onInteract() {
-        if (!this.canMoveTo) this.goFullscreen()
-        else { GameEffects.popup("interaction placeholder") }
-    }
-    setIMG(file) {
-        if (file.endsWith(".png")) file = file.slice(0, -4)
-        this.button.img = cropper.load_img(RULES.QUESTION_FOLDER + file + ".png")
-    }
-    setSol(value) {
-        this.sol = +value
-        if (RULES.EDITOR) this.label.txt = this.sol
-    }
-
-    toJSON() {
-        return {
-            id: this.id,
-            x: this.button.x,
-            y: this.button.y,
-            sol: this.sol,
-            above: Array.from(this.above).map(x => x.id),
-            below: Array.from(this.above).map(x => x.id),
-        }
-    }
-    /** @param {ReturnType<this['toJSON']>[]} data */
-    static fromJSONall(data) {
-        game?.remove_drawables_batch(Spot.ALL)
-        Spot.ALL.length = 0
-        data.forEach(x => new Spot(x.id, x.x, x.y))
-        data.forEach(x => {
-            const spot = Spot.ALL[x.id]
-            spot.sol = x.sol
-            x.below.forEach(k => spot.below.add(Spot.ALL[k]))
-            x.above.forEach(k => spot.above.add(Spot.ALL[k]))
-        })
-    }
-}
-
 class GameShared extends GameCore {
     initShared() {
         this.initEditor()
-        this.layers[4] = Spot.ALL
+        this.initFake()
+        const spotMall = new Malleable()
+        spotMall.components = Spot.ALL
+        spotMall.isBlocking = true
+        this.add_drawable(spotMall, 4)
         this.bot = new Button({
             width: this.WIDTH, height: GRAPHICS.BOTTOM,
             x: 0, y: this.HEIGHT - GRAPHICS.BOTTOM,
@@ -157,12 +31,12 @@ class GameShared extends GameCore {
                 )
             }
         }
-        this.add_drawable(lineDrawable, 7) //arrows for now?
+        this.add_drawable(lineDrawable, 6) //arrows for now?
 
         const circleDrawable = this.circleDrawable = {
             draw: (ctx) => {
                 Spot.ALL.forEach(x => {
-                    if (x.canMoveTo) MM.drawEllipseOnRect(ctx, x.button, { gentleSin: this.gentleSin })
+                    if (x.canMoveTo && !x.done) MM.drawEllipseOnRect(ctx, x.button, { gentleSin: this.gentleSin })
                 })
             }
         }
@@ -171,16 +45,12 @@ class GameShared extends GameCore {
         const sinteract = this.sinteract = new Clickable(this.rect)
         sinteract.draw = null
         sinteract.on_drag = (pos) => {
-            Spot.ALL.flatMap(x => [x.button, x.label]).forEach(b =>
-                b.move(
-                    0,
-                    //pos.x - sinteract.last_held.x,
-                    pos.y - sinteract.last_held.y))
+            Spot.moveAll(pos.y - sinteract.last_held.y)
         }
         this.add_drawable(sinteract, 1)
 
 
-
+        /**@type {Button&{close:Function()}} */
         const fullViewer = this.fullViewer = Button.fromRectShallow(this.rect, {
             isBlocking: false,
             outline: 0,
@@ -189,9 +59,45 @@ class GameShared extends GameCore {
             isBlocking: true,
             height: this.HEIGHT - GRAPHICS.BOTTOM,
             color: GRAPHICS.SPOT_COLOR,
-            on_release: () => fullViewer.deactivate()
+            close() { this.deactivate(); this.spot = null },
+            on_release() { this.close() },
         })
+        fullViewer.spot = null
         this.add_drawable(fullViewer, 7)
+
+        if (RULES.SCROLLWHEEL_SPEED) {
+            this.mouser.on_wheel = (mouser) => {
+                let howmuch = RULES.SCROLLWHEEL_SPEED
+                howmuch *= (mouser.wheel > 0 ? -1 : 1)
+                Spot.moveAll(howmuch)
+            }
+        }
+
+        em.on("correct", () => GameEffects.popup("Correct!"))
+        em.on("incorrect", (guess) => GameEffects.popup(`Your solution of ${guess} is incorrect.`,
+            GameEffects.popupPRESETS.bigRed
+        ))
+        em.on("wait", () => { sm.skipTo(0) })
+        em.on("plan", () => { sm.skipTo(1) })
+        em.on("climb", () => { sm.skipTo(2) })
+        em.emit("hide")
+        sm.states.get(0).on_enter = () => em.emit("hide")
+        sm.states.get(1).on_enter = () => em.emit("show")
+        sm.states.get(2).on_enter = () => {
+            console.log("SLIDE")
+            em.emit("show")
+            if (!Spot.ALL.length) return
+            const targetY = this.HEIGHT * 0.5
+            this.isAcceptingInputs = false
+            const lowestSpot = Math.max(...Spot.ALL.map(x => x.button.y))
+            const dist = targetY - lowestSpot
+            console.log({ lowestSpot, targetY })
+            let lastT = 0
+            Anim.custom(null, GRAPHICS.SLIDE_TIME, t => {
+                Spot.moveAll((t - lastT) * dist)
+                lastT = t
+            }, "", { add: game, on_end: () => this.isAcceptingInputs = true })
+        }
     }
 
 
@@ -221,7 +127,7 @@ class GameShared extends GameCore {
             }).catch((err) => GameEffects.popup("Failure: " + err, GameEffects.popupPRESETS.bigRed))
         }
         this.keyboarder.on_keyupDict["s"] = () => {
-            this.keyboarder.held["s"] = false
+            this.findSpotOnMouse()?.setSol(+prompt())
         }
         /**@type {?Spot} */
         let conn = null
@@ -236,12 +142,22 @@ class GameShared extends GameCore {
             end.below.add(conn)
             conn = null
         }
-        this.keyboarder.on_keyupDict["d"] = () => {
+        this.keyboarder.on_keyupDict["d"] = () =>
+            this.findSpotOnMouse()?.disconnect()
+        this.keyboarder.on_keyupDict["r"] = () =>
+            this.findSpotOnMouse()?.remove()
+        this.keyboarder.on_keyupDict["l"] = () => {
             const spot = this.findSpotOnMouse()
             if (!spot) return
-            Spot.ALL.forEach(x => {
-                x.below.delete(spot)
-                x.above.delete(spot)
+            const cy = spot.button.centerY
+            const ct = spot.button.top
+            const cb = spot.button.bottom
+            Spot.ALL.forEach((x, i) => {
+                const b = x.button
+                if (MM.between(b.bottom, ct, cb) || MM.between(b.top, ct, cb)) {
+                    x.button.centeratY(cy)
+                    x.label.centeratY(cy)
+                }
             })
         }
         this.keyboarder.on_keyupDict["t"] = () =>
@@ -250,8 +166,50 @@ class GameShared extends GameCore {
             this.exportALL()
         this.keyboarder.on_keyupDict["i"] = () =>
             this.importALL()
+        this.keyboarder.on_keyupDict["p"] = () => {
+            const canClick = sm.currentKey >= 2;
+            em.emit("climb"); if (canClick) this.findSpotOnMouse()?.attempt(+prompt())
+        }
+        this.keyboarder.on_keyupDict["x"] = () =>
+            this.editorHelper.visible ^= 1
 
+        const e = this.editorHelper = new Button()
+        e.width = 400
+        e.height = 800
+        e.rightat(this.rect.right)
+        e.y = 0
+        e.transparent = true
+        e.textSettings = { textAlign: "left", textBaseLine: "top" }
+        e.font_font = "myMonospace"
+        e.txt = ("A:add,Q:question,S:solution,C:connect(drag),L:level(row),"
+            + "T:tap(mimic user input),P:progress(start or guess),"
+            + "D:disconnect,R:remove,O:output(export),I:input(import),,X:show/hide these hints")
+            .split(",").join("\n")
+        this.add_drawable(e, 9)
+    }
+    initFake() {
+        if (!RULES.FAKE) return
+        const fake = new Button({ width: 150, height: 80, txt: "fakeServer", isBlocking: true })
+        fake.topat(0)
+        fake.rightat(this.WIDTH)
+        fake.on_release = () => {
+            const arr = ["show", "hide", "wait", "plan", "climb"]
+            const parr = []
+            parr.push(["Import", () => this.importALL()])
+            parr.push(...arr.map(x => [x, () => em.emit(x)]))
+            const ddm = GameEffects.dropDownMenu(parr)
+            this.mouser.on_release_once = () => this.once(ddm.close)
+        }
+        this.add_drawable(fake)
     }
 
+
+    initBossfight() {
+        this.fullViewer.close()
+        const bossBG = this.bossBG = Button.fromRectShallow(this.rect, {
+            isBlocking: true
+        })
+
+    }
 
 }
