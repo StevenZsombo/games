@@ -213,10 +213,16 @@ class State {
 class EventManager {
     /**@type {Map<string, Set<Function>>} */
     eventCallbacks = new Map()
+    /**@type {Map<string, Set<Function>>} */
+    singleCallbacks = new Map()
     isLogging = true
     on(event, fn) {
         if (!this.eventCallbacks.has(event)) this.eventCallbacks.set(event, new Set())
         this.eventCallbacks.get(event).add(fn)
+    }
+    once(event, fn) {
+        if (!this.singleCallbacks.has(event)) this.singleCallbacks.set(event, new Set())
+        this.singleCallbacks.get(event).add(fn)
     }
     off(event, fn) {
         this.eventCallbacks.get(event)?.delete(fn)
@@ -227,8 +233,11 @@ class EventManager {
     }
     emit(event, ...params) {
         this.isLogging && console.log(event, params)
-        const all = this.eventCallbacks.get(event)
-        if (!all) return
-        all.forEach(fn => fn(...params))
+        this.eventCallbacks.get(event)?.forEach(fn => fn(...params))
+        const single = this.singleCallbacks.get(event)
+        if (single) {
+            single.forEach(fn => fn(...params))
+            single.clear()
+        }
     }
 }
