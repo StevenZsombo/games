@@ -221,6 +221,10 @@ class EventManager {
     off(event, fn) {
         this.eventCallbacks.get(event)?.delete(fn)
     }
+    offAll(fn) {
+        for (const set of this.eventCallbacks.values())
+            set?.delete(fn)
+    }
     emit(event, ...params) {
         this.isLogging && console.log(event, params)
         const all = this.eventCallbacks.get(event)

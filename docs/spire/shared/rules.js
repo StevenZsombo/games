@@ -5,7 +5,8 @@ const RULES = {
     DEMO: "../questions/demo.json", //can be null
     DEMOHEADS: "../questions/demoHeads.json", //can be null
 
-    MINUTES: [7, 5, 4, 3],
+    MINUTES: [0.2, 0.1, 0.05],
+    BEFORE_BOSS_WAIT_TIME: 8_000,
 
     QUESTION_FOLDER: "../questions/",
     ACCURACY_FUNCTION: (attempt, solution) => {

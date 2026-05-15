@@ -10,6 +10,7 @@ const EVENTS = {
     wait: "wait",//()
     hide: "hide",//()
     show: "show",//()
+    full: "full",//()
 }
 /**@type {StateManager & {skipTo:Function(i):void}} */
 const sm = new StateManager()
@@ -112,6 +113,7 @@ class Spot extends Malleable {
         this.button.visible ? this.onShow() : this.onHide()
         game.fullViewer.close()
         game.timer?.cleanup?.()
+        em.emit("show")
         em.emit("fail", this)
     }
 

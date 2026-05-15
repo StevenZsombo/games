@@ -84,6 +84,7 @@ class GameShared extends GameCore {
             /**@param {Spot} spot  */
             open(spot) {
                 this.spot = spot, this.img = spot.button.img; this.activate();
+                em.emit("full")
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
                 if (spot.done) detail.open(spot)
                 else if (spot.canMoveTo && !spot.mask) calculaAnimate()
@@ -172,6 +173,7 @@ class GameShared extends GameCore {
 
         if (RULES.SCROLLWHEEL_SPEED) {
             this.mouser.on_wheel = (mouser) => {
+                if (!this.canDrag) return
                 let howmuch = RULES.SCROLLWHEEL_SPEED
                 howmuch *= (mouser.wheel > 0 ? -1 : 1)
                 Spot.moveAll(howmuch)
@@ -193,13 +195,18 @@ class GameShared extends GameCore {
             }
         })
         em.on("fail", () => {
-            GameEffects.popup("You failed to cut this head of the Hydra." +
-                "\nTry another, but mind that you will have less time.",
+            const p = GameEffects.popup(
+                "Out of time. You failed to cut off this head." +
+                (Spot.ALL.filter(x => !x.done).length ?
+                    "\nTry another, but mind that you will have less time." : "")
+                ,
                 {
                     sizeFrac: [.8, .15],
                     moreButtonSettings: { color: GRAPHICS.SPOT_COLOR_FAILED, fontSize: GRAPHICS.FONT_MEDIUM },
-                    floatTime: 3000, close_on_release: true,
+                    floatTime: RULES.BEFORE_BOSS_WAIT_TIME, close_on_release: false,
                 })
+            const c = () => { p?.close(); em.off("full", c) }
+            em.on("full", c)
         })
         em.emit("hide")
         sm.states.get(0).on_enter = () => {
@@ -253,12 +260,25 @@ class GameShared extends GameCore {
             em.emit("show")
             em.emit("boss")
             this.bot.color = "lightblue"
-            /*GameEffects.popup("Defeat the Hydra! Cut off as many heads as you can!", {
-                sizeFrac: [.6, .15], moreButtonSettings: {
-                    fontSize: GRAPHICS.FONT_MEDIUM, floatTime: 1000,
-                    color: "lightblue"
-                }
-            })*/
+            let str = ""
+            str += `You will only have `
+                + `${Spot.ALL.map((_, i) => RULES.MINUTES[i] ?? RULES.MINUTES.at(-1)).join(", ")}`
+                + ` minutes to fight each head.`
+                + `\n\nIf you run out of time, you CANNOT try that question again.`
+                + `\nSo choose the order in which you fight the heads carefully.`
+            const p = GameEffects.popup(str, {
+                sizeFrac: [.8, .6], posFrac: [.5, .575], floatTime: RULES.BEFORE_BOSS_WAIT_TIME,
+                travelTime: 500,
+                moreButtonSettings: { fontSize: GRAPHICS.FONT_MEDIUM, color: "lightblue" },
+                on_end: () => em.emit("show")
+            })
+            // p.bottomstretchat(this.bot.top)
+            em.emit("hide")
+            /*p.on_release = () => {
+                clickCount++
+                if (clickCount > 5) p.close()
+            }*/
+
         }
     }
 
@@ -481,11 +501,8 @@ class GameShared extends GameCore {
             const headsLeft = Spot.ALL.filter(x => !x.done).length - 1
             let str =
                 `You will have ${minutes[0]} minutes to fight this head.`
-                + `\nIf you fail, you CANNOT try again.`
-            if (headsLeft)
-                str += `\n\nYou will only have `
-                    + `${Array(headsLeft).fill().map((_, i) => minutes[i + 1] ?? minutes.at(-1)).join(", ")}`
-                    + ` minutes for the following heads.`
+                + `\nIf you fail, you CANNOT try again`
+                + `,\nand you will have less time for the following heads.`
             /*
             str += `\nAfter this fight, you will have `
             if (minutes.slice(1, -1).length == 1)
@@ -494,7 +511,6 @@ class GameShared extends GameCore {
                 str += minutes.slice(1, -1).join(", ") + " minutes for the next heads respectively, then\n"
             str += `${minutes.at(-1)} minutes for each head afterwards.`
             */
-            str += `\nSo choose which head to fight wisely.`
             str += `\n\nFight this head?`
             cb = GameEffects.confirmBox(str, { sizeFrac: [.8, .6] }).promise()
                 .then(() => { cleanup(); this.acceptToCutHead(spot) })
