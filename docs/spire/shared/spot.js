@@ -54,7 +54,7 @@ class Spot extends Malleable {
         const label = this.label = Button.fromButton(button, {
             transparent: true,
             outline: 0,
-            color: null,
+            color: GRAPHICS.SPOT_COLOR_HIDDEN,
             fontSize: GRAPHICS.FONT_BIG,
             isBlocking: false,
             spot: this
@@ -77,21 +77,12 @@ class Spot extends Malleable {
             if (this.below.has(spot)) this.canMoveTo = true
         })
         em.on("climb", () => { if (this.below.size == 0) this.canMoveTo = true })
-        em.on("hide", () => {
-            this.isHidden = true
-            if (this.isHydra) { this.label.txt = "Hydra"; return }
-            this.label.txt = "HIDDEN"
-            this.label.transparent = false
-        })
-        em.on("show", () => {
-            this.isHidden = false
-            if (this.isHydra) { this.label.txt = "Hydra"; return }
-            this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
-            this.label.transparent = !this.label.color //some weird logic thing
-        })
+        em.on("hide", () => this.onHide())
+        em.on("show", () => this.onShow())
 
         this.sol = 666666
         this.done = false
+        this.failed = false
         this.isHidden = true
         if (RULES.EDITOR) { this.label.txt = this.sol }
         else { this.button.on_release = () => this.onInteract() }
@@ -118,7 +109,21 @@ class Spot extends Malleable {
         if (this.isHidden) return
         const fullViewer = game.fullViewer
         fullViewer.open(this)
+        if (this.mask) game.offerToCutHead(this)
 
+    }
+
+    onShow() {
+        this.isHidden = false
+        if (this.isHydra) { this.label.txt = "Hydra"; return }
+        this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
+        this.label.transparent = !this.done //some weird logic thing
+    }
+    onHide() {
+        this.isHidden = true
+        if (this.isHydra) { this.label.txt = "Hydra"; return }
+        this.label.txt = "HIDDEN"
+        this.label.transparent = false
     }
     onInteract() {
         if (this.isHydra) { this.onInteractHydra(); return }
@@ -132,7 +137,7 @@ class Spot extends Malleable {
     }
     setMaskIMG(mask) {
         if (mask.endsWith(".png")) mask = mask.slice(0, -4)
-        this.label.img = cropper.load_img(RULES.QUESTION_FOLDER + file + ".png")
+        this.maskIMG = cropper.load_img(RULES.QUESTION_FOLDER + mask + ".png")
         this.mask = mask
     }
     setSol(value) {
@@ -151,10 +156,10 @@ class Spot extends Malleable {
     onInteractHydra() {
         if (this.isHidden) return
         if (!this.canMoveTo) {
-            GameEffects.popup("You must first ascend the spire\nbefore fighting the Hydra.", { moreButtonSettings: { color: "lightblue" } })
+            GameEffects.popup("Ascend the spire to fight the Hydra.", { moreButtonSettings: { color: "lightblue" } })
             return
         }
-        em.emit("boss")
+        game.once(() => em.emit("boss"))
     }
 
     toJSON() {

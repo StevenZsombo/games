@@ -40,7 +40,10 @@ class GameShared extends GameCore {
             draw: (ctx) => {
                 Spot.ALL.forEach(x => {
                     if (x.canMoveTo && !x.done) MM.drawEllipseOnRect(
-                        ctx, x.button, { gentleSin: this.gentleSin, outline_color: "green" })
+                        ctx, x.button, {
+                        gentleSin: this.gentleSin, outline_color:
+                            x.isHydra ? "blue" : "green"
+                    })
                 })
             }
         }
@@ -63,7 +66,7 @@ class GameShared extends GameCore {
         })
         detail.rightat(this.WIDTH)
         detail.deactivate()
-        /**@type {Button&{spot:Spot,close:Function(),open:Function(Spot)}} */
+        /**@type {Button&{spot:Spot,close:Function(),open:Function(Spot),closesOnRelease:boolean}} */
         const fullViewer = this.fullViewer = Button.fromRectShallow(this.rect, {
             isBlocking: false,
             outline: 0,
@@ -77,14 +80,15 @@ class GameShared extends GameCore {
                 this.spot = spot, this.img = spot.button.img; this.activate();
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
                 if (spot.done) detail.activate()
-                else if (spot.canMoveTo) calculaAnimate()
+                else if (spot.canMoveTo && !spot.mask) calculaAnimate()
             },
             close() {
-                this.deactivate(); calcula.deactivate(); detail.deactivate(); this.spot = null;
+                this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); this.spot = null;
                 calcula.ans.txt = ""
                 calculaShowHide.txt = "Hide buttons"
             },
-            on_release() { this.close() },
+            closesOnRelease: true,
+            on_release() { if (this.closesOnRelease) this.close() },
         })
         fullViewer.spot = null
         this.add_drawable(fullViewer, 7)
@@ -123,7 +127,7 @@ class GameShared extends GameCore {
         calcula.deactivate()
 
         const origCalculaPos = calcula.calculatorButtons.map(x => ({ x: x.x, y: x.y }))
-        const calculaAnimate = () => {
+        const calculaAnimate = this.calculaAnimate = () => {
             calcula.activate()
             calcula.calculatorButtons.forEach(x => x.interactable = false)
             Anim.custom(calcula.calculatorButtons, GRAPHICS.CALCULA_BRINGUP_TIME, (t, obj) => {
@@ -138,6 +142,24 @@ class GameShared extends GameCore {
                 on_end: calcula.calculatorButtons.forEach(x => x.interactable = true)
             })
         }
+
+        const offerer = this.offerer = new Button({
+            height: GRAPHICS.BOTTOM, width: 500,
+            x: this.WIDTH * .05, txt: "Fight this head!", fontSize: GRAPHICS.FONT_BIG,
+            isBlocking: true,
+        })
+        offerer.topat(this.bot.top - 30)
+        offerer.deactivate()
+        this.add_drawable(offerer, 8)
+        const offererAnimate = this.offererAnimate = () => {
+            offerer.activate()
+            Anim.custom(offerer, GRAPHICS.OFFERER_WAVE_TIME, t => {
+                offerer.rad = this.dtSin * .5
+            }, "rad", {
+                ditch: true, add: game,
+            })
+        }
+
 
 
         if (RULES.SCROLLWHEEL_SPEED) {
@@ -187,6 +209,7 @@ class GameShared extends GameCore {
 
         }
         sm.states.get(2).on_enter = () => {
+            fullViewer.close()
             em.emit("show")
             em.emit("climb")
             this.bot.color = "lightgreen"
@@ -253,6 +276,14 @@ class GameShared extends GameCore {
                 GameEffects.popup("Imported successfully.", GameEffects.popupPRESETS.bigBlue)
             }).catch((err) => GameEffects.popup("Failure: " + err, GameEffects.popupPRESETS.bigRed))
         }
+        this.keyboarder.on_keyupDict["p"] = async () => {
+            const spot = this.findSpotOnMouse()
+            if (!spot) return
+            MM.filePicker(".png").then(x => {
+                spot.setMaskIMG(x.name)
+                GameEffects.popup("Imported successfully.", GameEffects.popupPRESETS.bigBlue)
+            }).catch((err) => GameEffects.popup("Failure: " + err, GameEffects.popupPRESETS.bigRed))
+        }
         this.keyboarder.on_keyupDict["s"] = () => {
             this.findSpotOnMouse()?.setSol(+prompt())
         }
@@ -293,7 +324,7 @@ class GameShared extends GameCore {
             this.exportALL()
         this.keyboarder.on_keyupDict["i"] = () =>
             this.importALL()
-        this.keyboarder.on_keyupDict["p"] = () => {
+        this.keyboarder.on_keyupDict["g"] = () => {
             const canClick = sm.currentKey >= 2;
             em.emit("climb"); if (canClick) this.findSpotOnMouse()?.attempt(+prompt())
         }
@@ -329,7 +360,7 @@ class GameShared extends GameCore {
         e.textSettings = { textAlign: "left", textBaseLine: "top" }
         e.font_font = "myMonospace"
         e.txt = ("A:add,Q:question,S:solution,C:connect(drag),L:level(row),M:middle/mirror,"
-            + "T:tap(mimic user input),P:progress(start or guess),"
+            + "T:tap(mimic user input),G:guess(mimic user guess),"
             + "D:disconnect,R:remove,B:boss(mark as the hydra),,"
             + "I:input(import),O:output(export),H:heads(export as heads),0:null(erase all),X:show/hide these hints")
             .split(",").join("\n")
@@ -399,6 +430,7 @@ class GameShared extends GameCore {
         this.fullViewer.close()
         Spot.ALL.length = 0
         Spot.ALL.push(...spotArr)
+        // this.mouser.blockNextRelease()
         // this.add_drawable(this.spotMall, 4)
         // this.spotMall.components = Spot.ALL
     }
@@ -412,5 +444,44 @@ class GameShared extends GameCore {
         this.hotswap(this.spire)
         this.canDrag = true
     }
+    minutes = Array.from(RULES.MINUTES)
+    /**@param {Spot} spot  */
+    offerToCutHead(spot) {
+        if (spot.done) return
+        this.offererAnimate()
+        const cleanup = () => {
+            this.offerer.deactivate()
+            this.offerer.on_release = null
+            this.fullViewer.closesOnRelease = true
+        }
+        const minutes = this.minutes
+        this.offerer.on_release = () => {
+            this.fullViewer.closesOnRelease = false
+            let str =
+                `You will have ${minutes[0]} minutes to fight this head.`
+                + `\nIf you fail, you CANNOT try again.`
+            str += `\nAfter this fight, you will have`
+            if (minutes.slice(1, -1).length == 1)
+                str += minutes.slice(1, -1).join(", ") + " minutes for the next head, then"
+            if (minutes.slice(1, -1).length > 1)
+                str += minutes.slice(1, -1).join(", ") + " minutes for the next heads respectively, then"
+            str += `${minutes.at(-1)} minutes for each head afterwards.`
+            str += `\nSo choose which head to fight wisely.`
+            str += `\n\nFight this head?`
+            GameEffects.confirmBox(str, { sizeFrac: [.8, .6] }).promise()
+                .then(() => { cleanup(); this.acceptToCutHead(spot) })
+                .catch(() => { this.fullViewer.closesOnRelease = true })
+
+        }
+
+    }
+    /**@param {Spot} spot  */
+    acceptToCutHead(spot) {
+        if (this.minutes.length > 1) this.minutes.shift()
+        this.fullViewer.open(spot)
+        this.fullViewer.img = spot.maskIMG
+        this.fullViewer.interactable = false
+    }
+
 
 }

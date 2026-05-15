@@ -5,6 +5,8 @@ const RULES = {
     DEMO: "../questions/demo.json", //can be null
     DEMOHEADS: "../questions/demoHeads.json", //can be null
 
+    MINUTES: [7, 5, 3],
+
     QUESTION_FOLDER: "../questions/",
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
@@ -26,12 +28,14 @@ const GRAPHICS = {
     SPOT_COLOR: "lightgray",
     SPOT_COLOR_SOLVED: "lightgreen",
     SPOT_COLOR_SOLVED_OPAQUE: "rgba(20, 200, 20, 0.8)",
+    SPOT_COLOR_HIDDEN: "lightgray",
     SPOT_HYDRA_SIZE_COEFF: [1.4, 1],
     SPOT_HYDRA_COLOR: "lightblue",
 
     SLIDE_TIME: 500,
     CALCULA_BRINGUP_TIME: 500,
     FULLVIEW_BRINGUP_TIME: 400,
+    OFFERER_WAVE_TIME: 10 * 1000,
     ANSWER_SPACE_COLOR: "white",
 
 
