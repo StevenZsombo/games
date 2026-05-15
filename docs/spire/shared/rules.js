@@ -5,7 +5,7 @@ const RULES = {
     DEMO: "../questions/demo.json", //can be null
     DEMOHEADS: "../questions/demoHeads.json", //can be null
 
-    MINUTES: [7, 5, 3],
+    MINUTES: [7, 5, 4, 3],
 
     QUESTION_FOLDER: "../questions/",
     ACCURACY_FUNCTION: (attempt, solution) => {
@@ -27,7 +27,9 @@ const GRAPHICS = {
     SPOT_HEIGHT: 90 * 2,
     SPOT_COLOR: "lightgray",
     SPOT_COLOR_SOLVED: "lightgreen",
-    SPOT_COLOR_SOLVED_OPAQUE: "rgba(20, 200, 20, 0.8)",
+    SPOT_COLOR_SOLVED_OPAQUE: "rgba(20, 200, 20, 0.7)",
+    SPOT_COLOR_FAILED: "red",
+    SPOT_COLOR_FAILED_OPAQUE: "rgba(200, 20, 20, 0.7)",
     SPOT_COLOR_HIDDEN: "lightgray",
     SPOT_HYDRA_SIZE_COEFF: [1.4, 1],
     SPOT_HYDRA_COLOR: "lightblue",

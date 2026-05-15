@@ -2,6 +2,7 @@ const em = new EventManager()
 const EVENTS = {
     correct: "correct", //spot
     incorrect: "incorrect", //guess
+    fail: "fail", //spot
     plan: "plan",//()
     climb: "climb",//()
     boss: "boss",//()
@@ -89,11 +90,11 @@ class Spot extends Malleable {
     }
     attempt(guess) {
         const correct = RULES.ACCURACY_FUNCTION(guess, this.sol)
-        correct ? this.correctGuess() : this.incorrectGuess(guess)
+        correct ? this.onCorrectGuess() : this.onIncorrectGuess(guess)
         return correct
 
     }
-    correctGuess() {
+    onCorrectGuess() {
         this.done = true
         this.label.txt = "SOLVED"
         this.label.color = GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE
@@ -102,9 +103,18 @@ class Spot extends Malleable {
         // this.button.color = GRAPHICS.SPOT_COLOR_SOLVED
         em.emit("correct", this)
     }
-    incorrectGuess(guess) {
+    onIncorrectGuess(guess) {
         em.emit("incorrect", guess)
     }
+    onFail() {
+        this.failed = true
+        this.done = true
+        this.button.visible ? this.onShow() : this.onHide()
+        game.fullViewer.close()
+        game.timer?.cleanup?.()
+        em.emit("fail", this)
+    }
+
     goFullscreen() {
         if (this.isHidden) return
         const fullViewer = game.fullViewer
@@ -116,8 +126,9 @@ class Spot extends Malleable {
     onShow() {
         this.isHidden = false
         if (this.isHydra) { this.label.txt = "Hydra"; return }
-        this.label.txt = RULES.EDITOR ? this.sol : this.done ? "SOLVED" : ""
+        this.label.txt = RULES.EDITOR ? this.sol : this.done ? (this.failed ? "FAILED" : "SOLVED") : ""
         this.label.transparent = !this.done //some weird logic thing
+        if (this.failed) this.label.color = GRAPHICS.SPOT_COLOR_FAILED_OPAQUE
     }
     onHide() {
         this.isHidden = true

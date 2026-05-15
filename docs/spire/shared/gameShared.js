@@ -59,10 +59,16 @@ class GameShared extends GameCore {
                 this.mouser.blockNextRelease()
         }
         this.add_drawable(sinteract, 1)
-
+        /**@type {Button&{open:Function(spot)}} */
         const detail = new Button({
-            width: 600, height: 120, y: 0, txt: "You solved this problem already.",
-            color: GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE, fontSize: GRAPHICS.FONT_SMALL
+            width: 600, height: 120, y: 0, txt: "Detail goes here",
+            color: "yellow", fontSize: GRAPHICS.FONT_SMALL,
+            /**@param {Spot} spot  */
+            open(spot) {
+                this.activate()
+                this.txt = spot.failed ? "You failed this problem already." : "You solved this problem already."
+                this.color = spot.failed ? GRAPHICS.SPOT_COLOR_FAILED_OPAQUE : GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE
+            }
         })
         detail.rightat(this.WIDTH)
         detail.deactivate()
@@ -79,7 +85,7 @@ class GameShared extends GameCore {
             open(spot) {
                 this.spot = spot, this.img = spot.button.img; this.activate();
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
-                if (spot.done) detail.activate()
+                if (spot.done) detail.open(spot)
                 else if (spot.canMoveTo && !spot.mask) calculaAnimate()
             },
             close() {
@@ -183,6 +189,15 @@ class GameShared extends GameCore {
             if (!this.canDrag) {//means in bossfight}
 
             }
+        })
+        em.on("fail", () => {
+            GameEffects.popup("You failed to cut this head of the Hydra." +
+                "\nTry another, but mind that you will have less time.",
+                {
+                    sizeFrac: [.8, .15],
+                    moreButtonSettings: { color: GRAPHICS.SPOT_COLOR_FAILED, fontSize: GRAPHICS.FONT_MEDIUM },
+                    floatTime: 3000, close_on_release: true,
+                })
         })
         em.emit("hide")
         sm.states.get(0).on_enter = () => {
@@ -455,33 +470,75 @@ class GameShared extends GameCore {
             this.fullViewer.closesOnRelease = true
         }
         const minutes = this.minutes
+        let cb = null
         this.offerer.on_release = () => {
+            if (cb) return
             this.fullViewer.closesOnRelease = false
+            const headsLeft = Spot.ALL.filter(x => !x.done).length - 1
             let str =
                 `You will have ${minutes[0]} minutes to fight this head.`
                 + `\nIf you fail, you CANNOT try again.`
-            str += `\nAfter this fight, you will have`
+            if (headsLeft)
+                str += `\n\nYou will only have `
+                    + `${Array(headsLeft).fill().map((_, i) => minutes[i + 1] ?? minutes.at(-1)).join(", ")}`
+                    + ` minutes for the following heads.`
+            /*
+            str += `\nAfter this fight, you will have `
             if (minutes.slice(1, -1).length == 1)
-                str += minutes.slice(1, -1).join(", ") + " minutes for the next head, then"
+                str += minutes.slice(1, -1).join(", ") + " minutes for the next head, then\n"
             if (minutes.slice(1, -1).length > 1)
-                str += minutes.slice(1, -1).join(", ") + " minutes for the next heads respectively, then"
+                str += minutes.slice(1, -1).join(", ") + " minutes for the next heads respectively, then\n"
             str += `${minutes.at(-1)} minutes for each head afterwards.`
+            */
             str += `\nSo choose which head to fight wisely.`
             str += `\n\nFight this head?`
-            GameEffects.confirmBox(str, { sizeFrac: [.8, .6] }).promise()
+            cb = GameEffects.confirmBox(str, { sizeFrac: [.8, .6] }).promise()
                 .then(() => { cleanup(); this.acceptToCutHead(spot) })
                 .catch(() => { this.fullViewer.closesOnRelease = true })
+                .finally(() => cb = null)
 
         }
 
     }
     /**@param {Spot} spot  */
     acceptToCutHead(spot) {
+        if (this.timer) { console.error("Already cutting a head..."); return }
+        let secondsLeft = this.minutes[0] * 60
         if (this.minutes.length > 1) this.minutes.shift()
         this.fullViewer.open(spot)
         this.fullViewer.img = spot.maskIMG
-        this.fullViewer.interactable = false
-    }
+        this.fullViewer.closesOnRelease = false
+        this.calculaAnimate()
+        /**@type {Button & {cleanup:Function(),renew():Function()}} */
+        const timer = this.timer = Button.fromRectShallow(this.offerer)
+        timer.bottomat(this.HEIGHT)
+        timer.dynamicColor = () => `rgba(20,20,150,${.7 * (1 + (this.gentleSin - 1) * 2)})`
+        timer.fontSize = GRAPHICS.FONT_BIG
+        timer.renew = () =>
+            timer.txt = `Time left: `
+            + `${[Math.floor(secondsLeft / 60), secondsLeft % 60].map(x => ("" + x).padStart(2, "0")).join(":")}`
 
+        timer.renew()
+        const cleanup = () => {
+            this.remove_drawable(timer)
+            this.timer = null
+            clearInterval(int)
+            this.checkVictory()
+            this.fullViewer.closesOnRelease = true
+            em.off("correct", cleanup)
+        }
+        timer.cleanup = () => cleanup
+        this.add_drawable(timer, 8)
+        const int = setInterval(() => {
+            secondsLeft -= 1
+            timer.renew()
+            if (secondsLeft <= 0) { spot.onFail(); cleanup() }
+        }, 1000)
+        em.on("correct", cleanup) //will be removed!
+    }
+    checkVictory() {
+        if (Spot.ALL.every(x => x.done && !x.failed))
+            GameEffects.fireworksShow()
+    }
 
 }
