@@ -100,7 +100,7 @@ class GameShared extends GameCore {
         this.add_drawable(fullViewer, 7)
         this.add_drawable(detail, 7)
 
-        const calculaBG = new Rect(0, 0, 300, 600)
+        const calculaBG = new Rect(0, 0, 400, 800)
         // calculaBG.rightat(this.WIDTH - 20)
         calculaBG.rightat(this.WIDTH)
         // calculaBG.bottomat(this.HEIGHT - GRAPHICS.BOTTOM - 20)
@@ -127,6 +127,8 @@ class GameShared extends GameCore {
         }
         calculaShowHide.width *= 0.6
         calculaShowHide.rightat(calcula.calculatorButtons[0].left - (calcula.calculatorButtons[1].left - calcula.calculatorButtons[0].right))
+        calculaShowHide.height = GRAPHICS.BOTTOM
+        calculaShowHide.bottomat(this.HEIGHT)
         calculaShowHide.txt = "Hide buttons"
         calcula.push(calculaShowHide)
 
@@ -398,6 +400,7 @@ class GameShared extends GameCore {
             parr.push(...arr.map(x => [x, () => em.emit(x)]))
             parr.push(["Import", () => this.importALL()])
             parr.push(["wDiv", wDiv.toggle])
+            // parr.push([["noTime"], () => game.timer && (game.timer.secondsLeft = 2)])
 
             const ddm = GameEffects.dropDownMenu(parr)
             this.mouser.on_release_once = () => this.once(ddm.close)
@@ -503,20 +506,21 @@ class GameShared extends GameCore {
     /**@param {Spot} spot  */
     acceptToCutHead(spot) {
         if (this.timer) { console.error("Already cutting a head..."); return }
-        let secondsLeft = this.minutes[0] * 60
+        const secVal = this.minutes[0] * 60
         if (this.minutes.length > 1) this.minutes.shift()
         this.fullViewer.open(spot)
         this.fullViewer.img = spot.maskIMG
         this.fullViewer.closesOnRelease = false
         this.calculaAnimate()
-        /**@type {Button & {cleanup:Function(),renew():Function()}} */
+        /**@type {Button & {cleanup:Function(),renew():Function(),secondsLeft:number}} */
         const timer = this.timer = Button.fromRectShallow(this.offerer)
         timer.bottomat(this.HEIGHT)
         timer.dynamicColor = () => `rgba(20,20,150,${.7 * (1 + (this.gentleSin - 1) * 2)})`
         timer.fontSize = GRAPHICS.FONT_BIG
+        timer.secondsLeft = secVal
         timer.renew = () =>
             timer.txt = `Time left: `
-            + `${[Math.floor(secondsLeft / 60), secondsLeft % 60].map(x => ("" + x).padStart(2, "0")).join(":")}`
+            + `${[Math.floor(timer.secondsLeft / 60), timer.secondsLeft % 60].map(x => ("" + x).padStart(2, "0")).join(":")}`
 
         timer.renew()
         const cleanup = () => {
@@ -530,9 +534,9 @@ class GameShared extends GameCore {
         timer.cleanup = () => cleanup
         this.add_drawable(timer, 8)
         const int = setInterval(() => {
-            secondsLeft -= 1
+            timer.secondsLeft -= 1
             timer.renew()
-            if (secondsLeft <= 0) { spot.onFail(); cleanup() }
+            if (timer.secondsLeft <= 0) { spot.onFail(); cleanup() }
         }, 1000)
         em.on("correct", cleanup) //will be removed!
     }

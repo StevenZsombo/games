@@ -41,7 +41,7 @@ const GRAPHICS = {
     ANSWER_SPACE_COLOR: "white",
 
 
-    BOTTOM: 105,
+    BOTTOM: 125,
 
     DRAG_COEFF: 0, //can be null or zero.
     DRAG_BUT_NO_CLICK_THRESHOLD: location.hash.includes("drag") ? 500 : 100,

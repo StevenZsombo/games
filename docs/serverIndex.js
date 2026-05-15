@@ -157,7 +157,7 @@ const server = http.createServer((req, res) => {
         }
 
         // Serve any requested file (no content-type restrictions)
-        const filePath = safeResolve(ROOT_DIR, '.' + cleanPath);
+        const filePath = safeResolve(ROOT_DIR, '.' + decodeURIComponent(cleanPath));
         if (!filePath) { res.writeHead(403); res.end('Forbidden'); return; }
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); res.end('Not found'); return; }
