@@ -85,7 +85,7 @@ class Spot extends Malleable {
         this.done = false
         this.failed = false
         this.isHidden = true
-        if (RULES.EDITOR) { this.label.txt = this.sol }
+        if (RULES.EDITOR) { this.label.txt = this.getEditorText() }
         else { this.button.on_release = () => this.onInteract() }
     }
     attempt(guess) {
@@ -126,7 +126,7 @@ class Spot extends Malleable {
     onShow() {
         this.isHidden = false
         if (this.isHydra) { this.label.txt = "Hydra"; return }
-        this.label.txt = RULES.EDITOR ? this.sol : this.done ? (this.failed ? "FAILED" : "SOLVED") : ""
+        this.label.txt = RULES.EDITOR ? this.getEditorText() : this.done ? (this.failed ? "FAILED" : "SOLVED") : ""
         this.label.transparent = !this.done //some weird logic thing
         if (this.failed) this.label.color = GRAPHICS.SPOT_COLOR_FAILED_OPAQUE
     }
@@ -150,10 +150,11 @@ class Spot extends Malleable {
         if (mask.endsWith(".png")) mask = mask.slice(0, -4)
         this.maskIMG = cropper.load_img(RULES.QUESTION_FOLDER + mask + ".png")
         this.mask = mask
+        if (RULES.EDITOR) this.label.txt = this.getEditorText()
     }
     setSol(value) {
         this.sol = +value
-        if (RULES.EDITOR) this.label.txt = this.sol
+        if (RULES.EDITOR) this.label.txt = this.getEditorText()
     }
 
     makeHydra() {
@@ -199,7 +200,12 @@ class Spot extends Malleable {
             x.below.forEach(k => spot.below.add(Spot.ALL[k]))
             if (x.isHydra) spot.makeHydra()
         })
-        if (RULES.EDITOR) Spot.ALL.forEach(x => x.label.txt = x.sol)
+        if (RULES.EDITOR) Spot.ALL.forEach(x => x.label.txt = x.isHydra ? "Hydra" :
+            "" + x.sol + (x.mask ? `\n[${x.mask}]` : ""))
+    }
+    getEditorText() {
+        return this.isHydra ? "Hydra"
+            : "" + this.sol + (this.mask ? `\n[${this.mask}]` : "")
     }
     static moveAll(byHowMuch) {
         if (!byHowMuch) return
