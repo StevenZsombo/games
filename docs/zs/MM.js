@@ -2747,5 +2747,49 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             }
         })
     }
+
+    /**
+     * @param {string[]} options
+     * @param {Object} [param1={}] 
+     * @param {string} [param1.topText="Your name:"] 
+     * @param {number} param1.layer8 
+     * @param {Button} [param1.moreButtonSettings={}]  
+     * @returns {{ promise: ()=>Promise<string; buts: Button[]; top: Button; }} 
+     */
+    static nameSelect(options, {
+        topText = "Your name:", layer = 8, moreButtonSettings = {},
+        confirmText = "Are your really", confirmTextAfter = "?"
+    } = {}) {
+        const fm = new Panel()
+        fm.push(Button.fromRect(game.rect, { isBlocking: true, color: "linen" }))
+        game.add_drawable(fm, layer)
+        const lab = new Button({ x: 0, y: 0, width: game.rect.width, height: 200, fontSize: 40, color: "lightgray", txt: topText })
+        fm.push(lab)
+        const sq = Math.ceil(Math.sqrt(options.length))
+        const buts = game.rect.copy.stretch(1, .8).bottomat(game.rect.bottom)
+            .splitGrid(sq, sq).flat().slice(0, options.length)
+            .map(x => Button.fromRect(x))
+            .map(x => x.stretch(.9, .9))
+        let canClick = true
+        const promBefore = new Promise(resolve =>
+            buts.forEach((x, i) => {
+                fm.push(x)
+                Object.assign(x, moreButtonSettings)
+                x.fontSize = 40
+                x.txt = options[i]
+                x.on_release = () => {
+                    if (!canClick) return
+                    canClick = false
+                    const cb = GameEffects.confirmBox((confirmText ? confirmText + " " : "") + options[i] + confirmTextAfter)
+                    cb.promise().then(() => {
+                        game.remove_drawable(fm)
+                        resolve(x.txt)
+                    }).catch(() => canClick = true)
+                }
+            })
+        )
+        const promise = () => promBefore
+        return { promise, buts, top }
+    }
 }
 //#endregion

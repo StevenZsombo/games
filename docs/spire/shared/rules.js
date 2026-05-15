@@ -5,6 +5,8 @@ const RULES = {
     DEMO: "../questions/demo.json", //can be null
     DEMOHEADS: "../questions/demoHeads.json", //can be null
 
+    STUDENTS: ["Aziz", "Darren", "Blake", "Vamsi", "Steven", "Fritz", "Alain", "other1", "other2"],
+
     MINUTES: [0.2, 0.1, 0.05],
     BEFORE_BOSS_WAIT_TIME: 8_000,
 
@@ -16,7 +18,7 @@ const RULES = {
         return (attempt == solution) || (+attempt.toPrecision(3) == solution)
     },
 
-    SCROLLWHEEL_SPEED: 100,
+    SCROLLWHEEL_SPEED: 40,
     SKIP_INTRO: location.hash.includes("editor") || location.hash.includes("skip"),
 
 
