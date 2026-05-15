@@ -14,7 +14,7 @@ class GameShared extends GameCore {
             width: this.WIDTH, height: GRAPHICS.BOTTOM,
             x: 0, y: this.HEIGHT - GRAPHICS.BOTTOM,
             outline: 0,
-            dynamicText: () => `Stage ${sm.currentKey}: ${sm.current.txt}`,
+            dynamicText: () => `${game.me || ""}Stage ${sm.currentKey}: ${sm.current.txt}`,
             fontSize: GRAPHICS.FONT_BIG,
             isBlocking: true
         })
@@ -72,6 +72,7 @@ class GameShared extends GameCore {
         })
         detail.rightat(this.WIDTH)
         detail.deactivate()
+        this.lastVisitedID = null
         /**@type {Button&{spot:Spot,close:Function(),open:Function(Spot),closesOnRelease:boolean}} */
         const fullViewer = this.fullViewer = Button.fromRectShallow(this.rect, {
             isBlocking: false,
@@ -84,7 +85,8 @@ class GameShared extends GameCore {
             /**@param {Spot} spot  */
             open(spot) {
                 this.spot = spot, this.img = spot.button.img; this.activate();
-                em.emit("full")
+                game.lastVisitedID = spot.id
+                em.emit("full", spot)
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
                 if (spot.done) detail.open(spot)
                 else if (spot.canMoveTo && !spot.mask) calculaAnimate()
@@ -256,10 +258,12 @@ class GameShared extends GameCore {
                 lastT = t
             }, "", { add: game, on_end: () => this.isAcceptingInputs = true })
         }
+        this.bossShownFirstMessage = false
         sm.states.get(3).on_enter = () => {
             em.emit("show")
             em.emit("boss")
             this.bot.color = "lightblue"
+            if (this.bossShownFirstMessage) return
             let str = ""
             str += `You will only have `
                 + `${Spot.ALL.map((_, i) => RULES.MINUTES[i] ?? RULES.MINUTES.at(-1)).join(", ")}`
@@ -270,7 +274,7 @@ class GameShared extends GameCore {
                 sizeFrac: [.8, .6], posFrac: [.5, .575], floatTime: RULES.BEFORE_BOSS_WAIT_TIME,
                 travelTime: 500,
                 moreButtonSettings: { fontSize: GRAPHICS.FONT_MEDIUM, color: "lightblue" },
-                on_end: () => em.emit("show")
+                on_end: () => { this.bossShownFirstMessage = true; em.emit("show"); em.emit("save") }
             })
             // p.bottomstretchat(this.bot.top)
             em.emit("hide")
@@ -279,6 +283,22 @@ class GameShared extends GameCore {
                 if (clickCount > 5) p.close()
             }*/
 
+        }
+        sm.states.get(4).on_enter = () => {
+            const swapper = Button.fromButton(offerer)
+            swapper.dynamicColor = null
+            swapper.txt = "Back to Spire"
+            swapper.eraseClickables()
+            swapper.color = "blue"
+            swapper.on_release = () => {
+                if (Spot.ALL.some(x => x.isHydra)) { em.emit("boss"); swapper.txt = "Back to Spire" }
+                else { em.emit("noboss"); swapper.txt = "Back to Hydra" }
+            }
+            swapper.activate()
+            this.add_drawable(swapper, 8)
+        }
+        sm.states.get(5).on_enter = () => {
+            GameEffects.fireworksShow()
         }
     }
 
@@ -428,27 +448,30 @@ class GameShared extends GameCore {
         }
         this.add_drawable(fake)
     }
+    /**@type {Spot[]}*/
+    spire
+    /**@type {Spot[]}*/
+    heads
+    initData() {
+        this.hasRetrievedData = (async () => {
+            if (!RULES.EDITOR) {
+                try {
+                    const headsData = await fetch(RULES.DEMOHEADS).then(x => x.json())
+                    this.importALL(headsData)
+                    this.heads = [].concat(Spot.ALL)
 
-    async initData() {
-        if (!RULES.EDITOR) {
-            await fetch(RULES.DEMOHEADS).then(x => x.json())
-                .then(x => this.importALL(x))
-                .then(() => this.heads = [].concat(Spot.ALL))
-                .then(() => {
-                    fetch(RULES.DEMO).then(x => x.json())
-                        .then(x => {
-                            Spot.ALL.length = 0
-                            this.importALL(x)
-                        })
-                        .then(() => this.spire = [].concat(Spot.ALL))
-                        .then(() => {
-                            console.log({ spire: this.spire, heads: this.heads })
-                            game.once(() => sm.skipTo(0))
-                        })
-                })
-            return
-        }
-        return
+                    const spireData = await fetch(RULES.DEMO).then(x => x.json())
+                    Spot.ALL.length = 0
+                    this.importALL(spireData)
+                    this.spire = [].concat(Spot.ALL)
+
+                    console.log({ spire: this.spire, heads: this.heads })
+                    this.once(() => sm.skipTo(0))
+                } catch (err) {
+                    console.error("Failed to load data:", err)
+                }
+            }
+        })()
     }
 
     initSpire() {
@@ -516,15 +539,15 @@ class GameShared extends GameCore {
                 .then(() => { cleanup(); this.acceptToCutHead(spot) })
                 .catch(() => { this.fullViewer.closesOnRelease = true })
                 .finally(() => cb = null)
-
         }
 
     }
     /**@param {Spot} spot  */
-    acceptToCutHead(spot) {
+    acceptToCutHead(spot, doNotRemoveMinutes = false) {
+        em.emit("startHead", spot)
         if (this.timer) { console.error("Already cutting a head..."); return }
         const secVal = this.minutes[0] * 60
-        if (this.minutes.length > 1) this.minutes.shift()
+        if (!doNotRemoveMinutes && (this.minutes.length > 1)) this.minutes.shift()
         this.fullViewer.open(spot)
         this.fullViewer.img = spot.maskIMG
         this.fullViewer.closesOnRelease = false
@@ -554,12 +577,15 @@ class GameShared extends GameCore {
             timer.secondsLeft -= 1
             timer.renew()
             if (timer.secondsLeft <= 0) { spot.onFail(); cleanup() }
+            em.emit("save")
         }, 1000)
         em.on("correct", cleanup) //will be removed!
     }
     checkVictory() {
-        if (Spot.ALL.every(x => x.done && !x.failed))
-            GameEffects.fireworksShow()
+        if (Spot.ALL.every(x => x.done)) sm.skipTo(4)//Defeat
+        if (Spot.ALL.every(x => x.done && !x.failed)) {
+            sm.skipTo(5) //also victory
+        }
     }
 
 }

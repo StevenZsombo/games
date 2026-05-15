@@ -8,7 +8,7 @@ const wDiv = (() => {
     div.style.zIndex = "99999"
     div.style.pointerEvents = "none"
     // div.style.userSelect = "none"
-    div.style.fontFamily = "monospace"
+    div.style.fontFamily = "monospace" //instead of myMonospace (no load time)
     div.style.fontSize = "18px"
     div.style.color = "white"
     div.style.backgroundColor = "midnightblue"
@@ -21,6 +21,7 @@ const wDiv = (() => {
 
     let stored = ""
     const api = {
+        div: div,
         add(txt) { div.textContent += (!div.textContent || div.textContent.endsWith("\n") ? "" : " ") + txt },
         addLine(txt) { div.textContent += "\n" + txt },
         clear() { div.textContent = "" },

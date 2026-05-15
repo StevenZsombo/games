@@ -4,14 +4,110 @@ class Game extends GameShared {
     initialize_more() {
         /*if (!RULES.EDITOR) GameEffects.clickMeFourTimes().then(() => this.initShared())
         else this.initShared()*/
+        if (location.hash.includes("flush")) localStorage.clear()
         if (!RULES.EDITOR && !RULES.SKIP_INTRO) GameEffects.clickMeFourTimes()
         this.initShared()
+
+        if (univ.isOnline) this.onlinePlay()
+        if (location.hash.includes("offline")) em.emit("climb")
+
+
+        if (RULES.SAVE_AGGRESSIVELY) {
+            this.hasRetrievedData.then(() => {
+                this.loadFromLocal()
+                em.on("correct", () => this.saveToLocal())
+                em.on("fail", () => this.saveToLocal())
+                em.on("boss", () => this.saveToLocal())
+                em.on("save", () => this.saveToLocal())
+                em.on("startHead", () => this.saveToLocal())
+                em.on("full", () => this.saveToLocal())
+            })
+        }
+
     }
     //#endregion
 
+    async selector(emojiOnly = false) {
+        if (!emojiOnly) {
+            const name = (await GameEffects.nameSelect(RULES.STUDENTS).promise())
+            chat.forceName(name, true)
+        }
+        this.me = await (GameEffects.nameSelect(RULES.EMOJIS, {
+            topText: "Your icon:", confirmText: "Want to use",
+            moreButtonSettings: {
+                // font_font: "myEmoji",
+                fontSize: 60
+            }
+        }).promise())
+        localStorage.setItem("spireIcon", this.me)
+    }
 
-    advance() {
-        sm.skipTo(sm.currentKey + 1)
+
+    async onlinePlay() {
+        this.bot.font_font = "myEmoji mySerif"
+        const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
+        await chat.asapPromise()
+        this.me = localStorage.getItem("spireIcon")
+        chat.eggs("emo", () => this.selector())
+        while (1) {
+            if (!this.me) await this.selector()
+            const good = await chat.wee("enter", this.me)
+            if (good) break
+            GameEffects.popup("That icon has been taken - choose a different one.")
+            await this.selector(true)
+        }
+        chat.eggs("eval", eval)
+        Array.from(["wait", "plan", "climb"]).forEach(x => chat.eggs(x, () => em.emit(x)))
+        em.on("full",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("full", spot.id).catch(bpop))
+        em.on("head",/**@param {Spot} spot */(spot) => chat.wee("head", spot.id).catch(bpop))
+        em.on("correct",/**@param {Spot} spot */(spot) => chat.wee("correct", spot.id).catch(bpop))
+        em.on("fail",/**@param {Spot} spot */(spot) => chat.wee("fail", spot.id).catch(bpop))
+        em.on("boss", () => chat.wee("boss").catch(bpop))
+        const badness = new Button({ width: 400, height: GRAPHICS.BOTTOM, x: this.WIDTH / 2, y: 0, color: "red", txt: "Lost connection..." })
+        chat.on_disconnect = () => badness.activate(); chat.on_join = () => badness.deactivate()
+    }
+
+    saveToLocal() {
+        const tempSaveData = {
+            spire: this.spire.map(x => ({ done: x.done, failed: x.failed, canMoveTo: x.canMoveTo })),
+            heads: this.heads.map(x => ({ done: x.done, failed: x.failed, canMoveTo: x.canMoveTo })),
+            state: sm.currentKey,
+            bossShownFirstMessage: this.bossShownFirstMessage,
+            secondsLeft: this.timer?.secondsLeft,
+            minutes: this.minutes,
+            currentID: this.fullViewer.spot?.id,
+            lastVisitedID: this.lastVisitedID,
+            now: Date.now(),
+            demo: RULES.DEMO,
+            demoHeads: RULES.DEMOHEADS,
+        }
+        localStorage.setItem("spireSave", JSON.stringify(tempSaveData))
+        console.log("save", tempSaveData)
+        return tempSaveData
+    }
+    loadFromLocal() {
+        const str = localStorage.getItem("spireSave")
+        if (!str) return
+        /**@type {ReturnType<typeof this.saveToLocal>} */
+        const tempSaveData = JSON.parse(str)
+        if (tempSaveData.demo != RULES.DEMO || tempSaveData.demoHeads != RULES.DEMOHEADS) return
+        this.bossShownFirstMessage = tempSaveData.bossShownFirstMessage
+        sm.skipTo(tempSaveData.state)
+        tempSaveData.spire.forEach((x, i) => Object.assign(this.spire[i], x))
+        tempSaveData.heads.forEach((x, i) => Object.assign(this.heads[i], x))
+        this.spire.concat(this.heads).forEach(x => {
+            if (x.failed) x.onFail()
+            else if (x.done) x.onCorrectGuess()
+        })
+        this.lastVisitedID = tempSaveData.lastVisitedID
+        if (tempSaveData.secondsLeft != null) {
+            this.minutes = tempSaveData.minutes
+            this.acceptToCutHead(Spot.ALL[tempSaveData.lastVisitedID], true)//lastvisited is safer than currentID i think
+            this.timer.secondsLeft = tempSaveData.secondsLeft
+            this.timer.renew()
+        }
+        game.once(() =>
+            this.remove_drawables_batch(...this.layersFlat.filter(x => x.tag == "popup")))
     }
 
 
@@ -78,7 +174,7 @@ class Game extends GameShared {
 
 //#region univ
 var univ = {
-    isOnline: false, //server is offline!
+    isOnline: !RULES.EDITOR && !RULES.FAKE && !location.hash.includes("offline"), //server is offline!
     PORT: 80,
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,

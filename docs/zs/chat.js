@@ -476,13 +476,11 @@ class Chat {
      */
     weeToWooHandler(message, person) {
         const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
-        if (!fn) {
-            // console.error("no eggs for " + message.value);
-            return
-        }
+        // if (!fn) throw new Error("no eggs for " + message.value);
+
         const msg = {
             woo: message.wee,
-            value: fn(message.params, person)
+            value: fn?.(message.params, person)
         }
         if (this.isServer) {
             if (!person) { throw new Error("server cannot woo back without a target") }
@@ -571,8 +569,8 @@ class Chat {
      */
     spamToEggsHandler(message, person) { //no return value - won't be sent back
         const fn = this.handlerFunctionsWeeWooSpamEggs.get(message.value)
-        if (!fn) return //throw new Error("no eggs for " + message.value)
-        fn(message.params, person)
+        // if (!fn) return throw new Error("no eggs for " + message.value)
+        fn?.(message.params, person)
     }
     /**
      * @param {string} spam

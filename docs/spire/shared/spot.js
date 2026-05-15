@@ -2,11 +2,14 @@ const em = new EventManager()
 const EVENTS = {
     correct: "correct", //spot
     incorrect: "incorrect", //guess
+    head: "head",//spot
+    save: "save",//
     fail: "fail", //spot
     plan: "plan",//()
     climb: "climb",//()
     boss: "boss",//()
     noboss: "noboss",//()
+    startHead: "startHead",//spot
     wait: "wait",//()
     hide: "hide",//()
     show: "show",//()
@@ -20,7 +23,8 @@ sm.create(0).txt = "Waiting"
 sm.create(1).txt = "Planning"
 sm.create(2).txt = "Climbing"
 sm.create(3).txt = "Bossfight!"
-sm.create(4).txt = "Victory"
+sm.create(4).txt = "Finished"
+sm.create(5).txt = "Flawless victory!"
 sm.skipTo = (i) => {
     while (sm.currentKey < i) {
         sm.trans(sm.currentKey + 1)
@@ -103,6 +107,7 @@ class Spot extends Malleable {
         game.fullViewer.close()
         // this.button.color = GRAPHICS.SPOT_COLOR_SOLVED
         em.emit("correct", this)
+        if (this.mask) em.emit("head", this)
     }
     onIncorrectGuess(guess) {
         em.emit("incorrect", guess)

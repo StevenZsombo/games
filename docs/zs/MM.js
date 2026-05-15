@@ -1593,6 +1593,38 @@ class MM {
         a.remove()
     }
 
+
+    static async downloadEmojis(emojis) {
+        if (!window.JSZip) {
+            await Promise.any([
+                MM.loadScriptPromise("./zs/jszip.min.js"),
+                MM.loadScriptPromise("./../zs/jszip.min.js"),
+                MM.loadScriptPromise("./../../zs/jszip.min.js")
+            ])
+        }
+        if (!window.JSZip) throw new Error("failed to load JSZip")
+        const c = document.createElement('canvas'), ctx = c.getContext('2d')
+        c.width = c.height = 64
+        const zip = new window.JSZip()
+        for (let [i, e] of emojis.entries()) {
+            ctx.fillStyle = 'rgba(0,0,0,0)'
+            ctx.fillRect(0, 0, 64, 64)
+            ctx.font = '48px "Segoe UI Emoji", "Apple Color Emoji"'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillStyle = 'black'
+            ctx.fillText(e, 32, 32)
+            const blob = await new Promise(r => c.toBlob(r))
+            zip.file(`emoji_${i}.png`, blob)
+        }
+        const blob = await zip.generateAsync({ type: 'blob' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = 'emojis.zip'
+        a.click()
+        URL.revokeObjectURL(a.href)
+    }
+
     static fetchSyncText(url) {// Synchronous XMLHttpRequest (deprecated, freezes the page)
         const xhr = new XMLHttpRequest()
         xhr.open('GET', url, false)  // false = synchronous
@@ -2325,7 +2357,8 @@ class GameEffects {
         leftPink: { sizeFrac: [.2, .1], posFrac: [.125, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         leftLargePink: { sizeFrac: [.3, .15], posFrac: [.157, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 },
-        sideError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .88], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 32 } }
+        sideError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .88], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 32 } },
+        rightError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .12], direction: "right", moreButtonSettings: { color: "red", fontSize: 32 } }
 
 
     }
@@ -2757,7 +2790,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
      * @returns {{ promise: ()=>Promise<string; buts: Button[]; top: Button; }} 
      */
     static nameSelect(options, {
-        topText = "Your name:", layer = 8, moreButtonSettings = {},
+        topText = "Your name:", layer = 7, moreButtonSettings = {},
         confirmText = "Are your really", confirmTextAfter = "?"
     } = {}) {
         const fm = new Panel()
@@ -2777,13 +2810,14 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
                 Object.assign(x, moreButtonSettings)
                 x.fontSize = 40
                 x.txt = options[i]
+                x.tag = options[i]
                 x.on_release = () => {
                     if (!canClick) return
                     canClick = false
                     const cb = GameEffects.confirmBox((confirmText ? confirmText + " " : "") + options[i] + confirmTextAfter)
                     cb.promise().then(() => {
                         game.remove_drawable(fm)
-                        resolve(x.txt)
+                        resolve(x.tag)
                     }).catch(() => canClick = true)
                 }
             })
