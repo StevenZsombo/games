@@ -293,7 +293,7 @@ class GameShared extends GameCore {
                 GameEffects.popup("Imported successfully.", GameEffects.popupPRESETS.bigBlue)
             }).catch((err) => GameEffects.popup("Failure: " + err, GameEffects.popupPRESETS.bigRed))
         }
-        this.keyboarder.on_keyupDict["p"] = async () => {
+        this.keyboarder.on_keyupDict["u"] = async () => {
             const spot = this.findSpotOnMouse()
             if (!spot) return
             MM.filePicker(".png").then(x => {
@@ -378,9 +378,10 @@ class GameShared extends GameCore {
         e.font_font = "myMonospace"
         e.txt = ("A:add,Q:question,S:solution,C:connect(drag),L:level(row),M:middle/mirror,"
             + "T:tap(mimic user input),G:guess(mimic user guess),"
-            + "D:disconnect,R:remove,B:boss(mark as the hydra),,"
+            + "D:disconnect,R:remove,B:boss(mark as the hydra),U:uncovered(bossfight question),,"
             + "I:input(import),O:output(export),H:heads(export as heads),0:null(erase all),X:show/hide these hints")
             .split(",").join("\n")
+        e.visible = false
         this.add_drawable(e, 9)
         const s = this.editorStats = Button.fromButton(e)
         s.height = GRAPHICS.BOTTOM
