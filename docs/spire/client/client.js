@@ -7,7 +7,10 @@ class Game extends GameShared {
     async initialize_async() {
         /*if (!RULES.EDITOR) GameEffects.clickMeFourTimes().then(() => this.initShared())
         else this.initShared()*/
-        if (location.hash.includes("flush")) localStorage.clear()
+        if (location.hash.includes("flush")) {
+            localStorage.clear()
+            location.hash = location.hash.replace("flush", "")
+        }
         if (!RULES.EDITOR && !RULES.SKIP_INTRO && !localStorage.getItem("spireSave")) GameEffects.clickMeFourTimes()
         this.initShared()
         await this.hasRetrievedData
