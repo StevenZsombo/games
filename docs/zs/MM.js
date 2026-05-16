@@ -2399,6 +2399,9 @@ class GameEffects {
      * @typedef {Object} DropDownMenuResult
      * @property {Button[]} menuButtons
      * @property {Function} close
+     * @property {Function} autoClose - orders to close automatically on next release, whether hit or not
+     * @property {Function(Inspector),string[]} addInspector
+     * @property {?Inspector} inspector
      */
     /**
      * Adds to game automatically.
@@ -2424,6 +2427,7 @@ class GameEffects {
         result.close = () => {
             game.remove_drawables_batch(menu)
             alsoClosingButtons && alsoClosingButtons.forEach((b, i) => b.on_release = origOnReleases[i])
+            result.inspector && (menu.forEach(x => result.inspector.removeChild(x)))
             on_close?.()
         }
         //add logic here: if menu already exists then delete it
@@ -2472,7 +2476,36 @@ class GameEffects {
 
         game.add_drawable(menu, 8)
         result.menuButtons = menu
+
+        result.autoClose = () => game.mouser.on_release_once = () => game.once(result.close)
+        /**@param {Inspector} inspector */
+        result.addInspector = (inspector, texts) => {
+            texts.slice(0, menu.length).forEach((x, i) =>
+                inspector.addChild(menu[i], x))
+            result.inspector = inspector
+        }
         return result
+    }
+
+    /**
+     * @param {Array<[string,Function]>} objTextAndOnRelease 
+     * @param {{ backgroundRect?: any; gridRows?: any; gridColumns?: number; moreButtonSettings?: {}; alsoClosingButtons?: any; addCloseButton?: boolean; on_close?: any; autoClose?: boolean; }} [param0={}] 
+     * @param {Rect} [param0.backgroundRect=null] 
+     * @param {number|null} [param0.gridRows=null] 
+     * @param {number} [param0.gridColumns=1] 
+     * @param {Button|null} [param0.moreButtonSettings={}] 
+     * @param {Button[]} [param0.alsoClosingButtons=null] 
+     * @param {Button|Button[]|null} [param0.addCloseButton=true] 
+     * @param {?Function} [param0.on_close=null] 
+     * @param {boolean} [param0.autoClose=true] 
+     * @returns 
+     */
+    static dropDrownBetter(objTextAndOnRelease, { backgroundRect = null, gridRows = null, gridColumns = 1,
+        moreButtonSettings = {}, alsoClosingButtons = null, addCloseButton = true, on_close = null,
+        autoClose = true } = {}) {
+        const ddm = GameEffects.dropDownMenu(objTextAndOnRelease, backgroundRect, gridRows, gridColumns, moreButtonSettings, alsoClosingButtons, addCloseButton, on_close)
+        autoClose && (ddm.autoClose())
+        return ddm
     }
 
 
@@ -2807,8 +2840,9 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         const promBefore = new Promise(resolve =>
             buts.forEach((x, i) => {
                 fm.push(x)
-                Object.assign(x, moreButtonSettings)
                 x.fontSize = 40
+                x.color = "lightgray"
+                Object.assign(x, moreButtonSettings)
                 x.txt = options[i]
                 x.tag = options[i]
                 x.on_release = () => {

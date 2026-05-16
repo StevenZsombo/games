@@ -191,6 +191,8 @@ class GameShared extends GameCore {
         em.on("climb", () => { sm.skipTo(2) })
         em.on("boss", () => { sm.skipTo(3); this.startBossfight() })
         em.on("noboss", () => { if (sm.currentKey >= 3) this.cancelBossfight() })
+        em.on("fin", () => { sm.skipTo(4) })
+        em.on("win", () => { sm.skipTo(5) })
         em.on("correct", () => {
             if (!this.canDrag) {//means in bossfight}
 
@@ -285,9 +287,13 @@ class GameShared extends GameCore {
 
         }
         sm.states.get(4).on_enter = () => {
+            em.emit("fin")
+            this.bot.color = "yellow"
             const swapper = Button.fromButton(offerer)
             swapper.dynamicColor = null
             swapper.txt = "Back to Spire"
+            swapper.fontSize = GRAPHICS.FONT_MEDIUM
+            swapper.stretch(.6, .6)
             swapper.eraseClickables()
             swapper.color = "blue"
             swapper.on_release = () => {
@@ -298,6 +304,8 @@ class GameShared extends GameCore {
             this.add_drawable(swapper, 8)
         }
         sm.states.get(5).on_enter = () => {
+            em.emit("win")
+            this.bot.color = "purple"
             GameEffects.fireworksShow()
         }
     }
@@ -432,11 +440,11 @@ class GameShared extends GameCore {
     }
     initFake() {
         if (!RULES.FAKE) return
-        const fake = new Button({ width: 150, height: 80, txt: "fakeServer", isBlocking: true })
+        const fake = this.fake = new Button({ width: 150, height: 80, txt: "fakeServer", isBlocking: true })
         fake.topat(0)
         fake.rightat(this.WIDTH)
         fake.on_release = () => {
-            const arr = ["wait", "plan", "climb", "boss", "noboss", "show", "hide"]
+            const arr = ["wait", "plan", "climb", "fin", "win", "boss", "noboss", "show", "hide"]
             const parr = []
             parr.push(...arr.map(x => [x, () => em.emit(x)]))
             parr.push(["Import", () => this.importALL()])
@@ -467,6 +475,8 @@ class GameShared extends GameCore {
 
                     console.log({ spire: this.spire, heads: this.heads })
                     this.once(() => sm.skipTo(0))
+
+                    return
                 } catch (err) {
                     console.error("Failed to load data:", err)
                 }

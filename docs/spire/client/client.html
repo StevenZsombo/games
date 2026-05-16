@@ -27,25 +27,33 @@
       height: min(56.25vw, 100vh);
     }
 
+    /*
     @font-face {
       font-family: 'mySerif';
       src: url('../../zs/fonts/LiberationSerif-Regular.ttf') format('truetype');
       font-weight: normal;
       font-style: normal;
     }
+    */
 
     @font-face {
       font-family: 'myMonospace';
       src: url('../../zs/fonts/Cousine-Regular.ttf') format('truetype');
-      font-weight: normal;
-      font-style: normal;
+      /* font-weight: normal; */
+      /* font-style: normal; */
+    }
+
+    /* Just use both fonts in a stack - browser handles the rest */
+    @font-face {
+      font-family: 'mySerif';
+      src: url('../../zs/fonts/LiberationSerif-Regular.ttf') format('woff2');
     }
 
     @font-face {
-      font-family: 'myEmoji';
-      src: url('../shared/animal.woff2');
-      font-weight: normal;
-      font-style: normal;
+      font-family: 'mySerif';
+      src: url('../shared/animal.woff2') format('woff2');
+      /* This tells browser: use this file for emoji ranges only */
+      unicode-range: U+1F300-1F9FF, U+2600-26FF, U+2700-27BF;
     }
   </style>
 </head>

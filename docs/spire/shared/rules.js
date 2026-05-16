@@ -6,7 +6,7 @@ const RULES = {
     DEMOHEADS: "../questions/demoHeads.json", //can be null
 
     STUDENTS: ["Aziz", "Darren", "Blake", "Vamsi", "Steven", "Fritz", "Alain", "other1", "other2"],
-    EMOJIS: [..."🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🐋🦈🐊🦕🦖🐪🐫🦒🐘"],
+    EMOJIS: Array.from("🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🐋🦈🐊🦕🦖🐪🐫🦒🐘"),
 
     MINUTES: [0.2, 0.1, 0.05],
     BEFORE_BOSS_WAIT_TIME: 8_000,

@@ -1,50 +1,58 @@
 class Game extends GameShared {
     //#region initialize_more
 
-    initialize_more() {
+    initialize_more() { }
+    async initialize_async() {
         /*if (!RULES.EDITOR) GameEffects.clickMeFourTimes().then(() => this.initShared())
         else this.initShared()*/
         if (location.hash.includes("flush")) localStorage.clear()
         if (!RULES.EDITOR && !RULES.SKIP_INTRO) GameEffects.clickMeFourTimes()
         this.initShared()
+        await this.hasRetrievedData
 
         if (univ.isOnline) this.onlinePlay()
-        if (location.hash.includes("offline")) em.emit("climb")
-
+        else this.offlinePlay()
 
         if (RULES.SAVE_AGGRESSIVELY) {
-            this.hasRetrievedData.then(() => {
-                this.loadFromLocal()
-                em.on("correct", () => this.saveToLocal())
-                em.on("fail", () => this.saveToLocal())
-                em.on("boss", () => this.saveToLocal())
-                em.on("save", () => this.saveToLocal())
-                em.on("startHead", () => this.saveToLocal())
-                em.on("full", () => this.saveToLocal())
-            })
+            this.loadFromLocal()
+            em.on("correct", () => this.saveToLocal())
+            em.on("fail", () => this.saveToLocal())
+            em.on("boss", () => this.saveToLocal())
+            em.on("save", () => this.saveToLocal())
+            em.on("startHead", () => this.saveToLocal())
+            em.on("full", () => this.saveToLocal())
+            sm.on_transition = () => { console.log("transitionSave"), game.once(this.saveToLocal) }
         }
 
     }
     //#endregion
 
     async selector(emojiOnly = false) {
+        const takenAll = (await chat.wee("taken"))
         if (!emojiOnly) {
-            const name = (await GameEffects.nameSelect(RULES.STUDENTS).promise())
+            const nnn = GameEffects.nameSelect(RULES.STUDENTS)
+            nnn.buts.forEach(x => takenAll.names.includes(x.tag) && x.deactivate())
+            const name = await nnn.promise()
             chat.forceName(name, true)
         }
-        this.me = await (GameEffects.nameSelect(RULES.EMOJIS, {
+
+        const out = GameEffects.nameSelect(RULES.EMOJIS, {
             topText: "Your icon:", confirmText: "Want to use",
             moreButtonSettings: {
                 // font_font: "myEmoji",
-                fontSize: 60
+                fontSize: 72,
+                color: "whitesmoke"
             }
-        }).promise())
+        })
+        out.buts.forEach(x => { if (takenAll.emo.includes(x.tag)) x.deactivate() })
+        this.me = await out.promise()
+
         localStorage.setItem("spireIcon", this.me)
     }
 
 
     async onlinePlay() {
-        this.bot.font_font = "myEmoji mySerif"
+        this.bot.font_font = "mySerif"
         const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
         await chat.asapPromise()
         this.me = localStorage.getItem("spireIcon")
@@ -66,6 +74,9 @@ class Game extends GameShared {
         const badness = new Button({ width: 400, height: GRAPHICS.BOTTOM, x: this.WIDTH / 2, y: 0, color: "red", txt: "Lost connection..." })
         chat.on_disconnect = () => badness.activate(); chat.on_join = () => badness.deactivate()
     }
+    async offlinePlay() {
+        em.emit("climb")
+    }
 
     saveToLocal() {
         const tempSaveData = {
@@ -82,7 +93,7 @@ class Game extends GameShared {
             demoHeads: RULES.DEMOHEADS,
         }
         localStorage.setItem("spireSave", JSON.stringify(tempSaveData))
-        console.log("save", tempSaveData)
+        console.log("saved:", tempSaveData)
         return tempSaveData
     }
     loadFromLocal() {
@@ -92,7 +103,7 @@ class Game extends GameShared {
         const tempSaveData = JSON.parse(str)
         if (tempSaveData.demo != RULES.DEMO || tempSaveData.demoHeads != RULES.DEMOHEADS) return
         this.bossShownFirstMessage = tempSaveData.bossShownFirstMessage
-        sm.skipTo(tempSaveData.state)
+        sm.skipTo(+tempSaveData.state)
         tempSaveData.spire.forEach((x, i) => Object.assign(this.spire[i], x))
         tempSaveData.heads.forEach((x, i) => Object.assign(this.heads[i], x))
         this.spire.concat(this.heads).forEach(x => {

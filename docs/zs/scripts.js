@@ -1042,6 +1042,10 @@ class Button extends Clickable {
 		bool ? this.activate() : this.deactivate()
 	}
 
+	toggleActive() {
+		this.visible ? this.deactivate() : this.activate()
+	}
+
 
 
 }

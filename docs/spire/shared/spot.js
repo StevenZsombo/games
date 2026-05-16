@@ -9,6 +9,8 @@ const EVENTS = {
     climb: "climb",//()
     boss: "boss",//()
     noboss: "noboss",//()
+    fin: "fin",//(),
+    win: "win",//()
     startHead: "startHead",//spot
     wait: "wait",//()
     hide: "hide",//()
