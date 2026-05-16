@@ -36,6 +36,11 @@ class Game extends GameShared {
 
     async selector(emojiOnly = false) {
         const takenAll = (await chat.wee("taken").catch(bpop))
+        if (sessionID !== "none" && takenAll.sessionID !== sessionID) {
+            localStorage.removeItem("spireSave")
+            sessionID = takenAll.sessionID
+            localStorage.setItem("sessionID", sessionID)
+        }
         if (!emojiOnly) {
             const nnn = GameEffects.nameSelect(RULES.STUDENTS)
             nnn.buts.forEach(x => takenAll.names.includes(x.tag) && x.deactivate())
@@ -61,19 +66,21 @@ class Game extends GameShared {
     async onlinePlay() {
         this.bot.font_font = "mySerif"
         await chat.asapPromise()
-        chat.checkIfTooOld()
+        // chat.checkIfTooOld()
         this.me = localStorage.getItem("spireIcon")
         chat.eggs("emo", () => this.selector())
         while (1) {
             if (!this.me) await this.selector()
             const resp = await chat.wee("enter", this.me).catch(bpop)
-            if (resp.sessionID !== sessionID) {
+            if (sessionID !== "none" && resp.sessionID !== sessionID) {
                 const nameID = chat.nameID
                 localStorage.clear()
                 localStorage.setItem("sessionID", resp.sessionID)
                 localStorage.setItem("nameID", nameID)
                 chat.delayedReload()
             }
+            sessionID = resp.sessionID
+            localStorage.setItem("sessionID", resp.sessionID)
             if (resp.good) {
                 sm.skipTo(resp.state)
                 break
@@ -166,7 +173,7 @@ class Game extends GameShared {
     next_loop_more() { }
 
     receiveBroadcastClientExtras(bc) {
-        
+
     }
 
 } //this is the last closing brace for class Game

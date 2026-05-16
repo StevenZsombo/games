@@ -23,6 +23,7 @@ class Person extends Participant {
         this.solved = new Set()
         this.failed = new Set()
         this.boss = false
+
     }
     get pretty() { return `${this.emoji} ${this.name}` }
 }
@@ -77,7 +78,8 @@ class Game extends GameShared {
             })
         chat.eggs("taken", () => ({
             names: listener.personsAsArray.filter(x => x.emoji).map(x => x.name) || [],
-            emo: listener.personsAsArray.map(x => x.emoji).join("") || ""
+            emo: listener.personsAsArray.map(x => x.emoji).join("") || "",
+            sessionID: sessionID
         }))
 
         this.initServerStats()
@@ -233,6 +235,39 @@ class Game extends GameShared {
     ///                                                                                                              ///
     ///                                                                                                              ///
     /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    diagnostic() {
+        const toStrArr = set => Array.from(set ?? []).map(p => p.name).join(",")
+        const spireKeys = "stage id file solvedList".split(" ")
+        const spire = this.spire.filter(x => !x.isHydra).map(x => [
+            "spire", x.id, x.file, toStrArr(x.solvedList)
+        ])
+        const headsKeys = "stage id file mask headedList failedList".split(" ")
+        const heads = this.heads.map(x => [
+            "heads", x.id, x.file, x.mask, toStrArr(x.headedList), toStrArr(x.failedList)
+        ])
+
+        const toJoin = set => Array.from(set ?? []).join(",")
+        const playersKeys = "name nameID emoji # solved # headed # failed".split(" ")
+        const players = listener.personsAsArray.filter(x => x.emoji).map(/**@param {Person} p*/p => [
+            p.name, p.nameID, p.emoji,
+            p.solved.size, , toJoin(p.solved), p.headed.size, toJoin(p.headed), p.failed.size, toJoin(p.failed)
+        ])
+
+        const out = {
+            spire: [spireKeys].concat(spire),
+            heads: [headsKeys].concat(heads),
+            players: [playersKeys].concat(players)
+        }
+        console.log("diagnosticdata:", out)
+        if (MASTER.EXPORT_TO_JSON) MM.exportJSON(out, "spireStats" + MM.dateAndTime() + ".json")
+        if (MASTER.EXPORT_TO_EXCEL) MM.exportExcelMany(out, "spireStats" + MM.dateAndTime())
+        if (MASTER.ALSO_SHOW_ON_NEW_TAB) MM.newTabHTML(
+            MM.tableHTML(spire, spireKeys) + "<br>" + MM.tableHTML(heads, headsKeys) + "<br>" + MM.tableHTML(players, playersKeys),
+            "spireStats")
+    }
+
 
 } //this is the last closing brace for class Game
 

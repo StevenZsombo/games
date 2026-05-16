@@ -400,7 +400,7 @@ class MM {
     drawImage(image, dx, dy, dWidth, dHeight)
     drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)*/
     static drawImage(screen, img, rect, opacity = 0, rad = 0, imgScale = 0) {
-        if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+        if (!img || img.naturalWidth === 0 || img.naturalHeight === 0) {
             return // Silently skip broken images for Safari
         }
         if (opacity) { screen.save(); screen.globalAlpha = 1 - opacity }
@@ -1587,7 +1587,7 @@ class MM {
         const content = await zip.generateAsync({ type: 'blob' })
         const a = document.createElement('a')
         a.href = URL.createObjectURL(content)
-        a.download = zipName
+        a.download = zipName.endsWith(".zip") ? zipName : zipName + ".zip"
         a.click()
         URL.revokeObjectURL(a.href)
         a.remove()
@@ -1639,7 +1639,7 @@ class MM {
         try {
             const a = document.createElement("a")
             a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }))
-            a.download = filename
+            a.download = filename.endsWith(".json") ? filename : filename + ".json"
             a.click()
             a.remove()
         } catch (err) { console.error(err) }
@@ -1742,7 +1742,17 @@ class MM {
         const ws = XLSX.utils.aoa_to_sheet(array)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
-        XLSX.writeFile(wb, filename + ".xlsx")
+        XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx")
+    }
+
+    static exportExcelMany(objSheets, filename = "exportedExcelMany") {
+        if (!window.XLSX) throw new Error("XLSX not loaded")
+        const wb = XLSX.utils.book_new()
+        for (const [sheetName, data] of Object.entries(objSheets)) {
+            const ws = XLSX.utils.aoa_to_sheet(data)
+            XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31)) // Excel max sheet name length
+        }
+        XLSX.writeFile(wb, filename.endsWith(".xlsx") ? filename : filename + ".xlsx")
     }
 
     static exportJSONtoExcel(json, filename = "excelFromJSON") {

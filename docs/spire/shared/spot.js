@@ -200,8 +200,9 @@ class Spot extends Malleable {
     /** @param {ReturnType<this['toJSON']>[]} data */
     static fromJSONall(data) {
         Spot.ALL.length = 0
-        data.forEach(x => new Spot(x.id, x.x, x.y))
-        data.forEach(x => {
+        const dataSpots = data.filter(x => x.id != null)
+        dataSpots.forEach(x => new Spot(x.id, x.x, x.y))
+        dataSpots.forEach(x => {
             const spot = Spot.ALL[x.id]
             spot.sol = x.sol
             x.file && spot.setIMG(x.file)
@@ -223,6 +224,7 @@ class Spot extends Malleable {
         if (!byHowMuch) return
         // Spot.ALL.forEach(x => x.forEach(y => y.move(0, byHowMuch)))
         Spot.ALL.forEach(x => x.button.move(0, byHowMuch))
+        game.background?.move(0, byHowMuch) //bad coupling, but whatevs
 
     }
     disconnect() {

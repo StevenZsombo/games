@@ -4,6 +4,7 @@ const RULES = {
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
     DEMO: "../questions/" + window.___spire,
     DEMOHEADS: "../questions/" + window.___heads,
+    ALLOW_BACKGROUND: true,
 
     STUDENTS: window.___students.split(",").map(x => x.trim()).filter(x => x),
     EMOJIS: Array.from(
@@ -69,5 +70,12 @@ const GRAPHICS = {
 
     EMOS_FONTSIZE: 40,
     EMOS_BREAK: 8,
+
+}
+
+const MASTER = {
+    EXPORT_TO_EXCEL: true,
+    EXPORT_TO_JSON: false,
+    ALSO_SHOW_ON_NEW_TAB: true,
 
 }
