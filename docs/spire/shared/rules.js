@@ -1,28 +1,16 @@
-{
-
-    window.___spire = "spire.json"
-
-    window.___heads = "heads.json"
-
-    window.___students = "Aziz,Darren,Blake,Vamsi,Steven,Fritz,Alain,other1,other2"
-
-    window.___minutes = [3, 2, 1]
-
-}
-
 const RULES = {
-    EDITOR: location.hash.includes("editor"),
+    EDITOR: location.href.includes("localhost") && location.hash.includes("editor"),
     FAKE: location.hash.includes("editor") || location.hash.includes("fake"),
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
-    DEMO: "../questions/" + window.___spire, //can be null
-    DEMOHEADS: "../questions/" + window.___heads, //can be null
+    DEMO: "../questions/" + window.___spire,
+    DEMOHEADS: "../questions/" + window.___heads,
 
-    STUDENTS: window.___students.split(","),
+    STUDENTS: window.___students.split(",").map(x => x.trim()).filter(x => x),
     EMOJIS: Array.from(
         "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🦉🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🦈🐊🦕🦖🐪🦘🦒🐘"
     ),
 
-    MINUTES: window.___minutes,
+    MINUTES: window.___minutes.split(",").map(x => x.trim()).filter(x => x).map(x => +x),
     BEFORE_BOSS_WAIT_TIME: 8_000,
 
     QUESTION_FOLDER: "../questions/",
@@ -71,6 +59,7 @@ const GRAPHICS = {
     FONT_MEDIUM: 48,
     FONT_SMALL: 32,
     FONT_TINY: 24,
+    DEFAULT_SOLUTION: 666666,
 
     BOSS_color: "lightblue",
 

@@ -19,7 +19,7 @@ const EVENTS = {
 }
 /**@type {StateManager & {skipTo:Function(i):void}} */
 const sm = new StateManager()
-sm.create(-1).txt = "Connecting"
+sm.create(-1).txt = "Editor"
 sm.trans(-1)
 sm.create(0).txt = "Waiting"
 sm.create(1).txt = "Planning"
@@ -89,7 +89,7 @@ class Spot extends Malleable {
         em.on("hide", () => this.onHide())
         em.on("show", () => this.onShow())
 
-        this.sol = 666666
+        this.sol = GRAPHICS.DEFAULT_SOLUTION
         this.done = false
         this.failed = false
         this.isHidden = true
@@ -155,6 +155,7 @@ class Spot extends Malleable {
         if (file.endsWith(".png")) file = file.slice(0, -4)
         this.button.img = cropper.load_img(RULES.QUESTION_FOLDER + file + ".png")
         this.file = file
+        if (RULES.EDITOR) this.label.txt = this.getEditorText()
     }
     setMaskIMG(mask) {
         if (mask.endsWith(".png")) mask = mask.slice(0, -4)
@@ -172,7 +173,6 @@ class Spot extends Malleable {
             x.isHydra = false
         })
         this.isHydra = true
-        this.isHidden ? em.emit("hide") : em.emit("show")
 
     }
     onInteractHydra() {
@@ -215,7 +215,9 @@ class Spot extends Malleable {
     }
     getEditorText() {
         return this.isHydra ? "Hydra"
-            : "" + this.sol + (this.mask ? `\n[${this.mask}]` : "")
+            : "" + this.sol
+            + (this.file ? `\n${this.file}` : "")
+            + (this.mask ? `\n[${this.mask}]` : "")
     }
     static moveAll(byHowMuch) {
         if (!byHowMuch) return

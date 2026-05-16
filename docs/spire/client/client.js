@@ -94,7 +94,7 @@ class Game extends GameShared {
         this.initBCreceive()
     }
     async offlinePlay() {
-        em.emit("climb")
+        !RULES.EDITOR && em.emit("climb")
     }
 
 

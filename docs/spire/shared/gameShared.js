@@ -404,8 +404,7 @@ class GameShared extends GameCore {
             const canClick = sm.currentKey >= 2;
             em.emit("climb"); if (canClick) this.findSpotOnMouse()?.attempt(+prompt())
         }
-        this.keyboarder.on_keyupDict["b"] = () =>
-            this.findSpotOnMouse()?.makeHydra()
+        this.keyboarder.on_keyupDict["b"] = () => { this.findSpotOnMouse()?.makeHydra(); em.emit("show") }
         this.keyboarder.on_keyupDict["x"] = () =>
             this.editorHelper.visible ^= 1
         this.keyboarder.on_keyupDict["0"] = () => {
@@ -443,10 +442,40 @@ class GameShared extends GameCore {
         e.visible = false
         this.add_drawable(e, 9)
         const s = this.editorStats = Button.fromButton(e)
+        s.fontSize = 16
         s.height = GRAPHICS.BOTTOM
+        s.leftat(this.WIDTH * .65)
         s.bottomat(this.rect.bottom)
-        s.dynamicText = () => `Spots: ${Spot.ALL.filter(x => !x.isHydra).length}`
-            + `\nHas hydra: ${Spot.ALL.some(x => x.isHydra) ? "yes" : "no"}`
+        s.dynamicText = () => {
+            return `Spots: ${Spot.ALL.filter(x => !x.isHydra).length}`
+
+            //unused.
+            const hasHydra = Spot.ALL.some(x => x.isHydra)
+            const noMasks = !Spot.ALL.some(x => x.mask)
+            const allMasks = Spot.ALL.every(x => x.mask)
+            const allSolSet = Spot.ALL.every(x => x.isHydra || x.sol !== GRAPHICS.DEFAULT_SOLUTION)
+            let spireCond = Spot.ALL.length && hasHydra && noMasks && allSolSet
+            if (spireCond) spireCond = "yes"
+            else {
+                spireCond = "no\nwhy: "
+                !hasHydra && (spireCond += "missing hydra;")
+                !noMasks && (spireCond += "some questions covered;")
+                !allSolSet && (spireCond += "\nsome solutions missing;")
+            }
+            let hydraCond = Spot.ALL.length && !hasHydra && allMasks & allSolSet
+            if (hydraCond) hydraCond = "yes"
+            else {
+                hydraCond = "no\nwhy: "
+                hasHydra && (hydraCond += "can't have a hydra;")
+                !allMasks && (hydraCond += "missing uncovered copies;")
+                !allSolSet && (hydraCond += "some solutions missing;")
+            }
+
+            return `Spots: ${Spot.ALL.filter(x => !x.isHydra).length}`
+                + `\nIs a valid spire?:  ${spireCond}`
+                + `\nIs a valid hydra?:  ${hydraCond}`
+        }
+        s.activate()
         this.add_drawable(s, 9)
     }
     initFake() {

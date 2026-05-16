@@ -1,0 +1,51 @@
+How to make a new Spire/Hydra map.
+Step 1.
+Put all the questions you wish to use in the spire/questions folder.
+This entire folder is yours to manage - it is fine to delete anything here you don't need.
+
+Step 2.
+Spire map:
+- Run the server. Then visit 
+localhost/spire/client/client.html#editor
+in any non-Safari browser. Then use the editor. Press "X" for help.
+Any spot that has nothing leading to it will be available at the start, put these at the bottom.
+The Hydra must be at the top (mark with "B"), with at lest one path leading to it.
+Export map data with "O". Export/import frequently so you don't lose progress. ("O"/"I")
+
+Step 3.
+Hydra map for the bossfight:
+Same thing, except that each question must have a covered/uncovered copy.
+Set the covered copy as the base question with "Q".
+Set the uncovered copy with "U".
+Export map data with "H". Export/import frequently so you don't lose progress. ("H"/"I")
+
+Step 4.
+Put the two .json files you creted in spire/questions.
+
+Step 5.
+Open shared/editable.js with a text editor.
+Edit the four parameters following the given conventions.
+If you mess up, restore the backup from editableBackup.js
+
+Step 6.
+Test the game by visiting
+localhost/spire/client/client.html#fakenoskip
+It is worth checking each question once (bossfight included), just in case.
+
+
+How to host a game (classroom contest):
+- TODO.
+
+
+
+How to share a public copy (for single-player after-class sessions).
+0.  Sign up to netlify (free account works just fine).
+    app.netlify.com
+
+1.  Delete the netlify/spire folder.
+2.  Copy the spire folder to be the new netflify/spire folder.
+3.  Zip the netlify folder. Then drop the zip in
+    app.netlify.com/drop
+4.  You can rename the project it creates for a tidier url by clicking "Quick setup".
+    After selecting the new name and clicking "Update project name" you can quit by "Finish later".
+5.  Share the link as you see fit.
