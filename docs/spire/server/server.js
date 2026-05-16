@@ -3,14 +3,18 @@ chat = listener.chat
 const ob = new Observatory()
 const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
 const RELOAD = () => chat.spam("eval", "chat.delayedReload()")
+const sessionID = MM.randomID() + MM.randomID()
 class Person extends Participant {
     enter(emoji) {
+        const resp = {}
         const othersWithSame = listener.personsAsArray.filter(x => x.emoji == emoji)
-        if (othersWithSame.some(x => x.nameID !== this.nameID)) return false
+        if (othersWithSame.some(x => x.nameID !== this.nameID)) resp.good = false
         else {
             this.emoji = emoji
-            return true
+            resp.good = true
         }
+        resp.sessionID = sessionID
+        return resp
     }
     initialize() {
         this.full = null
@@ -120,11 +124,18 @@ class Game extends GameShared {
     /**@param {Person} person  */
     individualMenu(person) {
         const parr = [
-            ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],
             ["flush", () => {
                 person.wee("eval", "localStorage.clear();chat.delayedReload();").catch(bpop)
                 listener.persons.delete(person.nameID)
             }],
+            ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],
+            ["rename", async () => {
+                const newName = await GameEffects.inputBoxFromRectPromise()
+                if (!newName) return bpop("invalid name given.")
+                person.wee("eval", `chat.forceName("${newName}")`).catch(bpop)
+                    .then(() => GameEffects.popup(`Renamed to ${newName}`))
+            }]
+            // ["kick", () => listener.persons.delete(person.nameID)],
         ]
         const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 400 } })
         ddm.autoClose()

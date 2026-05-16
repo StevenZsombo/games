@@ -2627,6 +2627,7 @@ class GameEffects {
 
     /**@param {Rect} sourceRect @param {function(string)} on_pressingEnter  */
     static inputBoxFromRect(sourceRect, on_pressingEnter, on_input) {
+        sourceRect ??= new Rect(0, 0, 300, 60)
         const rect = game.mouser.rectCanvasToEvent(sourceRect.copy.fitWithinAnother(game.rect))
         return GameEffects.inputBox(rect.x, rect.y,
             rect.width,

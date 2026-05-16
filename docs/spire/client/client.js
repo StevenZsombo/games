@@ -1,3 +1,5 @@
+const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
+let sessionID = localStorage.getItem("sessionID") || "none"
 class Game extends GameShared {
     //#region initialize_more
 
@@ -10,7 +12,9 @@ class Game extends GameShared {
         this.initShared()
         await this.hasRetrievedData
 
-        if (univ.isOnline) await this.onlinePlay()
+        if (univ.isOnline) {
+            this.onlinePlay()
+        }
         else this.offlinePlay()
 
         if (RULES.SAVE_AGGRESSIVELY) {
@@ -53,15 +57,19 @@ class Game extends GameShared {
 
     async onlinePlay() {
         this.bot.font_font = "mySerif"
-        const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
         await chat.asapPromise()
         chat.checkIfTooOld()
         this.me = localStorage.getItem("spireIcon")
         chat.eggs("emo", () => this.selector())
         while (1) {
             if (!this.me) await this.selector()
-            const good = await chat.wee("enter", this.me).catch(bpop)
-            if (good) break
+            const resp = await chat.wee("enter", this.me).catch(bpop)
+            if (resp.sessionID !== sessionID) {
+                localStorage.clear()
+                localStorage.setItem("sessionID", resp.sessionID)
+                chat.delayedReload()
+            }
+            if (resp.good) break
             GameEffects.popup("That icon has been taken - choose a different one.")
             await this.selector(true)
         }
