@@ -19,6 +19,27 @@ class GameShared extends GameCore {
             fontSize: GRAPHICS.FONT_BIG,
             isBlocking: true
         })
+        let botClicks = 0
+        this.bot.on_click = () => {
+            if (botClicks == 0) setTimeout(() => botClicks = 0, 5000)
+            botClicks++
+            if (botClicks > 3) wDiv.hide()
+            if (botClicks > 10) {
+                botClicks = 0
+                if (+prompt("Password:") !== 8774) return
+                if (confirm("Go offline?")) {
+                    localStorage.hash += "offline"
+                    chat.delayedReload()
+                    return
+                }
+                if (confirm("Disable error logs?")) {
+                    wDiv.hide()
+                    location.hash += "noerror"
+                }
+                if (confirm("Full flush?")) location.hash += "flush"
+                if (confirm("Reload?")) chat.delayedReload()
+            }
+        }
         this.add_drawable(this.bot, 7)
 
         const lineDrawable = this.lineDrawable = {
@@ -701,6 +722,7 @@ class GameShared extends GameCore {
     receiveBroadcast(bc) {
         bc.s.forEach((x, i) => this.spire[i].emos = this.emosToLines(x))
         bc.h.forEach((x, i) => this.heads[i].emos = this.emosToLines(x))
+        this.showPlayers.txt = "Players:\n" + bc.n.join("\n")
         this.receiveBroadcastClientExtras?.(bc)
     }
 }

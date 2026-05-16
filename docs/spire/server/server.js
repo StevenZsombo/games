@@ -87,10 +87,14 @@ class Game extends GameShared {
     //#endregion
 
     initServerStats() {
+        this.showPlayers.topat(this.fake.bottom)
+        this.remove_drawable(this.showPlayers) //added later
+
         const stats = Button.fromRectShallow(this.rect)
         stats.topat(this.fake.bottom)
         stats.bottomstretchat(this.bot.top)
-        stats.stretch(.9, 1)
+        stats.x = 50
+        stats.rightstretchat(this.showPlayers.left)
         stats.font_font = "myMonospace"
         stats.textSettings = { textAlign: "left", textBaseline: "top" }
         stats.color = "white"
@@ -98,11 +102,13 @@ class Game extends GameShared {
         stats.on_release = () => stats.deactivate()
 
         stats.dynamicText = () => MM.tableStr(
-            listener.personsAsArray.map(x => [x.emoji, x.name, x.boss ? "✔️" : " ",
+            listener.personsAsArray.map(x => ["  " + (x.emoji ?? "?"), x.name,
+            x.isConnected ? "✔️ " : "❌ ",
+            x.boss ? "✔" : " ",
             ...[x.solved, x.headed, x.failed].map(u => Array.from(u).join(",")),
-            `  ${x.headed.size}+${x.solved.size}`
+            `${x.headed.size}+${x.solved.size}`
             ])
-            , ["icon", "player", "boss?", "solved", "headed", "failed", "  progress"], 1)
+            , ["icon", "player", "conn?", "boss?", "solved", "headed", "failed", "progress"], 1)
 
 
         const statsShowHide = Button.fromButton(this.fake)
@@ -120,6 +126,7 @@ class Game extends GameShared {
         this.add_drawable(order, 7)
         this.add_drawable(statsShowHide, 7)
         this.add_drawable(stats, 7)
+        this.add_drawable(this.showPlayers, 7)
     }
 
     playersMenu() {

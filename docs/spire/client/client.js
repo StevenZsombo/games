@@ -166,7 +166,7 @@ class Game extends GameShared {
     next_loop_more() { }
 
     receiveBroadcastClientExtras(bc) {
-        this.showPlayers.txt = "Players:\n" + bc.n.join("\n")
+        
     }
 
 } //this is the last closing brace for class Game
