@@ -69,8 +69,12 @@ class Game extends GameShared {
                 person.failed.add(id)
                 this.heads[id].failedList.add(person)
             })
+        this.bossSpot = this.spire.find(x => x.isHydra)
         chat.eggs("boss",/**@param {number} id @param {Person} person */
-            (_, person) => person.boss = true)
+            (_, person) => {
+                person.boss = true
+                this.bossSpot.solvedList.add(person)
+            })
         chat.eggs("taken", () => ({
             names: listener.personsAsArray.filter(x => x.emoji).map(x => x.name) || [],
             emo: listener.personsAsArray.map(x => x.emoji).join("") || ""
@@ -91,9 +95,10 @@ class Game extends GameShared {
         stats.textSettings = { textAlign: "left", textBaseline: "top" }
         stats.color = "white"
         stats.fontSize = 24
+        stats.on_release = () => stats.deactivate()
 
         stats.dynamicText = () => MM.tableStr(
-            listener.personsAsArray.map(x => [x.emoji, x.name, x.boss ? "✔️" : "...",
+            listener.personsAsArray.map(x => [x.emoji, x.name, x.boss ? "✔️" : " ",
             ...[x.solved, x.headed, x.failed].map(u => Array.from(u).join(",")),
             `  ${x.headed.size}+${x.solved.size}`
             ])
@@ -120,7 +125,7 @@ class Game extends GameShared {
     playersMenu() {
         const parr = listener.personsAsArray.map(x => [x.name, () => this.individualMenu(x)])
         parr.push(["RELOAD everyone", RELOAD])
-        parr.push(["FLUSH leftovers", () => listener.persons.clear()])
+        parr.push(["CLEAR leftovers", () => listener.persons.clear()])
         const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 400 } })
         ddm.autoClose()
     }
@@ -129,7 +134,7 @@ class Game extends GameShared {
     individualMenu(person) {
         const parr = [
             ["flush", () => {
-                person.wee("eval", "localStorage.clear();chat.delayedReload();").catch(bpop)
+                person.wee("flush").catch(bpop)
                 listener.persons.delete(person.nameID)
             }],
             ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],

@@ -1,13 +1,16 @@
 class GameShared extends GameCore {
     initShared() {
+        const w = this.w = new GameWorld(this.rect.copy)
         const spotMall = this.spotMall = new Malleable()
         /**@type {Spot[]} */
         spotMall.components = Spot.ALL
         spotMall.isBlocking = true
-        this.add_drawable(spotMall, 4)
+        this.add_drawable(w, 4)
+        w.add_drawable(spotMall)
         this.initData()
         this.initEditor()
         this.initFake()
+        this.initZoom()
         this.bot = new Button({
             width: this.WIDTH, height: GRAPHICS.BOTTOM,
             x: 0, y: this.HEIGHT - GRAPHICS.BOTTOM,
@@ -32,7 +35,7 @@ class GameShared extends GameCore {
                 )
             }
         }
-        this.add_drawable(lineDrawable, 6) //arrows for now?
+        w.add_drawable(lineDrawable, 6) //arrows for now?
 
         const circleDrawable = this.circleDrawable = {
             draw: (ctx) => {
@@ -45,7 +48,7 @@ class GameShared extends GameCore {
                 })
             }
         }
-        this.add_drawable(circleDrawable, 6)
+        w.add_drawable(circleDrawable, 6)
 
         const sinteract = this.sinteract = new Clickable(this.rect)
         sinteract.draw = null
@@ -83,7 +86,7 @@ class GameShared extends GameCore {
             /**@param {Spot} spot  */
             open(spot) {
                 this.spot = spot
-                this.img = spot.button.img; this.activate(); sp.deactivate();
+                this.img = spot.button.img; this.activate(); sp.deactivate(); this.zoomSlider?.deactivate()
                 game.lastVisitedID = spot.id
                 em.emit("full", spot)
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
@@ -92,7 +95,7 @@ class GameShared extends GameCore {
             },
             close() {
                 this.spot = null
-                this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); sp.activate();
+                this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); sp.activate(); this.zoomSlider?.activate()
                 calcula.ans.txt = ""
                 calculaShowHide.txt = "Hide buttons"
             },
@@ -119,11 +122,13 @@ class GameShared extends GameCore {
         const calculaShowHide = this.calculaShowHide = Button.fromRectShallow(calcula.ans)
         calculaShowHide.on_release = () => {
             if (calcula.submit.visible) {
-                calcula.deactivate()
+                // calcula.deactivate()
+                calcula.forEach(x => x.deactivate())
                 calculaShowHide.txt = "Show buttons"
             }
             else {
-                calcula.activate()
+                // calcula.activate()
+                calcula.forEach(x => x.activate())
                 calculaShowHide.txt = "Hide buttons"
             }
             calculaShowHide.activate()
@@ -259,7 +264,8 @@ class GameShared extends GameCore {
                 }
             })
             if (!Spot.ALL.length) return
-            const targetY = this.HEIGHT * 0.5
+            const startZoom = this.zoomLevel
+            const targetY = this.HEIGHT - GRAPHICS.BOTTOM - GRAPHICS.SPOT_HEIGHT * 1.5
             this.isAcceptingInputs = false
             const lowestSpot = Math.max(...Spot.ALL.map(x => x.button.y))
             const dist = targetY - lowestSpot
@@ -269,7 +275,14 @@ class GameShared extends GameCore {
                 if (!this.canDrag) return
                 Spot.moveAll((t - lastT) * dist)
                 lastT = t
-            }, "", { add: game, on_end: () => this.isAcceptingInputs = true })
+                this.setZoom(Anim.interpol(startZoom, 1, t))
+            }, "", {
+                add: game, on_end: () => {
+                    this.isAcceptingInputs = true
+                    this.setZoom(1)
+                    this.zoomSlider.value = 1
+                }
+            })
         }
         this.bossShownFirstMessage = false
         sm.states.get(3).on_enter = () => {
@@ -283,6 +296,7 @@ class GameShared extends GameCore {
                 + ` minutes to fight each head.`
                 + `\n\nIf you run out of time, you CANNOT try that question again.`
                 + `\nSo choose the order in which you fight the heads carefully.`
+                + `\n\n(The fight will begin shortly.)`
             const p = GameEffects.popup(str, {
                 sizeFrac: [.8, .6], posFrac: [.5, .575], floatTime: RULES.BEFORE_BOSS_WAIT_TIME,
                 travelTime: 500,
@@ -535,14 +549,49 @@ class GameShared extends GameCore {
         // this.add_drawable(this.spotMall, 4)
         // this.spotMall.components = Spot.ALL
     }
+    zoomLevel = 1
+    setZoom(val) {
+        this.zoomLevel = val
+        this.w.worldRect.putOver(this.rect)
+        const origT = this.w.screenToWorldRect(this.bot).top
+        this.w.worldRect.stretch(val, val)
+        const newT = this.w.screenToWorldRect(this.bot).top
+        this.w.worldRect.move(0, origT - newT)
+
+    }
+    /**@type {?Slider} */
+    zoomSlider = null
+    initZoom() {
+        if (RULES.EDITOR) return
+        if (!GRAPHICS.ALLOW_ZOOM_SLIDER) return
+        const z = this.zoomSlider = new Slider(new Button({
+            width: 90, height: 36, rad: -NINETYDEG,
+            txt: "Zoom"
+        }))
+        z.lineSettings.width = 5
+        z.min = 1
+        z.max = GRAPHICS.ZOOM_MAXIMUM
+        z.leftX = z.rightX = this.WIDTH - GRAPHICS.ZOOM_SLIDER_RIGHT - z.movingButton.height / 2
+        z.leftY = this.HEIGHT - GRAPHICS.BOTTOM - 20 - z.movingButton.width / 2
+        z.rightY = 600
+        z.value = 1
+        z.isBlocking = true
+        z.on_value_change = (v) => this.setZoom(v)
+        this.add_drawable(z, 7)
+        em.on("boss", () => z.deactivate())
+        em.on("noboss", () => z.activate())
+    }
+
 
     startBossfight() {
         this.hotswap(this.heads)
+        this.w.worldRect.putOver(this.rect)
         this.canDrag = false
     }
 
     cancelBossfight() {
         this.hotswap(this.spire)
+        this.setZoom(this.zoomLevel)
         this.canDrag = true
     }
     minutes = Array.from(RULES.MINUTES)
@@ -563,8 +612,8 @@ class GameShared extends GameCore {
             const headsLeft = Spot.ALL.filter(x => !x.done).length - 1
             let str =
                 `You will have ${minutes[0]} minutes to fight this head.`
-                + `\nIf you fail, you CANNOT try again`
-                + `,\nand you will have less time for the following heads.`
+                + `\nIf you fail, you CANNOT try again.`
+                + `,\nYou will have less time for the following heads.`
             /*
             str += `\nAfter this fight, you will have `
             if (minutes.slice(1, -1).length == 1)
@@ -574,7 +623,7 @@ class GameShared extends GameCore {
             str += `${minutes.at(-1)} minutes for each head afterwards.`
             */
             str += `\n\nFight this head?`
-            cb = GameEffects.confirmBox(str, { sizeFrac: [.8, .6] }).promise()
+            cb = GameEffects.confirmBox(str, { sizeFrac: [.8, .5] }).promise()
                 .then(() => { cleanup(); this.acceptToCutHead(spot) })
                 .catch(() => { this.fullViewer.closesOnRelease = true })
                 .finally(() => cb = null)

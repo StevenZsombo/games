@@ -82,11 +82,19 @@ class Game extends GameShared {
             await this.selector(true)
         }
         chat.eggs("eval", eval)
+        chat.eggs("flush", () => {
+            const nameID = chat.nameID
+            const sessionID = localStorage.getItem("sessionID")
+            localStorage.clear()
+            nameID && localStorage.setItem("nameID", nameID)
+            sessionID && localStorage.setItem("sessionID", sessionID)
+            chat.delayedReload()
+        })
         Array.from(["wait", "plan", "climb"]).forEach(x => chat.eggs(x, () => em.emit(x)))
         // chat.eggs("skip", i => sm.skipTo(i)) //useless. localStorage takes care of it.
         em.on("full",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("full", spot.id).catch(bpop))
-        em.on("head",/**@param {Spot} spot */(spot) => chat.wee("head", spot.id).catch(bpop))
-        em.on("correct",/**@param {Spot} spot */(spot) => chat.wee("correct", spot.id).catch(bpop))
+        em.on("head",/**@param {Spot} spot */(spot) => spot.mask && chat.wee("head", spot.id).catch(bpop))
+        em.on("correct",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("correct", spot.id).catch(bpop))
         em.on("fail",/**@param {Spot} spot */(spot) => chat.wee("fail", spot.id).catch(bpop))
         em.on("boss", () => chat.wee("boss").catch(bpop))
         const badness = new Button({ width: 400, height: GRAPHICS.BOTTOM, x: this.WIDTH / 2, y: 0, color: "red", txt: "Lost connection..." })
@@ -94,7 +102,7 @@ class Game extends GameShared {
         this.initBCreceive()
     }
     async offlinePlay() {
-        !RULES.EDITOR && em.emit("climb")
+        !RULES.EDITOR && !RULES.FAKE && em.emit("climb")
     }
 
 

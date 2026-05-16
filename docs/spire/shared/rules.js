@@ -52,6 +52,10 @@ const GRAPHICS = {
     BOTTOM: 125,
     SHOW_PLAYERS_RIGHT: 180,
 
+    ALLOW_ZOOM_SLIDER: true,
+    ZOOM_SLIDER_RIGHT: 20,
+    ZOOM_MAXIMUM: 3,
+
     DRAG_COEFF: 0, //can be null or zero.
     DRAG_BUT_NO_CLICK_THRESHOLD: location.hash.includes("drag") ? 500 : 100,
 

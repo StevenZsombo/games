@@ -242,15 +242,14 @@ class Rect {
 	}
 
 	zoom(x, y, factorX, factorY) {
-		const newWidth = this.width * factorX
-		const newHeight = this.height * factorY
-		const dx = (x - this.x) * (factorX - 1)
-		const dy = (y - this.y) * (factorY - 1)
-		this.x -= dx
-		this.y -= dy
-		this.width = newWidth
-		this.height = newHeight
+		const fracX = (x - this.x) / this.width
+		const fracY = (y - this.y) / this.height
+		this.width *= factorX
+		this.height *= factorY
+		this.x = x - this.width * fracX
+		this.y = y - this.height * fracY
 	}
+
 
 	spread(x, y, spreadFactorX, spreadFactorY) {
 		//spread out, similar to enlargement, from center point x,y
@@ -1149,7 +1148,7 @@ class Malleable {
 	}
 
 	check(...params) {
-		if (!this.visible) return
+		if (!this.interactable) return
 		let anyBlock = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
 			anyBlock = (this.components[i]?.check?.(...params) && this.components[i].isBlocking) || anyBlock
@@ -1164,7 +1163,7 @@ class Malleable {
 	}
 
 	draw(screen) {
-		if (!this.interactable) return
+		if (!this.visible) return
 		for (let c of this.components) {
 			c.draw?.(screen)
 		}
@@ -1192,10 +1191,15 @@ class Malleable {
 	[Symbol.iterator]() { return this.components[Symbol.iterator](); }
 
 
-	activate() { this.components.forEach(x => x.activate?.()) }
-	deactivate() { this.components.forEach(x => x.deactivate?.()) }
-	/**@param {Boolean} bool*/
-	set activeState(bool) { this.components.forEach(x => x.activeState = bool) }
+	// activate() { this.components.forEach(x => x.activate?.()) }
+	// deactivate() { this.components.forEach(x => x.deactivate?.()) }
+	// /**@param {Boolean} bool*/
+	// set activeState(bool) { this.components.forEach(x => x.activeState = bool) }
+	activate() { this.visible = this.interactable = true }
+	deactivate() { this.visible = this.interactable = false }
+	// /**@param {Boolean} bool*/
+	set activeState(bool) { this.visible = this.interactable = bool }
+	toggleActive() { this.visible = this.interactable = !this.visible }
 	destroy() {
 		game?.remove_drawable(this)
 	}
