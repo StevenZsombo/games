@@ -1,5 +1,6 @@
 const listener = new Listener()
 chat = listener.chat
+const ob = new Observatory()
 const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
 const RELOAD = () => chat.spam("eval", "chat.delayedReload()")
 class Person extends Participant {
@@ -41,12 +42,27 @@ class Game extends GameShared {
             (emoji, person) => person.enter(emoji))
         chat.eggs("full",/**@param {number} id @param {Person} person */
             (id, person) => person.full = id)
-        chat.eggs("head",/**@param {number} id @param {Person} person */
-            (id, person) => person.headed.add(id))
+        this.spire.forEach(s => s.solvedList = new Set())
         chat.eggs("correct",/**@param {number} id @param {Person} person */
-            (id, person) => (id != null) && person.solved.add(id))
+            (id, person) => {
+                if (id == null) return
+                person.solved.add(id)
+                this.spire[id].solvedList.add(person)
+            })
+        this.heads.forEach(s => s.headedList = new Set())
+        chat.eggs("head",/**@param {number} id @param {Person} person */
+            (id, person) => {
+                if (id == null) return
+                person.headed.add(id)
+                this.heads[id].headedList.add(person)
+            })
+        this.heads.forEach(s => s.failedList = new Set())
         chat.eggs("fail",/**@param {number} id @param {Person} person */
-            (id, person) => (id != null) && person.failed.add(id))
+            (id, person) => {
+                if (id == null) return
+                person.failed.add(id)
+                this.heads[id].failedList.add(person)
+            })
         chat.eggs("boss",/**@param {number} id @param {Person} person */
             (_, person) => person.boss = true)
         chat.eggs("taken", () => ({
@@ -55,6 +71,7 @@ class Game extends GameShared {
         }))
 
         this.initServerStats()
+        this.initBCreceive(true)
         this.initBroadcasts()
     }
     //#endregion
@@ -116,13 +133,25 @@ class Game extends GameShared {
 
 
     initBroadcasts() {
-        const ob = new Observatory()
-        this.spire.forEach(x => ob.createItem("s" + x.id, ""))
-        this.heads.forEach(x => ob.createItem("f" + x.id, ""))
-        this.heads.forEach(x => ob.createItem("h" + x.id, ""))
+        this.updateBroadcasts()
+        this.BCint = setInterval(() => this.updateBroadcasts(), RULES.SERVER_BROADCAST_INTERVAL)
     }
 
     updateBroadcasts() {
+        const players = listener.personsAsArray.filter(x => x.emoji)
+
+        /*const s = this.spire.map(x => players.filter(p => p.solved.has(x.id)).map(p => p.emoji).join(""))
+        const h = this.heads.map(x => players.filter(p => p.headed.has(x.id)).map(p => p.emoji).join(""))
+        const f = this.heads.map(x => players.filter(p => p.failed.has(x.id)).map(p => p.emoji).join(""))
+        */
+        const s = this.spire.map(x => Array.from(x.solvedList).map(p => p.emoji).join(""))
+        const h = this.heads.map(x => Array.from(x.headedList).map(p => p.emoji).join(""))
+        const f = this.heads.map(x => Array.from(x.failedList).map(p => p.emoji).join(""))
+        const obj = { s, h, f }
+        chat.spam("bc", obj)
+        this.lastBC = obj
+
+        this.receiveBroadcast(obj)
 
     }
 

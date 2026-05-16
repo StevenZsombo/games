@@ -2,8 +2,8 @@ const RULES = {
     EDITOR: location.hash.includes("editor"),
     FAKE: location.hash.includes("editor") || location.hash.includes("fake"),
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
-    DEMO: "../questions/demo.json", //can be null
-    DEMOHEADS: "../questions/demoHeads.json", //can be null
+    DEMO: "../questions/spire.json", //can be null
+    DEMOHEADS: "../questions/heads.json", //can be null
 
     STUDENTS: ["Aziz", "Darren", "Blake", "Vamsi", "Steven", "Fritz", "Alain", "other1", "other2"],
     EMOJIS: Array.from("🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🐋🦈🐊🦕🦖🐪🐫🦒🐘"),
@@ -21,6 +21,8 @@ const RULES = {
 
     SCROLLWHEEL_SPEED: 40,
     SKIP_INTRO: location.hash.includes("editor") || location.hash.includes("skip"),
+
+    SERVER_BROADCAST_INTERVAL: 1000,
 
 
 }
@@ -55,5 +57,8 @@ const GRAPHICS = {
     FONT_SMALL: 32,
 
     BOSS_color: "lightblue",
+
+    EMOS_FONTSIZE: 40,
+    EMOS_BREAK: 8,
 
 }

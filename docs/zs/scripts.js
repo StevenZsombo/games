@@ -655,6 +655,7 @@ class Button extends Clickable {
 		this.font_color = "black"
 		this.font_font = "mySerif" //can override from CSS
 		this.fontScale = 1
+		/**@type {{textBaseline:"top"|"middle"|"bottom",textAlign:"left"|"right"|"center"}} */
 		this.textSettings = {}
 		this.outline = 2
 		this.outline_color = "black"
@@ -1024,6 +1025,7 @@ class Button extends Clickable {
 
 			}
 		)
+		return button
 	}
 
 

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: system-ui; padding: 20px; }
+        textarea, button, div { margin: 10px 0; display: block; }
+        textarea { width: 100%; height: 100px; font-size: 20px; }
+        div { min-height: 100px; border: 1px solid #ccc; padding: 10px; font-size: 32px; word-break: break-all; }
+        .missing { background-color: #ffebee; border-radius: 4px; display: inline-block; min-width: 1em; text-align: center; }
+    </style>
+</head>
+<body>
+    <textarea placeholder="Type something here... e.g., Hello 🐶🐱 你好 αβγ"></textarea>
+    <button id="loadFont">Load Font File</button>
+    <div id="output"></div>
+
+    <script>
+        const textarea = document.querySelector('textarea')
+        const output = document.getElementById('output')
+        const button = document.getElementById('loadFont')
+        
+        let currentFont = 'system-ui'
+        let fontCheckCanvas = null
+
+        // Create canvas for font glyph detection
+        function getFontChecker() {
+            if (!fontCheckCanvas) {
+                fontCheckCanvas = document.createElement('canvas')
+                fontCheckCanvas.width = 100
+                fontCheckCanvas.height = 50
+            }
+            return fontCheckCanvas.getContext('2d')
+        }
+
+        // Check if a character exists in the current font
+        function hasGlyph(char, fontFamily) {
+            const ctx = getFontChecker()
+            const fallbackFont = 'monospace'
+            
+            // Measure with target font
+            ctx.font = `48px "${fontFamily}", ${fallbackFont}`
+            const targetWidth = ctx.measureText(char).width
+            
+            // Measure with fallback only (to detect if font provided the glyph)
+            ctx.font = `48px ${fallbackFont}`
+            const fallbackWidth = ctx.measureText(char).width
+            
+            // Different width usually means the font has the glyph
+            // Also check for zero-width (missing glyph indicator)
+            return targetWidth !== fallbackWidth && targetWidth > 0
+        }
+
+        // Process text, replacing missing characters with placeholders
+        function processText(text, fontFamily) {
+            if (!text) return ''
+            
+            const result = []
+            const chars = [...text] // Handle emojis correctly
+            
+            for (const char of chars) {
+                if (hasGlyph(char, fontFamily)) {
+                    result.push(char)
+                } else {
+                    // Create placeholder element
+                    const span = document.createElement('span')
+                    span.className = 'missing'
+                    span.textContent = '?'
+                    span.title = `Character "${char}" not supported by font`
+                    span.style.display = 'inline-block'
+                    result.push(span)
+                }
+            }
+            
+            return result
+        }
+
+        function updateDisplay() {
+            const text = textarea.value
+            const processed = processText(text, currentFont)
+            
+            // Clear and rebuild output
+            output.innerHTML = ''
+            for (const item of processed) {
+                if (typeof item === 'string') {
+                    output.appendChild(document.createTextNode(item))
+                } else {
+                    output.appendChild(item)
+                }
+            }
+        }
+
+        textarea.addEventListener('input', updateDisplay)
+
+        button.addEventListener('click', async () => {
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = '.ttf,.otf,.woff,.woff2'
+            
+            input.onchange = async (e) => {
+                const file = e.target.files[0]
+                if (!file) return
+                
+                const fontName = `customFont_${Date.now()}`
+                const buffer = await file.arrayBuffer()
+                const font = new FontFace(fontName, buffer)
+                
+                try {
+                    await font.load()
+                    document.fonts.add(font)
+                    currentFont = fontName
+                    output.style.fontFamily = `"${fontName}", system-ui, monospace`
+                    updateDisplay()
+                    console.log(`Loaded: ${file.name}`)
+                } catch (err) {
+                    console.error('Font load failed:', err)
+                    alert('Could not load font file')
+                }
+            }
+            
+            input.click()
+        })
+
+        // Initial render
+        updateDisplay()
+    </script>
+</body>
+</html>

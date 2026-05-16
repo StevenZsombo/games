@@ -6,8 +6,6 @@ class GameShared extends GameCore {
         spotMall.isBlocking = true
         this.add_drawable(spotMall, 4)
         this.initData()
-        this.initSpire()
-        this.initBossfight()
         this.initEditor()
         this.initFake()
         this.bot = new Button({
@@ -379,7 +377,7 @@ class GameShared extends GameCore {
                 const b = x.button
                 if (MM.between(b.bottom, ct, cb) || MM.between(b.top, ct, cb)) {
                     x.button.centeratY(cy)
-                    x.label.centeratY(cy)
+                    // x.label.centeratY(cy)
                 }
             })
         }
@@ -406,13 +404,13 @@ class GameShared extends GameCore {
             const spot = this.findSpotOnMouse(); if (!spot) return
             if (MM.between(this.rect.cx, spot.button.left, spot.button.right)) {
                 spot.button.centeratX(this.rect.cx)
-                spot.label.centeratX(this.rect.cx)
+                // spot.label.centeratX(this.rect.cx)
                 return
             }
             const other = new Spot(null, spot.button.x, spot.button.y)
             const where = this.WIDTH - spot.button.centerX
             other.button.centeratX(where)
-            other.label.centeratX(where)
+            // other.label.centeratX(where)
         }
 
 
@@ -484,18 +482,7 @@ class GameShared extends GameCore {
         })()
     }
 
-    initSpire() {
 
-    }
-
-    initBossfight() {
-
-
-        /*const bossBG = this.bossBG = Button.fromRectShallow(this.rect, {
-            isBlocking: true
-        })*/
-
-    }
 
     hotswap(spotArr) {
         // this.remove_drawable(this.spotMall)
@@ -598,4 +585,30 @@ class GameShared extends GameCore {
         }
     }
 
+
+
+
+    emosToLines(emos) {
+        return MM.reshape([...emos], GRAPHICS.EMOS_BREAK).map(x => x.join("")).join("\n")
+    }
+    initBCreceive(doNotAddEggs = false) {
+        this.spire.concat(this.heads).forEach((x, _) => {
+            x.emos = ""
+            const b = x.emoButton = Button.fromRectShallow(x.button)
+            b.textSettings.textAlign = "left"
+            b.textSettings.textBaseline = "top"
+            b.transparent = true
+            b.fontSize = GRAPHICS.EMOS_FONTSIZE
+            b.topat(x.button.bottom)
+            x.button.anchor_list.push(b)
+            b.dynamicText = () => x.emos
+            x.push(b)
+        })
+        !doNotAddEggs && chat.eggs("bc", bc => this.receiveBroadcast(bc))
+    }
+
+    receiveBroadcast(bc) {
+        bc.s.forEach((x, i) => this.spire[i].emos = this.emosToLines(x))
+        bc.h.forEach((x, i) => this.heads[i].emos = this.emosToLines(x))
+    }
 }

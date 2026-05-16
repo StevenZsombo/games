@@ -51,7 +51,7 @@ class Spot extends Malleable {
         this.id = id ?? Spot.ALL.length
         Spot.ALL.push(this)
 
-        const button = this.button = new Button({
+        const button = new Button({
             x, y,
             width: GRAPHICS.SPOT_WIDTH, height: GRAPHICS.SPOT_HEIGHT,
             imgScale: 0,
@@ -69,8 +69,9 @@ class Spot extends Malleable {
         })
         if (RULES.EDITOR) {
             Button.make_draggable(button)
-            Button.make_draggable(label)
+            // Button.make_draggable(label)
         }
+        this.button = Button.make_anchor(button, [label])
         this.push(button, label)
 
         /**@type {Set<Spot>} */
@@ -218,7 +219,8 @@ class Spot extends Malleable {
     }
     static moveAll(byHowMuch) {
         if (!byHowMuch) return
-        Spot.ALL.forEach(x => x.forEach(y => y.move(0, byHowMuch)))
+        // Spot.ALL.forEach(x => x.forEach(y => y.move(0, byHowMuch)))
+        Spot.ALL.forEach(x => x.button.move(0, byHowMuch))
 
     }
     disconnect() {

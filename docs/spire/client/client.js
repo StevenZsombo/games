@@ -10,7 +10,7 @@ class Game extends GameShared {
         this.initShared()
         await this.hasRetrievedData
 
-        if (univ.isOnline) this.onlinePlay()
+        if (univ.isOnline) await this.onlinePlay()
         else this.offlinePlay()
 
         if (RULES.SAVE_AGGRESSIVELY) {
@@ -28,7 +28,7 @@ class Game extends GameShared {
     //#endregion
 
     async selector(emojiOnly = false) {
-        const takenAll = (await chat.wee("taken"))
+        const takenAll = (await chat.wee("taken").catch(bpop))
         if (!emojiOnly) {
             const nnn = GameEffects.nameSelect(RULES.STUDENTS)
             nnn.buts.forEach(x => takenAll.names.includes(x.tag) && x.deactivate())
@@ -55,17 +55,19 @@ class Game extends GameShared {
         this.bot.font_font = "mySerif"
         const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
         await chat.asapPromise()
+        chat.checkIfTooOld()
         this.me = localStorage.getItem("spireIcon")
         chat.eggs("emo", () => this.selector())
         while (1) {
             if (!this.me) await this.selector()
-            const good = await chat.wee("enter", this.me)
+            const good = await chat.wee("enter", this.me).catch(bpop)
             if (good) break
             GameEffects.popup("That icon has been taken - choose a different one.")
             await this.selector(true)
         }
         chat.eggs("eval", eval)
         Array.from(["wait", "plan", "climb"]).forEach(x => chat.eggs(x, () => em.emit(x)))
+        // chat.eggs("skip", i => sm.skipTo(i)) //useless. localStorage takes care of it.
         em.on("full",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("full", spot.id).catch(bpop))
         em.on("head",/**@param {Spot} spot */(spot) => chat.wee("head", spot.id).catch(bpop))
         em.on("correct",/**@param {Spot} spot */(spot) => chat.wee("correct", spot.id).catch(bpop))
@@ -73,10 +75,13 @@ class Game extends GameShared {
         em.on("boss", () => chat.wee("boss").catch(bpop))
         const badness = new Button({ width: 400, height: GRAPHICS.BOTTOM, x: this.WIDTH / 2, y: 0, color: "red", txt: "Lost connection..." })
         chat.on_disconnect = () => badness.activate(); chat.on_join = () => badness.deactivate()
+        this.initBCreceive()
     }
     async offlinePlay() {
         em.emit("climb")
     }
+
+
 
     saveToLocal() {
         const tempSaveData = {
