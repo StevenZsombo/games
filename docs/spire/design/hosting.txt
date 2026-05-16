@@ -9,7 +9,9 @@ Spire map:
 localhost/spire/client/client.html#editor
 in any non-Safari browser. Then use the editor. Press "X" for help.
 Any spot that has nothing leading to it will be available at the start, put these at the bottom.
-The Hydra must be at the top (mark with "B"), with at lest one path leading to it.
+The Hydra must be at the top (mark with "B").
+Each question will show two lines: solution, filename.
+Do NOT include the solution in the filename, as the students might see that.
 Export map data with "O". Export/import frequently so you don't lose progress. ("O"/"I")
 
 Step 3.
@@ -17,6 +19,7 @@ Hydra map for the bossfight:
 Same thing, except that each question must have a covered/uncovered copy.
 Set the covered copy as the base question with "Q".
 Set the uncovered copy with "U".
+Every question will show three lines: solution, covered filename, [uncovered filename] in that order.
 Export map data with "H". Export/import frequently so you don't lose progress. ("H"/"I")
 
 Step 4.
