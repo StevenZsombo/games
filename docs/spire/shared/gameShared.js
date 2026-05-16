@@ -354,22 +354,22 @@ class GameShared extends GameCore {
             this.bot.color = "purple"
             GameEffects.fireworksShow()
         }
+        em.on("boss", () => this.background?.activate())
+        em.on("noboss", () => this.background?.deactivate())
     }
 
 
-    importALL(data) {
+    async importALL(data) {
         const doit = data => Spot.fromJSONall(data)
-        new Promise(resolve =>
-            data ? resolve(data) : MM.importJSON().then(resolve)
-        ).then(data => {
-            doit(data)
-            if (!RULES.ALLOW_BACKGROUND) return
-            const bg = data.find(x => x.bg != null)
-            if (bg) this.loadBackground(bg)
-        })
-
+        data ??= await MM.importJSON()
+        doit(data)
+        if (!RULES.ALLOW_BACKGROUND) return
+        const bgData = data.find(x => x.bg != null)
+        if (bgData) this.loadBackground(bgData)
     }
-    async loadBackground({ bg, x = 0, y = 0 }) {
+
+
+    async loadBackground({ bg, x = 0, y = 0, width, height }) {
         if (!bg) return
         if (bg.endsWith(".png")) bg = bg.slice(0, -4)
         this.w.remove_drawable(this.background) //if any.
@@ -377,19 +377,22 @@ class GameShared extends GameCore {
         this.background = new Button({
             transparent: true, interactable: false,
             x, y,
-            imgScale: 1, width: img.width, height: img.height,
+            imgScale: 0, width: width ?? img.width, height: height ?? img.height,
             tag: bg
         })
         this.background.img = img
         this.w.add_drawable(this.background, 2)
+        !RULES.EDITOR && this.background.deactivate()
     }
 
     exportALL(name = "spire") {
         const others = []
         if (this.background) others.push({
-            bg: this.background.tag, x: this.background.x, y: this.background.y
+            bg: this.background.tag,
+            x: this.background.x, y: this.background.y,
+            width: this.background.width, height: this.background.height
         })
-        const out = JSON.stringify(others.concat(Spot.ALL))
+        const out = JSON.stringify(others.concat(...Spot.ALL))
         MM.downloadFile(out, name + MM.lettersAndNumberOnly(MM.dateAndTime()) + ".json")
     }
     exportAsHeads() {
@@ -398,7 +401,7 @@ class GameShared extends GameCore {
 
     /**@returns {Spot} */
     findSpotOnMouse() {
-        return Spot.ALL.find(s => s.button.collidepoint(this.mouser.x, this.mouser.y))
+        return [...Spot.ALL].reverse().find(s => this.w.worldToScreenRect(s.button).collidepoint(this.mouser.x, this.mouser.y))
     }
     initEditor() {
         if (!RULES.EDITOR) return
@@ -502,6 +505,24 @@ class GameShared extends GameCore {
             this.w.remove_drawable(this.background)
             this.background = null
         }
+        /*let resizeBase = null
+        let resW, resH
+        this.keyboarder.on_keydownDict["3"] = () => {
+            resizeBase = this.mouser.y
+            resW = this.background.width
+            resH = this.background.height
+        }
+        this.keyboarder.on_keyheldDict["3"] = () => {
+            if (!resizeBase || resW) return
+            if (!this.background) return
+            const diff = this.mouser.y - resizeBase
+            const scale = 1 - Math.atan(diff) * 100
+            this.background.resize(resW * scale, resH * scale)
+        }
+        this.keyboarder.on_keyupDict["3"] = () => resizeBase = null*/
+        this.keyboarder.on_keyheldDict["3"] = () => { this.background?.stretch(1.05, 1.05) }
+        this.keyboarder.on_keyheldDict["4"] = () => { this.background?.stretch(1 / 1.05, 1 / 1.05) }
+        this.keyboarder.on_keydownDict["z"] = () => { this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1) }
 
 
         const e = this.editorHelper = new Button()
@@ -516,7 +537,7 @@ class GameShared extends GameCore {
             + "T:tap(mimic user input),G:guess(mimic user guess),"
             + "D:disconnect,R:remove,B:boss(mark as the hydra),U:uncovered(bossfight question),,"
             + "I:input(import),O:output(export),H:heads(export as heads),"
-            + "1:set BG,2:move BG,8:remove BG,0: null(erase all), X: show / hide these hints")
+            + "1:set BG,2:move BG,3/4:zoom BG,8:remove BG,0:null(erase all),Z:reset zoom, X: show / hide these hints")
             .split(",").map(x => x.trim()).join("\n")
         e.visible = false
         this.add_drawable(e, 9)
@@ -584,12 +605,12 @@ class GameShared extends GameCore {
             if (!RULES.EDITOR) {
                 try {
                     const headsData = await fetch(RULES.DEMOHEADS).then(x => x.json())
-                    this.importALL(headsData)
+                    await this.importALL(headsData)
                     this.heads = [].concat(Spot.ALL)
 
                     const spireData = await fetch(RULES.DEMO).then(x => x.json())
                     Spot.ALL.length = 0
-                    this.importALL(spireData)
+                    await this.importALL(spireData)
                     this.spire = [].concat(Spot.ALL)
 
                     console.log({ spire: this.spire, heads: this.heads })

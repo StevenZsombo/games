@@ -42,7 +42,6 @@ sm.skipTo = (i) => {
  */
 
 class Spot extends Malleable {
-    isBlocking = true
     /**@type {Spot[]} */
     static ALL = []
     constructor(id = null, x = MM.random(200, 1700), y = MM.random(200, 800)) {
@@ -51,6 +50,8 @@ class Spot extends Malleable {
         this.id = id ?? Spot.ALL.length
         Spot.ALL.push(this)
 
+
+        this.isBlocking = true
         const button = new Button({
             x, y,
             width: GRAPHICS.SPOT_WIDTH, height: GRAPHICS.SPOT_HEIGHT,
@@ -65,6 +66,7 @@ class Spot extends Malleable {
             color: GRAPHICS.SPOT_COLOR_HIDDEN,
             fontSize: GRAPHICS.FONT_BIG,
             isBlocking: false,
+            interactable: false,
             spot: this
         })
         if (RULES.EDITOR) {
@@ -211,8 +213,7 @@ class Spot extends Malleable {
             x.below.forEach(k => spot.below.add(Spot.ALL[k]))
             if (x.isHydra) spot.makeHydra()
         })
-        if (RULES.EDITOR) Spot.ALL.forEach(x => x.label.txt = x.isHydra ? "Hydra" :
-            "" + x.sol + (x.mask ? `\n[${x.mask}]` : ""))
+        if (RULES.EDITOR) Spot.ALL.forEach(x => x.label.txt = x.getEditorText())
     }
     getEditorText() {
         return this.isHydra ? "Hydra"
@@ -224,7 +225,7 @@ class Spot extends Malleable {
         if (!byHowMuch) return
         // Spot.ALL.forEach(x => x.forEach(y => y.move(0, byHowMuch)))
         Spot.ALL.forEach(x => x.button.move(0, byHowMuch))
-        game.background?.move(0, byHowMuch) //bad coupling, but whatevs
+        RULES.EDITOR && game.background?.move(0, byHowMuch) //bad coupling, but whatevs
 
     }
     disconnect() {
