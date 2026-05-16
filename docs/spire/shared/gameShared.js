@@ -82,7 +82,8 @@ class GameShared extends GameCore {
             color: GRAPHICS.SPOT_COLOR,
             /**@param {Spot} spot  */
             open(spot) {
-                this.spot = spot, this.img = spot.button.img; this.activate();
+                this.spot = spot
+                this.img = spot.button.img; this.activate(); sp.deactivate();
                 game.lastVisitedID = spot.id
                 em.emit("full", spot)
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
@@ -90,7 +91,8 @@ class GameShared extends GameCore {
                 else if (spot.canMoveTo && !spot.mask) calculaAnimate()
             },
             close() {
-                this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); this.spot = null;
+                this.spot = null
+                this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); sp.activate();
                 calcula.ans.txt = ""
                 calculaShowHide.txt = "Hide buttons"
             },
@@ -168,6 +170,17 @@ class GameShared extends GameCore {
                 ditch: true, add: game,
             })
         }
+
+
+        const sp = this.showPlayers = new Button({
+            width: GRAPHICS.SHOW_PLAYERS_RIGHT, height: this.HEIGHT, y: 0,
+            fontSize: GRAPHICS.FONT_TINY,
+            transparent: true
+        })
+        sp.textSettings.textAlign = "left"
+        sp.textSettings.textBaseline = "top"
+        sp.rightat(this.rect.right)
+        this.add_drawable(sp, 7)
 
 
 
@@ -610,5 +623,6 @@ class GameShared extends GameCore {
     receiveBroadcast(bc) {
         bc.s.forEach((x, i) => this.spire[i].emos = this.emosToLines(x))
         bc.h.forEach((x, i) => this.heads[i].emos = this.emosToLines(x))
+        this.receiveBroadcastClientExtras?.(bc)
     }
 }

@@ -960,7 +960,7 @@ class Participant {
     static get ALL() { return this._ALL } //can't be replaced.
 
     /**@param {Listener} listener  */
-    constructor(listener, nameID, { name, connected, connectedAddress }) {
+    constructor(listener, nameID, { name, connected, connectedAddress } = {}) {
         this.listener = listener
         if (!nameID || Participant.ALL.has(nameID)) throw new Error(nameID ? "nameID already exists" : "invalid nameID")
         Participant.ALL.set(nameID, this)

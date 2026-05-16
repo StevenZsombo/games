@@ -1,14 +1,28 @@
+{
+
+    window.___spire = "spire.json"
+
+    window.___heads = "heads.json"
+
+    window.___students = "Aziz,Darren,Blake,Vamsi,Steven,Fritz,Alain,other1,other2"
+
+    window.___minutes = [3, 2, 1]
+
+}
+
 const RULES = {
     EDITOR: location.hash.includes("editor"),
     FAKE: location.hash.includes("editor") || location.hash.includes("fake"),
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
-    DEMO: "../questions/spire.json", //can be null
-    DEMOHEADS: "../questions/heads.json", //can be null
+    DEMO: "../questions/" + window.___spire, //can be null
+    DEMOHEADS: "../questions/" + window.___heads, //can be null
 
-    STUDENTS: ["Aziz", "Darren", "Blake", "Vamsi", "Steven", "Fritz", "Alain", "other1", "other2"],
-    EMOJIS: Array.from("🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🐋🦈🐊🦕🦖🐪🐫🦒🐘"),
+    STUDENTS: window.___students.split(","),
+    EMOJIS: Array.from(
+        "🐶🐱🐭🐹🐰🦊🐻🐼🐨🐸🐒🐔🐧🐦🐤🐣🐥🐺🐗🐴🦄🐝🐛🦋🦉🐌🐞🐜🦟🦗🐢🐍🦎🐙🦐🦀🐠🐟🐡🐬🐳🦈🐊🦕🦖🐪🦘🦒🐘"
+    ),
 
-    MINUTES: [0.2, 0.1, 0.05],
+    MINUTES: window.___minutes,
     BEFORE_BOSS_WAIT_TIME: 8_000,
 
     QUESTION_FOLDER: "../questions/",
@@ -48,6 +62,7 @@ const GRAPHICS = {
 
 
     BOTTOM: 125,
+    SHOW_PLAYERS_RIGHT: 180,
 
     DRAG_COEFF: 0, //can be null or zero.
     DRAG_BUT_NO_CLICK_THRESHOLD: location.hash.includes("drag") ? 500 : 100,
@@ -55,6 +70,7 @@ const GRAPHICS = {
     FONT_BIG: 64,
     FONT_MEDIUM: 48,
     FONT_SMALL: 32,
+    FONT_TINY: 24,
 
     BOSS_color: "lightblue",
 

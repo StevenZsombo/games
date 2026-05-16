@@ -8,7 +8,7 @@ class Game extends GameShared {
         /*if (!RULES.EDITOR) GameEffects.clickMeFourTimes().then(() => this.initShared())
         else this.initShared()*/
         if (location.hash.includes("flush")) localStorage.clear()
-        if (!RULES.EDITOR && !RULES.SKIP_INTRO) GameEffects.clickMeFourTimes()
+        if (!RULES.EDITOR && !RULES.SKIP_INTRO && !localStorage.getItem("spireSave")) GameEffects.clickMeFourTimes()
         this.initShared()
         await this.hasRetrievedData
 
@@ -65,11 +65,16 @@ class Game extends GameShared {
             if (!this.me) await this.selector()
             const resp = await chat.wee("enter", this.me).catch(bpop)
             if (resp.sessionID !== sessionID) {
+                const nameID = chat.nameID
                 localStorage.clear()
                 localStorage.setItem("sessionID", resp.sessionID)
+                localStorage.setItem("nameID", nameID)
                 chat.delayedReload()
             }
-            if (resp.good) break
+            if (resp.good) {
+                sm.skipTo(resp.state)
+                break
+            }
             GameEffects.popup("That icon has been taken - choose a different one.")
             await this.selector(true)
         }
@@ -134,13 +139,6 @@ class Game extends GameShared {
             this.remove_drawables_batch(...this.layersFlat.filter(x => x.tag == "popup")))
     }
 
-
-    ///end initialize_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ///                                         ^^^^INITIALIZE^^^^                                                   ///
-    ///                                                                                                              ///
-    ///                                               UPDATE                                                         ///
-    /// start update_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    //#region update_more
     dtSin = 0
     gentleSin = 1
     update_more(dt) {
@@ -153,40 +151,12 @@ class Game extends GameShared {
 
     }
 
-    //#endregion
-    ///end update_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ///                                           ^^^^UPDATE^^^^                                                     ///
-    ///                                                                                                              ///
-    ///                                                DRAW                                                          ///
-    ///start update_more::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    //#region draw_more
+    draw_more(screen) { }
+    next_loop_more() { }
 
-    draw_more(screen) {
-
-
-
-
-
-
+    receiveBroadcastClientExtras(bc) {
+        this.showPlayers.txt = "Players:\n" + bc.n.join("\n")
     }
-    //#endregion
-    ///end draw_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ///                                            ^^^^DRAW^^^^                                                      ///
-    ///                                                                                                              ///
-    ///                                              NEXT_LOOP                                                       ///
-    ///start next_loop_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    //#region next_loop_more
-    next_loop_more() {
-
-
-
-
-    }//#endregion
-    ///end next_loop_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ///                                          ^^^^NEXT_LOOP^^^^                                                   ///
-    ///                                                                                                              ///
-    ///                                                                                                              ///
-    /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 } //this is the last closing brace for class Game
 

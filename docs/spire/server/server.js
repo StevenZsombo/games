@@ -14,6 +14,7 @@ class Person extends Participant {
             resp.good = true
         }
         resp.sessionID = sessionID
+        resp.state = sm.currentKey
         return resp
     }
     initialize() {
@@ -23,6 +24,7 @@ class Person extends Participant {
         this.failed = new Set()
         this.boss = false
     }
+    get pretty() { return `${this.emoji} ${this.name}` }
 }
 
 class Game extends GameShared {
@@ -70,7 +72,7 @@ class Game extends GameShared {
         chat.eggs("boss",/**@param {number} id @param {Person} person */
             (_, person) => person.boss = true)
         chat.eggs("taken", () => ({
-            names: listener.personsAsArray.map(x => x.name) || [],
+            names: listener.personsAsArray.filter(x => x.emoji).map(x => x.name) || [],
             emo: listener.personsAsArray.map(x => x.emoji).join("") || ""
         }))
 
@@ -91,10 +93,11 @@ class Game extends GameShared {
         stats.fontSize = 24
 
         stats.dynamicText = () => MM.tableStr(
-            listener.personsAsArray.map(x => [x.emoji, x.name, x.boss,
-            ...[x.solved, x.headed, x.failed].map(u => Array.from(u).join(","))
+            listener.personsAsArray.map(x => [x.emoji, x.name, x.boss ? "✔️" : "...",
+            ...[x.solved, x.headed, x.failed].map(u => Array.from(u).join(",")),
+            `  ${x.headed.size}+${x.solved.size}`
             ])
-            , ["icon", "player", "boss?", "solved", "headed", "failed"], 3)
+            , ["icon", "player", "boss?", "solved", "headed", "failed", "  progress"], 1)
 
 
         const statsShowHide = Button.fromButton(this.fake)
@@ -117,6 +120,7 @@ class Game extends GameShared {
     playersMenu() {
         const parr = listener.personsAsArray.map(x => [x.name, () => this.individualMenu(x)])
         parr.push(["RELOAD everyone", RELOAD])
+        parr.push(["FLUSH leftovers", () => listener.persons.clear()])
         const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 400 } })
         ddm.autoClose()
     }
@@ -147,18 +151,17 @@ class Game extends GameShared {
         this.updateBroadcasts()
         this.BCint = setInterval(() => this.updateBroadcasts(), RULES.SERVER_BROADCAST_INTERVAL)
     }
-
     updateBroadcasts() {
-        const players = listener.personsAsArray.filter(x => x.emoji)
-
+        const players = listener.personsAsArray.filter(x => x.emoji).sort((a, b) =>
+            b.headed.size - a.headed.size || b.solved.size - a.solved.size)
         /*const s = this.spire.map(x => players.filter(p => p.solved.has(x.id)).map(p => p.emoji).join(""))
         const h = this.heads.map(x => players.filter(p => p.headed.has(x.id)).map(p => p.emoji).join(""))
-        const f = this.heads.map(x => players.filter(p => p.failed.has(x.id)).map(p => p.emoji).join(""))
-        */
+        const f = this.heads.map(x => players.filter(p => p.failed.has(x.id)).map(p => p.emoji).join(""))        */
         const s = this.spire.map(x => Array.from(x.solvedList).map(p => p.emoji).join(""))
         const h = this.heads.map(x => Array.from(x.headedList).map(p => p.emoji).join(""))
         const f = this.heads.map(x => Array.from(x.failedList).map(p => p.emoji).join(""))
-        const obj = { s, h, f }
+        const n = players.map(x => x.pretty)
+        const obj = { s, h, f, n }
         chat.spam("bc", obj)
         this.lastBC = obj
 
