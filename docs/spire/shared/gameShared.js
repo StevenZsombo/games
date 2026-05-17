@@ -733,12 +733,13 @@ class GameShared extends GameCore {
         this.fullViewer.img = spot.maskIMG
         this.fullViewer.closesOnRelease = false
         this.calculaAnimate()
-        /**@type {Button & {cleanup:Function(),renew():Function(),secondsLeft:number}} */
+        /**@type {Button & {cleanup:Function(),renew():Function(),secondsLeft:number,endsAt:number}} */
         const timer = this.timer = Button.fromRectShallow(this.offerer)
         timer.bottomat(this.HEIGHT)
         timer.dynamicColor = () => `rgba(20,20,150,${.7 * (1 + (this.gentleSin - 1) * 2)})`
         timer.fontSize = GRAPHICS.FONT_BIG
         timer.secondsLeft = secVal
+        timer.endsAt = Date.now() + secVal * 1000
         timer.renew = () =>
             timer.txt = `Time left: `
             + `${[Math.floor(timer.secondsLeft / 60), timer.secondsLeft % 60].map(x => ("" + x).padStart(2, "0")).join(":")}`

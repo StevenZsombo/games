@@ -152,6 +152,7 @@ class Game extends GameShared {
             state: sm.currentKey,
             bossShownFirstMessage: this.bossShownFirstMessage,
             secondsLeft: this.timer?.secondsLeft,
+            endsAt: this.timer?.endsAt,
             minutes: this.minutes,
             currentID: this.fullViewer.spot?.id,
             lastVisitedID: this.lastVisitedID,
@@ -181,7 +182,11 @@ class Game extends GameShared {
         if (tempSaveData.secondsLeft != null) {
             this.minutes = tempSaveData.minutes
             this.acceptToCutHead(Spot.ALL[tempSaveData.lastVisitedID], true)//lastvisited is safer than currentID i think
-            this.timer.secondsLeft = tempSaveData.secondsLeft
+            const secLeft = Math.max(tempSaveData.secondsLeft, 1)
+            const endsAtLeft = Math.max((tempSaveData.endsAt - Date.now()) / 1000, 1)
+            const actualLeft = Math.floor(Math.min(secLeft, endsAtLeft))
+            this.timer.secondsLeft = actualLeft
+            this.timer.endsAt = Date.now() + actualLeft * 1000
             this.timer.renew()
         }
         game.once(() =>
