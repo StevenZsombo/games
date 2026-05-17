@@ -28,5 +28,5 @@ window.___minutes =
 //"off" will fully disable, "warn" will paint the screen in red and notify the server,
 //"punish" will block all interactions for 30 seconds and notify the server
 window.___anticheat =
-    "punish"
+    "warn"
 

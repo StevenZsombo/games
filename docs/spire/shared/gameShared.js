@@ -82,7 +82,7 @@ class GameShared extends GameCore {
         this.canDrag = true
         sinteract.on_drag = (pos) => {
             if (!this.canDrag) return
-            Spot.moveAll((pos.y - sinteract.last_held.y) * (GRAPHICS.DRAG_COEFF || 1))
+            Spot.moveAll((pos.y - sinteract.last_held.y) * this.zoomLevel * (GRAPHICS.DRAG_COEFF || 1))
             if (Math.abs(sinteract.last_clicked.y - pos.y) > GRAPHICS.DRAG_BUT_NO_CLICK_THRESHOLD)
                 this.mouser.blockNextRelease()
         }

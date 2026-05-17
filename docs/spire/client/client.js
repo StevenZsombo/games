@@ -125,9 +125,10 @@ class Game extends GameShared {
         console.log("Anticheat setup")
         const ac = this.ac = Anticheat.getAnticheat()
         // ac.DEFAULTS.overlay({ isBlocking: false })
-        RULES.ANTICHEAT_WARN_BUT_DONT_PUNISH
+        const acButton = RULES.ANTICHEAT_WARN_BUT_DONT_PUNISH
             ? ac.DEFAULTS.overlay({ layer: 9, color: RULES.ANTICHEAT_WARN_COLOR })
             : ac.DEFAULTS.message()
+        acButton.bottomstretchat(this.bot.top)
         ac.timeTotal = 30
         ac.onPunish_more = () => chat.wee("pen").catch(bpop)
         ac.onEndPunish_more = () => {

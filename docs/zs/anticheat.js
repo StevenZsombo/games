@@ -104,6 +104,7 @@ class Anticheat {
                 (game)
                 const b = Button.fromRectShallow(game.rect)
                 b.color = color
+                b.outline = 0
                 b.interactable = alsoIsBlocking
                 b.isBlocking = alsoIsBlocking
                 game.add_drawable(b, layer)
@@ -124,6 +125,7 @@ class Anticheat {
                 (game)
                 const b = Button.fromRectShallow(game.rect.copy.stretch(frac, frac))
                 b.color = color
+                b.outline = 0
                 b.isBlocking = true
                 b.fontSize = 60
                 b.dynamicText = () => `${txt || ""}${remainingSec} seconds.\n${txtAfter || ""}`
