@@ -2285,7 +2285,7 @@ class GameEffects {
      *   direction?: string,
      *   travelTime?: number,
      *   floatTime?: number,
-     *   moreButtonSettings?: Object,
+     *   moreButtonSettings?: Button,
      *   close_on_release?: boolean,
      *   on_end?: Function
      * }} [options] - Configuration options

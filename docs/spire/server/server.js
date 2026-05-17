@@ -1,5 +1,8 @@
 const listener = new Listener()
+let disconnectedIndicator = null
 chat = listener.chat
+chat.on_disconnect = () => disconnectedIndicator ??= GameEffects.popup("LOST CONNECTION...", { floatTime: Infinity, posFrac: [.5, .2], moreButtonSettings: { color: "red" } })
+chat.on_join = () => { disconnectedIndicator?.close(); disconnectedIndicator = null }
 const ob = new Observatory()
 const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
 const RELOAD = () => chat.spam("eval", "chat.delayedReload()")
