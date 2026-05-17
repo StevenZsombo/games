@@ -70,7 +70,6 @@ class Game extends GameShared {
         await chat.asapPromise()
         // chat.checkIfTooOld()
         this.me = localStorage.getItem("spireIcon")
-        chat.eggs("emo", () => this.selector())
         while (1) {
             if (!this.me) await this.selector()
             const resp = await chat.wee("enter", this.me, { retries: 1000, interval: 250 }).catch(bpop)
@@ -130,24 +129,18 @@ class Game extends GameShared {
             : ac.DEFAULTS.message()
         acButton.bottomstretchat(this.bot.top)
         ac.timeTotal = 30
-        ac.onPunish_more = () => chat.wee("pen").catch(bpop)
-        ac.onEndPunish_more = () => {
-            Promise.resolve().then(() => chat.wee("penEnd").catch(bpop))
-            // chat.wee("penEnd").catch(bpop)
-            console.log("ended at " + Date.now())
-        }
+        ac.onPunish_more = () => { chat.wee("pen").catch(bpop) }
+        ac.onEndPunish_more = () => { chat.wee("penEnd").catch(bpop) }
 
         chat?.asapPromise().then(() => {
-            chat?.eggs("accd", () => {
-                ac.countdown(6)
+            chat?.eggs("accd", (seconds) => {
+                ac.countdown(seconds || 6)
                 localStorage.removeItem(ac.LOCALSTORAGE_KEY)
             })
-            chat?.eggs("abs", () => ac.absolve())
-            chat?.eggs("whitelist", () => {
-                ac.whitelist()
-            })
+            chat?.eggs("abs", () => { ac.absolve() })
+            chat?.eggs("whitelist", () => { ac.whitelist() })
         })
-        em.once("plan", () => ac.activate())
+        em.once("plan", () => { ac.activate() })
     }
 
 

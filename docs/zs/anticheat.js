@@ -181,6 +181,7 @@ class Anticheat {
             absolve,
             whitelist,
             countdown(seconds = 10) {
+                endPunishment()
                 GameEffects.countdown("You will not be allowed to use other apps.\nAnticheat activates in", seconds,
                     () => this.activate())
             },
