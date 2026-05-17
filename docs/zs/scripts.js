@@ -1831,9 +1831,9 @@ class FeedBasic {
 }
 //#endregion
 
-//#region FeedBasic
+//#region Feed
 class Feed extends Malleable {
-	/**@type {Map<string, Button & {close:Function}>} */
+	/**@type {Map<string, Button & {close:Function,timeout:number}>} */
 	buttons = new Map()
 	isBlocking = true
 	/**
@@ -1854,24 +1854,37 @@ class Feed extends Malleable {
 		if (arr.at(-1).bottom > this.bgRect.bottom)
 			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
 	}
+	/**
+	* @param {string} txt  
+	* @param {{timeout?:number, color?:string}} [options] 
+	*/
 	add(txt, { timeout, color } = {}) {
 		const already = this.buttons.get(txt)
-		if (already) return already
+		if (already) return this._createOrRefreshTimeout(txt, already, timeout)
 		const b = Object.assign(new Button(), this.moreButtonSettings)
 		b.close = () => this.delete(txt)
 		color && (b.color = color)
 		b.txt = txt
 		this.buttons.set(txt, b)
 		this.rearrange()
-		timeout && Number.isFinite(timeout) && setTimeout(() => this.delete(txt), timeout)
+		this._createOrRefreshTimeout(txt, b, timeout)
+		return b
+	}
+	_createOrRefreshTimeout(txt, b, timeout) {
+		b.timeout && clearTimeout(b.timeout)
+		if (timeout && Number.isFinite(timeout))
+			b.timeout = setTimeout(() => this.delete(txt), timeout)
 		return b
 	}
 	delete(txt) {
-		if (!this.buttons.has(txt)) return
+		const b = this.buttons.get(txt)
+		if (!b) return
 		this.buttons.delete(txt)
+		clearTimeout(b.timeout)
 		this.rearrange()
 	}
 	clear() {
+		for (const b of this.buttons.values()) clearTimeout(b.timeout)
 		this.buttons.clear()
 		this.rearrange()
 	}
