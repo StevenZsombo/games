@@ -2805,7 +2805,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         return new Promise(resolve => {
             const bg = Button.fromRectShallow(game.rect, { color: "linen" })
             game.add_drawable(bg, 9)
-            const four = Array(4).fill().map(_ => new Button({ width: 400, height: 400, x: 0, y: 0, txt: "Click me!" }))
+            const four = Array(4).fill().map(_ => new Button({ width: game.WIDTH / 2, height: game.HEIGHT / 2, x: 0, y: 0, txt: "Click me!" }))
             four[1].rightat(game.rect.right)
             four[2].rightat(game.rect.right)
             four[2].bottomat(game.rect.bottom)

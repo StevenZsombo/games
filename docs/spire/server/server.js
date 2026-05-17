@@ -18,7 +18,10 @@ class Person extends Participant {
         return resp
     }
     absolve() {
-        this.wee("abs").catch(bpop).then(this.pen = false)
+        this.wee("abs").then(this.pen = false).catch(bpop)
+    }
+    whitelist() {
+        this.wee("whitelist").then(this.pen = false).catch(bpop)
     }
     initialize() {
         this.full = null
@@ -45,8 +48,10 @@ class Game extends GameShared {
         this.fake.txt = "SERVER"
         this.w.remove_drawable(this.circleDrawable)
         this.remove_drawable(this.calcula)
+        this.remove_drawable(this.offerer)
         GRAPHICS.SLIDE_TIME = 0
         RULES.BEFORE_BOSS_WAIT_TIME = 0
+        GRAPHICS.CALCULA_BRINGUP_TIME = 0
         const swapperOrig = this.swapper.on_release
         this.swapper.txt = "Begin planning"
         this.swapper.on_release = () => em.emit("plan")
@@ -61,7 +66,7 @@ class Game extends GameShared {
                 Spot.prototype.onInteractHydra = () => em.emit("boss")
             })
         })
-        GRAPHICS.CALCULA_BRINGUP_TIME = 0
+
 
         await chat.asapPromise()
         RELOAD()
@@ -104,14 +109,15 @@ class Game extends GameShared {
             emo: listener.personsAsArray.map(x => x.emoji).join("") || "",
             sessionID: sessionID
         }))
-        const sideFeed = this.sideFeed = new Feed(this.rect.copy.stretch(.2, 1).topleftat(10, 10), {
-            width: 200, color: "red", height: 60, isBlocking: true,
-            on_release: function () {
-                console.log(this)
-                this.tag?.absolve()
-                this.close()
-            }
-        })
+        const sideFeed = this.sideFeed = new Feed(Button.fromRect(new Rect(10, 10, 200, this.HEIGHT - 20)),
+            {
+                width: 200, color: "red", height: 60, isBlocking: true,
+                on_release: function () {
+                    console.log(this)
+                    this.tag?.absolve()
+                    this.close()
+                }
+            })
         this.add_drawable(sideFeed, 8)
         chat.eggs("pen",/**@param {Person} person */
             (_, person) => {
@@ -187,11 +193,12 @@ class Game extends GameShared {
     /**@param {Person} person  */
     individualMenu(person) {
         const parr = [
-            ["absolve", () => person.absolve()],
             ["flush", () => {
                 person.wee("flush").catch(bpop)
                 listener.persons.delete(person.nameID)
             }],
+            ["whitelist", () => person.whitelist()],
+            ["absolve", () => person.absolve()],
             ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],
             ["rename", async () => {
                 const newName = await GameEffects.inputBoxFromRectPromise()

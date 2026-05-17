@@ -26,18 +26,24 @@ class GameShared extends GameCore {
             if (botClicks > 3) wDiv.hide()
             if (botClicks > 10) {
                 botClicks = 0
-                if (+prompt("Password:") !== 8774) return
-                if (confirm("Go offline?")) {
-                    localStorage.hash += "offline"
-                    chat.delayedReload()
-                    return
+                const pw = prompt("password")
+                if (pw == "8774") {
+                    if (confirm("Go offline?")) {
+                        localStorage.hash += "offline"
+                        chat.delayedReload()
+                        return
+                    }
+                    if (confirm("Disable error logs?")) {
+                        wDiv.hide()
+                        location.hash += "noerror"
+                    }
+                    if (confirm("Full flush?")) location.hash += "flush"
+                    if (confirm("Reload?")) chat.delayedReload()
                 }
-                if (confirm("Disable error logs?")) {
-                    wDiv.hide()
-                    location.hash += "noerror"
+                if (pw == "0451") {
+                    if (confirm("Disable anticheat?")) this.ac?.whitelist()
                 }
-                if (confirm("Full flush?")) location.hash += "flush"
-                if (confirm("Reload?")) chat.delayedReload()
+
             }
         }
         this.add_drawable(this.bot, 7)

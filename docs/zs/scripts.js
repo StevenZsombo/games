@@ -3,6 +3,7 @@ const ONEDEG = Math.PI / 180
 const PI = Math.PI
 const HALFPI = Math.PI / 2
 const NINETYDEG = Math.PI / 2
+const SIXHOURS = 6 * 60 * 60 * 1000
 
 
 //#region Rect

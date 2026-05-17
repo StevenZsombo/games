@@ -25,20 +25,19 @@ class Anticheat {
         let punishmentSec = 30;
 
         const save = () => {
-            if (punished && remainingSec > 0)
-                localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify({ remainingSec, punishmentCount }));
-            else
-                localStorage.removeItem(LOCALSTORAGE_KEY);
+            localStorage.setItem(LOCALSTORAGE_KEY,
+                JSON.stringify({ remainingSec, punishmentCount, immuneUntil }));
         };
 
         const load = () => {
             const data = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY) || "{}");
+            punishmentCount = data.punishmentCount || 0;
+            immuneUntil = data.immuneUntil || 0;
             if (data.remainingSec > 0) {
                 punished = true;
                 remainingSec = data.remainingSec;
-                punishmentCount = data.punishmentCount;
-                onPunish?.();
-                onPunish_more?.()
+                active = true
+                startPunishment()
             }
         };
 
@@ -62,6 +61,16 @@ class Anticheat {
             onEndPunish?.();
             onEndPunish_more?.()
         };
+
+        const absolve = () => {
+            punishmentCount = Math.max(0, punishmentCount - 1);
+            immuneTime && (immuneUntil = Date.now() + immuneTime);
+            punished ? endPunishment() : save()
+        }
+        const whitelist = () => {
+            immuneTime = SIXHOURS
+            absolve()
+        }
 
         const tick = () => {
             if (!active || !punished) return;
@@ -90,13 +99,13 @@ class Anticheat {
         };
 
         const DEFAULTS = {
-            overlay({ layer = 9, color = "rgba(200,0,0,0.5)", isBlocking = false } = {}) {
+            overlay({ layer = 9, color = "rgba(255, 0, 0, 0.5)", alsoIsBlocking = false } = {}) {
                 /**@type {Game|GameCore} game  */
                 (game)
                 const b = Button.fromRectShallow(game.rect)
                 b.color = color
-                b.interactable = isBlocking
-                b.isBlocking = isBlocking
+                b.interactable = alsoIsBlocking
+                b.isBlocking = alsoIsBlocking
                 game.add_drawable(b, layer)
                 onPunish = () => b.activate()
                 onEndPunish = () => b.deactivate()
@@ -106,7 +115,7 @@ class Anticheat {
             message({ color = "red", frac = 1,
                 txt =
                 "You are not allowed to use other apps while playing the game." +
-                "Doing so will trigger this anticheat block." +
+                "\nDoing so will trigger this anticheat block." +
                 "\n\nThis window will disappear in\n",
                 txtAfter = "\nIf you were punished unfairly, talk to your teacher.",
                 moreButtonSettings = {}
@@ -167,11 +176,8 @@ class Anticheat {
             },
             set immuneTime(milliseconds) { immuneTime = milliseconds },
             get immuneTime() { return immuneTime },
-            absolve() {
-                punishmentCount = Math.max(0, punishmentCount - 1);
-                immuneTime && (immuneUntil = Date.now() + 2000);
-                endPunishment();
-            },
+            absolve,
+            whitelist,
             countdown(seconds = 10) {
                 GameEffects.countdown("You will not be allowed to use other apps.\nAnticheat activates in", seconds,
                     () => this.activate())

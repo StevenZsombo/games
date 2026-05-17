@@ -124,7 +124,9 @@ class Game extends GameShared {
         console.log("Anticheat setup")
         const ac = this.ac = Anticheat.getAnticheat()
         // ac.DEFAULTS.overlay({ isBlocking: false })
-        ac.DEFAULTS.message()
+        RULES.ANTICHEAT_WARN_BUT_DONT_PUNISH
+            ? ac.DEFAULTS.overlay({ layer: 9, color: RULES.ANTICHEAT_WARN_COLOR })
+            : ac.DEFAULTS.message()
         ac.timeTotal = 30
         ac.onPunish_more = () => chat.wee("pen").catch(bpop)
         ac.onEndPunish_more = () => {
@@ -139,6 +141,9 @@ class Game extends GameShared {
                 localStorage.removeItem(ac.LOCALSTORAGE_KEY)
             })
             chat?.eggs("abs", () => ac.absolve())
+            chat?.eggs("whitelist", () => {
+                ac.whitelist()
+            })
         })
         em.once("plan", () => ac.activate())
     }

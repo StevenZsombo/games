@@ -27,8 +27,9 @@ const RULES = {
 
     SERVER_BROADCAST_INTERVAL: 1000,
 
-    ANTICHEAT: true,
-
+    ANTICHEAT: window.___anticheat !== "off",
+    ANTICHEAT_WARN_BUT_DONT_PUNISH: window.___anticheat === "warn",
+    ANTICHEAT_WARN_COLOR: "rgba(255,0,0,0.5)",
 
 }
 
