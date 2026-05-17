@@ -39,6 +39,25 @@ class Game extends GameShared {
         this.initShared()
         await this.hasRetrievedData
         this.fake.txt = "SERVER"
+        this.w.remove_drawable(this.circleDrawable)
+        this.remove_drawable(this.calcula)
+        GRAPHICS.SLIDE_TIME = 0
+        RULES.BEFORE_BOSS_WAIT_TIME = 0
+        const swapperOrig = this.swapper.on_release
+        this.swapper.txt = "Begin planning"
+        this.swapper.on_release = () => em.emit("plan")
+        this.swapper.activate()
+        sm.states.get(3).txt = "SERVER view"
+        em.once("plan", () => {
+            this.swapper.txt = "Begin climbing"
+            setTimeout(() => this.swapper.on_release = () => em.emit("climb"), 500)
+            em.once("climb", () => {
+                this.swapper.txt = "See boss"
+                setTimeout(() => this.swapper.on_release = swapperOrig, 500)
+                Spot.prototype.onInteractHydra = () => em.emit("boss")
+            })
+        })
+        GRAPHICS.CALCULA_BRINGUP_TIME = 0
 
         await chat.asapPromise()
         RELOAD()

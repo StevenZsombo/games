@@ -19,6 +19,6 @@ window.___students =
 //number of minutes available for each head in order. the last one repeats if necessary
 //sample format: "7,5,3"
 //the quoatition marks must be present, and numbers are separated by a comma
-//decimals are okay too, e.g. "7,4.5,3.5,2.5,2" means four and a half minutes for the second head
+//decimals are okay too, e.g. "7,4.5,3.5,2.5,2" has four and a half minutes for the second head
 window.___minutes =
     "7,5,3"

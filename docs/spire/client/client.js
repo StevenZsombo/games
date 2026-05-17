@@ -82,7 +82,7 @@ class Game extends GameShared {
             sessionID = resp.sessionID
             localStorage.setItem("sessionID", resp.sessionID)
             if (resp.good) {
-                sm.skipTo(resp.state)
+                sm.skipTo(resp.state == 3 ? 2 : resp.state)
                 break
             }
             GameEffects.popup("That icon has been taken - choose a different one.")

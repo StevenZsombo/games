@@ -188,14 +188,29 @@ class GameShared extends GameCore {
         offerer.topat(this.bot.top - 30)
         offerer.deactivate()
         this.add_drawable(offerer, 8)
-        const offererAnimate = this.offererAnimate = () => {
+        this.offererAnimate = () => {
             offerer.activate()
-            Anim.custom(offerer, GRAPHICS.OFFERER_WAVE_TIME, t => {
+            Anim.custom(offerer, GRAPHICS.OFFERER_WAVE_TIME, _ => {
                 offerer.rad = this.dtSin * .5
             }, "rad", {
                 ditch: true, add: game,
             })
         }
+
+
+        const swapper = this.swapper = Button.fromButton(offerer)
+        swapper.dynamicColor = null
+        swapper.txt = "Back to Spire"
+        swapper.fontSize = GRAPHICS.FONT_MEDIUM
+        swapper.stretch(.6, .6)
+        swapper.eraseClickables()
+        swapper.color = "blue"
+        swapper.on_release = () => {
+            if (Spot.ALL.some(x => x.isHydra)) { em.emit("boss"); swapper.txt = "Back to Spire" }
+            else { em.emit("noboss"); swapper.txt = "Back to Hydra" }
+        }
+        swapper.deactivate()
+        this.add_drawable(swapper, 8)
 
 
         const sp = this.showPlayers = new Button({
@@ -254,12 +269,12 @@ class GameShared extends GameCore {
             em.emit("hide")
             em.emit("wait")
             this.bot.color = "lightpink"
-            GameEffects.popup("Please wait for the game to begin!", {
+            /*GameEffects.popup("Please wait for the game to begin!", {
                 sizeFrac: [.6, .15], moreButtonSettings: {
                     fontSize: GRAPHICS.FONT_MEDIUM, floatTime: 3000,
                     color: "lightpink"
                 }
-            })
+            })*/
         }
         sm.states.get(1).on_enter = () => {
             em.emit("show")
@@ -335,19 +350,7 @@ class GameShared extends GameCore {
         sm.states.get(4).on_enter = () => {
             em.emit("fin")
             this.bot.color = "yellow"
-            const swapper = Button.fromButton(offerer)
-            swapper.dynamicColor = null
-            swapper.txt = "Back to Spire"
-            swapper.fontSize = GRAPHICS.FONT_MEDIUM
-            swapper.stretch(.6, .6)
-            swapper.eraseClickables()
-            swapper.color = "blue"
-            swapper.on_release = () => {
-                if (Spot.ALL.some(x => x.isHydra)) { em.emit("boss"); swapper.txt = "Back to Spire" }
-                else { em.emit("noboss"); swapper.txt = "Back to Hydra" }
-            }
-            swapper.activate()
-            this.add_drawable(swapper, 8)
+            this.swapper.activate()
         }
         sm.states.get(5).on_enter = () => {
             em.emit("win")
