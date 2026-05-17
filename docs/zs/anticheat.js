@@ -8,6 +8,9 @@ class Anticheat {
         let interval = null;
         let pendingCheck = false;
         let punishmentCount = 0;
+        let immuneUntil = 0;
+        let immuneTime = 0;
+        let LOCALSTORAGE_KEY = "ac_state"
 
         // callbacks
         /**@type {?Function}*/let onPunish = null;
@@ -23,13 +26,13 @@ class Anticheat {
 
         const save = () => {
             if (punished && remainingSec > 0)
-                localStorage.setItem("ac_state", JSON.stringify({ remainingSec, punishmentCount }));
+                localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify({ remainingSec, punishmentCount }));
             else
-                localStorage.removeItem("ac_state");
+                localStorage.removeItem(LOCALSTORAGE_KEY);
         };
 
         const load = () => {
-            const data = JSON.parse(localStorage.getItem("ac_state") || "{}");
+            const data = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY) || "{}");
             if (data.remainingSec > 0) {
                 punished = true;
                 remainingSec = data.remainingSec;
@@ -41,6 +44,7 @@ class Anticheat {
 
         const startPunishment = () => {
             if (!active) return;
+            if (Date.now() < immuneUntil) return
             const wasPunished = punished;
             punished = true;
             remainingSec = punishmentSec;
@@ -100,7 +104,10 @@ class Anticheat {
                 return b
             },
             message({ color = "red", frac = 1,
-                txt = "You are not allowed to use other apps while playing the game.\n\nThis window will disappear in\n",
+                txt =
+                "You are not allowed to use other apps while playing the game." +
+                "Doing so will trigger this anticheat block." +
+                "\n\nThis window will disappear in\n",
                 txtAfter = "\nIf you were punished unfairly, talk to your teacher.",
                 moreButtonSettings = {}
             } = {}) {
@@ -158,11 +165,18 @@ class Anticheat {
                 interval = null;
                 if (punished) endPunishment();
             },
-            absolve() { endPunishment(); punishmentCount = Math.max(0, punishmentCount - 1); },
+            set immuneTime(milliseconds) { immuneTime = milliseconds },
+            get immuneTime() { return immuneTime },
+            absolve() {
+                punishmentCount = Math.max(0, punishmentCount - 1);
+                immuneTime && (immuneUntil = Date.now() + 2000);
+                endPunishment();
+            },
             countdown(seconds = 10) {
-                GameEffects.countdown("You are not be allowed to use other apps.\nAnticheat activates in", seconds,
+                GameEffects.countdown("You will not be allowed to use other apps.\nAnticheat activates in", seconds,
                     () => this.activate())
             },
+            LOCALSTORAGE_KEY,
             //DEFAULTS
             DEFAULTS
         };

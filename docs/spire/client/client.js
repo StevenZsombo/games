@@ -13,6 +13,7 @@ class Game extends GameShared {
         }
         if (!RULES.EDITOR && !RULES.SKIP_INTRO && !localStorage.getItem("spireSave")) GameEffects.clickMeFourTimes()
         this.initShared()
+        this.initAnticheat()
         await this.hasRetrievedData
 
         if (univ.isOnline) {
@@ -109,7 +110,37 @@ class Game extends GameShared {
         this.initBCreceive()
     }
     async offlinePlay() {
-        !RULES.EDITOR && !RULES.FAKE && em.emit("climb")
+        if (!RULES.EDITOR && !RULES.FAKE) {
+            em.emit("climb")
+            // setTimeout(() => em.emit("climb"), 500)
+        }
+    }
+
+    initAnticheat() {
+        if (!location.hash.includes("anticheat")) {
+            if (!univ.isOnline) return
+            if (!RULES.ANTICHEAT) return
+        }
+        console.log("Anticheat setup")
+        const ac = this.ac = Anticheat.getAnticheat()
+        // ac.DEFAULTS.overlay({ isBlocking: false })
+        ac.DEFAULTS.message()
+        ac.timeTotal = 30
+        ac.onPunish_more = () => chat.wee("pen").catch(bpop)
+        ac.onEndPunish_more = () => {
+            Promise.resolve().then(() => chat.wee("penEnd").catch(bpop))
+            // chat.wee("penEnd").catch(bpop)
+            console.log("ended at " + Date.now())
+        }
+
+        chat?.asapPromise().then(() => {
+            chat?.eggs("accd", () => {
+                ac.countdown(6)
+                localStorage.removeItem(ac.LOCALSTORAGE_KEY)
+            })
+            chat?.eggs("abs", () => ac.absolve())
+        })
+        em.once("plan", () => ac.activate())
     }
 
 

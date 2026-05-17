@@ -314,6 +314,7 @@ class GameShared extends GameCore {
                 this.zoomSlider && this.setZoom(Anim.interpol(startZoom, 1, t))
             }, "", {
                 add: game, on_end: () => {
+                    em.emit("climb")
                     this.isAcceptingInputs = true
                     this.zoomSlider && this.setZoom(1)
 
@@ -587,8 +588,11 @@ class GameShared extends GameCore {
         fake.topat(0)
         fake.rightat(this.WIDTH)
         fake.on_release = () => {
-            const arr = ["wait", "plan", "climb", "fin", "win", "boss", "noboss", "show", "hide"]
+            const arr = ["plan", "climb", "fin", "win", "boss", "noboss", "show", "hide"]
             const parr = []
+            parr.push(["anticheat", () => {
+                chat?.spam("accd")
+            }])
             parr.push(...arr.map(x => [x, () => em.emit(x)]))
             parr.push(["Import", () => this.importALL()])
             parr.push(["wDiv", wDiv.toggle])

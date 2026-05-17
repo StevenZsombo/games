@@ -1146,12 +1146,13 @@ class Malleable {
 		this.interactable = true
 		this.isBlocking = false
 	}
-
 	check(...params) {
-		if (!this.interactable) return
+		if (!this.interactable) return false
 		let anyBlock = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
-			anyBlock = (this.components[i]?.check?.(...params) && this.components[i].isBlocking) || anyBlock
+			const child = this.components[i]
+			if (!child) continue; // skip if removed
+			if (child.check?.(...params) && child.isBlocking) anyBlock = true
 		}
 		return anyBlock
 	}
@@ -1790,7 +1791,7 @@ class FeedBasic {
 	 */
 	constructor(bgRect, moreButtonSettings = {}, alsoResize = false) {
 		this.bgRect = bgRect
-		this.templateButton = new Button(moreButtonSettings)
+		this.moreButtonSettings = moreButtonSettings
 		this.alsoResize = alsoResize
 	}
 	rearrange() {
@@ -1801,15 +1802,16 @@ class FeedBasic {
 			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
 	}
 	add(txt, { timeout, color } = {}) {
-		if (this.buttons.has(txt)) return
-		const b = this.templateButton.copy
+		const already = this.buttons.get(txt)
+		if (already) return already
+		const b = Object.assign(new Button(), this.moreButtonSettings)
 		b.close = () => this.delete(txt)
 		color && (b.color = color)
 		b.txt = txt
 		this.buttons.set(txt, b)
 		this.rearrange()
 		timeout && Number.isFinite(timeout) && setTimeout(() => this.delete(txt), timeout)
-
+		return b
 	}
 	delete(txt) {
 		if (!this.buttons.has(txt)) return
@@ -1828,6 +1830,60 @@ class FeedBasic {
 
 }
 //#endregion
+
+//#region FeedBasic
+class Feed extends Malleable {
+	/**@type {Map<string, Button & {close:Function}>} */
+	buttons = new Map()
+	isBlocking = true
+	/**
+	 * @param {Rect} bgRect 
+	 * @param {Button} [moreButtonSettings={}] 
+	 * @param {boolean} [alsoResize=false] 
+	 */
+	constructor(bgRect, moreButtonSettings = {}, alsoResize = false) {
+		super()
+		this.bgRect = bgRect
+		this.moreButtonSettings = moreButtonSettings
+		this.alsoResize = alsoResize
+	}
+	rearrange() {
+		if (!this.buttons.size) return
+		const arr = Array.from(this.buttons.values())
+		Rect.packCol(arr, this.bgRect, 20, "t", this.alsoResize)
+		if (arr.at(-1).bottom > this.bgRect.bottom)
+			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
+	}
+	add(txt, { timeout, color } = {}) {
+		const already = this.buttons.get(txt)
+		if (already) return already
+		const b = Object.assign(new Button(), this.moreButtonSettings)
+		b.close = () => this.delete(txt)
+		color && (b.color = color)
+		b.txt = txt
+		this.buttons.set(txt, b)
+		this.rearrange()
+		timeout && Number.isFinite(timeout) && setTimeout(() => this.delete(txt), timeout)
+		return b
+	}
+	delete(txt) {
+		if (!this.buttons.has(txt)) return
+		this.buttons.delete(txt)
+		this.rearrange()
+	}
+	clear() {
+		this.buttons.clear()
+		this.rearrange()
+	}
+	get components() {
+		return Array.from(this.buttons.values())
+	}
+	set components(v) {
+		//does sweet nothing, as it should.
+	}
+}
+//#endregion
+
 
 
 //#region CalculatorButtons

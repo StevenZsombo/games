@@ -17,12 +17,16 @@ class Person extends Participant {
         resp.state = sm.currentKey
         return resp
     }
+    absolve() {
+        this.wee("abs").catch(bpop).then(this.pen = false)
+    }
     initialize() {
         this.full = null
         this.headed = new Set()
         this.solved = new Set()
         this.failed = new Set()
         this.boss = false
+        this.pen = false
 
     }
     get pretty() { return `${this.emoji} ${this.name}` }
@@ -100,6 +104,26 @@ class Game extends GameShared {
             emo: listener.personsAsArray.map(x => x.emoji).join("") || "",
             sessionID: sessionID
         }))
+        const sideFeed = this.sideFeed = new Feed(this.rect.copy.stretch(.2, 1).topleftat(10, 10), {
+            width: 200, color: "red", height: 60, isBlocking: true,
+            on_release: function () {
+                console.log(this)
+                this.tag?.absolve()
+                this.close()
+            }
+        })
+        this.add_drawable(sideFeed, 8)
+        chat.eggs("pen",/**@param {Person} person */
+            (_, person) => {
+                person.pen = true
+                sideFeed.add(person.name).tag = person
+            })
+        chat.eggs("penEnd",/**@param {Person} person */
+            (_, person) => {
+                person.pen = false
+                sideFeed.delete(person.name)
+            })
+
 
         this.initServerStats()
         this.initBCreceive(true)
@@ -127,9 +151,11 @@ class Game extends GameShared {
             x.isConnected ? "✔️ " : "❌ ",
             x.boss ? "✔" : " ",
             ...[x.solved, x.headed, x.failed].map(u => Array.from(u).join(",")),
-            `${x.headed.size}+${x.solved.size}`
+            `${x.headed.size}+${x.solved.size}`,
+            x.pen ? "TRIGGERED👿" : ""
             ])
-            , ["icon", "player", "conn?", "boss?", "solved", "headed", "failed", "progress"], 1)
+            , ["icon", "player", "conn?", "boss?", "solved", "headed", "failed", "progress",
+                "anticheat"], 1)
 
 
         const statsShowHide = Button.fromButton(this.fake)
@@ -161,6 +187,7 @@ class Game extends GameShared {
     /**@param {Person} person  */
     individualMenu(person) {
         const parr = [
+            ["absolve", () => person.absolve()],
             ["flush", () => {
                 person.wee("flush").catch(bpop)
                 listener.persons.delete(person.nameID)

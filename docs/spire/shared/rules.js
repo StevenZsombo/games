@@ -27,6 +27,8 @@ const RULES = {
 
     SERVER_BROADCAST_INTERVAL: 1000,
 
+    ANTICHEAT: true,
+
 
 }
 
