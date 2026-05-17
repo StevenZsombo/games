@@ -2368,7 +2368,8 @@ class GameEffects {
         leftLargePink: { sizeFrac: [.3, .15], posFrac: [.157, .1], direction: "left", moreButtonSettings: { color: "lightpink", fontSize: 32 } },
         redLinger: { moreButtonSettings: { color: "red" }, floatTime: 5000 },
         sideError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .88], direction: "bottom", moreButtonSettings: { color: "red", fontSize: 32 } },
-        rightError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .12], direction: "right", moreButtonSettings: { color: "red", fontSize: 32 } }
+        rightError: { floatTime: 2000, sizeFrac: [.3, .2], posFrac: [.83, .12], direction: "right", moreButtonSettings: { color: "red", fontSize: 32 } },
+        rightErrorSmall: { floatTime: 2000, sizeFrac: [.2, .05], posFrac: [.875, .0375], direction: "right", moreButtonSettings: { color: "red", fontSize: 32 } }
 
 
     }
@@ -2637,7 +2638,7 @@ class GameEffects {
 
     /**@param {Rect} sourceRect @param {function(string)} on_pressingEnter  */
     static inputBoxFromRect(sourceRect, on_pressingEnter, on_input) {
-        sourceRect ??= new Rect(0, 0, 300, 60)
+        sourceRect ??= new Rect(game.mouser.pos.x, game.mouser.pos.y, 300, 60)
         const rect = game.mouser.rectCanvasToEvent(sourceRect.copy.fitWithinAnother(game.rect))
         return GameEffects.inputBox(rect.x, rect.y,
             rect.width,

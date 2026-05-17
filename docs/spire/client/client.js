@@ -1,4 +1,5 @@
-const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightError)
+Chat.defaultWeeRetries = 240
+const bpop = txt => GameEffects.popup(txt, GameEffects.popupPRESETS.rightErrorSmall)
 let sessionID = localStorage.getItem("sessionID") || "none"
 class Game extends GameShared {
     //#region initialize_more
@@ -36,7 +37,7 @@ class Game extends GameShared {
     //#endregion
 
     async selector(emojiOnly = false) {
-        const takenAll = (await chat.wee("taken").catch(bpop))
+        const takenAll = (await chat.wee("taken", undefined, { retries: 1000, interval: 250 }).catch(bpop))
         if (sessionID !== "none" && takenAll.sessionID !== sessionID) {
             localStorage.removeItem("spireSave")
             sessionID = takenAll.sessionID
@@ -72,7 +73,7 @@ class Game extends GameShared {
         chat.eggs("emo", () => this.selector())
         while (1) {
             if (!this.me) await this.selector()
-            const resp = await chat.wee("enter", this.me).catch(bpop)
+            const resp = await chat.wee("enter", this.me, { retries: 1000, interval: 250 }).catch(bpop)
             if (sessionID !== "none" && resp.sessionID !== sessionID) {
                 const nameID = chat.nameID
                 localStorage.clear()
@@ -100,7 +101,7 @@ class Game extends GameShared {
         })
         Array.from(["wait", "plan", "climb"]).forEach(x => chat.eggs(x, () => em.emit(x)))
         // chat.eggs("skip", i => sm.skipTo(i)) //useless. localStorage takes care of it.
-        em.on("full",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("full", spot.id).catch(bpop))
+        // em.on("full",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("full", spot.id).catch(bpop))
         em.on("head",/**@param {Spot} spot */(spot) => spot.mask && chat.wee("head", spot.id).catch(bpop))
         em.on("correct",/**@param {Spot} spot */(spot) => !spot.mask && chat.wee("correct", spot.id).catch(bpop))
         em.on("fail",/**@param {Spot} spot */(spot) => chat.wee("fail", spot.id).catch(bpop))

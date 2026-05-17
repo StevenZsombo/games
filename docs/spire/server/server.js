@@ -3,6 +3,9 @@ let disconnectedIndicator = null
 chat = listener.chat
 chat.on_disconnect = () => disconnectedIndicator ??= GameEffects.popup("LOST CONNECTION...", { floatTime: Infinity, posFrac: [.5, .2], moreButtonSettings: { color: "red" } })
 chat.on_join = () => { disconnectedIndicator?.close(); disconnectedIndicator = null }
+Chat.defaultWeeInterval = 250
+Chat.defaultWeeRetries = 5
+Chat.defaultSpamRetries = 1000
 const ob = new Observatory()
 const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
 const RELOAD = () => chat.spam("eval", "chat.delayedReload()")
@@ -121,6 +124,7 @@ class Game extends GameShared {
                     this.close()
                 }
             })
+        // listener.on_participant_disconnect = p => sideFeed.delete(p.name)
         this.add_drawable(sideFeed, 8)
         chat.eggs("pen",/**@param {Person} person */
             (_, person) => {
