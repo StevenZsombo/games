@@ -2,13 +2,13 @@
 //sample format: "spire.json"
 //the quotation marks must be present
 window.___spire =
-    "spire.json"
+    "spireAlgebra.json"
 
 //name of the hydra bossfight map file, must be in spire/questions
 //sample format: "heads.json"
 //the quotation marks must be present
 window.___heads =
-    "heads.json"
+    "headsAlgebra.json"
 
 //list of students names
 //sample format: "Alice,Bob,Jackie Chan"
@@ -21,7 +21,7 @@ window.___students =
 //the quotation marks must be present, and numbers are separated by a comma
 //decimals are okay too, e.g. "7,4.5,3" has four and a half minutes for the second head
 window.___minutes =
-    "7,5,3"
+    "7,6,5,4,3"
 
 //anticheat to be used. must be either "off", "warn" or "punish"
 //sample format: "punish"
@@ -32,7 +32,7 @@ window.___anticheat =
 
 
 //determines the height to width ratio when fully zoomed out,
-//essentially setting how tall the spire should be. Default: "3"
+//essentially setting how tall the spire should be. Default:
 //sample format: "3"
 window.___zoom =
     "2.25"
