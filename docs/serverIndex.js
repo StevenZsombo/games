@@ -60,6 +60,10 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+
+const ROOT_DIR = path.resolve(__dirname);
+//path.join(os.homedir(), 'Documents', 'Steven', 'games', 'docs');
+
 const DEFAULT_PAGE_TO_SERVE = (() => {
     const fallback = "index.html"
     try {
@@ -72,12 +76,11 @@ const DEFAULT_PAGE_TO_SERVE = (() => {
 const DEFAULT_LISTENER_PAGE_TO_SERVE = 'index.html';
 const PORT = 80;
 
-const ROOT_DIR = path.resolve(__dirname);
-//path.join(os.homedir(), 'Documents', 'Steven', 'games', 'docs');
 
 const mimeTypes = {
     '.js': 'application/javascript',
     '.mjs': 'application/javascript',
+    '.cjs': 'application/javascript',
     '.html': 'text/html',
     '.htm': 'text/html',
     '.css': 'text/css',
@@ -87,12 +90,34 @@ const mimeTypes = {
     '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
+    '.svgz': 'image/svg+xml',
     '.ico': 'image/x-icon',
     '.txt': 'text/plain',
     '.xml': 'application/xml',
     '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     '.pdf': 'application/pdf',
-    // Add more as needed
+    '.wasm': 'application/wasm',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject',
+    '.otf': 'font/otf',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.zip': 'application/zip',
+    '.gz': 'application/gzip',
+    '.br': 'application/brotli',
+    '.map': 'application/json',
+    '.md': 'text/markdown',
+    '.csv': 'text/csv',
+    '.yaml': 'text/yaml',
+    '.yml': 'text/yaml',
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
+    //extend as needed.
 };
 
 
@@ -352,6 +377,7 @@ wss.on('connection',
                         });
                     } catch (err) {
                         myError('initialHandler error', err);
+                        try { ws.close(); } catch (err) { myError("Corrupted initial message - handler failed to close miserably", err) }
                     }
                 };
                 ws.once('message', initialHandler); //track first message
@@ -384,7 +410,7 @@ wss.on('connection',
             });
         } catch (err) {
             myError('connection handler error', err);
-            try { ws.close(); } catch (err) { myError("handler faield to close miserably", err) }
+            try { ws.close(); } catch (err) { myError("Corrupted close request - handler failed to close miserably", err) }
         }
     });
 

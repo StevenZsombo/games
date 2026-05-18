@@ -27,7 +27,7 @@ Put the two .json files you creted in spire/questions.
 
 Step 5.
 Open shared/editable.js with a text editor.
-Edit the four parameters following the given conventions.
+Edit the parameters following the given conventions.
 If you mess up, restore the backup from editableBackup.js
 
 Step 6.
@@ -37,14 +37,21 @@ It is worth checking each question once (bossfight included), just in case.
 
 
 How to host a game (classroom contest):
-- TODO.
+Same as Conquest.
+1.  Students should NOT join before you are done with the setup.
+2.  Start game-server
+3.  Start electron
+4.  Type in console:
+location.replace("localhost/spire/server/server.html")
+5.  Students can now join your ip adress given by game-server.
+
 
 
 
 How to share a public copy (for single-player after-class sessions).
 0.  Sign up to netlify (free account works just fine).
     app.netlify.com
-
+    
 1.  Delete the netlify/spire folder.
 2.  Copy the spire folder to be the new netflify/spire folder.
 3.  Zip the netlify folder. Then drop the zip in
