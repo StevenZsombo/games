@@ -2804,7 +2804,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
     static clickMeFourTimes() {
         return new Promise(resolve => {
-            const bg = Button.fromRectShallow(game.rect, { color: "linen" })
+            const bg = Button.fromRectShallow(game.rect, { color: "linen", isBlocking: true })
             game.add_drawable(bg, 9)
             const four = Array(4).fill().map(_ => new Button({ width: game.WIDTH / 2, height: game.HEIGHT / 2, x: 0, y: 0, txt: "Click me!" }))
             four[1].rightat(game.rect.right)
@@ -2820,7 +2820,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
                 game.mouser.on_release_once = fs
             })
             four[3].on_release = () => {
-                game.once(() => game.remove_drawables_batch(four.concat(bg)))
+                game.remove_drawables_batch(four.concat(bg))
                 resolve()
             }
         })
