@@ -51,7 +51,7 @@ class Game extends GameShared {
         // if (!RULES.EDITOR && !RULES.SKIP_INTRO && !location.href.includes("localhost")) GameEffects.clickMeFourTimes()
         this.initShared()
         await this.hasRetrievedData
-        this.fake.txt = "SERVER"
+        this.fake.txt = "Signals"
         this.w.remove_drawable(this.circleDrawable)
         this.remove_drawable(this.calcula)
         this.remove_drawable(this.offerer)
@@ -181,7 +181,7 @@ class Game extends GameShared {
         const order = Button.fromButton(statsShowHide)
         order.rightat(statsShowHide.left)
         order.on_release = () => this.playersMenu()
-        order.txt = "ORDER"
+        order.txt = "SERVER"
 
         this.add_drawable(order, 7)
         this.add_drawable(statsShowHide, 7)
