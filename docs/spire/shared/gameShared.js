@@ -80,9 +80,15 @@ class GameShared extends GameCore {
         const sinteract = this.sinteract = new Clickable(this.rect)
         sinteract.draw = null
         this.canDrag = true
+        this.moveAll = (dy) => {
+            Spot.moveAll(dy)
+            this.borders?.forEach(x => x.move(0, dy))
+        }
         sinteract.on_drag = (pos) => {
             if (!this.canDrag) return
-            Spot.moveAll((pos.y - sinteract.last_held.y) * this.zoomLevel * (GRAPHICS.DRAG_COEFF || 1))
+            const dy = (pos.y - sinteract.last_held.y) * this.zoomLevel * (GRAPHICS.DRAG_COEFF || 1)
+            this.moveAll(dy)
+            // this.w.worldRect.move(0, -dy)
             if (Math.abs(sinteract.last_clicked.y - pos.y) > GRAPHICS.DRAG_BUT_NO_CLICK_THRESHOLD)
                 this.mouser.blockNextRelease()
         }
@@ -415,8 +421,10 @@ class GameShared extends GameCore {
     }
     initEditor() {
         if (!RULES.EDITOR) return
-        this.keyboarder.on_keyupDict["a"] = () =>
-            new Spot(null, this.mouser.x, this.mouser.y)
+        this.keyboarder.on_keyupDict["a"] = () => {
+            const sp = this.w.screenToWorldV(this.mouser.pos)
+            new Spot(null, sp.x, sp.y)
+        }
         this.keyboarder.on_keyupDict["q"] = async () => {
             const spot = this.findSpotOnMouse()
             if (!spot) return
@@ -532,7 +540,10 @@ class GameShared extends GameCore {
         this.keyboarder.on_keyupDict["3"] = () => resizeBase = null*/
         this.keyboarder.on_keyheldDict["3"] = () => { this.background?.stretch(1.05, 1.05) }
         this.keyboarder.on_keyheldDict["4"] = () => { this.background?.stretch(1 / 1.05, 1 / 1.05) }
-        this.keyboarder.on_keydownDict["z"] = () => { this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1) }
+        this.keyboarder.on_keydownDict["z"] = () => {
+            this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1);
+            this.moveAll(this.w.worldRect.bottom - this.borders.components[0].bottom - GRAPHICS.BOTTOM)
+        }
 
 
         const e = this.editorHelper = new Button()
@@ -587,6 +598,26 @@ class GameShared extends GameCore {
         }
         s.activate()
         this.add_drawable(s, 9)
+
+
+        const border1 = Button.fromRectShallow(this.w.screenRect.copy)
+        border1.color = null
+        border1.outline_color = "blue"
+        border1.outline = 10
+        border1.bottomstretchat(this.HEIGHT - GRAPHICS.BOTTOM)
+        const border2 = Button.fromButton(border1)
+        border2.outline_color = "red"
+        border2.outline = 5
+        border1.stretch(1, GRAPHICS.ZOOM_MAXIMUM)
+        border1.bottomat(this.HEIGHT - GRAPHICS.BOTTOM)
+        const border3 = Button.fromButton(border1)
+        border3.width = 0
+        border3.centeratX(border1.centerX)
+        border3.outline = 10
+        border3.outline_color = "green"
+        this.borders = new Malleable(border1, border2, border3)
+        this.w.add_drawable(this.borders, 1)
+
     }
     initFake() {
         if (!RULES.FAKE) return
@@ -671,8 +702,8 @@ class GameShared extends GameCore {
         z.min = 1
         z.max = GRAPHICS.ZOOM_MAXIMUM
         z.leftX = z.rightX = this.WIDTH - GRAPHICS.ZOOM_SLIDER_RIGHT - z.movingButton.height / 2
-        z.leftY = this.HEIGHT - GRAPHICS.BOTTOM - 20 - z.movingButton.width / 2
-        z.rightY = 600
+        z.leftY = this.HEIGHT - GRAPHICS.BOTTOM - 120 - z.movingButton.width / 2
+        z.rightY = 500
         z.value = 1
         z.isBlocking = true
         z.on_value_change = (v) => this.setZoom(v)
