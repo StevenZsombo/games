@@ -2,8 +2,9 @@ const RULES = {
     EDITOR: location.href.includes("localhost") && location.hash.includes("editor"),
     FAKE: location.hash.includes("editor") || location.hash.includes("fake"),
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
-    DEMO: "../questions/" + window.___spire,
-    DEMOHEADS: "../questions/" + window.___heads,
+    QUESTION_FOLDER: (() => location.hash.includes("public") ? "../questionsPublic/" : "../questions/")(),
+    get DEMO() { return this.QUESTION_FOLDER + window.___spire },
+    get DEMOHEADS() { return this.QUESTION_FOLDER + window.___heads },
     ALLOW_BACKGROUND: true,
 
     STUDENTS: window.___students.split(",").map(x => x.trim()).filter(x => x),
@@ -14,7 +15,7 @@ const RULES = {
     MINUTES: window.___minutes.split(",").map(x => x.trim()).filter(x => x).map(x => +x),
     BEFORE_BOSS_WAIT_TIME: 8_000,
 
-    QUESTION_FOLDER: "../questions/",
+
     ACCURACY_FUNCTION: (attempt, solution) => {
         //integers must be exact
         if (Number.isInteger(solution)) return attempt == solution
@@ -61,7 +62,7 @@ const GRAPHICS = {
 
     ALLOW_ZOOM_SLIDER: true,
     ZOOM_SLIDER_RIGHT: 20,
-    ZOOM_MAXIMUM: 3,
+    ZOOM_MAXIMUM: +window.___zoom || 3,
 
     DRAG_COEFF: 0, //can be null or zero.
     DRAG_BUT_NO_CLICK_THRESHOLD: location.hash.includes("drag") ? 500 : 100,

@@ -243,6 +243,7 @@ class GameShared extends GameCore {
                 let howmuch = RULES.SCROLLWHEEL_SPEED
                 howmuch *= (mouser.wheel > 0 ? -1 : 1)
                 Spot.moveAll(howmuch)
+                this.borders?.forEach(x => x.move(0, howmuch))
             }
         }
 
@@ -376,7 +377,7 @@ class GameShared extends GameCore {
 
 
     async importALL(data) {
-        this.resetZoom()
+        this.resetZoom?.()
         const doit = data => Spot.fromJSONall(data)
         data ??= await MM.importJSON()
         doit(data)
@@ -614,6 +615,11 @@ class GameShared extends GameCore {
         border3.outline = 10
         border3.outline_color = "green"
         this.borders = new Malleable(border1, border2, border3)
+        this.resetZoom = () => {
+            this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1);
+            this.moveAll(this.w.worldRect.bottom - this.borders.components[0].bottom - GRAPHICS.BOTTOM)
+        }
+
         this.w.add_drawable(this.borders, 1)
 
     }
@@ -685,10 +691,6 @@ class GameShared extends GameCore {
         this.w.worldRect.stretch(val, val)
         const newT = this.w.screenToWorldRect(this.bot).top
         this.w.worldRect.move(0, origT - newT)
-    }
-    resetZoom() {
-        this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1);
-        this.moveAll(this.w.worldRect.bottom - this.borders.components[0].bottom - GRAPHICS.BOTTOM)
     }
 
     /**@type {?Slider} */

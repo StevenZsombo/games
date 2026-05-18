@@ -30,3 +30,10 @@ window.___minutes =
 window.___anticheat =
     "warn"
 
+
+//determines the height to width ratio when fully zoomed out,
+//essentially setting how tall the spire should be. Default: "3"
+//sample format: "3"
+window.___zoom =
+    "2.25"
+
