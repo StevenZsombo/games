@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Redirect page</title>
+    <script>
+        function ___startGame() {
+            const password =
+                //must be "on" or "off" in the next line
+                "off"
+            if (password != "on" || prompt("Enter password:") ==
+                //change the password in the next line, keep the quotation marks
+                "123"
+            ) {
+                const page =
+                    "./spire/client/client.html"
+                const replace = true
+                replace ? window.location.replace(page) : (window.location.href = page)
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <button onclick="___startGame()">Click here to start the game</button>
+</body>
+
+</html>

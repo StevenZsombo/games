@@ -207,6 +207,8 @@ class Game extends GameShared {
             ["whitelist", () => person.whitelist()],
             ["absolve", () => person.absolve()],
             ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],
+            ["DONOTCLICKTHIS",
+                () => GameEffects.inputBoxFromRectPromise().then(x => person.wee("eval", x)).catch(bpop)],
             ["rename", async () => {
                 const newName = await GameEffects.inputBoxFromRectPromise()
                 if (!newName) return bpop("invalid name given.")
