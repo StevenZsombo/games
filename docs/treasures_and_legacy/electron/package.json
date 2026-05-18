@@ -1,0 +1,39 @@
+{
+  "name": "electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win portable --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never",
+    "dist:linux": "electron-builder --linux AppImage --publish never"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.0.4",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.your.StevenElectron",
+    "productName": "StevenElectron",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
