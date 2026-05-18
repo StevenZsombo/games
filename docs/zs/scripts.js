@@ -1914,6 +1914,7 @@ class CalculatorButtons extends Malleable {
 		bg.transparent = true
 		bg.outline = 0
 		verifyAnswer && (this.verifyAnswer = verifyAnswer)
+		/**@type {Button[]} */
 		const calculatorButtons =
 			this.calculatorButtons =
 			bg.splitGrid(6, 3).flat().slice(0, -2)
@@ -1921,7 +1922,8 @@ class CalculatorButtons extends Malleable {
 					fontSize: 40,
 				}))
 				.map(x => x.shrinkToSquare().stretch(scaleFactor, scaleFactor))
-		const ans = this.ans = calculatorButtons.at(-1)
+		/**@type {Button} */
+		const ans = this.ans = calculatorButtons[calculatorButtons.length - 1]
 		ans.rightstretchat(calculatorButtons[2].right)
 		ans.txt = ""
 		const sendFancy = (b) => GameEffects.sendFancy(b, ans, 500)
@@ -1969,7 +1971,10 @@ class CalculatorButtons extends Malleable {
 			if (ans.txt === "" || ans.txt == null) return
 			const guess = +ans.txt
 			console.log(`submitting ${guess}`)
-			if (!Number.isFinite(guess)) throw new Error("Somehow the number is invalid???")
+			if (!Number.isFinite(guess)) {
+				ans.txt = ""
+				return
+			}
 			ans.txt = ""
 			submit.txt = "Waiting..."
 			submit.interactable = false
@@ -1978,7 +1983,7 @@ class CalculatorButtons extends Malleable {
 				submit.interactable = true
 			}
 
-			this.verifyAnswer(guess)
+			this.verifyAnswerAsync(guess)
 				.catch((err) => this.on_error(guess, err))
 				.then((resp) => {
 					if (resp?.correct === undefined) { this.on_faulty_response(guess, resp); return }
@@ -1993,7 +1998,7 @@ class CalculatorButtons extends Malleable {
 
 	}
 
-	async verifyAnswer(guess) {
+	async verifyAnswerAsync(guess) {
 		throw new Error("verifyAnswer was not defined.")
 		return { correct: false, reason: "error" }
 	}

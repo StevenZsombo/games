@@ -179,8 +179,8 @@ class Game extends GameShared {
             else if (x.done) x.onCorrectGuess()
         })
         this.lastVisitedID = tempSaveData.lastVisitedID
+        this.minutes = tempSaveData.minutes
         if (tempSaveData.secondsLeft != null) {
-            this.minutes = tempSaveData.minutes
             this.acceptToCutHead(Spot.ALL[tempSaveData.lastVisitedID], true)//lastvisited is safer than currentID i think
             const secLeft = Math.max(tempSaveData.secondsLeft, 1)
             const endsAtLeft = Math.max((tempSaveData.endsAt - Date.now()) / 1000, 1)

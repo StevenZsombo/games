@@ -29,7 +29,7 @@ class GameShared extends GameCore {
                 const pw = prompt("password")
                 if (pw == "8774") {
                     if (confirm("Go offline?")) {
-                        localStorage.hash += "offline"
+                        location.hash += "offline"
                         chat.delayedReload()
                         return
                     }
@@ -124,13 +124,13 @@ class GameShared extends GameCore {
                 em.emit("full", spot)
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
                 if (spot.done) detail.open(spot)
-                else if (spot.canMoveTo && !spot.mask) calculaAnimate()
+                else if (spot.canMoveTo && !spot.mask) calculaAllow()
             },
             close() {
                 this.spot = null
                 this.deactivate(); calcula.deactivate(); detail.deactivate(); offerer.deactivate(); sp.activate(); this.zoomSlider?.activate()
                 calcula.ans.txt = ""
-                calculaShowHide.txt = "Hide buttons"
+                // calculaShowHide.txt = "Hide buttons"
             },
             closesOnRelease: true,
             on_release() { if (this.closesOnRelease) this.close() },
@@ -145,14 +145,14 @@ class GameShared extends GameCore {
         // calculaBG.bottomat(this.HEIGHT - GRAPHICS.BOTTOM - 20)
         calculaBG.bottomat(this.HEIGHT)
         const calcula = this.calcula = new CalculatorButtons(calculaBG, undefined, { scaleFactor: .9 })
-        calcula.verifyAnswer = async (guess) => {
+        calcula.verifyAnswerAsync = async (guess) => {
             if (!fullViewer.spot.canMoveTo) { throw new Error("invalid submission?") }
             return { correct: fullViewer.spot.attempt(guess) }
         }
         calcula.ans.color = GRAPHICS.ANSWER_SPACE_COLOR
         this.add_drawable(calcula, 8)//just below the popups
 
-        const calculaShowHide = this.calculaShowHide = Button.fromRectShallow(calcula.ans)
+        /*const calculaShowHide = this.calculaShowHide = Button.fromRectShallow(calcula.ans)
         calculaShowHide.on_release = () => {
             if (calcula.submit.visible) {
                 // calcula.deactivate()
@@ -171,13 +171,15 @@ class GameShared extends GameCore {
         calculaShowHide.height = GRAPHICS.BOTTOM
         calculaShowHide.bottomat(this.HEIGHT)
         calculaShowHide.txt = "Hide buttons"
-        calcula.push(calculaShowHide)
+        calcula.push(calculaShowHide)*/
 
         calcula.deactivate()
 
         const origCalculaPos = calcula.calculatorButtons.map(x => ({ x: x.x, y: x.y }))
         const calculaAnimate = this.calculaAnimate = () => {
-            calcula.activate()
+            calcula.ans.txt = ""
+            calcula.ans.rad = 0
+            calcula.forEach(x => x.activate())
             calcula.calculatorButtons.forEach(x => x.interactable = false)
             Anim.custom(calcula.calculatorButtons, GRAPHICS.CALCULA_BRINGUP_TIME, (t, obj) => {
                 obj.forEach((x, i) => {
@@ -190,6 +192,19 @@ class GameShared extends GameCore {
                 ditch: true,
                 on_end: calcula.calculatorButtons.forEach(x => x.interactable = true)
             })
+        }
+        const calculaSolvePrompt = "Solve here!"
+        const calculaAllow = this.calculaAllow = () => {
+            calcula.activate()
+            calcula.forEach(x => x.deactivate())
+            calcula.ans.activate()
+            calcula.ans.txt = calculaSolvePrompt
+        }
+        calcula.ans.update = () => { if (calcula.ans.txt == calculaSolvePrompt) calcula.ans.rad = this.dtSin * .5 }
+        calcula.ans.on_release = () => {
+            calcula.submit.visible
+                ? calculaAllow()
+                : calculaAnimate()
         }
 
         const offerer = this.offerer = new Button({
@@ -773,7 +788,7 @@ class GameShared extends GameCore {
         this.fullViewer.open(spot)
         this.fullViewer.img = spot.maskIMG
         this.fullViewer.closesOnRelease = false
-        this.calculaAnimate()
+        this.calculaAllow()
         /**@type {Button & {cleanup:Function(),renew():Function(),secondsLeft:number,endsAt:number}} */
         const timer = this.timer = Button.fromRectShallow(this.offerer)
         timer.bottomat(this.HEIGHT)
