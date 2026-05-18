@@ -376,6 +376,7 @@ class GameShared extends GameCore {
 
 
     async importALL(data) {
+        this.resetZoom()
         const doit = data => Spot.fromJSONall(data)
         data ??= await MM.importJSON()
         doit(data)
@@ -540,10 +541,7 @@ class GameShared extends GameCore {
         this.keyboarder.on_keyupDict["3"] = () => resizeBase = null*/
         this.keyboarder.on_keyheldDict["3"] = () => { this.background?.stretch(1.05, 1.05) }
         this.keyboarder.on_keyheldDict["4"] = () => { this.background?.stretch(1 / 1.05, 1 / 1.05) }
-        this.keyboarder.on_keydownDict["z"] = () => {
-            this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1);
-            this.moveAll(this.w.worldRect.bottom - this.borders.components[0].bottom - GRAPHICS.BOTTOM)
-        }
+        this.keyboarder.on_keydownDict["z"] = () => { this.resetZoom() }
 
 
         const e = this.editorHelper = new Button()
@@ -687,8 +685,12 @@ class GameShared extends GameCore {
         this.w.worldRect.stretch(val, val)
         const newT = this.w.screenToWorldRect(this.bot).top
         this.w.worldRect.move(0, origT - newT)
-
     }
+    resetZoom() {
+        this.setZoom(1); this.zoomSlider && (this.zoomSlider.value = 1);
+        this.moveAll(this.w.worldRect.bottom - this.borders.components[0].bottom - GRAPHICS.BOTTOM)
+    }
+
     /**@type {?Slider} */
     zoomSlider = null
     initZoom() {
