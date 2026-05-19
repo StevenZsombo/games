@@ -275,6 +275,7 @@ class GameShared extends GameCore {
         em.on("climb", () => { sm.skipTo(2) })
         em.on("boss", () => { sm.skipTo(3); this.startBossfight() })
         em.on("noboss", () => { if (sm.currentKey >= 3) this.cancelBossfight() })
+        em.on("skiptoboss", () => { RULES.BEFORE_BOSS_WAIT_TIME = 0; em.emit("boss") })
         em.on("fin", () => { sm.skipTo(4) })
         em.on("win", () => { sm.skipTo(5) })
         em.on("correct", () => {

@@ -29,6 +29,13 @@ class Person extends Participant {
     whitelist() {
         this.wee("whitelist").then(this.pen = false).catch(bpop)
     }
+    flush() {
+        this.wee("flush").catch(bpop)
+        this.erase()
+    }
+    erase() {
+        listener.persons.delete(this.nameID)
+    }
     initialize() {
         this.full = null
         this.headed = new Set()
@@ -120,7 +127,7 @@ class Game extends GameShared {
                 width: 200, color: "red", height: 60, isBlocking: true,
                 on_release: function () {
                     console.log(this)
-                    this.tag?.absolve()
+                    this._person?.absolve()
                     this.close()
                 }
             })
@@ -129,7 +136,8 @@ class Game extends GameShared {
         chat.eggs("pen",/**@param {Person} person */
             (_, person) => {
                 person.pen = true
-                sideFeed.add(person.name).tag = person
+                const b = sideFeed.add(person.name)
+                b._person = person
             })
         chat.eggs("penEnd",/**@param {Person} person */
             (_, person) => {
@@ -200,10 +208,7 @@ class Game extends GameShared {
     /**@param {Person} person  */
     individualMenu(person) {
         const parr = [
-            ["flush", () => {
-                person.wee("flush").catch(bpop)
-                listener.persons.delete(person.nameID)
-            }],
+            ["flush", () => person.flush()],
             ["whitelist", () => person.whitelist()],
             ["absolve", () => person.absolve()],
             ["reload", () => person.wee("eval", "chat.delayedReload();").catch(bpop)],

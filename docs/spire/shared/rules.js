@@ -32,8 +32,9 @@ const RULES = {
     ANTICHEAT_WARN_BUT_DONT_PUNISH: window.___anticheat === "warn",
     // ANTICHEAT_WARN_COLOR: "rgba(200, 0, 0, 0.55)",
     // ANTICHEAT_WARN_COLOR: "rgba(100, 0, 50, 0.7)",
-    // ANTICHEAT_WARN_COLOR: "rgba(220, 20, 60, 0.7)",
+    // ANTICHEAT_WARN_COLOR: "rgba(255,255, 0, 0.7)",
     ANTICHEAT_WARN_COLOR: "rgba(180, 0, 0, 0.65)",
+    ANTICHEAT_SECONDS: 30,
 
 }
 

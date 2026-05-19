@@ -128,7 +128,7 @@ class Game extends GameShared {
             ? ac.DEFAULTS.overlay({ layer: 9, color: RULES.ANTICHEAT_WARN_COLOR })
             : ac.DEFAULTS.message()
         acButton.bottomstretchat(this.bot.top)
-        ac.timeTotal = 30
+        ac.timeTotal = RULES.ANTICHEAT_SECONDS
         ac.onPunish_more = () => { chat.wee("pen").catch(bpop) }
         ac.onEndPunish_more = () => { chat.wee("penEnd").catch(bpop) }
 

@@ -1834,7 +1834,10 @@ class FeedBasic {
 
 //#region Feed
 class Feed extends Malleable {
-	/**@type {Map<string, Button & {close:Function,timeout:number}>} */
+	/**
+	 * @type {Map<any, Button & {close:Function,timeout:number,feedTag:any}>} 
+	 * Based on button.feedTag
+	*/
 	buttons = new Map()
 	isBlocking = true
 	/**
@@ -1856,33 +1859,37 @@ class Feed extends Malleable {
 			Rect.packCol(arr, this.bgRect, "justify", "t", this.alsoResize)
 	}
 	/**
-	* @param {string} txt  
+	* @param {string} feedTag  
 	* @param {{timeout?:number, color?:string}} [options] 
 	*/
-	add(txt, { timeout, color } = {}) {
-		const already = this.buttons.get(txt)
-		if (already) return this._createOrRefreshTimeout(txt, already, timeout)
+	add(feedTag, { timeout, color } = {}) {
+		const already = this.buttons.get(feedTag)
+		if (already) return this._createOrRefreshTimeout(feedTag, already, timeout)
 		const b = Object.assign(new Button(), this.moreButtonSettings)
-		b.close = () => this.delete(txt)
+		b.close = () => this.delete(feedTag)
 		color && (b.color = color)
-		b.txt = txt
-		this.buttons.set(txt, b)
+		if (typeof feedTag === "string") b.txt = feedTag
+		b.feedTag = feedTag
+		this.buttons.set(feedTag, b)
 		this.rearrange()
-		this._createOrRefreshTimeout(txt, b, timeout)
+		this._createOrRefreshTimeout(feedTag, b, timeout)
 		return b
 	}
-	_createOrRefreshTimeout(txt, b, timeout) {
+	_createOrRefreshTimeout(feedTag, b, timeout) {
 		b.timeout && clearTimeout(b.timeout)
 		if (timeout && Number.isFinite(timeout))
-			b.timeout = setTimeout(() => this.delete(txt), timeout)
+			b.timeout = setTimeout(() => this.delete(feedTag), timeout)
 		return b
 	}
-	delete(txt) {
-		const b = this.buttons.get(txt)
+	delete(feedTag) {
+		const b = this.buttons.get(feedTag)
 		if (!b) return
-		this.buttons.delete(txt)
+		this.buttons.delete(feedTag)
 		clearTimeout(b.timeout)
 		this.rearrange()
+	}
+	has(feedTag) {
+		return this.buttons.has(feedTag)
 	}
 	clear() {
 		for (const b of this.buttons.values()) clearTimeout(b.timeout)

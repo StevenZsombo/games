@@ -2839,7 +2839,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
                 x.deactivate(); four[i + 1].activate(); fs();
                 game.mouser.on_release_once = fs
                 game.mouser.on_click_once = fs
-                game.canvas.addEventListener('click', () => MM.toggleFullscreen(true), { once: true });
+                if (i == 0) game.canvas.addEventListener('click', () => MM.toggleFullscreen(true), { once: true })
             })
             four[3].on_release = () => {
                 game.remove_drawables_batch(four.concat(bg))
