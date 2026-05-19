@@ -2,7 +2,7 @@ const RULES = {
     EDITOR: location.href.includes("localhost") && location.hash.includes("editor"),
     FAKE: location.hash.includes("editor") || location.hash.includes("fake"),
     SAVE_AGGRESSIVELY: !(location.hash.includes("editor") || location.hash.includes("fake")),
-    QUESTION_FOLDER: (() => location.hash.includes("public") ? "../questionsPublic/" : "../questions/")(),
+    QUESTION_FOLDER: "../questions/",
     get DEMO() { return this.QUESTION_FOLDER + window.___spire },
     get DEMOHEADS() { return this.QUESTION_FOLDER + window.___heads },
     ALLOW_BACKGROUND: true,
@@ -88,3 +88,15 @@ const MASTER = {
     ALSO_SHOW_ON_NEW_TAB: false,
 
 }
+
+
+    ;
+(() => {
+    if (location.hash.includes("public")) {
+        RULES.QUESTION_FOLDER = "../questionsPublic/"
+        GRAPHICS.ZOOM_MAXIMUM = 2.8
+        window.___spire = "spire.json"
+        window.___heads = "heads.json"
+    }
+
+})()
