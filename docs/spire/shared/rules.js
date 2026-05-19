@@ -85,6 +85,6 @@ const GRAPHICS = {
 const MASTER = {
     EXPORT_TO_EXCEL: true,
     EXPORT_TO_JSON: false,
-    ALSO_SHOW_ON_NEW_TAB: true,
+    ALSO_SHOW_ON_NEW_TAB: false,
 
 }
