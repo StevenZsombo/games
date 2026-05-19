@@ -23,9 +23,13 @@ var univ = {
     },
     on_first_run_blocking: null, //null or function. must call main(canvas) at the end
     on_next_game_once: null,
+    on_each_start: () => {
+        if (location.search.includes("test"))
+            game.keyboarder.on_paste = inf => dev.test(inf)
+    },
     on_beforeunload: () =>
         localStorage.setItem(stgs.localUserSettingsName, JSON.stringify({ ...userSettings, isDeveloper: false })),
-    acquireNameMoreStr: "(English name + homeroom)",
+    acquireNameMoreStr: " (English name + homeroom)\nThis will appear on the leaderboard.\n\nExample: Steven Q1-2025",
     denybuttons: false,
     allowQuietReload: location.hostname == "", //allow if locally hosted only
 }
@@ -1295,8 +1299,33 @@ const dev = Object.freeze({
         save[stgs.localVictoriesName] = JSON.stringify(extracted.map(x => x.stage))
 
         MM.exportJSON(Object.entries(save), MM.lettersAndNumberOnly(`${name}_${nameID}_fromServer`) + ".json", true)
+    },
+    test(data) {
+        // await new Promise(res => setTimeout(res, 1000))
+        // try { data ??= (await navigator.clipboard.readText()) }
+        // catch (err) { console.error(err) }
+        // data ??= prompt()
+        wDiv.hide()
+        if (typeof data === "string") data = JSON.parse(data)
+        stgs.stage = data.stage
+        main()
+        game.reactor.fromJSON(data.data)
+        game.reactor.stressTest()
+        game.reactor.numberOfRandomSheets = 4
+    },
+    async masstest(dataAndNameStr) {
+        dataAndNameStr ??= prompt()
+        const dataArr = dataAndNameStr.split("\n")
+            .filter(x => x).map(x => x.split("\t"))
+            .map((x, i) => [JSON.parse(x[3]), x[4], x[0]])
+        for (const y of dataArr) {
+            console.log("testing:", y[0].stage, y[1], y[2])
+            this.test(y[0])
+            game.reactor.numberOfRandomSheets = 0
+            await new Promise(res => game.reactor.celebrate = res)
+            console.log("correct:", y[0].stage, y[1], y[2])
 
-
+        }
     }
 })/// end of dev
 

@@ -689,6 +689,7 @@ Use the Share/Receive features instead.`
         this.stepTime = 5
         //this.game.animator.speedMultiplier = 1000
         //this.game.framerate.isRunning = true
+        this.level.conditions.sendToServerOnCompletion = false
     }
 
     AnimBank = {

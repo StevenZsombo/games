@@ -79,6 +79,7 @@ const main = function (canvas) {
     flushListeners(canvas)
     game = new Game(canvas)
     game.start()
+    return game
 }
 //#endregion
 
