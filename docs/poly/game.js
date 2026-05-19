@@ -432,6 +432,8 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         overlay.isBlocking = false
         this.add_drawable(overlay, 7)
         this.overlay = overlay
+        overlay.update = () => overlay.interactable = !this.reactor?.sheetsCleared
+
 
         this.ALLOW_DRAGGING_MOVINGPIECES = true
         this.destroyedMenuAlready = false
