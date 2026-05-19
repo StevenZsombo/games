@@ -46,6 +46,7 @@ const GRAPHICS = {
     SPOT_COLOR_SOLVED_OPAQUE: "rgba(20, 200, 20, 0.7)",
     SPOT_COLOR_FAILED: "red",
     SPOT_COLOR_FAILED_OPAQUE: "rgba(200, 20, 20, 0.7)",
+    SPOT_COLOR_UNREACHABLE_OPAQUE: "rgba(200, 200, 0, 0.7)",
     SPOT_COLOR_HIDDEN: "lightgray",
     SPOT_HYDRA_SIZE_COEFF: [1.4, 1],
     SPOT_HYDRA_COLOR: "lightblue",

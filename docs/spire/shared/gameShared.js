@@ -100,8 +100,12 @@ class GameShared extends GameCore {
             /**@param {Spot} spot  */
             open(spot) {
                 this.activate()
-                this.txt = spot.failed ? "You failed this problem already." : "You solved this problem already."
-                this.color = spot.failed ? GRAPHICS.SPOT_COLOR_FAILED_OPAQUE : GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE
+                this.txt =
+                    !spot.canMoveTo ? "You cannot reach this spot yet.\nClimb here first!"
+                        : spot.failed ? "You failed this problem already." : "You solved this problem already."
+                this.color =
+                    !spot.canMoveTo ? GRAPHICS.SPOT_COLOR_UNREACHABLE_OPAQUE
+                        : spot.failed ? GRAPHICS.SPOT_COLOR_FAILED_OPAQUE : GRAPHICS.SPOT_COLOR_SOLVED_OPAQUE
             }
         })
         detail.rightat(this.WIDTH)
@@ -123,7 +127,7 @@ class GameShared extends GameCore {
                 game.lastVisitedID = spot.id
                 em.emit("full", spot)
                 Anim.stepper(fullViewer, GRAPHICS.FULLVIEW_BRINGUP_TIME, "opacity", 1, 0, { ditch: true, add: game })
-                if (spot.done) detail.open(spot)
+                if (spot.done || !spot.canMoveTo) detail.open(spot)
                 else if (spot.canMoveTo && !spot.mask) calculaAllow()
             },
             close() {

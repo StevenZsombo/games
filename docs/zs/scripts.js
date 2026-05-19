@@ -1949,6 +1949,7 @@ class CalculatorButtons extends Malleable {
 				x.txt = "."
 				x.on_click = () => {
 					if (ans.txt === "") ans.txt = "0."
+					else if (ans.txt === "-") ans.txt = "-0."
 					else ans.txt = ans.txt.replace(".", "") + "."; sendFancy(x)
 				}
 			}
