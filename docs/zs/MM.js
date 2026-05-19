@@ -1443,7 +1443,6 @@ class MM {
         }
     }
 
-
     static isFullscreen() {
         return !!(document.fullscreenElement || document.webkitFullscreenElement ||
             document.mozFullScreenElement || document.msFullscreenElement)
@@ -1451,28 +1450,33 @@ class MM {
 
     static toggleFullscreen(whatToDo) {
         try {
-            const isFull = MM.isFullscreen()
+            const isFull = this.isFullscreen()
             if ((whatToDo === true || whatToDo === undefined) && !isFull) {
                 const elem = document.documentElement
                 const request = elem.requestFullscreen || elem.webkitRequestFullscreen ||
                     elem.webkitRequestFullScreen || elem.mozRequestFullScreen ||
                     elem.msRequestFullscreen
-                if (request) request.call(elem).catch(err => console.error("can't enter fullscreen", err))
+                if (request) {
+                    const options = { navigationUI: 'hide' }
+                    request.call(elem, options).catch(err => {
+                        console.error("can't enter fullscreen", err)
+                    })
+                }
                 return true
             }
             if ((whatToDo === false || whatToDo === undefined) && isFull) {
                 const exit = document.exitFullscreen || document.webkitExitFullscreen ||
                     document.webkitCancelFullScreen || document.mozCancelFullScreen ||
                     document.msExitFullscreen
-                if (exit) exit.call(document).catch(err => console.error("can't exit fullscreen", err))
+                if (exit) {
+                    exit.call(document).catch(err => console.error("can't exit fullscreen", err))
+                }
                 return false
             }
         } catch (err) {
             console.error("fullscreen error", err)
         }
     }
-
-
 
     static loadScript(scriptName, callback) {
         const oldGlobals = Object.keys(window)
