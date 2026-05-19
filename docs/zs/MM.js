@@ -1443,17 +1443,33 @@ class MM {
         }
     }
 
+
+    static isFullscreen() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+            document.mozFullScreenElement || document.msFullscreenElement)
+    }
+
     static toggleFullscreen(whatToDo) {
         try {
-            if ((whatToDo === true || whatToDo === undefined) && !document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch((err) => { console.error("can't fullscreen", err) })
+            const isFull = MM.isFullscreen()
+            if ((whatToDo === true || whatToDo === undefined) && !isFull) {
+                const elem = document.documentElement
+                const request = elem.requestFullscreen || elem.webkitRequestFullscreen ||
+                    elem.webkitRequestFullScreen || elem.mozRequestFullScreen ||
+                    elem.msRequestFullscreen
+                if (request) request.call(elem).catch(err => console.error("can't enter fullscreen", err))
                 return true
             }
-            if ((whatToDo === false || whatToDo === undefined) && document.fullscreenElement) {
-                document.exitFullscreen().catch((err) => { console.error("can't fullscreen", err) })
+            if ((whatToDo === false || whatToDo === undefined) && isFull) {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen ||
+                    document.webkitCancelFullScreen || document.mozCancelFullScreen ||
+                    document.msExitFullscreen
+                if (exit) exit.call(document).catch(err => console.error("can't exit fullscreen", err))
                 return false
             }
-        } catch (err) { console.error("can't fullscreen", err) }
+        } catch (err) {
+            console.error("fullscreen error", err)
+        }
     }
 
 
@@ -2818,6 +2834,8 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             four.slice(0, -1).forEach((x, i) => x.on_release = () => {
                 x.deactivate(); four[i + 1].activate(); fs();
                 game.mouser.on_release_once = fs
+                game.mouser.on_click_once = fs
+                game.canvas.addEventListener('click', () => MM.toggleFullscreen(true), { once: true });
             })
             four[3].on_release = () => {
                 game.remove_drawables_batch(four.concat(bg))
