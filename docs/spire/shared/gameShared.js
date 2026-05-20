@@ -385,6 +385,9 @@ class GameShared extends GameCore {
             em.emit("fin")
             this.bot.color = "yellow"
             this.swapper.activate()
+            this.heads.forEach(x => {
+                if (x.maskIMG) x.button.img = x.maskIMG
+            })
         }
         sm.states.get(5).on_enter = () => {
             em.emit("win")

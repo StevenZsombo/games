@@ -21,7 +21,7 @@ window.___students =
 //the quotation marks must be present, and numbers are separated by a comma
 //decimals are okay too, e.g. "7,4.5,3" has four and a half minutes for the second head
 window.___minutes =
-    "7,6,5,4,3"
+    "10,8,7,6,5,4,3"
 
 //anticheat to be used. must be either "off", "warn" or "punish"
 //sample format: "punish"
