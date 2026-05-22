@@ -363,6 +363,9 @@ class Game extends GameShared {
         parr.push(["Debug", () => person.debug()])
         parr.push(["Flush", () => person.flush(), "Flush this player"])
         parr.push(["Erase", () => person.erase(), "Erase this player from server"])
+        parr.push(["DONT CLICK THIS", async () => {
+            spop(await person.wee("eval", await GameEffects.inputBoxFromRectPromise()))
+        }, "Custom command - do NOT use."])
         parr.push(["Rename", async () => {
             person.rename(await GameEffects.inputBoxFromRectPromise(new Rect(this.mouser.x, this.mouser.y, 300, 50)))
         }, "Rename this player"])
