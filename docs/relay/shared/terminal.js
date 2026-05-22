@@ -59,7 +59,7 @@ class Terminal {
     asleep = false
     /**@type {?Loca} */
     loca = null
-    constructor(type, id) {
+    constructor(type, id, loca) {
         if (id == null) throw new Error("terminal did not get an id")
         this.id = id
         let spl, cust
@@ -74,6 +74,7 @@ class Terminal {
         else if (type.includes(",")) { spl = type.split(","); type = spl[0] }
         const row = Terminal.DATA.find(x => x[0] === type)
         if (!row) throw new Error("invalid terminal type")
+        this.loca = loca
         this.type = type
         this.terminal = row[0]
         this.delay = row[1]

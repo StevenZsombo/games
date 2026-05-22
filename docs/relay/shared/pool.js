@@ -34,7 +34,7 @@ class Pool {
         if (t) return t
         if (!loca) throw new Error("pool can't spawn new terminal: no loca given")
         if (!rect) throw new Error("pool can't spawn new terminal: no ijArr given")
-        t = new Terminal(type, id)
+        t = new Terminal(type, id, loca)
         loca.spawnTerminal(t, rect)
         this.terminals.set(id, t)
         return t
