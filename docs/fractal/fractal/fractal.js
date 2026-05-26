@@ -45,7 +45,10 @@ class Game extends GameCore {
         let sides = 5
         let branches = 4
         let levels = 5
-        let hue = 120
+        let hue1 = 120
+        let hue2 = 120
+        let light1 = .25
+        let light2 = .5
         let scale = .6
         let spread = ONEDEG * 30
         let branchSize = 200
@@ -53,11 +56,15 @@ class Game extends GameCore {
 
 
 
+
         const info = [
             ["sides", 1, 15, true],
             ["branches", 1, 5, true],
             ["levels", 1, 6, true],
-            ["hue", 0, 360],
+            ["hue1", 0, 360],
+            ["hue2", 0, 360],
+            ["light1", 0, 1],
+            ["light2", 0, 1],
             ["scale", 0, 1],
             ["spread", 0, PI],
             ["branchSize", 10, 500],
@@ -69,7 +76,7 @@ class Game extends GameCore {
         bgRect.rightstretchat(this.WIDTH - frac.left)
         const bgs = bgRect.splitGrid(info.length, 1).flat().map(x => Button.fromRect(x))
         const sliders
-            = bgs.map(x => new Slider(new Button({ width: 40, height: 80 })))
+            = bgs.map(x => new Slider(new Button({ width: 30, height: 40 })))
         sliders.forEach((x, i) => {
             x.leftX = bgRect.left + 30
             x.rightX = bgRect.right - 30
@@ -105,7 +112,7 @@ class Game extends GameCore {
         const drawBranch = function (lvl = 0) {
             if (lvl > levels) return
             ctx.save()
-            ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`
+            ctx.strokeStyle = `hsl(${Anim.interpol(hue1, hue2, lvl / levels)}, 100%, ${Anim.interpol(light1, light2, lvl / levels) * 100}%)`
 
             ctx.beginPath()
             ctx.moveTo(0, 0)
