@@ -32,16 +32,16 @@ class Game extends GameCore {
         const SIZE = 1000
         const frac = Button.fromRect(this.rect.copy.resize(SIZE, SIZE))
         frac.leftat(frac.top)
-        const w = new GameWorld(frac.copyRect)
-        w.add_drawable(frac)
         const fracBG = Button.fromRect(frac)
+        const w = new GameWorld(fracBG)
+        w.add_drawable(frac)
         fracBG.color = "black"
         w.add_drawable(fracBG, 1)
         this.add_drawable(w)
         const canvas = document.createElement("canvas")
         canvas.width = canvas.height = SIZE
         frac.imgScale = 1
-        frac.img = canvas
+        // frac.img = canvas
         // const ctx = canvas.getContext("2d")
         const backgroundColor = "hsl(240,100%,0%)" //very blue or black
 
@@ -75,7 +75,7 @@ class Game extends GameCore {
             ["scale", 0.7, 1],
             ["spread", -NINETYDEG, NINETYDEG],
             ["spreadI", -NINETYDEG / 2, NINETYDEG / 2],
-            ["branchSize", 50, 250],
+            ["branchSize", 50, 300],
             ["lineWidth", 1, 10],
         ]
         const bgRect = new Rect()
@@ -152,7 +152,7 @@ class Game extends GameCore {
             unmutate(origs)
         }
         let isDrawing = false
-        const drawFractal = async function (forcedDrawing = false, doNotReset = false) {
+        const ___drawFractal = async function (forcedDrawing = false, doNotReset = false) {
             if (isDrawing && !forcedDrawing) return
             isDrawing = true
             !doNotReset && ctx.reset()
@@ -173,7 +173,12 @@ class Game extends GameCore {
         const worker = new Worker("renderer.js")
         const offscreen = canvas.transferControlToOffscreen()
         worker.postMessage({ canvas: offscreen }, [offscreen])
-        worker.onmessage = e => { if (e.data.done) readyToDraw = true }
+        frac.img = canvas
+        worker.onmessage = e => {
+            if (!e.data.done) return
+            readyToDraw = true
+
+        }
         let latest
         const drawFractalWorker = function (forced = false) {
             if (!readyToDraw && !forced) return
@@ -206,14 +211,17 @@ class Game extends GameCore {
         controlButtons[1].dynamicText = () => `3D: ${shadows ? "ON" : "OFF"}`
         controlButtons[1].on_release = () => {
             shadows ^= 1
-            console.time(shadows ? "shadowOn" : "shadowOff")
+            if (shadows) GameEffects.popup("Bad for performance due to a browser compositing bug.")
             drawFractalWorker(true)
-            console.timeEnd(shadows ? "shadowOn" : "shadowOff")
         }
 
         controlButtons[2].txt = "Spin!"
         controlButtons[2].on_release = () => {
-            Anim.stepper(frac, 4000, "rad", 0, TWOPI, { add: this, lerp: Anim.l.smoothstep })
+            Anim.stepper(frac, 4000, "rad", 0, TWOPI, {
+                ditch: true,
+                add: this,
+                lerp: Anim.l.smoothstep,
+            })
         }
     }
     //#endregion
