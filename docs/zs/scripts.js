@@ -1736,7 +1736,7 @@ class Slider extends Panel {
 		this.assignMovingButton(button ?? new Button({ width: 50, height: 50 }))
 	}
 	set value(val) {
-		val = MM.clamp(val, this.min, this.max)
+		val = MM.clamp(this.integer ? Math.round(val) : val, this.min, this.max)
 		this._value = val
 		const t = (val - this.min) / (this.max - this.min)
 		const x = this.leftX + t * (this.rightX - this.leftX)

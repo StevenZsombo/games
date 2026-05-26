@@ -32,12 +32,17 @@ class Game extends GameCore {
         const SIZE = 1000
         const frac = Button.fromRect(this.rect.copy.resize(SIZE, SIZE))
         frac.leftat(frac.top)
-        this.add_drawable(frac)
+        const w = new GameWorld(frac.copyRect)
+        w.add_drawable(frac)
+        const fracBG = Button.fromRect(frac)
+        fracBG.color = "black"
+        w.add_drawable(fracBG, 1)
+        this.add_drawable(w)
         const canvas = document.createElement("canvas")
         canvas.width = canvas.height = SIZE
         frac.imgScale = 1
         frac.img = canvas
-        const ctx = canvas.getContext("2d")
+        // const ctx = canvas.getContext("2d")
         const backgroundColor = "hsl(240,100%,0%)" //very blue or black
 
 
@@ -45,30 +50,33 @@ class Game extends GameCore {
         let sides = 5
         let branches = 4
         let levels = 5
-        let hue1 = 120
-        let hue2 = 120
+        let hue1 = 130
+        let hue2 = 80
         let light1 = .35
         let light2 = .5
         let scale = .6
         let spread = ONEDEG * 30
-        let branchSize = 200
+        let spreadI = -0.3
+        let branchSize = 250
         let lineWidth = 3
+        let shadows = false
 
 
 
 
         const info = [
-            ["sides", 1, 15, true],
-            ["branches", 1, 5, true],
-            ["levels", 1, 6, true],
+            ["sides", 2, 12, true],
+            ["branches", 2, 5, true],
+            ["levels", 2, 5, true],
             ["hue1", 0, 360],
             ["hue2", 0, 360],
-            ["light1", 0, 1],
-            ["light2", 0, 1],
-            ["scale", 0, 1],
-            ["spread", -PI, PI],
-            ["branchSize", 10, 500],
-            ["lineWidth", 1, 20],
+            ["light1", .3, .7],
+            ["light2", .3, .7],
+            ["scale", 0.7, 1],
+            ["spread", -NINETYDEG, NINETYDEG],
+            ["spreadI", -NINETYDEG / 2, NINETYDEG / 2],
+            ["branchSize", 50, 250],
+            ["lineWidth", 1, 10],
         ]
         const bgRect = new Rect()
         bgRect.putOver(frac)
@@ -93,8 +101,8 @@ class Game extends GameCore {
             x.value = eval(`${data[0]}`)
             x.integer = !!(data[3])
             const changeVal = val => eval(`${data[0]}=${val}`)
-            x.on_value_end = val => { changeVal(val); drawFractal(true) }
-            x.on_value_change = val => { changeVal(val); drawFractal(false) }
+            x.on_value_end = val => { changeVal(val); drawFractalWorker(true) }
+            x.on_value_change = val => { changeVal(val); drawFractalWorker(false) }
             const bg = bgs[i]
             bg.transparent = true
             bg.dynamicText = () => `${data[0]} = ${x.value}`
@@ -133,7 +141,10 @@ class Game extends GameCore {
                 const position = branchSize * (1 - i / branches)
                 ctx.translate(position, 0)
                 ctx.scale(scale, scale)
-                ctx.rotate(spread)
+                // ctx.rotate(spread)
+                // ctx.rotate(spread * (i - (branches - spread * 5) / 2))
+                // ctx.rotate(spread + spreadSquare * spread * spread * i)
+                ctx.rotate(spread + spreadI * i)
                 drawBranch(lvl + 1)
                 ctx.restore()
             }
@@ -141,10 +152,10 @@ class Game extends GameCore {
             unmutate(origs)
         }
         let isDrawing = false
-        const drawFractal = function (forcedDrawing = false) {
+        const drawFractal = async function (forcedDrawing = false, doNotReset = false) {
             if (isDrawing && !forcedDrawing) return
             isDrawing = true
-            ctx.save()
+            !doNotReset && ctx.reset()
             ctx.fillStyle = backgroundColor
             ctx.fillRect(0, 0, SIZE, SIZE)
             ctx.translate(SIZE / 2, SIZE / 2)
@@ -155,15 +166,55 @@ class Game extends GameCore {
                 drawBranch()
                 ctx.rotate(TWOPI / sides)
             }
-            ctx.restore()
-            setTimeout(() => isDrawing = false, 100)
+            setTimeout(() => isDrawing = false, 500)
         }
 
+        let readyToDraw = true
+        const worker = new Worker("renderer.js")
+        const offscreen = canvas.transferControlToOffscreen()
+        worker.postMessage({ canvas: offscreen }, [offscreen])
+        worker.onmessage = e => { if (e.data.done) readyToDraw = true }
+        let latest
+        const drawFractalWorker = function (forced = false) {
+            if (!readyToDraw && !forced) return
+            readyToDraw = false
+            const props = Object.fromEntries(info.map(x => [x[0], eval(x[0])]))
+            Object.assign(props, { shadows, backgroundColor })
+            worker.postMessage({ props })
+        }
+
+
         console.time("fractal")
-        drawFractal()
+        drawFractalWorker()
         console.timeEnd("fractal")
 
+        const cBG = bgRect.copy.stretch(1, .05).topat(bgRect.bottom)
+        const controlButtons = cBG.splitGrid(1, 5).flat().map(x => Button.fromRect(x)).map(x => x.stretch(.9, .9))
+        this.add_drawable(controlButtons)
+        controlButtons[0].txt = "Randomize"
+        controlButtons[0].on_release = () => {
+            console.time("rand")
+            sliders.forEach((x, i) => {
+                x.value = MM.random(x.min, x.max)
+                eval(`${info[i][0]}=${x.value}`)
+            })
+            if (Math.abs(hue1 - hue2) > 45) hue2 = MM.clamp(hue1 - 45, hue1 + 45)
+            drawFractalWorker(true)
+            console.timeEnd("rand")
+        }
 
+        controlButtons[1].dynamicText = () => `3D: ${shadows ? "ON" : "OFF"}`
+        controlButtons[1].on_release = () => {
+            shadows ^= 1
+            console.time(shadows ? "shadowOn" : "shadowOff")
+            drawFractalWorker(true)
+            console.timeEnd(shadows ? "shadowOn" : "shadowOff")
+        }
+
+        controlButtons[2].txt = "Spin!"
+        controlButtons[2].on_release = () => {
+            Anim.stepper(frac, 4000, "rad", 0, TWOPI, { add: this, lerp: Anim.l.smoothstep })
+        }
     }
     //#endregion
 
