@@ -32,10 +32,10 @@ class Game extends GameCore {
         const SIZE = 1000
         const frac = Button.fromRect(this.rect.copy.resize(SIZE, SIZE))
         frac.leftat(frac.top)
+        frac.transparent = true
         const fracBG = Button.fromRect(frac)
-        const w = new GameWorld(fracBG)
+        const w = new GameWorld(fracBG.copyRect)
         w.add_drawable(frac)
-        fracBG.color = "black"
         w.add_drawable(fracBG, 1)
         this.add_drawable(w)
         const canvas = document.createElement("canvas")
@@ -43,7 +43,9 @@ class Game extends GameCore {
         frac.imgScale = 1
         // frac.img = canvas
         // const ctx = canvas.getContext("2d")
-        const backgroundColor = "hsl(240,100%,0%)" //very blue or black
+        const backgroundColor = "transparent"// "hsl(240,100%,0%)" //very blue or black
+        fracBG.color = "black"
+        fracBG.transparent = false
 
 
 
@@ -222,6 +224,16 @@ class Game extends GameCore {
                 add: this,
                 lerp: Anim.l.smoothstep,
             })
+        }
+
+        controlButtons[3].txt = "Download"
+        controlButtons[3].on_release = () => {
+            Cropper.downloadImage(frac.img, "fractal" + MM.dateAndTimeShort() + ".png")
+        }
+
+        controlButtons[4].dynamicText = () => `Black: ${fracBG.transparent ? "OFF" : "ON"}`
+        controlButtons[4].on_release = () => {
+            fracBG.transparent ^= 1
         }
     }
     //#endregion

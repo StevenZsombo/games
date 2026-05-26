@@ -1424,6 +1424,9 @@ class MM {
         const pad = n => n.toString().padStart(2, '0')
         return `${pad(d.getFullYear())}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}. ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
     }
+    static dateAndTimeShort() {
+        return MM.lettersAndNumberOnly(MM.dateAndTime())
+    }
 
     static timestampToTime(timestamp) {
         new Date(timestamp).toTimeString().slice(0, 8)
