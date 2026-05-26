@@ -160,7 +160,7 @@ class Game extends GameCore {
 
         /**@param {KeyboardEvent} e */
         this.keyboarder.on_keydown = (e) => {
-            if (!this.overlay.interactable) return
+            if (!this.overlay?.interactable) return
             if (!e.altKey && !e.shiftKey && e.ctrlKey) {
                 if (e.key == 'z') this.reactor?.undo()
                 if (e.key == 'y') this.reactor?.redo()
