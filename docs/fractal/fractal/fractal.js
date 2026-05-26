@@ -61,7 +61,7 @@ class Game extends GameCore {
         let spreadI = -0.3
         let branchSize = 250
         let lineWidth = 3
-        let shadows = false
+        let shadows = 0 //0 or 1
 
 
 
@@ -107,7 +107,7 @@ class Game extends GameCore {
             x.on_value_change = val => { changeVal(val); drawFractalWorker(false) }
             const bg = bgs[i]
             bg.transparent = true
-            bg.dynamicText = () => `${data[0]} = ${x.value}`
+            bg.dynamicText = () => `${data[0]} = ${eval(data[0])}`
             bg.textSettings.textBaseline = "top"
 
         })
@@ -181,22 +181,45 @@ class Game extends GameCore {
             readyToDraw = true
 
         }
-        let latest
+        let latestHash
         const drawFractalWorker = function (forced = false) {
             if (!readyToDraw && !forced) return
             readyToDraw = false
             const props = Object.fromEntries(info.map(x => [x[0], eval(x[0])]))
-            Object.assign(props, { shadows, backgroundColor })
+            Object.assign(props, { shadows })
             worker.postMessage({ props })
+            latestHash = Array.from(Object.entries(props)).map(x => x.join("=")).join(",")
         }
 
 
-        console.time("fractal")
+        const readHash = () => {
+            if (location.hash) {
+                try {
+                    for (const bit of location.hash.slice(1).split(",")) {
+                        const [k, v] = bit.split("=")
+                        eval(`${k}=${v}`)
+                    }
+                }
+                catch (err) { console.error(err) }
+            }
+        }
+
+        console.time("fractalFirst")
+        let finishedHash = false
+        readHash()
+        finishedHash = true
+        window.onhashchange = () => {
+            if (finishedHash) {
+                readHash()
+                drawFractalWorker(true)
+                GameEffects.popup("Loading...")
+            }
+        }
         drawFractalWorker()
-        console.timeEnd("fractal")
+        console.timeEnd("fractalFirst")
 
         const cBG = bgRect.copy.stretch(1, .05).topat(bgRect.bottom)
-        const controlButtons = cBG.splitGrid(1, 5).flat().map(x => Button.fromRect(x)).map(x => x.stretch(.9, .9))
+        const controlButtons = cBG.splitGrid(1, 6).flat().map(x => Button.fromRect(x)).map(x => x.stretch(.9, .9))
         this.add_drawable(controlButtons)
         controlButtons[0].txt = "Randomize"
         controlButtons[0].on_release = () => {
@@ -235,6 +258,26 @@ class Game extends GameCore {
         controlButtons[4].on_release = () => {
             fracBG.transparent ^= 1
         }
+
+        controlButtons[5].txt = "Share"
+        controlButtons[5].on_release = () => {
+            const out = new URL(window.location)
+            out.hash = latestHash
+            try {
+                navigator?.clipboard.writeText(out)
+                console.log(out)
+                GameEffects.popup("Copied to clipboard!")
+            } catch (err) {
+                prompt(out)
+            }
+        }
+        /*
+            this.keyboarder.on_paste = txt => {
+                if (txt.includes(location.href.split("#")[0])) {
+                    location.hash = txt
+                }
+            }
+        */
     }
     //#endregion
 

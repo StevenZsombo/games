@@ -7,9 +7,9 @@ self.onmessage = e => {
     }
 
     const SIZE = 1000
+    const backgroundColor = "transparent"
 
     let {
-        backgroundColor,
         sides, branches, levels, hue1, hue2, light1, light2,
         scale, spread, spreadI, branchSize, lineWidth,
         shadows
