@@ -47,7 +47,7 @@ class Game extends GameCore {
         let levels = 5
         let hue1 = 120
         let hue2 = 120
-        let light1 = .25
+        let light1 = .35
         let light2 = .5
         let scale = .6
         let spread = ONEDEG * 30
@@ -66,7 +66,7 @@ class Game extends GameCore {
             ["light1", 0, 1],
             ["light2", 0, 1],
             ["scale", 0, 1],
-            ["spread", 0, PI],
+            ["spread", -PI, PI],
             ["branchSize", 10, 500],
             ["lineWidth", 1, 20],
         ]
@@ -74,6 +74,7 @@ class Game extends GameCore {
         bgRect.putOver(frac)
         bgRect.leftat(frac.right + frac.left)
         bgRect.rightstretchat(this.WIDTH - frac.left)
+        bgRect.height *= .95
         const bgs = bgRect.splitGrid(info.length, 1).flat().map(x => Button.fromRect(x))
         const sliders
             = bgs.map(x => new Slider(new Button({ width: 30, height: 40 })))
@@ -92,15 +93,8 @@ class Game extends GameCore {
             x.value = eval(`${data[0]}`)
             x.integer = !!(data[3])
             const changeVal = val => eval(`${data[0]}=${val}`)
-            x.on_value_end = val => {
-                changeVal(val)
-                drawFractal(true)
-            }
-            x.on_value_change = val => {
-                changeVal(val)
-                drawFractal(false)
-            }
-
+            x.on_value_end = val => { changeVal(val); drawFractal(true) }
+            x.on_value_change = val => { changeVal(val); drawFractal(false) }
             const bg = bgs[i]
             bg.transparent = true
             bg.dynamicText = () => `${data[0]} = ${x.value}`
@@ -108,9 +102,25 @@ class Game extends GameCore {
 
         })
 
-
+        const ALLOW_MUTATION = false
+        const mutate = function () {
+            if (!ALLOW_MUTATION) return {}
+            const origs = {}
+            const names = ["spread"]
+            names.forEach(x => {
+                origs[x] = eval(x)
+                eval(`${x}*=${MM.random(.9, 1.1)}`)
+            })
+            return origs
+        }
+        const unmutate = function (origs) {
+            Object.entries(origs).forEach(([k, v]) => {
+                eval(`${k}=${v}`)
+            })
+        }
         const drawBranch = function (lvl = 0) {
             if (lvl > levels) return
+            const origs = mutate()
             ctx.save()
             ctx.strokeStyle = `hsl(${Anim.interpol(hue1, hue2, lvl / levels)}, 100%, ${Anim.interpol(light1, light2, lvl / levels) * 100}%)`
 
@@ -128,6 +138,7 @@ class Game extends GameCore {
                 ctx.restore()
             }
             ctx.restore()
+            unmutate(origs)
         }
         let isDrawing = false
         const drawFractal = function (forcedDrawing = false) {
@@ -145,7 +156,7 @@ class Game extends GameCore {
                 ctx.rotate(TWOPI / sides)
             }
             ctx.restore()
-            isDrawing = false
+            setTimeout(() => isDrawing = false, 100)
         }
 
         console.time("fractal")
