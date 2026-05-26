@@ -393,8 +393,13 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
                 ?? prototypeLevels[stgs.stage]
                 ?? brokenLevels[stgs.stage]
         if (!level) throw "Requested level does not exist."
-
-        const reactor = new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
+        const twelve =
+            // location.search.includes("twelve") &&
+            (prototypeLevels[stgs.stage] || brokenLevels[stgs.stage])
+        const reactor =
+            twelve
+                ? new Reactor(this, 12, 12, 105, 75)
+                : new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
         this.add_drawable(reactor)
         this.reactor = reactor
         window.r = reactor
