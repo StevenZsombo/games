@@ -137,10 +137,12 @@ class Game extends GameCore {
         if (this.keyboarder.pressed[5]) this.speedButtons?.[5].on_click()
         if (this.keyboarder.pressed["f"]) MM.toggleFullscreen()
         if (this.keyboarder.pressed["r"]) this.reactor?.controlButtons?.[2].on_click()
+        /*
         if (this.keyboarder.pressed["w"]) this.reactor?.moveAllPieces(-1, 0)
         if (this.keyboarder.pressed["a"]) this.reactor?.moveAllPieces(0, -1)
         if (this.keyboarder.pressed["s"]) this.reactor?.moveAllPieces(1, 0)
         if (this.keyboarder.pressed["d"]) this.reactor?.moveAllPieces(0, 1)
+        */
         if (this.keyboarder.pressed["Escape"]) {
             const closeButtons = this.layersFlat.filter(x => x.txt == "Close")
             if (closeButtons.length) {
@@ -158,13 +160,11 @@ class Game extends GameCore {
 
         /**@param {KeyboardEvent} e */
         this.keyboarder.on_keydown = (e) => {
+            if (!this.overlay.interactable) return
             if (!e.altKey && !e.shiftKey && e.ctrlKey) {
                 if (e.key == 'z') this.reactor?.undo()
                 if (e.key == 'y') this.reactor?.redo()
-                // if (e.key == 's') this.reactor?.saveTemp() //Did not fancy this.
             }
-
-
         }
 
 
