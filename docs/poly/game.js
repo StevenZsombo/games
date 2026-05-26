@@ -393,12 +393,14 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
                 ?? prototypeLevels[stgs.stage]
                 ?? brokenLevels[stgs.stage]
         if (!level) throw "Requested level does not exist."
-        const twelve =
-            // location.search.includes("twelve") &&
-            (prototypeLevels[stgs.stage] || brokenLevels[stgs.stage])
+        const other =
+            (freeLevels[stgs.stage] || prototypeLevels[stgs.stage] || brokenLevels[stgs.stage])
+                ? [6, 8, 10, 12, 20][["eight", "ten", "twelve", "twenty"].findIndex(x => location.search.includes(x)) + 1]
+                : 0
+
         const reactor =
-            twelve
-                ? new Reactor(this, 12, 12, 105, 75)
+            other
+                ? new Reactor(this, other, other, 210 * 6 / other, 150 * 6 / other)
                 : new Reactor(this, level.conditions.rows ?? 6, level.conditions.cols ?? 6, 210, 150)
         this.add_drawable(reactor)
         this.reactor = reactor
