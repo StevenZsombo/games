@@ -69,7 +69,7 @@ class Game extends GameCore {
         const info = [
             ["sides", 2, 12, true],
             ["branches", 2, 5, true],
-            ["levels", 2, 5, true],
+            ["levels", 2, 7, true],
             ["hue1", 0, 360],
             ["hue2", 0, 360],
             ["light1", .3, .7],
@@ -278,6 +278,12 @@ class Game extends GameCore {
                 }
             }
         */
+        const rendinfo = new Button({ width: 80, height: 30, fontSize: 24 })
+        rendinfo.dynamicText = () => !readyToDraw ? "Rendering..." : ""
+        rendinfo.centeratX(frac.cx)
+        rendinfo.topat(frac.bottom)
+        rendinfo.transparent = true
+        this.add_drawable(rendinfo)
     }
     //#endregion
 
