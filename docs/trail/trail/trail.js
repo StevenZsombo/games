@@ -89,7 +89,11 @@ class Game extends GameCore {
                 const dx = game.mouser.pos.x - lastPos.x
                 const dy = game.mouser.pos.y - lastPos.y
                 lastPos = game.mouser.pos
-                if (dx ** 2 + dy ** 2 > minMovement && cooldown < 0) addPoint(null, null, dx, dy)
+                if (
+                    dx ** 2 + dy ** 2 > minMovement
+                    && cooldown < 0
+                    && game.lastHovered.size == 0
+                ) addPoint(null, null, dx, dy)
                 points.forEach(p => {
                     p.time += dt
                     p.hue += dt / 360 * 0.1
@@ -133,7 +137,7 @@ class Game extends GameCore {
 
 
         const butDots = new Button({ width: 200, height: 200 })
-        butDots.centeratY(this.rect.cy)
+        butDots.centeratY(this.HEIGHT * .3)
         butDots.leftat(200)
         butDots.txt = "Splash"
 
@@ -189,7 +193,7 @@ class Game extends GameCore {
                 vultures.forEach(p => {
                     p.time += dt
                     if (p.time < vultOut) {
-                        p.move(1)
+                        p.move(dt)
                     } else if (p.time < vultOut + vultSpin) {
                         const dx = p.orig.x - p.x
                         const dy = p.orig.y - p.y
@@ -197,20 +201,19 @@ class Game extends GameCore {
                         const dist = Math.hypot(dx, dy)
                         p.x = p.orig.x + dist * Math.cos(ang)
                         p.y = p.orig.y + dist * Math.sin(ang)*/
-                        p.vx = dy * 0.005
-                        p.vy = -dx * 0.005
-                        p.move(1)
+                        p.vx = dy * 0.0005
+                        p.vy = -dx * 0.0005
+                        p.move(dt)
                     } else if (p.time < vultOut + vultSpin + vultIn) {
                         if (!p.rot2) {
                             p.rot2 = true
                             const dx = p.orig.x - p.x
                             const dy = p.orig.y - p.y
                             const magAdj = Math.hypot(p.origV.vx, p.origV.vy) / Math.hypot(dx, dy) * vultOut / vultIn
-                            console.log({ dx, dy, magAdj, vx: dx * magAdj, vy: dy * magAdj })
                             p.vx = dx * magAdj
                             p.vy = dy * magAdj
                         }
-                        p.move(1)
+                        p.move(dt)
                     } else {
                         vultures.delete(p)
                     }
@@ -231,7 +234,7 @@ class Game extends GameCore {
                 const [c, s] = [Math.cos, Math.sin].map(fn => fn(ang))
                 v.vx = c
                 v.vy = s
-                v.velMult(2)
+                v.velMult(.5)
                 v.setNewOrigV()
                 v.rot1 = v.rot2 = false
                 vultures.add(v)
@@ -240,7 +243,113 @@ class Game extends GameCore {
         butVult.on_release = () => addVult()
         this.add_drawable(vulturesDrawable)
 
-        Object.assign(this, { vultures, dots, points })
+
+
+
+        const butStar = Button.fromRectShallow(butVult)
+        butStar.move(butStar.width * 1.5, 0)
+        this.add_drawable(butStar, 3)
+        butStar.txt = "Stars"
+        /**@type {Set<Point & {poly: number[], legs:number}>} */
+        const stars = new Set()
+        const addStars = () => {
+            const { x, y } = game.mouser.pos
+            const p = new Point(x, y)
+            p.legs = MM.randomInt(5, 7)
+            p.poly = MM.polyStar(x, y, 50, { legs: p.legs })
+            stars.add(p)
+        }
+        const starsGrow = 400
+        const starsSize = 100
+        const starsRotate = 800
+        const starsDeflate = 400
+        const starsDrawable = {
+            update(dt) {
+                stars.forEach(p => {
+                    p.time += dt
+                    if (p.time > starsGrow + starsRotate + starsDeflate) {
+                        stars.delete(p)
+                        return
+                    }
+                    p.poly = MM.polyStar(p.orig.x, p.orig.y,
+                        p.time < starsGrow ? p.time / starsGrow * starsSize
+                            : p.time > starsGrow + starsRotate ?
+                                (1 - (p.time - starsGrow - starsRotate) / starsDeflate) * starsSize
+                                : starsSize
+                        , {
+                            legs: p.legs,
+                            startAngle: game.dtTotal / 360,
+
+                        })
+                })
+            },
+            draw(ctx) {
+                stars.forEach(p => {
+                    MM.drawPolygon(ctx, p.poly, { color: `hsl(${p.hue},100%,50%)`, outline: 0 })
+                })
+            }
+        }
+        butStar.on_release = () => addStars()
+        this.add_drawable(starsDrawable)
+
+
+        const butSquiggles = butStar.copy
+        butSquiggles.txt = "Squiggles"
+        butSquiggles.move(butSquiggles.width * 1.5, 0)
+        butSquiggles.on_release = () => addSquiggles()
+        this.add_drawable(butSquiggles, 3)
+        /**@type {Set<{xy:number[], old: number[], time:number, loops:number, orig:{x:number,y:number}}>} */
+        const squiggles = new Set()
+        const squigglesMaxLoops = 3
+        const squigglesSteadyTime = 1000
+        const squigglesShuffleTime = 500
+        const addSquiggles = (vertices = MM.randomInt(6, 8)) => {
+            const s = { time: 0, loops: -1 }
+            s.xy = Array(vertices).fill().flatMap(_ => [0, 0])
+            s.orig = { ...game.mouser.pos }
+            rearrange(s)
+            squiggles.add(s)
+        }
+        const rearrange = (p) => {
+            p.time = 0
+            p.loops += 1
+            if (p.loops > squigglesMaxLoops) {
+                squiggles.delete(p)
+                return true
+            }
+            p.old = [...p.xy]
+            p.new =
+                p.loops == squigglesMaxLoops
+                    ? p.xy.map(_ => 0)
+                    : p.xy.map(_ => MM.random(-200, 200))
+            Anim.custom(p, squigglesShuffleTime, (t) => {
+                p.xy = p.xy.map((_, i) => Anim.interpol(p.old[i], p.new[i], t))
+            }, "", { ditch: true, add: game })
+
+        }
+        const squigglesDrawable = {
+            update(dt) {
+                squiggles.forEach(p => {
+                    p.time += dt
+                    if (p.time > squigglesSteadyTime) {
+                        if (rearrange(p)) return
+                    }
+                })
+            },
+            draw(ctx) {
+                squiggles.forEach(p => {
+                    MM.drawPolygon(ctx, p.xy.map(
+                        (c, i) => c + (i % 2 ? p.orig.y : p.orig.x)
+                    ), { color: null, outline: 2, outline_color: "red" })
+                })
+            }
+        }
+        this.add_drawable(squigglesDrawable)
+
+
+
+
+        Object.assign(this, { vultures, dots, points, stars, squiggles })
 
     }
     //#endregion

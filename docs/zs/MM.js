@@ -1284,8 +1284,11 @@ class MM {
     }
     //#endregion
 
-    static polyStar(x = 0, y = 0, outerSize = 32, { legs = 5, innerSize, innerRatio = 0.35, ...drawArgs } = {}) {
-        const angles = Array.from({ length: legs }, (_, i) => i * TWOPI / legs - NINETYDEG)
+    static polyStar(x = 0, y = 0, outerSize = 32, {
+        legs = 5, innerSize, innerRatio = 0.35,
+        startAngle = 0,
+        ...drawArgs } = {}) {
+        const angles = Array.from({ length: legs }, (_, i) => i * TWOPI / legs - NINETYDEG + startAngle)
         const halfAngles = angles.map(x => x + TWOPI / legs / 2)
         innerSize ??= innerRatio * outerSize
         const outer = angles.map(x => [Math.cos(x), Math.sin(x)]).map(x => x.map(x => x * outerSize))
