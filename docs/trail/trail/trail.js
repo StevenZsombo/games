@@ -33,6 +33,7 @@ class Game extends GameCore {
             constructor(x, y, friends) {
                 this.x = x
                 this.y = y
+                this.orig = { x, y }
                 /**@type {Point[]} */
                 if (friends) this.friends = Array.from(friends)
                 this.time = 0
@@ -40,14 +41,27 @@ class Game extends GameCore {
                 this.hue = (Date.now() / 10) % 360
                 this.vx = (Math.random()) * Math.sign(Math.random() - .5) * .5
                 this.vy = (Math.random()) * Math.sign(Math.random() - .5) * .5
+                this.origV = { vx: this.vx, vy: this.vy }
+            }
+            move(coeff = 1) {
+                this.x += this.vx * coeff
+                this.y += this.vy * coeff
+            }
+            draw(ctx, radius = 10, color = `hsl(${this.hue},100%,50%)`) {
+                MM.drawCircle(ctx, this.x, this.y, radius, { color })
+            }
+            velMult(coeff) {
+                this.vx *= coeff
+                this.vy *= coeff
             }
         }
         /**@type {Set<Point>} */
         const points = new Set()
         /**@type {Set<Point>} */
         const recents = new Set()
-        const aliveFor = 800
-        const recentFor = 1000
+        const aliveFor = 1600
+        const recentFor = 1200
+        const radius = 15
         let lastPos = game.mouser.pos
         const cooldownBase = 50
         let cooldown = cooldownBase
@@ -88,7 +102,7 @@ class Game extends GameCore {
             draw(ctx) {
                 points.forEach(p => {
                     const color = `hsl(${p.hue},100%,50%)`
-                    MM.drawCircle(ctx, p.x, p.y, (1 - p.time / aliveFor) * 20, {
+                    MM.drawCircle(ctx, p.x, p.y, (1 - p.time / aliveFor) * radius, {
                         color
                     })
                     if (p.isRecent) {
@@ -113,8 +127,8 @@ class Game extends GameCore {
 
 
         const butDots = new Button({ width: 200, height: 200 })
-        butDots.bottomat(this.HEIGHT - 100)
-        butDots.leftat(100)
+        butDots.centeratY(this.rect.cy)
+        butDots.leftat(200)
         butDots.txt = "Splash"
 
         this.add_drawable(butDots, 3)
@@ -153,6 +167,68 @@ class Game extends GameCore {
             }
         }
         this.add_drawable(dotsDrawable)
+
+
+        const butVult = Button.fromRectShallow(butDots)
+        butVult.move(butVult.width * 1.5, 0)
+        butVult.txt = "Vult"
+        this.add_drawable(butVult, 3)
+        /**@type {Set<Point>} */
+        const vultures = new Set()
+        const vultOut = 300
+        const vultSpin = 800
+        const vultIn = 300
+        const vulturesDrawable = {
+            update(dt) {
+                vultures.forEach(p => {
+                    p.time += dt
+                    if (p.time < vultOut) {
+                        p.move(1)
+                    } else if (p.time < vultOut + vultSpin) {
+                        if (!p.rot1) {
+                            p.rot1 = true
+                            const { vx, vy } = p
+                            p.vx = -vy
+                            p.vy = vx
+                        }
+                        p.move(1)
+                    } else if (p.time < vultOut + vultSpin + vultIn) {
+                        if (!p.rot2) {
+                            p.rot2 = true
+                            const { vx, vy } = p
+                            p.vx = -vy
+                            p.vy = vx
+                        }
+                        p.move(1)
+                    } else {
+                        vultures.delete(p)
+                    }
+                })
+            },
+            draw(ctx) {
+                vultures.forEach(p => {
+                    p.draw(ctx)
+                })
+            }
+
+        }
+        const addVult = (howmany = 24) => {
+            for (let i = 0; i < howmany; i++) {
+                const { x, y } = this.mouser.pos
+                const v = new Point(x, y)
+                const ang = TWOPI / howmany * i
+                const [c, s] = [Math.cos, Math.sin].map(fn => fn(ang))
+                v.vx = c
+                v.vy = s
+                v.velMult(2)
+                v.rot1 = v.rot2 = false
+                vultures.add(v)
+            }
+        }
+        butVult.on_release = () => addVult()
+        this.add_drawable(vulturesDrawable)
+
+        Object.assign(this, { vultures, dots, points })
 
     }
     //#endregion
