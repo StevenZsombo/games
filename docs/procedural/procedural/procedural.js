@@ -41,10 +41,10 @@ class Game extends GameCore {
                 /**@type {?Bone} */
                 this.tail = null
             }
-            boundaryAt(ang = 0) {
+            polar(ang = 0, rCoeff = 1) {
                 return {
-                    x: this.x + this.r * Math.cos(ang + this.ang),
-                    y: this.y + this.r * Math.sin(ang + this.ang)
+                    x: this.x + this.r * rCoeff * Math.cos(ang + this.ang),
+                    y: this.y + this.r * rCoeff * Math.sin(ang + this.ang)
                 }
             }
             /**@param {Bone} bone  */
@@ -100,11 +100,11 @@ class Game extends GameCore {
             }
         }
 
-        const sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 15]
+        const sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
             .map(x => x * .6)
         const bones = sizes.map(_ => new Bone())
         bones.forEach((b, i) => {
-            b.x = 300 + i * 200
+            b.x = 800 - i * 200
             b.r = sizes[i]
             if (i != 0) b.head = bones[i - 1]
             if (i != bones.length - 1) b.tail = bones[i + 1]
@@ -120,25 +120,72 @@ class Game extends GameCore {
             /**@param {RenderingContext} ctx */
             draw(ctx) {
 
+
+                {
+                    ctx.save()
+                    const { x, y } = bones[3].polar(-NINETYDEG)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[4].ang + 30 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 40, 20, {
+                        color: "lightblue", outline: 2, outline_color: "black"
+                    })
+                    ctx.restore()
+                }
+                {
+                    ctx.save()
+                    const { x, y } = bones[3].polar(NINETYDEG)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[4].ang - 30 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 40, 20, {
+                        color: "lightblue", outline: 2, outline_color: "black"
+                    })
+                    ctx.restore()
+                }
+
+                {
+                    ctx.save()
+                    const { x, y } = bones[6].polar(-NINETYDEG)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[4].ang + 30 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 25, 12, {
+                        color: "lightblue", outline: 2, outline_color: "black"
+                    })
+                    ctx.restore()
+                }
+                {
+                    ctx.save()
+                    const { x, y } = bones[6].polar(NINETYDEG)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[4].ang - 30 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 25, 12, {
+                        color: "lightblue", outline: 2, outline_color: "black"
+                    })
+                    ctx.restore()
+                }
+
+                {
+                    const last = bones[bones.length - 1]
+                    const tailpoints = []
+                    tailpoints.push(last.polar(-45 * ONEDEG, -1))
+                    tailpoints.push(last.polar(45 * ONEDEG, -1))
+                    // tailpoints.push(last.polar(MM.clamp(last.ang, 15 * ONEDEG, 25 * ONEDEG), -6))
+                    // tailpoints.push(last.polar(MM.clamp(last.ang, -15 * ONEDEG, -25 * ONEDEG), -6))
+                    tailpoints.push(last.polar(-25 * ONEDEG, -6))
+                    tailpoints.push(last.polar(25 * ONEDEG, -6))
+
+                    MM.drawQuadraticSpline(ctx, tailpoints,
+                        { color: "lightblue", outline: 2, outline_color: "black" }
+                    )
+                }
+
                 const points = [
-                    ...[-60, -30, 0, 30, 60].map(x => bones[0].boundaryAt(ONEDEG * x)),
-                    ...bones.map(b => b.boundaryAt(NINETYDEG)),
-                    bones.at(-1).boundaryAt(PI),
-                    ...bones.map(b => b.boundaryAt(-NINETYDEG)).reverse()
+                    ...[-60, -30, 0, 30, 60].map(x => bones[0].polar(ONEDEG * x)),
+                    ...bones.map(b => b.polar(NINETYDEG)),
+                    bones.at(-1).polar(PI),
+                    ...bones.map(b => b.polar(-NINETYDEG)).reverse()
                 ]
 
-                ctx.beginPath()
-                const n = points.length
 
-                for (let i = 0; i <= n; i++) {//quadratic
-                    const p = points[i % n]
-                    const next = points[(i + 1) % n]
-                    const mid = { x: (p.x + next.x) / 2, y: (p.y + next.y) / 2 }
-                    if (i == 0)
-                        ctx.moveTo(mid.x, mid.y)
-                    else
-                        ctx.quadraticCurveTo(p.x, p.y, mid.x, mid.y)
-                }
                 // ctx.closePath()
                 /*
                                 for (let i = 0; i < n; i++) { //cubic
@@ -163,11 +210,50 @@ class Game extends GameCore {
                                     ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
                                 }
                                 */
-                ctx.fillStyle = "lightblue"
-                ctx.fill()
-                ctx.strokeStyle = "black"
-                ctx.lineWidth = 3
-                ctx.stroke()
+                MM.drawQuadraticSpline(ctx, points,
+                    { color: "lightblue", outline: 2, outline_color: "black" }
+                )
+
+                ctx.fillStyle = "black"
+                {
+                    ctx.save()
+                    const { x, y } = bones[0].polar(-60 * ONEDEG, 0.5)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[0].ang + 15 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 10, 8, {
+                        color: "black"
+                    })
+                    ctx.restore()
+                }
+
+                {
+                    ctx.save()
+                    const { x, y } = bones[0].polar(60 * ONEDEG, 0.5)
+                    ctx.translate(x, y)
+                    ctx.rotate(bones[0].ang - 15 * ONEDEG)
+                    MM.drawEllipse(ctx, 0, 0, 10, 8, {
+                        color: "black"
+                    })
+                    ctx.restore()
+                }
+                {
+                    const { x, y } = bones[2].polar(0, 0)
+                    const { x: a, y: b } = bones[5].polar(0, 0)
+                    const { x: mx, y: my } = bones[3].polar(NINETYDEG, 0.25)
+                    // Mirror the control point to the other side for the return curve
+                    const { x: mx2, y: my2 } = bones[3].polar(-NINETYDEG, 0.25)
+
+                    ctx.beginPath()
+                    ctx.moveTo(x, y)
+                    ctx.quadraticCurveTo(mx, my, a, b)     // curve outward along one side
+                    ctx.quadraticCurveTo(mx2, my2, x, y)   // curve back along the other side
+                    ctx.closePath()
+                    ctx.strokeStyle = "black"
+                    ctx.stroke()
+                    ctx.fillStyle = `hsla(0,0%,0%,0.4)`
+                    ctx.fill()
+                }
+
                 return
                 bones.forEach(b => {
                     MM.drawCircle(ctx, b.x, b.y, b.r, {
@@ -176,11 +262,11 @@ class Game extends GameCore {
                     ctx.fillStyle = "blue"
                     {
                         // const { x, y } = b.left(b)
-                        const { x, y } = b.boundaryAt(NINETYDEG)
+                        const { x, y } = b.polar(NINETYDEG)
                         MM.drawCircle(ctx, x, y, 5)
                     } {
                         // const { x, y } = b.right(b)
-                        const { x, y } = b.boundaryAt(-NINETYDEG)
+                        const { x, y } = b.polar(-NINETYDEG)
                         MM.drawCircle(ctx, x, y, 5)
                     }
                 })
@@ -194,12 +280,20 @@ class Game extends GameCore {
         // this.add_drawable(bones[0].getButton())
         const head = bones[0].getButton()
         head.color = null
-        head.outline = 1
+        head.outline = 0
         this.add_drawable(head)
 
 
 
         Object.assign(this, { bones })
+
+
+
+
+        GameEffects.popup("Gently drag the nose.", { floatTime: 5000, close_on_release: true })
+
+
+
     }
     //#endregion
 

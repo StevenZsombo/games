@@ -1284,10 +1284,41 @@ class MM {
     }
     //#endregion
 
+    //#region drawQuadraticSpline
+    /**@param {RenderingContext} ctx  */
+    static drawQuadraticSpline(ctx, positions, {
+        color = "blue", outline = 2, outline_color = "black"
+    } = {}) {
+        if (!color && !outline) return
+        ctx.beginPath()
+        const n = positions.length
+        for (let i = 0; i <= n; i++) {//quadratic
+            const p = positions[i % n]
+            const next = positions[(i + 1) % n]
+            const mid = { x: (p.x + next.x) / 2, y: (p.y + next.y) / 2 }
+            if (i == 0)
+                ctx.moveTo(mid.x, mid.y)
+            else
+                ctx.quadraticCurveTo(p.x, p.y, mid.x, mid.y)
+        }
+        ctx.closePath()
+        if (color) {
+            ctx.fillStyle = color
+            ctx.fill()
+        }
+        if (outline) {
+            ctx.strokeStyle = outline_color
+            ctx.lineWidth = outline
+            ctx.stroke()
+        }
+    }
+    //#endregion
+
     static polyStar(x = 0, y = 0, outerSize = 32, {
         legs = 5, innerSize, innerRatio = 0.35,
         startAngle = 0,
-        ...drawArgs } = {}) {
+        ...drawArgs
+    } = {}) {
         const angles = Array.from({ length: legs }, (_, i) => i * TWOPI / legs - NINETYDEG + startAngle)
         const halfAngles = angles.map(x => x + TWOPI / legs / 2)
         innerSize ??= innerRatio * outerSize
