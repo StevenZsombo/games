@@ -1314,10 +1314,58 @@ class MM {
     }
     //#endregion
 
+    //#region drawCubicSpline
+    /**@param {RenderingContext} ctx  */
+    static drawCubicSpline(ctx, positions, {
+        color = "blue", outline = 2, outline_color = "black"
+    } = {}) {
+        if (!color && !outline) return
+        ctx.beginPath()
+        const n = positions.length
+        for (let i = 0; i < n; i++) {
+            const p0 = positions[(i - 1 + n) % n]
+            const p1 = positions[i]
+            const p2 = positions[(i + 1) % n]
+            const p3 = positions[(i + 2) % n]
+
+            const cp1 = {
+                x: p1.x + (p2.x - p0.x) / 6,
+                y: p1.y + (p2.y - p0.y) / 6
+            }
+            const cp2 = {
+                x: p2.x - (p3.x - p1.x) / 6,
+                y: p2.y - (p3.y - p1.y) / 6
+            }
+
+            if (i === 0) {
+                ctx.moveTo(p1.x, p1.y)
+            }
+            ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
+        }
+        ctx.closePath()
+        if (color) {
+            ctx.fillStyle = color
+            ctx.fill()
+        }
+        if (outline) {
+            ctx.strokeStyle = outline_color
+            ctx.lineWidth = outline
+            ctx.stroke()
+        }
+    }
+    //#endregion
+
+
+
+
+
+
+
+
+
     static polyStar(x = 0, y = 0, outerSize = 32, {
         legs = 5, innerSize, innerRatio = 0.35,
-        startAngle = 0,
-        ...drawArgs
+        startAngle = 0
     } = {}) {
         const angles = Array.from({ length: legs }, (_, i) => i * TWOPI / legs - NINETYDEG + startAngle)
         const halfAngles = angles.map(x => x + TWOPI / legs / 2)
