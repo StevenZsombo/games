@@ -40,6 +40,8 @@ class Game extends GameCore {
                 this.head = null
                 /**@type {?Bone} */
                 this.tail = null
+
+                this.cap = 30 * ONEDEG
             }
             polar(ang = 0, rCoeff = 1) {
                 return {
@@ -55,6 +57,17 @@ class Game extends GameCore {
                 this.x += dx * factor
                 this.y += dy * factor
                 this.ang = Math.atan2(dy, dx)
+            }
+            /**
+             * @param {Bone} bone  
+            */
+            capTo(bone) {
+                let diff = this.ang - bone.ang
+                while (diff > PI) diff -= TWOPI
+                while (diff < -PI) diff += TWOPI
+                if (Math.abs(diff) <= this.cap) return //this.ang = bone.ang
+                const clampedDiff = diff > 0 ? this.cap : -this.cap
+                this.ang = bone.ang + clampedDiff
             }
             /**@deprecated */
             left() {
@@ -120,11 +133,16 @@ class Game extends GameCore {
 
         const bonesDrawable = {
             update(dt) {
-                bones.forEach(b => {
+
+                bones.forEach((b, i) => {
                     if (b.head) b.snapTo(b.head)
                 })
+                // bones[0].capTo(bones[1])
                 bones[0].ang = bones[1].ang
+
             },
+
+
             /**@param {RenderingContext} ctx */
             draw(ctx) {
 
@@ -298,9 +316,37 @@ class Game extends GameCore {
 
 
 
-        GameEffects.popup("Gently drag the nose.", { floatTime: 5000, close_on_release: true })
+        // GameEffects.popup("Gently drag the nose.", { floatTime: 5000, close_on_release: true })
 
 
+
+        const fishForward = () => {
+            bones[0].x += Math.cos(bones[0].ang) * 1.5
+            bones[0].y += Math.sin(bones[0].ang) * 1.5
+        }
+        const fishLeft = () => {
+            bones[0].x += Math.cos(bones[0].ang - 15 * ONEDEG) * 1.5
+            bones[0].y += Math.sin(bones[0].ang - 15 * ONEDEG) * 1.5
+        }
+        const fishRight = () => {
+            bones[0].x += Math.cos(bones[0].ang + 15 * ONEDEG) * 1.5
+            bones[0].y += Math.sin(bones[0].ang + 15 * ONEDEG) * 1.5
+        }
+        this.keyboarder.on_keyheldDict["w"] = fishForward
+        /*this.keyboarder.on_keyheldDict["s"] = () => { //retard
+            bones[0].x += Math.cos(bones[0].ang) * -0.5
+            bones[0].y += Math.sin(bones[0].ang) * -0.5
+        }*/
+        this.keyboarder.on_keyheldDict["a"] = fishLeft
+        this.keyboarder.on_keyheldDict["d"] = fishRight
+
+        const controls = game.rect.copy.resize(200 * 3 + 150, 100).bottomat(this.HEIGHT - 10)
+            .splitGrid(1, 3).flat().map(x => Button.fromRect(x)).map(x => x.resize(200, 100))
+        this.add_drawable(controls, 2)
+        controls.forEach((x, i) => {
+            x.txt = ["Left", "Forward", "Right"][i]
+            x.on_hold = [fishLeft, fishForward, fishRight][i]
+        })
 
     }
     //#endregion
