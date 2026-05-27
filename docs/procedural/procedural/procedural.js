@@ -76,7 +76,15 @@ class Game extends GameCore {
 
             getButton() {
                 const head = new Button()
-                Button.make_draggable(head)
+                // Button.make_draggable(head)
+                head.on_drag = (pos) => {
+                    head.x += (pos.x - head.x) * 0.03
+                    head.y += (pos.y - head.y) * 0.03
+                    MM.drawCircle(game.screen,
+                        pos.x, pos.y, 5, { color: "blue" }
+                    )
+                }
+                head._drag_force_within = true
                 const bone = this
                 Object.defineProperty(head, 'x', {
                     get() { return bone.x },
@@ -166,8 +174,8 @@ class Game extends GameCore {
                 {
                     const last = bones[bones.length - 1]
                     const tailpoints = []
-                    tailpoints.push(last.polar(-45 * ONEDEG, -1))
                     tailpoints.push(last.polar(45 * ONEDEG, -1))
+                    tailpoints.push(last.polar(-45 * ONEDEG, -1))
                     // tailpoints.push(last.polar(MM.clamp(last.ang, 15 * ONEDEG, 25 * ONEDEG), -6))
                     // tailpoints.push(last.polar(MM.clamp(last.ang, -15 * ONEDEG, -25 * ONEDEG), -6))
                     tailpoints.push(last.polar(-25 * ONEDEG, -6))
