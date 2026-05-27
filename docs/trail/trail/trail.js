@@ -41,7 +41,7 @@ class Game extends GameCore {
                 this.hue = (Date.now() / 10) % 360
                 this.vx = (Math.random()) * Math.sign(Math.random() - .5) * .5
                 this.vy = (Math.random()) * Math.sign(Math.random() - .5) * .5
-                this.origV = { vx: this.vx, vy: this.vy }
+                this.setNewOrigV()
             }
             move(coeff = 1) {
                 this.x += this.vx * coeff
@@ -54,6 +54,9 @@ class Game extends GameCore {
                 this.vx *= coeff
                 this.vy *= coeff
             }
+            setNewOrigV() {
+                this.origV = { vx: this.vx, vy: this.vy }
+            }
         }
         /**@type {Set<Point>} */
         const points = new Set()
@@ -65,13 +68,16 @@ class Game extends GameCore {
         let lastPos = game.mouser.pos
         const cooldownBase = 50
         let cooldown = cooldownBase
-        const addPoint = (x, y) => {
+        const addPoint = (x, y, dx, dy) => {
             x ??= game.mouser.pos.x
             y ??= game.mouser.pos.y
             const pt = new Point(x, y,
                 // Array.from(recents).filter((x, i) => i == recents.size - 1 || Math.random() < .2)
-                Array.from(recents).slice(-3)
+                Array.from(recents).slice(-2)
             )
+            if (dx || dy) {
+                const ang = Math.atan2(dy, dx) + MM.random(-1, 1) * 0.1
+            }
             points.add(pt)
             recents.add(pt)
             cooldown = cooldownBase
@@ -83,7 +89,7 @@ class Game extends GameCore {
                 const dx = game.mouser.pos.x - lastPos.x
                 const dy = game.mouser.pos.y - lastPos.y
                 lastPos = game.mouser.pos
-                if (dx ** 2 + dy ** 2 > minMovement && cooldown < 0) addPoint()
+                if (dx ** 2 + dy ** 2 > minMovement && cooldown < 0) addPoint(null, null, dx, dy)
                 points.forEach(p => {
                     p.time += dt
                     p.hue += dt / 360 * 0.1
@@ -175,9 +181,9 @@ class Game extends GameCore {
         this.add_drawable(butVult, 3)
         /**@type {Set<Point>} */
         const vultures = new Set()
-        const vultOut = 300
-        const vultSpin = 800
-        const vultIn = 300
+        const vultOut = 400
+        const vultSpin = 1200
+        const vultIn = 400
         const vulturesDrawable = {
             update(dt) {
                 vultures.forEach(p => {
@@ -185,19 +191,24 @@ class Game extends GameCore {
                     if (p.time < vultOut) {
                         p.move(1)
                     } else if (p.time < vultOut + vultSpin) {
-                        if (!p.rot1) {
-                            p.rot1 = true
-                            const { vx, vy } = p
-                            p.vx = -vy
-                            p.vy = vx
-                        }
+                        const dx = p.orig.x - p.x
+                        const dy = p.orig.y - p.y
+                        /*const ang = Math.atan2(dy, dx) + 0.005
+                        const dist = Math.hypot(dx, dy)
+                        p.x = p.orig.x + dist * Math.cos(ang)
+                        p.y = p.orig.y + dist * Math.sin(ang)*/
+                        p.vx = dy * 0.005
+                        p.vy = -dx * 0.005
                         p.move(1)
                     } else if (p.time < vultOut + vultSpin + vultIn) {
                         if (!p.rot2) {
                             p.rot2 = true
-                            const { vx, vy } = p
-                            p.vx = -vy
-                            p.vy = vx
+                            const dx = p.orig.x - p.x
+                            const dy = p.orig.y - p.y
+                            const magAdj = Math.hypot(p.origV.vx, p.origV.vy) / Math.hypot(dx, dy) * vultOut / vultIn
+                            console.log({ dx, dy, magAdj, vx: dx * magAdj, vy: dy * magAdj })
+                            p.vx = dx * magAdj
+                            p.vy = dy * magAdj
                         }
                         p.move(1)
                     } else {
@@ -221,6 +232,7 @@ class Game extends GameCore {
                 v.vx = c
                 v.vy = s
                 v.velMult(2)
+                v.setNewOrigV()
                 v.rot1 = v.rot2 = false
                 vultures.add(v)
             }
