@@ -1223,7 +1223,7 @@ var prototypeLevels = {
                 inp.push([new Rational(0), c, b, a])
                 out.push([fin])
             } else { //geometric
-                const q = new Rational(MM.randomInt(1, 10), MM.randomInt(1, 10))
+                const q = new Rational(MM.randomInt(1, 10), MM.randomInt(1, 5))
                 if (Math.random() < .5) q.multiplyByInt(-1)
                 const b = Rational.productOfTwo(a, q)
                 const c = Rational.productOfTwo(b, q)
