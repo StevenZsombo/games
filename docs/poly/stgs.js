@@ -1281,25 +1281,27 @@ var prototypeLevels = {
             }
         }
     ),
-    /*"introot": (() => {
-        const inp = []
-        const out = []
-        new Level(
-            "Find the smallest positive integer root of each polynomial.", null,
-            inp, { funcOut: () => out }
-        )
-    })(),*/
     "introot": (() => {
+        const productCap = 200
         const inp = []
         const out = []
+
 
         while (inp.length < 10) {
             const nrRoots = MM.randomInt(2, 4)
             const roots = []
             while (roots.length < nrRoots) {
-                const r = MM.randomInt(-40, 30)
+                const prod = Math.abs(roots.filter(t => t != 0).reduce((s, t) => s * t, 1))
+                const b = Math.floor(productCap / prod)
+                const r = MM.randomInt(-b, b)
                 roots.push(r)
             }
+            if (inp.length == 4) {
+                roots.forEach((x, i) => roots[i] = -Math.abs(x) || -1)
+            }
+            if (inp.length == 7)
+                roots.forEach((x, i) => roots[i] = -Math.abs(x))
+
             inp.push(roots.reduce((s, t) => {
                 const q = Poly.computed(s.copy.arr.map(x => x.multiplyByInt(-t)))
                 return s.copy.takeRaise().sumWith(q)

@@ -571,6 +571,11 @@ class Game extends GameCore {
         reactor.start()//remove later
         after_start?.()
 
+
+        if (location.search.includes("unlocked")) {
+            dev.unlocked()
+        }
+
     }
     //#endregion
     //#region dropDown
@@ -1391,7 +1396,7 @@ const dev = Object.freeze({
         stgs.stage = data.stage
         main()
         game.reactor.fromJSON(data.data)
-        game.reactor.stressTest()
+        // game.reactor.stressTest()
         game.reactor.numberOfRandomSheets = 4
     },
     async masstest(dataAndNameStr) {
@@ -1410,6 +1415,12 @@ const dev = Object.freeze({
     },
     allLevelNames: () => {
         return [levels, freeLevels, prototypeLevels, brokenLevels, tutorialLevels].flatMap(x => Object.keys(x))
+    },
+    unlocked: () => {
+        game.reactor && (game.reactor.stepTime = 1)
+        game.framerateUnlocked = true
+        game.framerate.isRunning = true
+
     },
 })/// end of dev
 
