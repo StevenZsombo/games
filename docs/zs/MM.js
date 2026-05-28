@@ -1894,8 +1894,7 @@ class MM {
     }
 
     static newTabHTML(html, title = "Game More!", preTagAlso = false) {
-        const tab = window.open('', '_blank');
-        tab.document.write(`
+        const blob = new Blob([`
 <!DOCTYPE html>
 <html>
 <head><title>${title}</title></head>
@@ -1903,8 +1902,10 @@ class MM {
 ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 </body>
 </html>
-`);
-        tab.document.close();
+`], { type: 'text/html' });
+        const url = URL.createObjectURL(blob)
+        const tab = window.open(url, '_blank')
+        // setTimeout(() => URL.revokeObjectURL(url), 100) //no need to revoke
     }
 
 
