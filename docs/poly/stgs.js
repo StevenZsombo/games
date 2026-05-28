@@ -1191,9 +1191,43 @@ var prototypeLevels = {
         }, {
         minTerms: 3, maxTerms: 5, negativeChance: 0,
         maxNumer: 101, maxDenom: 19
+    }, {
+        on_start: function () {
+            this.inputRecords.forEach(x => x.imgScale = 1.1)
+        }
     }
-
     ),
+    "arithgeo": (() => {
+        const inp = []
+        const out = []
+        while (inp.length < 10) {
+            const a = new Rational(MM.randomInt(1, 5), 1)
+            if (Math.random() < .6) { //arithmetic
+                const d = new Rational(MM.randomInt(1, 30), MM.randomInt(1, 10))
+                if (Math.random() < .4) d.multiplyByInt(-1)
+                const b = Rational.sumOfTwo(a, d)
+                const c = Rational.sumOfTwo(b, d)
+                const fin = Rational.sumOfTwo(c, d)
+                if (a.isZero || b.isZero || c.isZero || fin.isZero) continue;
+                inp.push([new Rational(0), c, b, a])
+                out.push([fin])
+            } else { //geometric
+                const q = new Rational(MM.randomInt(1, 10), MM.randomInt(1, 10))
+                if (Math.random() < .5) q.multiplyByInt(-1)
+                const b = Rational.productOfTwo(a, q)
+                const c = Rational.productOfTwo(b, q)
+                const fin = Rational.productOfTwo(c, q)
+                if (a.isZero || b.isZero || c.isZero || fin.isZero) continue;
+                inp.push([new Rational(0), c, b, a])
+                out.push([fin])
+            }
+        }
+
+        return new Level("Input coefficients form either an arithmetic or a geometric\nsequence. " +
+            "Find the next term of that sequence.", inp,
+            null, { funcOut: () => out }
+        )
+    })()
 
 }
 //#endregion

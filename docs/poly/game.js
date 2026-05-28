@@ -329,7 +329,7 @@ class Game extends GameCore {
         this.tutorialsButton = backButton
         const lowerBg = new Button()
         lowerBg.outline = 0
-        lowerBg.topat(lowerInfoButton.top - 20)
+        lowerBg.topat(lowerInfoButton.top - 5)
         lowerBg.bottomstretchat(proButtons.at(-1).bottom + 20)
         lowerBg.width = this.WIDTH - 60
         lowerBg.centeratX(this.WIDTH / 2)
