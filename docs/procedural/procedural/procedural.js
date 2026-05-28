@@ -35,6 +35,7 @@ class Game extends GameCore {
                 this.x = 400
                 this.y = 400
                 this.r = 50
+                this.size = this.r
                 this.ang = 0
                 /**@type {?Bone} */
                 this.head = null
@@ -45,8 +46,8 @@ class Game extends GameCore {
             }
             polar(ang = 0, rCoeff = 1) {
                 return {
-                    x: this.x + this.r * rCoeff * Math.cos(ang + this.ang),
-                    y: this.y + this.r * rCoeff * Math.sin(ang + this.ang)
+                    x: this.x + this.size * rCoeff * Math.cos(ang + this.ang),
+                    y: this.y + this.size * rCoeff * Math.sin(ang + this.ang)
                 }
             }
             /**@param {Bone} bone  */
@@ -123,10 +124,16 @@ class Game extends GameCore {
 
         const sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
             .map(x => x * .6)
+        const radii = sizes
+        /*
+        [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
+        .map(x => x * .6)
+        */
         const bones = sizes.map(_ => new Bone())
         bones.forEach((b, i) => {
             b.x = 800 - i * 200
-            b.r = sizes[i]
+            b.r = radii[i]
+            b.size = sizes[i]
             if (i != 0) b.head = bones[i - 1]
             if (i != bones.length - 1) b.tail = bones[i + 1]
         })
