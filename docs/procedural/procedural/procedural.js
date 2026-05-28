@@ -124,7 +124,7 @@ class Game extends GameCore {
 
         const sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
             .map(x => x * .6)
-        const radii = sizes
+        const radii = sizes.map(x => 30)
         /*
         [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
         .map(x => x * .6)
@@ -138,6 +138,9 @@ class Game extends GameCore {
             if (i != bones.length - 1) b.tail = bones[i + 1]
         })
 
+
+        // this.showSkeleton = false
+        // this.showPoints = false
         const bonesDrawable = {
             update(dt) {
 
@@ -219,30 +222,6 @@ class Game extends GameCore {
                 ]
 
 
-                // ctx.closePath()
-                /*
-                                for (let i = 0; i < n; i++) { //cubic
-                                    const p0 = points[(i - 1 + n) % n]  // previous
-                                    const p1 = points[i]                 // current
-                                    const p2 = points[(i + 1) % n]       // next
-                                    const p3 = points[(i + 2) % n]       // next next
-                
-                                    // Control points: 1/6th of the way from each corner toward its neighbors
-                                    const cp1 = {
-                                        x: p1.x + (p2.x - p0.x) / 6,
-                                        y: p1.y + (p2.y - p0.y) / 6
-                                    }
-                                    const cp2 = {
-                                        x: p2.x - (p3.x - p1.x) / 6,
-                                        y: p2.y - (p3.y - p1.y) / 6
-                                    }
-                
-                                    if (i === 0) {
-                                        ctx.moveTo(p1.x, p1.y)
-                                    }
-                                    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
-                                }
-                                */
                 MM.drawQuadraticSpline(ctx, points,
                     { color: "lightblue", outline: 2, outline_color: "black" }
                 )
@@ -287,22 +266,15 @@ class Game extends GameCore {
                     ctx.fill()
                 }
 
-                return
-                bones.forEach(b => {
-                    MM.drawCircle(ctx, b.x, b.y, b.r, {
-                        color: null, outline: 2, outline_color: "black"
+                if (sSkel.selected) {
+                    bones.forEach(b => {
+                        MM.drawCircle(ctx, b.x, b.y, b.size, {
+                            color: null, outline: 2, outline_color: "black"
+                        })
                     })
-                    ctx.fillStyle = "blue"
-                    {
-                        // const { x, y } = b.left(b)
-                        const { x, y } = b.polar(NINETYDEG)
-                        MM.drawCircle(ctx, x, y, 5)
-                    } {
-                        // const { x, y } = b.right(b)
-                        const { x, y } = b.polar(-NINETYDEG)
-                        MM.drawCircle(ctx, x, y, 5)
-                    }
-                })
+                }
+                if (sPts.selected)
+                    points.forEach(p => MM.drawCircle(ctx, p.x, p.y, 5, { color: "black", outline: 0 }))
             }
         }
 
@@ -318,7 +290,6 @@ class Game extends GameCore {
 
 
 
-        Object.assign(this, { bones })
 
 
 
@@ -354,6 +325,24 @@ class Game extends GameCore {
             x.txt = ["Left", "Forward", "Right"][i]
             x.on_hold = [fishLeft, fishForward, fishRight][i]
         })
+
+        const sSkel = new Button({ x: 10, width: 120, height: 30 })
+        const sPts = sSkel.copy
+        sPts.bottomat(this.HEIGHT - 10)
+        sSkel.bottomat(sPts.top)
+        sSkel.txt = "Skeleton"
+        sPts.txt = "Boundary"
+        Button.make_checkbox(sSkel)
+        Button.make_checkbox(sPts)
+
+        this.add_drawable([sSkel, sPts])
+
+
+
+
+
+        Object.assign(this, { bones })
+
 
     }
     //#endregion
