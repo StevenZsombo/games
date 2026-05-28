@@ -694,7 +694,7 @@ Fun fact: inputs are sent when there are no polynomials present in the system.
         },
         {
             toolsRestrictedTo: "IN OUT UP DOWN LEFT RIGHT".split(" "), rows: 3, cols: 3, on_start: Level.tutorial,
-            on_start_more: function () { this.fromJSON(`[[2,1,"UP"],[2,1,"IN"],[0,2,"OUT"]]`) }
+            on_start_more: function () { this.fromJSON(`[[0,0,"IN"],[1,0,"IN"],[2,1,"IN"]]`) }
         }
 
     ),
