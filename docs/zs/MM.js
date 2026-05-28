@@ -1635,16 +1635,20 @@ class MM {
         return res
     }
     /**@param {Array<Array<string>>} strArrArr  */
-    static tableHTML(strArrArr, labels, border = 1) {
+    static tableHTML(strArrArr, labels, { border = 1, colors } = {}) {
         if (!strArrArr || !strArrArr.length || !strArrArr[0].length) return ""
         const wrap = (tag, str, params = "") => `<${tag} ${params}>${str}</${tag}>`
-        let headers = labels ?
-            wrap("tr", labels.map(x => wrap("th", x, "align=left")).join(""))
-            : ""
-        let entries = strArrArr.map(row =>
-            wrap("tr", row.map(x => wrap("td", x, "nowrap")).join(""))).join("")
-        let ret = `<table${border ? " border = " + border : ""}>${headers}${entries}</table>`
-        return ret
+        let headers = labels ? wrap("tr", labels.map(x => wrap("th", x, "align=left")).join("")) : ""
+        let entries = strArrArr.map((row, rowIdx) => {
+            const cells = row.map((cell, colIdx) => {
+                const color = colors && colors[rowIdx] && colors[rowIdx][colIdx] ? colors[rowIdx][colIdx] : null
+                const styleAttr = color ? `style="background-color: ${color};"` : ""
+                const params = ["nowrap", styleAttr].filter(Boolean).join(" ")
+                return wrap("td", cell, params)
+            }).join("")
+            return wrap("tr", cells)
+        }).join("")
+        return `<table${border ? " border=" + border : ""}>${headers}${entries}</table>`
     }
 
     static lettersAndNumberOnly(str) {

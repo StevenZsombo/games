@@ -69,6 +69,24 @@ class Supabase {
 		}
 	}
 
+	/** @returns {Promise<Array<{name: string, stage_text: string}>>} */
+	static async readAllProto(callback) {
+		try {
+			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_proto?select=name,stage_text`, {
+				headers: {
+					apikey: Supabase.SUPABASE_KEY,
+					Authorization: `Bearer ${Supabase.SUPABASE_KEY}`
+				}
+			})
+			const text = await response.text()
+			const table = JSON.parse(text)
+			callback?.(table)
+			return table
+		} catch (error) {
+			throw error // Re-throw for outer .catch()
+		}
+	}
+
 	static async checkSolution(problem, solution, callback) {
 		try {
 			const response = await fetch(

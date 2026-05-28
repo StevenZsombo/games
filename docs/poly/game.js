@@ -1281,12 +1281,39 @@ Please run them again to send your data.`
 
 
     //#region hallOfFameShow
-    hallOfFameShow() {
-        MM.newTabHTML(`
-Coming soon!
-<br><br>
-This page will detail who solved the prototype & broken module levels.
-`)
+    _hallOfFameShowIsInProgress = false
+    async hallOfFameShow() {
+        if (this._hallOfFameShowIsInProgress) return
+        this._hallOfFameShowIsInProgress = true
+        const rows = await Supabase.readAllProto()
+        const colorMap = new Map()
+        const colors = []
+        const arr = []
+        for (const entry of rows) {
+            arr.push([entry.name, entry.stage_text])
+            if (!colorMap.has(entry.name))
+                colorMap.set(entry.name, colorMap.size)
+            colors.push(entry.name)
+        }
+        const startCol = MM.random(0, 360)
+        colorMap.forEach((v, k) => {
+            colorMap.set(k,
+                `hsla(${startCol + 360 / colorMap.size * v},100%,70%,1)`
+            )
+        })
+        const colorsInfo = colors.map(x => colorMap.get(x)).map(x => [x, x])
+        console.log(colorsInfo)
+        MM.newTabHTML(
+            "One day this will look prettier, for now you can just look at the raw data."
+            +
+            "<br>Colors are assigned at random.<br><br>"
+            +
+            MM.tableHTML(
+                arr
+                , ["Name", "Level completed"],
+                { colors: colorsInfo })
+        )
+        this._hallOfFameShowIsInProgress = false
     }
 
     //#endregion
