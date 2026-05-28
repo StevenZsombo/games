@@ -312,14 +312,17 @@ class Game extends GameCore {
             x.fontSize = 36
         })
         const lowerInfoButton = infoButton.copy
-        lowerInfoButton.txt = `Challenge levels (larger reactor, much harder problems):`
+        lowerInfoButton.txt = `Prototype levels (larger reactor, much harder or untested problems).`
+            + `                                                  ` +
+            `Some might be impossible.` +
+            `\nCome to 203 for some chocolate if you solved any.`
         const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
         game.remove_drawable(tut2)
         game.remove_drawable(inf2)
         proButtons.forEach(x => {
-            x.spread(this.WIDTH / 2, 0, 1.1, .425)
+            x.spread(this.WIDTH / 2, 0, 1.1, .55)
             x.stretch(1, .5)
-            x.move(0, 500)
+            x.move(0, 450)
             x.color = x.color.includes("green") ? x.color : "lightgray"
             x.fontSize = 36
         })

@@ -1107,7 +1107,8 @@ var prototypeLevels = {
     ),
     "count": new Level(
         "Count the number of (nonzero) terms.", null, x => [new Rational(x.filter(u => !u.isZero).length)],
-        { maxTerms: 5 }
+        { maxTerms: 5 },
+        { on_start: function () { this.inputRecords.forEach(x => x.imgScale = 1.2) } }
     ),
     "sumdeg": new Level(
         "Return the sum of the indices. (Input has no constant.)", null,
@@ -1166,7 +1167,7 @@ var prototypeLevels = {
     }, { on_start: function () { this.numberOfRandomSheets = 8 } }
     ),
     "gcd": new Level(
-        "Input is ax+b. Return greatest common divisor gcd(a,b).", null,
+        "Input is ax+b. Return their greatest common divisor gcd(a,b).", null,
         x => [new Rational(MM.gcd(x[1].numerator, x[0].numerator))],
         {
             func: () => {
@@ -1237,7 +1238,102 @@ var prototypeLevels = {
             "Find the next term of that sequence.", inp,
             null, { funcOut: () => out }
         )
-    })()
+    })(),
+    "oddpart": new Level(
+        "Return the odd part of n,\ndefined as its " +
+        "largest odd divisor.", null, x => {
+            let n = x[0].numerator
+            while (n % 2 == 0) n /= 2
+            return [new Rational(n)]
+        },
+        {
+            func: () => {
+                let n = MM.randomInt(2, 300)
+                if (Math.random() < 0.25 && (n % 2)) n += 1
+                return [new Rational(n)]
+            }
+        }
+    ),
+    "squarefree": new Level(
+        "Return only the square-free integers, i.e. those that are" +
+        "\nnot divisible by any square number (except 1).", null, x => {
+            const n = x[0].numerator
+            const s = Math.sqrt(n)
+            for (let i = 2; i <= s; i++)
+                if ((n % (i ** 2)) == 0) return null
+            return x
+        },
+        {
+            maxDegree: 0, minDegree: 0, maxTerms: 1, minTems: 1, maxDenom: 1, negativeChance: 0,
+            minNumer: 2, maxNumer: 101, minimumOutput: 2, maximumOutput: 8
+        }
+    ),
+    "basetwo": new Level(
+        "Convert the given positive integer to base 2.", null,
+        x => {
+            const n = x[0].numerator
+            return [new Rational(+(n.toString(2)))]
+        },
+        {
+            func: () => {
+                const n = Math.random() < .7 ? MM.randomInt(1, 127) : MM.randomInt(128, 255)
+                return [new Rational(n)]
+            }
+        }
+    ),
+    /*"introot": (() => {
+        const inp = []
+        const out = []
+        new Level(
+            "Find the smallest positive integer root of each polynomial.", null,
+            inp, { funcOut: () => out }
+        )
+    })(),*/
+    "introot": (() => {
+        const inp = []
+        const out = []
+
+        while (inp.length < 10) {
+            const nrRoots = MM.randomInt(2, 4)
+            const roots = []
+            while (roots.length < nrRoots) {
+                const r = MM.randomInt(-40, 30)
+                roots.push(r)
+            }
+            inp.push(roots.reduce((s, t) => {
+                const q = Poly.computed(s.copy.arr.map(x => x.multiplyByInt(-t)))
+                return s.copy.takeRaise().sumWith(q)
+            }, Poly.computed([new Rational(1)])).arr)
+            out.push([new Rational(Math.max(...roots))])
+        }
+
+        return new Level(
+            "Find the largest rational root of each monic polynomial.",
+            inp,
+            null,
+            { funcOut: () => out },
+            { on_start: function () { this.inputRecords.forEach(x => x.imgScale = 1.1) } }
+        )
+    })(),
+    "fourth": new Level(
+        "Input is ax+b. Return (ax+b)^4.", null,
+        x => {
+            const [b, a] = x
+            /**@type {Poly} */
+            let arr = [b, a].map(u => new Rational(u))
+            for (let i = 1; i < 4; i++) {
+                const axp = [new Rational(0), ...arr].map(u => Rational.productOfTwo(u, a))
+                const bp = arr.map(u => Rational.productOfTwo(u, b))
+                arr = Poly.computed(axp).sumWith(Poly.computed(bp)).arr
+            }
+            return arr
+        },
+        {
+            minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2,
+
+        },
+        { on_start: function () { this.outputRecords.forEach(x => x.imgScale = 1.1) } }
+    )
 
 }
 //#endregion

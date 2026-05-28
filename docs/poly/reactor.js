@@ -229,7 +229,7 @@ Use the Share/Receive features instead.`
 
         this.outputsFiltered.forEach((output, i) => {//unfiltered for blank rows
             const record = outputRecords[i + 1]
-            record.latex.tex = `\\mathbf{\\color{lightgray}{${Poly.getTex(output)}}}`
+            record.latex.tex = `\\mathbf{\\color{gray}{${Poly.getTex(output)}}}`
         })
 
         const instructionButton = new Button({ height: this.y - 80 })
