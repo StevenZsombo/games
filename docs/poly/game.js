@@ -312,19 +312,18 @@ class Game extends GameCore {
             x.fontSize = 36
         })
         const lowerInfoButton = infoButton.copy
-        lowerInfoButton.txt = `Untested prototypes (they might be impossible). 
-If you solve any of these, you'll be rewarded with some chocolate (come to Room 203).`
+        lowerInfoButton.txt = `Challenge levels (larger reactor, much harder problems):`
         const { lvlButtons: proButtons, tutorialsButton: tut2, infoButton: inf2 } = this.makeGridOfLevels(Object.keys(prototypeLevels))
         game.remove_drawable(tut2)
         game.remove_drawable(inf2)
         proButtons.forEach(x => {
-            x.spread(this.WIDTH / 2, 0, 1.1, .6)
+            x.spread(this.WIDTH / 2, 0, 1.1, .425)
             x.stretch(1, .5)
             x.move(0, 500)
             x.color = x.color.includes("green") ? x.color : "lightgray"
             x.fontSize = 36
         })
-        lowerInfoButton.bottomat(proButtons[0].top - 50)
+        lowerInfoButton.bottomat(proButtons[0].top)
         lowerInfoButton.leftat(proButtons[0].left)
         this.add_drawable(lowerInfoButton)
         this.tutorialsButton = backButton
@@ -395,7 +394,8 @@ If you solve any of these, you'll be rewarded with some chocolate (come to Room 
         if (!level) throw "Requested level does not exist."
         const other =
             (freeLevels[stgs.stage] || prototypeLevels[stgs.stage] || brokenLevels[stgs.stage])
-                ? [6, 8, 10, 12, 20][["eight", "ten", "twelve", "twenty"].findIndex(x => location.search.includes(x)) + 1]
+                ? 12
+                // [6, 8, 10, 12, 20][["eight", "ten", "twelve", "twenty"].findIndex(x => location.search.includes(x)) + 1]
                 : 0
 
         const reactor =
@@ -1333,6 +1333,9 @@ const dev = Object.freeze({
             console.log("correct:", y[0].stage, y[1], y[2])
 
         }
-    }
+    },
+    allLevelNames: () => {
+        return [levels, freeLevels, prototypeLevels, brokenLevels, tutorialLevels].flatMap(x => Object.keys(x))
+    },
 })/// end of dev
 

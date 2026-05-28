@@ -1061,7 +1061,7 @@ const makeBrokenLevel = (module, rule = null, genRules = {}, conditions = {}) =>
         const ruleFunctionName = rule
         rule = x => Poly.computed(x)[ruleFunctionName]()
     }
-    Object.assign((conditions ??= {}), { on_start: function () { this.numberOfRandomSheets = 20 } })
+    Object.assign((conditions ??= {}), { on_start: function () { this.numberOfRandomSheets = 5 } })
     return new Level(`The ${module} module is broken. Recreate its effect.`,
         null, rule, genRules, { toolsDisabled: [module], ...conditions })
 }
@@ -1154,7 +1154,46 @@ var prototypeLevels = {
             return outputs.map(x => [new Rational(x)])
         }
     }
-    )
+    ),
+    "gcd": new Level(
+        "Input is ax+b. Return greatest common divisor gcd(a,b).", null,
+        x => [new Rational(MM.gcd(x[1].numerator, x[0].numerator))],
+        {
+            func: () => {
+                const n = MM.randomInt(2, 100)
+                const k = Math.random() < .7
+                    ? (() => {
+                        let alldivisors = MM.divisors(n)
+                        if (alldivisors.length <= 2) return MM.randomInt(1, 100)
+                        alldivisors = alldivisors.filter(x => x !== 1 & x !== n)
+                        const d = MM.choice(alldivisors)
+                        const cap = 100
+                        const other = MM.randomInt(1, Math.floor(cap / d))
+                        return d * other
+                    })()
+                    : MM.randomInt(1, 100)
+                return [k, n].map(x => new Rational(x))
+            }
+        }
+    ),
+    "maxcoeff": new Level(
+        "Input has nonnegative coefficients.\nFind the largest coefficient.", null,
+        (x) => {
+            let biggest = -Infinity
+            let biggestRat
+            for (const r of x) {
+                if (r.toFloat() > biggest) {
+                    biggest = r.toFloat()
+                    biggestRat = r
+                }
+            }
+            return [new Rational(biggestRat)]
+        }, {
+        minTerms: 2, maxTerms: 4, negativeChance: 0,
+        maxNumer: 101, maxDenom: 19
+    }
+
+    ),
 
 }
 //#endregion
