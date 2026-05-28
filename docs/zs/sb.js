@@ -54,7 +54,7 @@ class Supabase {
 	/** @returns {Promise<Array<{name: string, stage_text: string}>>} */
 	static async readAllWins(callback) {
 		try {
-			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_public_view?select=name,stage_text`, {
+			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_public_view?event=eq.poly&select=name,stage_text`, {
 				headers: {
 					apikey: Supabase.SUPABASE_KEY,
 					Authorization: `Bearer ${Supabase.SUPABASE_KEY}`
@@ -72,7 +72,7 @@ class Supabase {
 	/** @returns {Promise<Array<{name: string, stage_text: string}>>} */
 	static async readAllProto(callback) {
 		try {
-			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_proto?select=name,stage_text`, {
+			const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/gameevents_public_view?event=in.(broken,proto)&select=name,stage_text`, {
 				headers: {
 					apikey: Supabase.SUPABASE_KEY,
 					Authorization: `Bearer ${Supabase.SUPABASE_KEY}`
