@@ -1052,9 +1052,9 @@ Please run them again to send your data.`
             INT1 INT2 divthree constone CONST2 CONST3 twoxplusone twothirds
             DEG1 DEG2 four hasconst NEG TAKE perp nzconst POW1 POW2
             exp sqrt sumupto pickthree evenonly divtwelve evenodd
-            SUM1 SUM2 COPY1 multeight mult tail leadingterm lindiff manyones
-            SUBS ntothen poweroftwo sumcoeff invsq boolflip linprod linsolve
-            penta vel accel tangent sixsixsix DOOR1 DOOR2 twoonly POW3
+            SUM1 SUM2 COPY1 multeight mult tail leadingterm lindiff SUBS 
+            ntothen poweroftwo sumcoeff invsq boolflip linprod linsolve penta
+            vel accel tangent manyones sixsixsix DOOR1 DOOR2 twoonly POW3
             posonly quadonly statattwo degfour compsqonly sign inconly COPY2
             COPY3 allint allodd geometric golden fibonacci sqrttwo powersoftwo
             pi last abs e factorials linmax everyother factorial `
