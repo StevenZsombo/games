@@ -1126,7 +1126,7 @@ Please run them again to send your data.`
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
-            this.animator.add_anim(Anim.stepper(firstbg, 500, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 10 }))
+            this.animator.add_anim(Anim.stepper(firstbg, 500, "rad", 0, .2, { lerp: Anim.l.wave, repeat: 100 }))
             rows[0].children[0].color = "purple"
 
         }
