@@ -1050,14 +1050,27 @@ Please run them again to send your data.`
             `INOUT1 REMOVE UDLR1 UDLR2 INOUT2 RAISE LOWER mulxcube noconst sequence
             LEAD CONST1 degreetwo DER1 secondder DER2 multhree multt
             INT1 INT2 divthree constone CONST2 CONST3 twoxplusone twothirds
-            DEG1 DEG2 four hasconst NEG TAKE perp nzconst POW1 POW2
-            exp sqrt sumupto pickthree evenonly divtwelve evenodd
+            DEG1 DEG2 four hasconst NEG TAKE perp nzconst
+            POW1 POW2 exp sqrt sumupto pickthree evenonly divtwelve evenodd
             SUM1 SUM2 COPY1 multeight mult tail leadingterm lindiff SUBS 
             ntothen poweroftwo sumcoeff invsq boolflip linprod linsolve penta
-            vel accel tangent manyones sixsixsix DOOR1 DOOR2 twoonly POW3
-            posonly quadonly statattwo degfour compsqonly sign inconly COPY2
-            COPY3 allint allodd geometric golden fibonacci sqrttwo powersoftwo
+            vel accel tangent manyones sixsixsix DOOR1 DOOR2 twoonly
+            POW3 posonly quadonly statattwo degfour compsqonly sign inconly
+            COPY2 COPY3 allint allodd geometric golden fibonacci sqrttwo powersoftwo
             pi last abs e factorials linmax everyother factorial `
+                /*
+            `INOUT1 REMOVE UDLR1 UDLR2 INOUT2 RAISE LOWER mulxcube noconst sequence
+            LEAD CONST1 degreetwo DER1 secondder DER2 multhree multt INT1 INT2
+            divthree constone CONST2 CONST3 twoxplusone twothirds DEG1 DEG2 four
+            hasconst NEG TAKE perp nzconst POW1 POW2 exp sqrt
+            sumupto pickthree evenonly divtwelve evenodd SUM1 SUM2 COPY1 multeight
+            mult tail leadingterm lindiff SUBS ntothen poweroftwo sumcoeff
+            invsq boolflip linprod linsolve penta vel accel tangent 
+            manyones sixsixsix DOOR1 DOOR2 twoonly POW3 posonly quadonly statattwo
+            degfour compsqonly sign inconly COPY2 COPY3 allint allodd
+            geometric golden fibonacci sqrttwo powersoftwo pi last abs
+            e factorials linmax everyother factorial `
+                */
                 .split("\n").map(x => x.trim().split(" ").map(x => x.trim()).filter(x => x))
         const LEVEL_BUTTON_FONTSIZE = 30
         const getLevelButton = (str) => {
@@ -1102,7 +1115,7 @@ Please run them again to send your data.`
         rows.forEach(x => x.bg.fitWithinAnother(bigBackground))
         refreshAll = () => {
             Rect.packCol(rows.map(x => x.bg), bigBackground, "justify")
-            rows.forEach(x => Rect.packRow(x.children, x.bg, 30))
+            rows.forEach(x => Rect.packRow(x.children, x.bg, 21))
         }
         refreshAll()
         const checkIfAllLevelsAreIncluded = () => {
