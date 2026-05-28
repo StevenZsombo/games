@@ -1332,7 +1332,7 @@ var prototypeLevels = {
             minDegree: 0, maxDegree: 1, minTerms: 2, maxTerms: 2,
 
         },
-        { on_start: function () { this.outputRecords.forEach(x => x.imgScale = 1.1) } }
+        { on_start: function () { this.outputRecords.forEach(x => x.imgScale = 1.0) } }
     )
 
 }
@@ -1363,6 +1363,7 @@ const pageManager = Object.freeze({
     askForOnlinePermissionOnce: -5,
     leaderboardsPage: -6,
     brokenButtonChallenges: -7,
+    hallOfFamePage: -8,
     blank: -999
 })
 //#endregion

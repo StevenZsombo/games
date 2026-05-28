@@ -20,12 +20,23 @@ var univ = {
         if (existing) Object.assign(userSettings, JSON.parse(existing))
         if (univ.cacheInterval) Supabase.readAllWins = MM.timeCachedFunction(Supabase.readAllWins, univ.cacheInterval, true)
         wDiv.hide()
+
+
     },
     on_first_run_blocking: null, //null or function. must call main(canvas) at the end
     on_next_game_once: null,
     on_each_start: () => {
-        if (location.search.includes("test"))
+        let search = location.search?.slice(1)
+        let hash = location.hash?.slice(1)
+        if (search.includes("test")) {
             game.keyboarder.on_paste = inf => dev.test(inf)
+        } else if (dev.allLevelNames().includes(hash) && stgs.stage !== hash) {
+            location.hash = ""
+            stgs.stage = hash
+            console.log(stgs.stage)
+            Promise.resolve().then(main) //not ideal but it works
+        }
+
     },
     on_beforeunload: () =>
         localStorage.setItem(stgs.localUserSettingsName, JSON.stringify({ ...userSettings, isDeveloper: false })),
@@ -106,6 +117,10 @@ class Game extends GameCore {
                 break;
             case pageManager.brokenButtonChallenges:
                 this.brokenButtonChallenges()
+                break;
+            case pageManager.hallOfFamePage:
+                this.hallOfFameShow()
+                break;
             case pageManager.blank:
                 break;
 
@@ -353,6 +368,22 @@ class Game extends GameCore {
         brokenButton.centeratX(this.WIDTH / 2)
         brokenButton.bottomat(this.HEIGHT - 30)
 
+
+        const hallOfFameButton = brokenButton.copy
+        hallOfFameButton.color = "gray"
+        hallOfFameButton.txt = "Hall of Fame"
+        hallOfFameButton.stretch(.6, 1)
+        hallOfFameButton.rightat(lowerBg.right)
+        hallOfFameButton.eraseClickables()
+        hallOfFameButton.hover_color = "yellow"
+        hallOfFameButton.on_release = () => {
+            /*stgs.stage = pageManager.hallOfFamePage
+            stgs.latestSelectorType = pageManager.levelSelector
+            main()*/
+            this.hallOfFameShow()
+        }
+
+        this.add_drawable(hallOfFameButton)
         this.add_drawable(brokenButton)
         this.add_drawable(lowerBg, 4)
     }
@@ -1247,6 +1278,19 @@ Please run them again to send your data.`
 
         if (userSettings.SHOW_GLOBAL_PROGRESS) this.progressCompletionRate()
     }
+
+
+    //#region hallOfFameShow
+    hallOfFameShow() {
+        MM.newTabHTML(`
+Coming soon!
+<br><br>
+This page will detail who solved the prototype & broken module levels.
+`)
+    }
+
+    //#endregion
+
 
     //#endregion
     levelSelector = this.levelSelectorFancy
