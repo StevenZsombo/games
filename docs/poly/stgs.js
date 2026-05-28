@@ -1155,6 +1155,16 @@ var prototypeLevels = {
         }
     }
     ),
+    "nonzero": new Level(
+        "Keep only the nonzero inputs.", null,
+        x => x.length ? [...x] : null, {
+        func: () => {
+            if (Math.random() < 0.45) {
+                return Poly.randomArrForPoly()
+            } else return []
+        }, minimumOutput: 2, maximumOutput: 8
+    }, { on_start: function () { this.numberOfRandomSheets = 8 } }
+    ),
     "gcd": new Level(
         "Input is ax+b. Return greatest common divisor gcd(a,b).", null,
         x => [new Rational(MM.gcd(x[1].numerator, x[0].numerator))],
