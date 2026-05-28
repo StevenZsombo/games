@@ -1189,7 +1189,7 @@ var prototypeLevels = {
             }
             return [new Rational(biggestRat)]
         }, {
-        minTerms: 2, maxTerms: 4, negativeChance: 0,
+        minTerms: 3, maxTerms: 5, negativeChance: 0,
         maxNumer: 101, maxDenom: 19
     }
 

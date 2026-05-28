@@ -1324,7 +1324,7 @@ const dev = Object.freeze({
         dataAndNameStr ??= prompt()
         const dataArr = dataAndNameStr.split("\n")
             .filter(x => x).map(x => x.split("\t"))
-            .map((x, i) => [JSON.parse(x[3]), x[4], x[0]])
+            .map((x, _) => [JSON.parse(x[3]), x[4], x[0]])
         for (const y of dataArr) {
             console.log("testing:", y[0].stage, y[1], y[2])
             this.test(y[0])
