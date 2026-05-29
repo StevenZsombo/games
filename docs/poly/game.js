@@ -1143,6 +1143,14 @@ Please run them again to send your data.`
             y: 0,
             textSettings: { textAlign: "left" }
         })
+        const labelRight = new Button({
+            transparent: true,
+            fontSize: 36,
+            y: 0, textSettings: { textAlign: "right" }
+        })
+        labelRight.rightat(this.WIDTH)
+        labelRight.dynamicText = () => Supabase.name ? `Your name: ${Supabase.name}` : ""
+        this.add_drawable(labelRight)
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
