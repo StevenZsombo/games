@@ -573,10 +573,7 @@ class Clickable extends Rect {
 	/**@param {CheckParamsObj}*/
 	check(checkParamsObj) {
 		const { x, y, clicked, released, held, wheel } = checkParamsObj
-		if (released) { //log releases anyways
-			this.last_clicked = null
-			this.last_held = null
-		}
+
 		if (!this.interactable || x === null || y === null) { //if not interactable then return
 			return false
 		}
@@ -619,6 +616,10 @@ class Clickable extends Rect {
 			this.last_clicked = null
 			this.just_entered = false
 		}
+		if (released) { //log releases anyways
+			this.last_clicked = null
+			this.last_held = null
+		} //MIGHTVE MESSED UP BIG TIME??? ****************************#############@@@@@@@@@@
 		return within
 	}
 
