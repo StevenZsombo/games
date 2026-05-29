@@ -30,263 +30,114 @@ class Game extends GameCore {
     //#region initialize_more
     initialize_more() {
 
-        class Bone {
-            constructor() {
-                this.x = 400
-                this.y = 400
-                this.r = 50
-                this.size = this.r
-                this.ang = 0
-                /**@type {?Bone} */
-                this.head = null
-                /**@type {?Bone} */
-                this.tail = null
 
-                this.cap = 30 * ONEDEG
-            }
-            polar(ang = 0, rCoeff = 1) {
-                return {
-                    x: this.x + this.size * rCoeff * Math.cos(ang + this.ang),
-                    y: this.y + this.size * rCoeff * Math.sin(ang + this.ang)
-                }
-            }
-            /**@param {Bone} bone  */
-            snapTo(bone) {
-                const dx = bone.x - this.x
-                const dy = bone.y - this.y
-                const factor = 1 - bone.r / Math.hypot(dx, dy)
-                this.x += dx * factor
-                this.y += dy * factor
-                this.ang = Math.atan2(dy, dx)
-            }
-            /**
-             * @param {Bone} bone  
-            */
-            capTo(bone) {
-                let diff = this.ang - bone.ang
-                while (diff > PI) diff -= TWOPI
-                while (diff < -PI) diff += TWOPI
-                if (Math.abs(diff) <= this.cap) return //this.ang = bone.ang
-                const clampedDiff = diff > 0 ? this.cap : -this.cap
-                this.ang = bone.ang + clampedDiff
-            }
-            /**@deprecated */
-            left() {
-                if (!this.head) return { x: this.x, y: this.y }
-                const { x, y } = this.head
-                const dx = x - this.x
-                const dy = y - this.y
-                return { x: -dy + this.x, y: dx + this.y }
-            }
-            /**@deprecated */
-            right() {
-                if (!this.head) return { x: this.x, y: this.y }
-                const { x, y } = this.head
-                const dx = x - this.x
-                const dy = y - this.y
-                return { x: dy + this.x, y: -dx + this.y }
-
-            }
-
-            getButton() {
-                const head = new Button()
-                // Button.make_draggable(head)
-                head.on_drag = (pos) => {
-                    head.x += (pos.x - head.x) * 0.03
-                    head.y += (pos.y - head.y) * 0.03
-                    MM.drawCircle(game.screen,
-                        pos.x, pos.y, 5, { color: "blue" }
-                    )
-                }
-                head._drag_force_within = true
-                const bone = this
-                Object.defineProperty(head, 'x', {
-                    get() { return bone.x },
-                    set(v) { bone.x = v }
-                })
-                Object.defineProperty(head, 'y', {
-                    get() { return bone.y },
-                    set(v) { bone.y = v }
-                })
-                head.draw = ctx => {
-                    MM.drawCircle(ctx, bone.x, bone.y, bone.r, {
-                        outline: head.outline,
-                        outline_color: head.outline_color,
-                        color: head.color
-                    })
-                }
-                head.collidepoint = (x, y) => {
-                    return Math.hypot(x - bone.x, y - bone.y) < bone.r
-                }
-                return head
-            }
-        }
-
-        const sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
-            .map(x => x * .6)
-        const radii = sizes.map(x => 30)
-        /*
-        [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
-        .map(x => x * .6)
-        */
-        const bones = sizes.map(_ => new Bone())
-        bones.forEach((b, i) => {
-            b.x = 800 - i * 200
-            b.r = radii[i]
-            b.size = sizes[i]
-            if (i != 0) b.head = bones[i - 1]
-            if (i != bones.length - 1) b.tail = bones[i + 1]
-        })
 
 
         // this.showSkeleton = false
         // this.showPoints = false
-        const bonesDrawable = {
+        /**@type {Skeleton[]} */
+        const animals = []
+        const fish = new Fish()
+        animals.push(fish)
+        const { bones } = fish
+        this.fish = fish
+
+            /*
+            const fish2 = new Fish()
+            fish2.bones[0].y += 200
+            fish2.color = `hsl(240, 75%, 69%)`
+            animals.push(fish2)
+            fish2.bones.forEach(b => { b.size *= .6; b.r *= .6 })
+    */
+            ;
+        [
+            "hsl(0, 0%, 55%)",
+            "hsl(0, 0%, 70%)",
+            "hsl(30, 30%, 50%)",
+            "hsl(35, 60%, 45%)",
+            "hsl(40, 80%, 50%)",
+            "hsl(45, 100%, 45%)",
+            "hsl(50, 40%, 55%)",
+            "hsl(60, 30%, 50%)",
+            "hsl(80, 40%, 40%)",
+            "hsl(90, 50%, 35%)",
+            "hsl(120, 30%, 45%)",
+            "hsl(140, 50%, 40%)",
+            "hsl(160, 60%, 45%)",
+            "hsl(180, 50%, 40%)",
+            "hsl(180, 40%, 55%)",
+            "hsl(190, 70%, 45%)",
+            "hsl(200, 60%, 50%)",
+            "hsl(210, 70%, 45%)",
+            "hsl(215, 80%, 40%)",
+            "hsl(220, 50%, 55%)",
+            "hsl(230, 40%, 60%)",
+            "hsl(240, 25%, 60%)",
+            "hsl(260, 30%, 55%)",
+            "hsl(280, 25%, 50%)",
+            "hsl(300, 20%, 45%)",
+            "hsl(340, 50%, 50%)",
+            "hsl(350, 60%, 45%)",
+            "hsl(355, 70%, 45%)",
+            "hsl(360, 40%, 45%)",
+            "hsl(360, 20%, 50%)"
+        ].flatMap(x => [x]).map(x => [x]).forEach(([color, sizes], i) => {
+            const fish = new Fish()
+            fish.bones[0].x = MM.random(0, this.WIDTH)
+            fish.bones[0].y = MM.random(0, this.HEIGHT)
+            animals.push(fish)
+            if (color) { fish.color = color }
+            if (sizes) {
+                fish.bones.forEach((b, i) => b.size = sizes[i])
+                const avg = fish.bones.map(x => x.size).reduce((s, t) => s + t) / fish.bones.length
+                fish.bones.forEach(b => b.r = avg)
+            }
+        })
+
+        /*const snake = new Snake()
+        animals.push(snake)
+        snake.bones[0].y += 600*/
+        let aiIsOn = true
+        const animalsDraggable = animals.map(x => x.bones[0].getButton())
+        const brains = animals.map((_, i) => ({
+            vel: 0.5,
+            minVel: 0.5,
+            maxVel: 1,
+            ang: MM.random(-5 * ONEDEG, 5 * ONEDEG),
+            cooldown: 500,
+            maxAng: 15 * ONEDEG,
+            maxAngChange: 45 * ONEDEG,
+            turnChance: 0.8,
+            fish: animals[i],
+            /**@type {Bone} */
+            head: animals[i].bones[0],
+            button: animalsDraggable[i]
+        }))
+        const brainsUpdate = {
             update(dt) {
-
-                bones.forEach((b, i) => {
-                    if (b.head) b.snapTo(b.head)
+                if (!aiIsOn) return
+                brains.forEach((p, i) => {
+                    if (p.button.last_clicked) return
+                    p.cooldown -= dt
+                    if (p.cooldown < 0) {
+                        p.cooldown = MM.random(400, 1600)
+                        if (Math.random() < .8) //more likely to turn if alrady turning
+                            // p.ang += MM.random(0, p.maxAngChange) * (Math.random() > .5 ? 1 : -1)
+                            p.ang = MM.random(-p.maxAng, p.maxAng)
+                        else //if (Math.random() < p.turnChance) {
+                            p.vel = MM.random(p.minVel, p.maxVel)
+                        // p.ang = MM.clamp(p.ang, -p.maxAng, +p.maxAng)
+                    }
+                    p.head.crawlTo(p.head.polar(p.ang, p.vel * dt), 0.01)
                 })
-                // bones[0].capTo(bones[1])
-                bones[0].ang = bones[1].ang
-
-            },
-
-
-            /**@param {RenderingContext} ctx */
-            draw(ctx) {
-
-
-                {
-                    ctx.save()
-                    const { x, y } = bones[3].polar(-NINETYDEG)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[4].ang + 30 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 40, 20, {
-                        color: "lightblue", outline: 2, outline_color: "black"
-                    })
-                    ctx.restore()
-                }
-                {
-                    ctx.save()
-                    const { x, y } = bones[3].polar(NINETYDEG)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[4].ang - 30 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 40, 20, {
-                        color: "lightblue", outline: 2, outline_color: "black"
-                    })
-                    ctx.restore()
-                }
-
-                {
-                    ctx.save()
-                    const { x, y } = bones[6].polar(-NINETYDEG)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[4].ang + 30 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 25, 12, {
-                        color: "lightblue", outline: 2, outline_color: "black"
-                    })
-                    ctx.restore()
-                }
-                {
-                    ctx.save()
-                    const { x, y } = bones[6].polar(NINETYDEG)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[4].ang - 30 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 25, 12, {
-                        color: "lightblue", outline: 2, outline_color: "black"
-                    })
-                    ctx.restore()
-                }
-
-                {
-                    const last = bones[bones.length - 1]
-                    const tailpoints = []
-                    tailpoints.push(last.polar(45 * ONEDEG, -1))
-                    tailpoints.push(last.polar(-45 * ONEDEG, -1))
-                    // tailpoints.push(last.polar(MM.clamp(last.ang, 15 * ONEDEG, 25 * ONEDEG), -6))
-                    // tailpoints.push(last.polar(MM.clamp(last.ang, -15 * ONEDEG, -25 * ONEDEG), -6))
-                    tailpoints.push(last.polar(-25 * ONEDEG, -6))
-                    tailpoints.push(last.polar(25 * ONEDEG, -6))
-
-                    MM.drawQuadraticSpline(ctx, tailpoints,
-                        { color: "lightblue", outline: 2, outline_color: "black" }
-                    )
-                }
-
-                const points = [
-                    ...[-60, -30, 0, 30, 60].map(x => bones[0].polar(ONEDEG * x)),
-                    ...bones.map(b => b.polar(NINETYDEG)),
-                    bones.at(-1).polar(PI),
-                    ...bones.map(b => b.polar(-NINETYDEG)).reverse()
-                ]
-
-
-                MM.drawQuadraticSpline(ctx, points,
-                    { color: "lightblue", outline: 2, outline_color: "black" }
-                )
-
-                ctx.fillStyle = "black"
-                {
-                    ctx.save()
-                    const { x, y } = bones[0].polar(-60 * ONEDEG, 0.5)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[0].ang + 15 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 10, 8, {
-                        color: "black"
-                    })
-                    ctx.restore()
-                }
-
-                {
-                    ctx.save()
-                    const { x, y } = bones[0].polar(60 * ONEDEG, 0.5)
-                    ctx.translate(x, y)
-                    ctx.rotate(bones[0].ang - 15 * ONEDEG)
-                    MM.drawEllipse(ctx, 0, 0, 10, 8, {
-                        color: "black"
-                    })
-                    ctx.restore()
-                }
-                {
-                    const { x, y } = bones[2].polar(0, 0)
-                    const { x: a, y: b } = bones[5].polar(0, 0)
-                    const { x: mx, y: my } = bones[3].polar(NINETYDEG, 0.25)
-                    // Mirror the control point to the other side for the return curve
-                    const { x: mx2, y: my2 } = bones[3].polar(-NINETYDEG, 0.25)
-
-                    ctx.beginPath()
-                    ctx.moveTo(x, y)
-                    ctx.quadraticCurveTo(mx, my, a, b)     // curve outward along one side
-                    ctx.quadraticCurveTo(mx2, my2, x, y)   // curve back along the other side
-                    ctx.closePath()
-                    ctx.strokeStyle = "black"
-                    ctx.stroke()
-                    ctx.fillStyle = `hsla(0,0%,0%,0.4)`
-                    ctx.fill()
-                }
-
-                if (sSkel.selected) {
-                    bones.forEach(b => {
-                        MM.drawCircle(ctx, b.x, b.y, b.size, {
-                            color: null, outline: 2, outline_color: "black"
-                        })
-                    })
-                }
-                if (sPts.selected)
-                    points.forEach(p => MM.drawCircle(ctx, p.x, p.y, 5, { color: "black", outline: 0 }))
             }
         }
+        this.add_drawable(brainsUpdate)
+        const w = new GameWorld(this.rect.copy)
+        w.add_drawable(animals)
+        w.add_drawable(animalsDraggable)
+        this.add_drawable(w)
 
-
-        this.add_drawable(bonesDrawable)
-
-
-        // this.add_drawable(bones[0].getButton())
-        const head = bones[0].getButton()
-        head.color = null
-        head.outline = 0
-        this.add_drawable(head)
 
 
 
@@ -298,33 +149,52 @@ class Game extends GameCore {
 
 
 
-        const fishForward = () => {
+        /*const midBut = () => {
             bones[0].x += Math.cos(bones[0].ang) * 1.5
             bones[0].y += Math.sin(bones[0].ang) * 1.5
         }
-        const fishLeft = () => {
+        const leftBut = () => {
             bones[0].x += Math.cos(bones[0].ang - 15 * ONEDEG) * 1.5
             bones[0].y += Math.sin(bones[0].ang - 15 * ONEDEG) * 1.5
         }
-        const fishRight = () => {
+        const fishRightBut = () => {
             bones[0].x += Math.cos(bones[0].ang + 15 * ONEDEG) * 1.5
             bones[0].y += Math.sin(bones[0].ang + 15 * ONEDEG) * 1.5
-        }
-        this.keyboarder.on_keyheldDict["w"] = fishForward
-        /*this.keyboarder.on_keyheldDict["s"] = () => { //retard
-            bones[0].x += Math.cos(bones[0].ang) * -0.5
-            bones[0].y += Math.sin(bones[0].ang) * -0.5
         }*/
-        this.keyboarder.on_keyheldDict["a"] = fishLeft
-        this.keyboarder.on_keyheldDict["d"] = fishRight
+        const zoomScaleDef = 1.2
+        const leftBut = () => {
+            w.worldRect.zoom(w.worldRect.centerX, w.worldRect.centerY, zoomScaleDef, zoomScaleDef)
+        }
+        const rightBut = () => {
+            w.worldRect.zoom(w.worldRect.centerX, w.worldRect.centerY, 1 / zoomScaleDef, 1 / zoomScaleDef)
+        }
+        const midBut = () => { aiIsOn ^= 1 }
+        /*this.keyboarder.on_keyheldDict["w"] = midBut
+        this.keyboarder.on_keyheldDict["a"] = leftBut
+        this.keyboarder.on_keyheldDict["d"] = fishRightBut
+        */
 
         const controls = game.rect.copy.resize(200 * 3 + 150, 100).bottomat(this.HEIGHT - 10)
             .splitGrid(1, 3).flat().map(x => Button.fromRect(x)).map(x => x.resize(200, 100))
         this.add_drawable(controls, 2)
         controls.forEach((x, i) => {
-            x.txt = ["Left", "Forward", "Right"][i]
-            x.on_hold = [fishLeft, fishForward, fishRight][i]
+            x.txt = ["ZoomOut", "Stop/Start", "ZoomIn"][i]
+            // x.on_hold = [leftBut, midBut, rightBut][i]
+            x.on_click = [leftBut, midBut, rightBut][i]
+            x.isBlocking = true
         })
+        const underlay = Button.fromRectShallow(this.rect)
+        underlay.putOver(this.rect)
+        underlay.visible = false
+        underlay._drag_force_within = true
+        underlay.on_drag = (pos) => {
+            w.worldRect.move(
+                (underlay.last_held.x - pos.x) / w.scaleX,
+                (underlay.last_held.y - pos.y) / w.scaleY
+            )
+        }
+        this.add_drawable(underlay, 1)
+        w.worldRect.stretch(3, 3)
 
         const sSkel = new Button({ x: 10, width: 120, height: 30 })
         const sPts = sSkel.copy
@@ -332,8 +202,11 @@ class Game extends GameCore {
         sSkel.bottomat(sPts.top)
         sSkel.txt = "Skeleton"
         sPts.txt = "Boundary"
-        Button.make_checkbox(sSkel)
-        Button.make_checkbox(sPts)
+
+        sSkel.on_click = () => animals.forEach(x => x.isDrawingCircles ^= 1)
+        sPts.on_click = () => animals.forEach(x => x.isDrawingPoints ^= 1)
+        Button.make_checkbox(sSkel, true)
+        Button.make_checkbox(sPts, true)
 
         this.add_drawable([sSkel, sPts])
 
