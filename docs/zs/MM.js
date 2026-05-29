@@ -2978,7 +2978,8 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
      */
     static nameSelect(options, {
         topText = "Your name:", layer = 7, moreButtonSettings = {},
-        confirmText = "Are your really", confirmTextAfter = "?"
+        doNotConfirm = false,
+        confirmText = "Are you really", confirmTextAfter = "?"
     } = {}) {
         const fm = new Panel()
         fm.push(Button.fromRect(game.rect, { isBlocking: true, color: "linen" }))
@@ -3002,6 +3003,10 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
                 x.on_release = () => {
                     if (!canClick) return
                     canClick = false
+                    if (doNotConfirm) {
+                        game.remove_drawable(fm)
+                        return resolve(x.tag)
+                    }
                     const cb = GameEffects.confirmBox((confirmText ? confirmText + " " : "") + options[i] + confirmTextAfter)
                     cb.promise().then(() => {
                         game.remove_drawable(fm)

@@ -28,28 +28,47 @@ var univ = {
 
 class Game extends GameCore {
     //#region initialize_more
-    initialize_more() {
+    async initialize_more() {
 
-
-        const selector = Button.fromRect(this.rect.copy.stretch(.5, .5),
+        const LOD = await GameEffects.nameSelect([1, 2, 3, 4, 5], {
+            topText: "Level of detail:", doNotConfirm: true
+        }).promise()
+        const selector = Button.fromRect(this.rect.copy.stretch(.5, .3).move(0, -200),
             { txt: "Select image", fontSize: 64 })
+        const def = selector.copy
+        def.topat(selector.bottom + 50)
+
+        def.txt = "Or use default"
+        def.on_release = async () => {
+            this.remove_drawable(selector)
+            this.remove_drawable(def)
+            const img = await Cropper.loadImagePromise("fatloud.jpg")
+
+            const qqq = new Rect(0, 0, img.width, img.height)
+            qqq.scaleWithinAnother(this.rect)
+            this.setup(
+                await this.cropper.resizePromise(img, qqq.width, qqq.height),
+                LOD)
+        }
         let img
         selector.on_release = async () => {
             img = await this.cropper.filePicker()
             this.remove_drawable(selector)
+            this.remove_drawable(def)
 
             const qqq = new Rect(0, 0, img.width, img.height)
             qqq.scaleWithinAnother(this.rect)
-
-
-            this.setup(await this.cropper.resizePromise(img, qqq.width, qqq.height))
+            this.setup(
+                await this.cropper.resizePromise(img, qqq.width, qqq.height),
+                LOD)
         }
+        this.add_drawable(def)
         this.add_drawable(selector)
 
     }
     //#endregion
 
-    setup(img) {
+    setup(img, detail = 3) {
 
         const bg = Button.fromRectShallow(new Rect(0, 0, img.width, img.height))
         const canv = new GameCanvas(bg)
@@ -60,10 +79,13 @@ class Game extends GameCore {
         this.add_drawable(but)
         this.add_drawable(canv)
 
-        const ROWS = 16 * 5
+        const ROWS = 16 * detail
         const rS = but.width / ROWS
-        const COLS = 9 * 5
+        const COLS = 9 * detail
         const cS = but.height / COLS
+
+        const radius = 120
+        // Math.min(rS, cS) * 5
 
         const posToIJ = (pos) => ({
             i: Math.floor(pos.x / rS),
@@ -102,6 +124,7 @@ class Game extends GameCore {
                 if (dx ** 2 + dy ** 2 < 1) {
                     this.x = this.origX
                     this.y = this.origY
+                    this.vx = this.vy = 0
                     this.disturbed = false
                     return
                 }
@@ -136,7 +159,7 @@ class Game extends GameCore {
                 const dx = g.x - pos.x + but.x
                 const dy = g.y - pos.y + but.y
                 const mag = Math.hypot(dx, dy)
-                if (mag < 100) {
+                if (mag < radius) {
                     g.disturbed = true
                     g.vx = dx / mag * spreadoutvel
                     g.vy = dy / mag * spreadoutvel
@@ -147,19 +170,72 @@ class Game extends GameCore {
             }
         }
 
-        let canWave = true
+        let canAnim = true
         const wave = () => {
-            if (!canWave) return
-            canWave = false
-            this.animator.add_staggered(MM.transposeArray(grid), 20, Anim.custom(null, 1000, (t, b) => {
-                b.forEach(u => u.x = u.origX + 100 * t)
+            if (!canAnim) return
+            canAnim = false
+            this.animator.add_staggered((grid), 20, Anim.custom(null, 1000, (t, b) => {
+                b.forEach(u => u.x = u.origX + 300 * t)
             }, "", {
                 lerp: MM.compose(Anim.l.smoothstep, Anim.l.vee), on_end: (b) => b.forEach(u => u.disturbed = true),
                 noLock: true
-            }), { on_final: () => canWave = true })
+            }), { on_final: () => canAnim = true })
         }
 
-        Object.assign(this, { wave })
+        const corner = () => {
+            if (!canAnim) return
+            canAnim = false
+
+            gridFlat.forEach(p => {
+                p.x = 0
+                p.y = 0
+                p.disturbed = false
+            })
+            animRelease()
+        }
+        const animRelease = () => {
+            this.animator.add_sequence(
+                ...
+                MM.reshape(MM.shuffle(gridFlat), 5)
+                    .map(p => Anim.delay(5, { on_end: () => p.forEach(u => u.disturbed = true) })),
+                Anim.delay(0, { on_end: () => canAnim = true })
+            )
+        }
+        const random = () => {
+            gridFlat.forEach(p => {
+                p.disturbed = true
+                p.x = MM.random(0, but.width)
+                p.y = MM.random(0, but.height)
+            })
+        }
+        const splitMid = () => {
+            gridFlat.forEach(p => {
+                p.disturbed = true
+                p.x = but.width / 2
+                p.y = MM.random(0, but.height)
+            })
+        }
+        const spiral = () => {
+            return GameEffects.popup("TODO")
+            if (!canAnim) return
+            canAnim = false
+            gridFlat.forEach(p => {
+                p.disturbed = true
+                p.x = but.width / 2
+                p.y = but.height / 2
+                p.vx = 10
+                p.vy = 10
+            })
+            animRelease()
+
+        }
+        const allAnims = { wave, corner, random, splitMid, spiral }
+        Object.assign(this, allAnims)
+
+        const ab = new Button({ width: 200, x: 0, height: 80, txt: "Animate!" })
+        ab.bottomat(this.HEIGHT)
+        ab.on_click = GameEffects.dropDownDebugFunctionsFromAnObject(allAnims)
+        this.add_drawable(ab)
 
     }
     //#region update_more

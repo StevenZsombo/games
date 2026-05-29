@@ -254,6 +254,10 @@ class Anim {
 		return new Anim(null, time, "delay", args)
 	}
 
+	static timeout(time, on_end) {
+		return new Anim(null, time, "delay", { on_end })
+	}
+
 	lerp(t) {
 		return t
 	}
