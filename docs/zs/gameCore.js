@@ -469,6 +469,7 @@ class GameCanvas extends GameWorld {
                 })(), canvasOrBaseRect]
         super(fromRect)
         this.screenRect = null //not visible by default
+        this.worldRect = fromRect
         this.canvas = canvas
         this.ctx = canvas.getContext("2d")
     }
@@ -478,13 +479,24 @@ class GameCanvas extends GameWorld {
     */
     draw(ctx) {
         if (!this.visible) return
-        this.draw_layers(this.ctx)
-        if (this.screenRect)
+        this.ctx.clearRect(0, 0, this.worldRect.width, this.worldRect.height)
+        // this.draw_layers(this.ctx)
+        /*if (this.screenRect)
             ctx.drawImage(this.canvas,
                 0, 0, this.canvas.width, this.canvas.height,
                 this.screenRect.x, this.screenRect.y,
                 this.screenRect.width, this.screenRect.height
             )
+        */
+    }
+
+    /**
+   @param {RenderingContext} ctx 
+   */
+    update(dt) {
+        this.update_drawables(dt)
+        // if (!this.visible) return //ALWAYS draws.
+        this.draw_layers(this.ctx)
     }
 
 

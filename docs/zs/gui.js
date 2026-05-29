@@ -485,7 +485,19 @@ class Cropper {
 		} catch (error) {
 			console.error(error)
 		}
+	}
 
+	async filePicker() {
+		const f = await MM.filePicker("image/*")
+		if (!f) return null
+		const url = URL.createObjectURL(f)
+		const img = await new Promise(resolve => {
+			const img = new Image()
+			img.onload = () => resolve(img)
+			img.src = url
+		})
+		URL.revokeObjectURL(url)
+		return img
 	}
 
 
@@ -532,6 +544,19 @@ class Cropper {
 		ret.src = this.secondCanvas.toDataURL()
 		return ret
 	}
+
+	async resizePromise(img, width, height) {
+		this.secondCanvas.width = width
+		this.secondCanvas.height = height
+		this.ctx.drawImage(img, 0, 0, width, height)
+		const ret = new Image()
+		return await new Promise((resolve, reject) => {
+			ret.onload = () => resolve(ret)
+			ret.onerror = () => reject(new Error("Failed to load resized image"))
+			ret.src = this.secondCanvas.toDataURL()
+		})
+	}
+
 
 	/**@returns {HTMLImageElement} */
 	crop(img, rect) {
