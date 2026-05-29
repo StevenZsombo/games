@@ -2996,5 +2996,30 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         const promise = () => promBefore
         return { promise, buts, top }
     }
+
+
+    static pipDiv(htmlContent = "hey") {
+        const pip = document.createElement('div')
+        pip.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 1000;
+        overflow: auto;
+        padding: 20px;
+    `
+        pip.innerHTML = htmlContent
+        document.body.appendChild(pip)
+        pip.onclick = () => pip.remove()
+
+        return pip
+    }
+
+
 }
 //#endregion
