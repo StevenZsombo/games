@@ -1634,11 +1634,28 @@ class MM {
         }
         return res
     }
-    /**@param {Array<Array<string>>} strArrArr  */
-    static tableHTML(strArrArr, labels, { border = 1, colors } = {}) {
+    /**
+     * @param {Array<Array<string>>} strArrArr
+     * @param {?string[]} labels 
+     * @param {Object} [options={}] 
+     * @param {number} [options.border=1] 
+     * @param {string[][]} [options.colors] 
+     * @param {string[]} [options.labelColors] 
+     * @returns {string}
+     */
+    static tableHTML(strArrArr, labels, { border = 1, colors, labelColors } = {}) {
         if (!strArrArr || !strArrArr.length || !strArrArr[0].length) return ""
         const wrap = (tag, str, params = "") => `<${tag} ${params}>${str}</${tag}>`
-        let headers = labels ? wrap("tr", labels.map(x => wrap("th", x, "align=left")).join("")) : ""
+        let headers = ""
+        if (labels) {
+            const headerCells = labels.map((label, colIdx) => {
+                const color = labelColors && labelColors[colIdx] ? labelColors[colIdx] : null
+                const styleAttr = color ? `style="background-color: ${color};"` : ""
+                const params = ["align=left", styleAttr].filter(Boolean).join(" ")
+                return wrap("th", label, params)
+            }).join("")
+            headers = wrap("tr", headerCells)
+        }
         let entries = strArrArr.map((row, rowIdx) => {
             const cells = row.map((cell, colIdx) => {
                 const color = colors && colors[rowIdx] && colors[rowIdx][colIdx] ? colors[rowIdx][colIdx] : null
@@ -1648,9 +1665,9 @@ class MM {
             }).join("")
             return wrap("tr", cells)
         }).join("")
-        return `<table${border ? " border=" + border : ""}>${headers}${entries}</table>`
-    }
 
+        return `<table${border ? " border=" + border : ""}>${headers}${entries}</td>`
+    }
     static lettersAndNumberOnly(str) {
         return str ? str.replace(/\W/g, '') : ""
     }
@@ -2998,7 +3015,9 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
     }
 
 
-    static pipDiv(htmlContent = "hey") {
+    static pipDiv(htmlContent = "hey", {
+        removeOnClick = false, removeOnDoubleClick = false
+    } = {}) {
         const pip = document.createElement('div')
         pip.style.cssText = `
         position: fixed;
@@ -3010,10 +3029,15 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         z-index: 1000;
         overflow: auto;
         padding: 20px;
+        box-sizing: border-box; 
     `
         pip.innerHTML = htmlContent
         document.body.appendChild(pip)
-        pip.onclick = () => pip.remove()
+
+        if (removeOnDoubleClick)
+            pip.ondblclick = () => pip.remove()
+        if (removeOnClick)
+            pip.onclick = () => pip.remove()
 
         return pip
     }
