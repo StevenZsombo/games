@@ -50,7 +50,7 @@ class Game extends GameCore {
             fish2.bones.forEach(b => { b.size *= .6; b.r *= .6 })
     */
             ;
-        [
+        const colorsOfFish = [
             "hsl(0, 0%, 55%)",
             "hsl(0, 0%, 70%)",
             "hsl(30, 30%, 50%)",
@@ -81,18 +81,20 @@ class Game extends GameCore {
             "hsl(355, 70%, 45%)",
             "hsl(360, 40%, 45%)",
             "hsl(360, 20%, 50%)"
-        ].flatMap(x => [x]).map(x => [x]).forEach(([color, sizes], i) => {
-            const fish = new Fish()
-            fish.bones[0].x = MM.random(0, this.WIDTH)
-            fish.bones[0].y = MM.random(0, this.HEIGHT)
-            animals.push(fish)
-            if (color) { fish.color = color }
-            if (sizes) {
-                fish.bones.forEach((b, i) => b.size = sizes[i])
-                const avg = fish.bones.map(x => x.size).reduce((s, t) => s + t) / fish.bones.length
-                fish.bones.forEach(b => b.r = avg)
-            }
-        })
+        ]
+        Array((+location.search.slice(1) || 30) - 1).fill().map((x, i) => colorsOfFish[i % colorsOfFish.length])
+            .map(x => [x]).forEach(([color, sizes], i) => {
+                const fish = new Fish()
+                fish.bones[0].x = MM.random(0, this.WIDTH)
+                fish.bones[0].y = MM.random(0, this.HEIGHT)
+                animals.push(fish)
+                if (color) { fish.color = color }
+                if (sizes) {
+                    fish.bones.forEach((b, i) => b.size = sizes[i])
+                    const avg = fish.bones.map(x => x.size).reduce((s, t) => s + t) / fish.bones.length
+                    fish.bones.forEach(b => b.r = avg)
+                }
+            })
 
         /*const snake = new Snake()
         animals.push(snake)
