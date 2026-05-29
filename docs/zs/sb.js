@@ -1,5 +1,6 @@
 //#region Supabase
 class Supabase {
+	/**@deprecated */
 	static acquireName() {//consistent with Chat
 		const nameID = localStorage.getItem('nameID') ||
 			(() => {
@@ -20,6 +21,7 @@ class Supabase {
 			})()
 		return { name, nameID }
 	}
+	/**@deprecated */
 	static resetName() {
 		localStorage.removeItem('name')
 	}
@@ -40,7 +42,8 @@ class Supabase {
 				},
 				body: JSON.stringify({
 					event, data,
-					...Supabase.acquireName()
+					name: Supabase.name,
+					nameID: Supabase.nameID
 				})
 			})
 			console.log("Sent to server", event, data)
@@ -163,8 +166,98 @@ class Supabase {
 			},
 			body: JSON.stringify({
 				event, data,
-				...Supabase.acquireName()
+				name: Supabase.name,
+				nameID: Supabase.nameID
 			})
+		})
+	}
+
+
+	static name = null
+	static nameID = null
+	static teacher = null
+
+	static getProfile() {
+		const { name, nameID, teacher } = Supabase
+		return { name, nameID, teacher }
+	}
+
+	static saveProfile() {
+		localStorage.setItem("Supabase", JSON.stringify(Supabase.getProfile()))
+	}
+
+	static loadProfile() {
+		const stored = JSON.parse(localStorage.getItem("Supabase") || "{}")
+		// const { name, nameID, teacher } = stored
+		Object.assign(Supabase, stored)
+		return stored
+	}
+
+	static isVerifiedAlready = false
+	static initProfile() {
+		Supabase.loadProfile()
+		Supabase.name ??= localStorage.getItem("name") || MM.promptUntilGood(
+			"Type in your name and homeroom.\nExample: Steven Q1-2025",
+			v => MM.lettersNumbersSpacesOnly(v),
+			v => v.length >= 3 && v.length <= 20
+		)
+		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
+		Supabase.teacher ??= MM.promptUntilGood(
+			"Type in the name of your teacher.",
+			v => MM.lettersNumbersSpacesOnly(v),
+			v => v.length >= 3 && v.length <= 20
+		)
+		Supabase.saveProfile()
+		if (!Supabase.isVerifiedAlready) {
+			Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
+				console.error("Supabase.initProfile -> verifyProfile failed")
+			})
+
+		}
+	}
+
+	static async verifyProfile() {
+		try {
+			const nameID = Supabase.nameID
+			if (!nameID) {
+				Supabase.uploadNewProfile()
+				console.log("Uploaded new profile.", Supabase.getProfile())
+				return
+			}
+			const response = await fetch(
+				`${Supabase.SUPABASE_URL}/rest/v1/poly_players?"nameID"=eq.${encodeURIComponent(nameID)}&select=name,"nameID",teacher`,
+				{
+					headers: {
+						apikey: Supabase.SUPABASE_KEY,
+						Authorization: `Bearer ${Supabase.SUPABASE_KEY}`,
+					},
+				})
+			const text = await response.text()
+			const table = JSON.parse(text)
+			if (table.length) {
+				Object.assign(Supabase, table[0])
+				Supabase.saveProfile()
+				console.log("Received profile info:", Supabase.getProfile())
+			}
+			else {
+				await Supabase.uploadNewProfile()
+				console.log("Uploaded new profile.", Supabase.getProfile())
+			}
+		} catch (err) { console.error("Supabase.verifyProfile failed:", err) }
+	}
+
+	static uploadNewProfile() {
+		Supabase.loadProfile() //just in case.
+		const data = Supabase.getProfile()
+		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
+		return fetch(`${SUPABASE_URL}/rest/v1/poly_players`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'apikey': SUPABASE_KEY,
+				'Authorization': `Bearer ${SUPABASE_KEY}`
+			},
+			body: JSON.stringify({ data })
 		})
 	}
 

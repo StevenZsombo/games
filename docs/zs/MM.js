@@ -2049,6 +2049,16 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 
 
 
+    static promptUntilGood(promptStr, transformFn, conditionFn, on_repeat) {
+        while (true) {
+            let r = prompt(promptStr)
+            transformFn && (r = transformFn(r))
+            if (!conditionFn || conditionFn(r))
+                return r
+            on_repeat?.()
+        }
+    }
+
 
 
 
@@ -2638,6 +2648,9 @@ class GameEffects {
                 .map(x => x[1].length == 0 ? x : [x[0], x[1].apply(x[1], Array(x[1].length).fill().map(prompt))])
             ], null, null, null, { width: 400 })
     }
+
+
+
 
     /**@deprecated */
     static fullMenuWithReplaceDEPR() {

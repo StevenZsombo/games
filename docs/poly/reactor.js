@@ -423,7 +423,7 @@ Use the Share/Receive features instead.`
         // const alreadyWon = Game.checkIsVictoryFromLocal(stgs.stage)
         if (this.level.conditions.sendToServerOnCompletion) { //tutorials will not be sent
             //announce
-            const { name, nameID } = Supabase.acquireName()
+            const { name, nameID } = Supabase.getProfile()
             const toBeSent = {
                 time: MM.dateAndTime(),
                 stage: stgs.stage,
