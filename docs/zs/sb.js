@@ -196,14 +196,14 @@ class Supabase {
 	static isVerifiedAlready = false
 	static initProfile() {
 		Supabase.loadProfile()
+		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
 		Supabase.name ??= localStorage.getItem("name") || MM.promptUntilGood(
 			"Type in your name and homeroom.\nExample: Steven Q1-2025",
 			v => MM.lettersNumbersSpacesOnly(v),
 			v => v.length >= 3 && v.length <= 20
 		)
-		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
 		Supabase.teacher ??= MM.promptUntilGood(
-			"Type in the name of your teacher.",
+			"Teacher's name (like Alain, Blake, Steven).",
 			v => MM.lettersNumbersSpacesOnly(v),
 			v => v.length >= 3 && v.length <= 20
 		)
