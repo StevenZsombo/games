@@ -2049,6 +2049,16 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 
 
 
+    static promptUntilGood(promptStr, transformFn, conditionFn, on_repeat) {
+        while (true) {
+            let r = prompt(promptStr)
+            transformFn && (r = transformFn(r))
+            if (!conditionFn || conditionFn(r))
+                return r
+            on_repeat?.()
+        }
+    }
+
 
 
 
@@ -2639,6 +2649,9 @@ class GameEffects {
             ], null, null, null, { width: 400 })
     }
 
+
+
+
     /**@deprecated */
     static fullMenuWithReplaceDEPR() {
         const oldLayers = game.layers
@@ -2983,5 +2996,28 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         const promise = () => promBefore
         return { promise, buts, top }
     }
+
+
+    static pipDiv(htmlContent = "hey") {
+        const pip = document.createElement('div')
+        pip.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 1000;
+        overflow: auto;
+        padding: 20px;
+    `
+        pip.innerHTML = htmlContent
+        document.body.appendChild(pip)
+        pip.onclick = () => pip.remove()
+
+        return pip
+    }
+
+
 }
 //#endregion

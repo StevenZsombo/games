@@ -21,6 +21,7 @@ var univ = {
         if (univ.cacheInterval) Supabase.readAllWins = MM.timeCachedFunction(Supabase.readAllWins, univ.cacheInterval, true)
         wDiv.hide()
 
+        if (userSettings.ALLOW_ONLINE_COLLECTION) Supabase.initProfile()
 
     },
     on_first_run_blocking: null, //null or function. must call main(canvas) at the end
@@ -749,8 +750,8 @@ class Game extends GameCore {
             `
 This game saves and sends each of your victories to a public server,
 and automatically adds your name and results to a public leaderboard.
-If you wish to turn this feature off, you may do so in the Options menu.
-`
+`+
+            `If you wish to turn this feature off, you may do so in the Options menu.`
         welcome.transparent = true
         welcome.stretch(.8, .4)
         const okay = Button.fromRect(lower)
@@ -760,7 +761,7 @@ If you wish to turn this feature off, you may do so in the Options menu.
         okay.on_click = () => {
             userSettings.ALLOW_ONLINE_COLLECTION = true
             userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
-            Supabase.acquireName()
+            Supabase.initProfile()
             univ.on_beforeunload() //pretend a reload
             stgs.stage = pageManager.levelSelector
             main()
@@ -800,7 +801,7 @@ Have fun.
         no.txt = "I do not want to share my victories."
 
         yes.on_release = () => {
-            Supabase.acquireName()
+            Supabase.initProfile()
             userSettings.ALLOW_ONLINE_COLLECTION = true
             userSettings.ALREADY_ASKED_FOR_ONLINE_COLLECTION = true
             stgs.stage = pageManager.levelSelector
@@ -862,7 +863,8 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         big.txt = "Initializing..."
         this.add_drawable(big)
         this.bigLBB = big
-        const myName = Supabase.acquireName().name
+        // Supabase.initProfile()
+        const myName = Supabase.name || "NOT FOUND."
         const checkMyWins = (completions) => {
             const serverWins = completions[myName] ?? new Set()
             const myWins = Game.victoryListLocal().filter(x => levels[x])
@@ -1141,6 +1143,14 @@ Please run them again to send your data.`
             y: 0,
             textSettings: { textAlign: "left" }
         })
+        const labelRight = new Button({
+            transparent: true,
+            fontSize: 36,
+            y: 0, textSettings: { textAlign: "right" }
+        })
+        labelRight.rightat(this.WIDTH)
+        labelRight.dynamicText = () => Supabase.name ? `Your name: ${Supabase.name}` : ""
+        this.add_drawable(labelRight)
         if (Game.victoryListLocal().length == 0) {
             const firstbg = rows?.[0]?.children?.[0]
 
@@ -1221,15 +1231,16 @@ Please run them again to send your data.`
                         localStorage.removeItem(stgs.localVictoriesName)
                         main()
                     }, "Resets ALL progress",],
-                    ["DEV.changeName", () => {
-                        const name = localStorage.getItem("name")
-                        if (!name)
-                            return
-                        if (!confirm(`Your current name is: \n${name} \nwould you like to change it ? `))
-                            return
-                        Supabase.resetName()
-                        Supabase.acquireName()
-                    }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")} `],
+                        /*["DEV.changeName", () => {
+                            const name = localStorage.getItem("name")
+                            if (!name)
+                                return
+                            if (!confirm(`Your current name is: \n${name} \nwould you like to change it ? `))
+                                return
+                            Supabase.resetName()
+                            Supabase.acquireName()
+                            }, `Change your leaderboard name.\nCurrent: ${localStorage.getItem("name")} `],
+                        */
                         //["DEV.changelog", () => window.open("Changelog.txt"), "Open Changelog.txt."]
                     ]
                 arr.push(...devArr)
@@ -1321,7 +1332,7 @@ Please run them again to send your data.`
         })
         const colorsInfo = colors.map(x => colorMap.get(x)).map(x => [x, x])
         console.log(colorsInfo)
-        MM.newTabHTML(
+        GameEffects.pipDiv(
             "One day this will look prettier, for now you can just look at the raw data."
             +
             "<br>Colors are assigned at random.<br><br>"
@@ -1330,6 +1341,7 @@ Please run them again to send your data.`
                 arr
                 , ["Name", "Level completed"],
                 { colors: colorsInfo })
+            + `<br><br><br>`
         )
         this._hallOfFameShowIsInProgress = false
     }
@@ -1347,8 +1359,8 @@ Please run them again to send your data.`
 
     //#region import export
     static exportALL() {
-        const { name, nameID } = Supabase.acquireName()
-        const keys = ["name", stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
+        const { name, nameID } = Supabase.getProfile()
+        const keys = ["Supabase", stgs.localUserSettingsName, stgs.localDataName, stgs.localVictoriesName]
         const data = keys.map(x => [x, localStorage.getItem(x)])
         MM.exportJSON(data, MM.lettersAndNumberOnly(`${name}_${nameID}`) + ".json", true)
     }
@@ -1358,7 +1370,6 @@ Please run them again to send your data.`
             data.forEach(([key, value]) => {
                 if (value != null) localStorage.setItem(key, value)
             })
-            Supabase.acquireName()
             main()
             GameEffects.popup("Imported successfully.")
         }).catch(e => console.error("Import failed", e))
