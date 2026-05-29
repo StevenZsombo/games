@@ -207,8 +207,10 @@ class Keyboarder {
 //#region Mouser
 class Mouser {
 	constructor(canvas) {
-		this.x = null
-		this.y = null
+		/**@type {?number} */
+		this.x = undefined
+		/**@type {?number} */
+		this.y = undefined
 		this.clicked = false
 		this.released = false
 		this.down = false

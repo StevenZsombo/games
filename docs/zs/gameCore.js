@@ -351,7 +351,7 @@ class GameCore extends GameCoreLayerCore {
 //#endregion
 
 
-
+//#region GameWorld
 class GameWorld extends GameCoreLayerCore {
     /**@param {Rect} fromRect  */
     constructor(fromRect) {
@@ -451,9 +451,59 @@ class GameWorld extends GameCoreLayerCore {
     }
 
 }
+//#endregion
+
+
+//#region GameCanvas
+class GameCanvas extends GameWorld {
+    /**@param {Rect|HTMLCanvasElement} canvasOrBaseRect */
+    constructor(canvasOrBaseRect) {
+        const [canvas, fromRect]
+            = canvasOrBaseRect instanceof HTMLCanvasElement
+                ? [canvasOrBaseRect, new Rect(0, 0, canvasOrBaseRect.width, canvasOrBaseRect.height)]
+                : [(() => {
+                    const canvas = document.createElement("canvas")
+                    canvas.width = canvasOrBaseRect.width
+                    canvas.height = canvasOrBaseRect.height
+                    return canvas
+                })(), canvasOrBaseRect]
+        super(fromRect)
+        this.screenRect = null //not visible by default
+        this.canvas = canvas
+        this.ctx = canvas.getContext("2d")
+    }
+
+    /**
+    @param {RenderingContext} ctx 
+    */
+    draw(ctx) {
+        if (!this.visible) return
+        this.draw_layers(this.ctx)
+        if (this.screenRect)
+            ctx.drawImage(this.canvas,
+                0, 0, this.canvas.width, this.canvas.height,
+                this.screenRect.x, this.screenRect.y,
+                this.screenRect.width, this.screenRect.height
+            )
+    }
 
 
 
+    /**@param {CheckParamsObj} checkParamsObj  */
+    check(checkParamsObj) {
+        if (!this.interactable) return false
+        if (!this.screenRect) return false
+        if (!this.screenRect.collidepoint(checkParamsObj.x, checkParamsObj.y)) return false
+
+        const translated = {
+            ...checkParamsObj,
+            x: (checkParamsObj.x - this.screenRect.x) / this.scaleX + this.worldRect.x,
+            y: (checkParamsObj.y - this.screenRect.y) / this.scaleY + this.worldRect.y
+        }
+        return this.check_drawables(translated) && this.isBlocking
+    }
+}
+//#endregion
 
 
 
