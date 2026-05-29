@@ -1332,7 +1332,7 @@ Please run them again to send your data.`
         })
         const colorsInfo = colors.map(x => colorMap.get(x)).map(x => [x, x])
         console.log(colorsInfo)
-        MM.newTabHTML(
+        GameEffects.pipDiv(
             "One day this will look prettier, for now you can just look at the raw data."
             +
             "<br>Colors are assigned at random.<br><br>"
@@ -1341,6 +1341,7 @@ Please run them again to send your data.`
                 arr
                 , ["Name", "Level completed"],
                 { colors: colorsInfo })
+            + `<br><br><br>`
         )
         this._hallOfFameShowIsInProgress = false
     }
