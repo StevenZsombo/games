@@ -750,8 +750,8 @@ class Game extends GameCore {
             `
 This game saves and sends each of your victories to a public server,
 and automatically adds your name and results to a public leaderboard.
-If you wish to turn this feature off, you may do so in the Options menu.
-`
+`+
+            `If you wish to turn this feature off, you may do so in the Options menu.`
         welcome.transparent = true
         welcome.stretch(.8, .4)
         const okay = Button.fromRect(lower)
@@ -863,8 +863,8 @@ Solution: [[1, 0, "IN"], [1, 1, "DER"], [1, 2, "DER"], [1, 3, "OUT"]]`
         big.txt = "Initializing..."
         this.add_drawable(big)
         this.bigLBB = big
-        Supabase.initProfile()
-        const myName = Supabase.name
+        // Supabase.initProfile()
+        const myName = Supabase.name || "NOT FOUND."
         const checkMyWins = (completions) => {
             const serverWins = completions[myName] ?? new Set()
             const myWins = Game.victoryListLocal().filter(x => levels[x])
