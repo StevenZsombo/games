@@ -248,7 +248,7 @@ class Game extends GameCore {
         topLab.txt =
             `15 schoolgirls walk to school each day for 7 days.
 The always walk in exactly 5 groups of 3.
-Arrange them so that no two girls ever walk together twice.
+Arrange them so that no two girls walk together twice.
 `
 
         const topLabAddendum = topLab.copy
