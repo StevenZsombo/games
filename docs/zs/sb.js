@@ -198,7 +198,7 @@ class Supabase {
 		Supabase.loadProfile()
 		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
 		Supabase.name ??= localStorage.getItem("name") || MM.promptUntilGood(
-			"Type in your name and homeroom.\nExample: Steven Q1-2025",
+			"Type in your name and homeroom.\nExample: Bob Q1-2025",
 			v => MM.lettersNumbersSpacesOnly(v),
 			v => v.length >= 3 && v.length <= 20
 		)
