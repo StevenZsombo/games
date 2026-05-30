@@ -1,6 +1,7 @@
 /**@type {RenderingContext} */
 let ctx
 let canvas
+
 self.onmessage = e => {
     if (e.data.canvas) {
         canvas = e.data.canvas
@@ -14,8 +15,13 @@ self.onmessage = e => {
     let {
         sides, branches, levels, hue1, hue2, light1, light2,
         scale, spread, spreadI, branchSize, lineWidth,
+        posRatio,
         shadows
     } = e.data.props
+    const img = e.data.img
+    const ratio = branchSize / img.width
+    const [rW, rH] = [ratio * img.width, ratio * img.height]
+    const adjY = -rH / 2
 
     const ALLOW_MUTATION = false
     const mutate = function () {
@@ -37,16 +43,19 @@ self.onmessage = e => {
     const drawBranch = function (lvl = 0) {
         if (lvl > levels) return
         const origs = mutate()
+        //#region drawlogic
         ctx.save()
-        ctx.strokeStyle = `hsl(${interpol(hue1, hue2, lvl / levels)}, 100%, ${interpol(light1, light2, lvl / levels) * 100}%)`
+        // ctx.strokeStyle = `hsl(${interpol(hue1, hue2, lvl / levels)}, 100%, ${interpol(light1, light2, lvl / levels) * 100}%)`
+        // ctx.globalCompositeOperation = "lighten"
+        const lightLevel = (interpol(light1, light2, lvl / levels) - .5) * 2
+        ctx.drawImage(img, 0, adjY, rW, rH)
+        ctx.fillStyle = lightLevel < 0 ? `rgba(0,0,0,${-lightLevel})` : `rgba(255,255,255,${lightLevel})`
+        ctx.fillRect(0, adjY, rW, rH)
 
-        ctx.beginPath()
-        ctx.moveTo(0, 0)
-        ctx.lineTo(branchSize, 0)
-        ctx.stroke()
+        //#endregion
         for (let i = 0; i < branches; i++) {
             ctx.save()
-            const position = branchSize * (1 - i / branches)
+            const position = branchSize * (1 - i / branches) * posRatio
             ctx.translate(position, 0)
             ctx.scale(scale, scale)
             // ctx.rotate(spread)

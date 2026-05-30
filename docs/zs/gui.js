@@ -525,6 +525,13 @@ class Cropper {
 		return this.secondCanvas.toDataURL()
 	}
 
+	getDataURL(img) {
+		this.secondCanvas.width = img.width
+		this.secondCanvas.height = img.height
+		this.ctx.drawImage(img, 0, 0)
+		return this.secondCanvas.toDataURL()
+	}
+
 	static async loadImageToNewCanvasPromise(source) {
 		const img = await this.loadImagePromise(source)
 		const newCanvas = document.createElement("canvas")
