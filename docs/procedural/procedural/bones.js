@@ -129,6 +129,17 @@ class Skeleton {
         this.bones.push(bone)
     }
 
+    rebone(sizes, radii = []) {
+        if (!sizes) throw new Error("sizes array can't be empty or null")
+        this.bones.splice(sizes.length)
+        for (let i = this.bones.length; i < sizes.length; i++)
+            this.addBone(5)
+        sizes.forEach((x, i) => {
+            this.bones[i].size = x
+            if (radii[i]) this.bones[i].r = radii[i]
+        })
+    }
+
     /**@param {RenderingContext} ctx */
     draw(ctx) {
         const points = this.getPoints()
@@ -209,15 +220,17 @@ class Fish extends Skeleton {
     tail = [
         [45, -1], [-45, -1], [-25, -6], [25, -6]
     ]
+    dorsal = [2, 3, 5]
     draw_below(ctx) {
         const { bones } = this
         this.fins.forEach(fin => [1, -1].forEach(side => { //fins are guided by the bone before the anchor
-            if (!bones[fin.anchor] || !bones[fin.anchor - 1]) return
+            const anchor = (fin.anchor + this.bones.length) % this.bones.length
+            if (!bones[anchor] || !bones[anchor - 1]) return
             ctx.save()
-            const { x, y } = bones[fin.anchor].polar(-NINETYDEG * side)
+            const { x, y } = bones[anchor].polar(-NINETYDEG * side)
             ctx.translate(x, y)
-            ctx.rotate(bones[fin.anchor - 1].ang + fin.angleDeg * ONEDEG * side)
-            MM.drawEllipse(ctx, 0, 0, bones[fin.anchor].size * fin.width, bones[fin.anchor].size * fin.height,
+            ctx.rotate(bones[anchor - 1].ang + fin.angleDeg * ONEDEG * side)
+            MM.drawEllipse(ctx, 0, 0, bones[anchor].size * fin.width, bones[anchor].size * fin.height,
                 { color: this.color, outline: this.outline, outline_color: this.outline_color }
             )
             ctx.restore()
@@ -255,12 +268,23 @@ class Fish extends Skeleton {
             })
             ctx.restore()
         }
-        {
-            const { x, y } = bones[2].polar(0, 0)
-            const { x: a, y: b } = bones[5].polar(0, 0)
-            const { x: mx, y: my } = bones[3].polar(NINETYDEG, 0.25)
-            // Mirror the control point to the other side for the return curve
-            const { x: mx2, y: my2 } = bones[3].polar(-NINETYDEG, 0.25)
+        {//draw dorsal
+
+            const dorsal = this.bones
+                // .slice(2, Math.ceil(this.bones.length * .5))
+                .filter((_, i) => i == 2 || i == Math.ceil(this.bones.length * .3) || i == Math.ceil(this.bones.length * .45))
+            MM.drawQuadraticSpline(ctx, [
+                ...dorsal.map((x, i) => x.polar(-NINETYDEG, Math.sin(i * PI / dorsal.length) / 5)),
+                dorsal[dorsal.length - 1].polar(0, -1),
+                ...dorsal.map((x, i) => x.polar(NINETYDEG, Math.sin(i * PI / dorsal.length) / 5)).reverse(),
+            ],
+                { color: `hsla(0,0%,0%,0.3)`, outline: 2, outline_color: "black" })
+
+            /*
+            const { x, y } = bones[this.dorsal[0]].polar(0, 0)
+            const { x: mx, y: my } = bones[this.dorsal[1]].polar(NINETYDEG, 0.25)
+            const { x: mx2, y: my2 } = bones[this.dorsal[1]].polar(-NINETYDEG, 0.25)
+            const { x: a, y: b } = bones[this.dorsal[2]].polar(0, 0)
 
             ctx.beginPath()
             ctx.moveTo(x, y)
@@ -271,7 +295,26 @@ class Fish extends Skeleton {
             ctx.stroke()
             ctx.fillStyle = `hsla(0,0%,0%,0.4)`
             ctx.fill()
+            */
         }
+    }
+
+    static getFishShape() {
+        const length = MM.randomInt(10, 20) + 4
+        const minSize = MM.random(5, 10)
+        const maxSize = MM.clamp(MM.random(15, 50), 10, 50)
+        const multiplier = 1.5
+        const sizes = MM.rangeArr(length)
+            .map(x => x / length)
+            .map(x => x * PI)
+            .map(x => Math.sin(x))
+            .map(x => x * maxSize + minSize)
+            .map(x => x * multiplier)
+            .map(x => MM.toDP(x, 2))
+            .slice(4, -1)
+        sizes[0] *= MM.random(.75, .9)
+        sizes.push([sizes.at(-1) * MM.random(0.4, 0.7)])
+        return sizes
     }
 
 }

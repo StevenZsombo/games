@@ -35,7 +35,7 @@ class Game extends GameCore {
 
         // this.showSkeleton = false
         // this.showPoints = false
-        /**@type {Skeleton[]} */
+        /**@type {Skeleton[]|Fish[]} */
         const animals = []
         const fish = new Fish()
         animals.push(fish)
@@ -196,7 +196,7 @@ class Game extends GameCore {
             )
         }
         this.add_drawable(underlay, 1)
-        w.worldRect.stretch(3, 3)
+        w.worldRect.stretch(2, 2)
 
         const sSkel = new Button({ x: 10, width: 120, height: 30 })
         const sPts = sSkel.copy
@@ -281,6 +281,15 @@ class Game extends GameCore {
         this.add_drawable(lastFishButton)
 
 
+
+        //big reboning
+        animals.slice(1).forEach(x => {
+            x.rebone(Fish.getFishShape())
+            x.bones[0].ang = MM.random(0, TWOPI)
+            x.fins[1].anchor = Math.floor(x.bones.length * .6)
+            // x.dorsal = [2, Math.min(3, Math.floor(x.bones.length * .4)), Math.floor(x.bones.length * .5)]
+            x.straighten()
+        })
         Object.assign(this, { bones, animals, w })
 
         underlay.on_click = wDiv.hide

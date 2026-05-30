@@ -38,6 +38,9 @@ class MM {
         return iterable.reduce((s, t) => s > t ? s : t)
     }
 
+    static toDP(x, sf = 3) {
+        return Math.round(x * 10 ** sf) / (10 ** sf)
+    }
 
     static extendFunction(func, ext,
         extensionGoesBeforeInsteadOfAfter = false,
