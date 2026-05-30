@@ -240,4 +240,5 @@ class EventManager {
             single.clear()
         }
     }
+    flushAndEraseAll() { this.eventCallbacks.clear(); this.singleCallbacks.clear(); }
 }

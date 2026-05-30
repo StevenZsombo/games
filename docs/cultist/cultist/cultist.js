@@ -37,11 +37,11 @@ class Poly {
         this.value = value
         this.button = new Button({
             width: 120,
-            height: 80,
+            height: 60,
             check: null,
             color: "yellow",
             txt: Poly.universalFn(value),
-            fontSize: 48,
+            fontSize: 40,
             // visible: false
         })
         this.where = this._container = container
@@ -53,8 +53,6 @@ class Poly {
 const em = new EventManager()
 em.isLogging = false
 
-const tobeadded = new Set()
-const tobedeleted = new Set()
 
 class Piece {
     constructor(type, fn, latex, props) {
@@ -142,13 +140,14 @@ class Piece {
         if (this.type == "out") return em.emit("submitted", this.inputs[0].hold)
         if (this.outputs.some(x => x.hold)) return
         const out = this.fn(...this.inputs.map(x => x.hold.value))
-        if (!Array.isArray(out)) {
-            em.emit("processed", out, this.outputs[0], this.inputs.map(x => x.hold))
-        } else {
-            out.forEach((u, i) => {
-                em.emit("processed", u, this.outputs[i], this.inputs.map(x => x.hold))
+            ;
+        Array().concat(out).forEach((u, i) => {
+            em.emit("processed", u, this.outputs[i], this.inputs.map(x => x.hold))
+            this.inputs.forEach(x => {
+                em.emit("move", x.hold.button, x, this.outputs[i])
             })
-        }
+        })
+
     }
 
     static variableNames = ["x", "y", "z"]
@@ -167,7 +166,10 @@ class Piece {
         floor: [x => Math.floor(x), String.raw`\lfloor x \rfloor`],
         sum: [(x, y) => x + y, String.raw`x+y`],
         diff: [(x, y) => x - y, String.raw`x-y`],
-        prod: [(x, y) => x * y, String.raw`x \cdot y`]
+        prod: [(x, y) => x * y, String.raw`x \cdot y`],
+        // div: [(x, y) => x / y, String.raw`\frac{x}{y}`],
+        log: [x => Math.log10(x), String.raw`\log_{10}x`],
+        exp: [x => 10 ** x, String.raw`10^{x}`],
     }
     static preset(type) {
         return new Piece(type)
@@ -213,7 +215,10 @@ class Game extends GameCore {
 
     }
     loadSave(data) {
-        const saveData = JSON.parse(data || prompt("Save data:"))
+        const saveData =
+            !data || (typeof data === 'string')
+                ? JSON.parse(data || prompt("Save data:"))
+                : data
         if (this.level.STAGE !== saveData.stage) throw new Error(`badness: saveData has ${saveData.stage} isntead of ${this.level.STAGE}`)
         this.pieces.forEach(x => this.deletePiece(x))
         saveData.types.forEach(key =>
@@ -242,7 +247,7 @@ class Game extends GameCore {
     resetInputs() {
         this.polys?.forEach(x => x.where.hold = null)
         this.polys?.clear()
-        tobeadded.clear()
+        this.tobeadded?.clear()
         // tobedeleted.clear()
 
         this.RECEIVED = []
@@ -256,22 +261,72 @@ class Game extends GameCore {
 
     //#region initialize_more
     async initialize_more() {
+        em.flushAndEraseAll()
         const levels = {
             "square": ["Square each input", x => x ** 2],
             "abs": ["Take absolute value", x => Math.abs(x)],
             "noneg": ["Return the nonnegative inputs only", x => x >= 0 ? x : null],
             "double": ["Double each input.", x => 2 * x],
             "cube": ["Raise each input to the third power", x => x ** 3],
+            "fourth": ["Raise each input to the fourth power", x => x ** 4],
+            "sumupto": ["Return the sum of all integers from 1 to n.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
             "mulfive": ["Multiply by 5.", x => x * 5],
-            "isint": ["Return 1 for integers, and 0 otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
             "isodd": ["Return 1 for odd input, and 0 otherwise.", x => Math.abs(x % 2)],
+            "isint": ["Return 1 for integers, and 0 otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
+            "subtract": ["Take two consecutive inputs, and return their difference.", ...(() => {
+                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
+                return [out, inp]
+            })()],
+            "mean": ["Take two consecutive inputs, and return their mean.", ...(() => {
+                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
+                return [out, inp]
+            })()],
+            "divide": ["Take two consecutive inputs, and return their ratio.", ...(() => {
+                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
+                return [out, inp]
+            })()],
+            /*"largestpower": ["Return the largest power of 2 not greater than the positive input.", x => {
+                // let a = x
+                // while (a % 2 == 0) a /= 2
+                // return a
+                let a = 1
+                while (a <= x) a *= 2
+                return a / 2
+            }, () => Math.random() < .5 ? MM.randomInt(1, 200) : 2 * MM.randomInt(1, 200)],
+            */
+            "rounded": ["Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
+            "eight": ["Map each input to 8.", x => 8],
+            // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
+            "manynines": ["Input is a positive integer.\nReturn a number with that many 9s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
+            "digits": ["Return the number of digits in the given positive integer.", x => `${x}`.length, () => {
+                const a = MM.randomInt(1, 9)
+                let b = 10 ** a
+                b += MM.randomInt(1, Math.floor(b / 10))
+                return b
+            }],
+            // "digitsonly": ["Inputs are positive integers. Return only the inputs that are a single digit", x => [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(x) ? x : null, () => Math.random() < .5 ? MM.randomInt(1, 9) : MM.randomInt(1, 200)]
+            /*
+            "max": ["Take two consecutive inputs, and return the larger one.", ...(() => {
+                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                const out = Array(30).fill().map((x, i) => Math.max(inp[2 * i], inp[2 * i + 1]))
+                return [out, inp]
+            })()],
+            */
+            // "onesdigit": ["Return the ones digit of the positive integer.", x => x % 10, () => MM.randomInt(1, 999)]
         }
         let stage
         while (true) {
-            stage = await GameEffects.nameSelect(["Tutorial message"].concat(Array.from(Object.keys(levels))), {
+            const ns = GameEffects.nameSelect(["Tutorial message"].concat(Array.from(Object.keys(levels))), {
                 topText: "Select level:",
                 doNotConfirm: true
-            }).promise()
+            })
+            const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
+            ns.buts.forEach(x => { if (x.tag in vic) x.color = "lightgreen" })
+            ns.buts[0].color = "lightblue"
+            stage = await ns.promise()
             if (stage !== "Tutorial message") break
             else GameEffects.popup(`
 IN produces inputs, OUT creates outputs.
@@ -288,6 +343,11 @@ COPY creates copies of its argument.
         const level = this.level = new Level(stage, ...levels[stage])
         this.initLevel()
 
+
+        const tobeadded = this.tobeadded = new Set()
+        const tobedeleted = this.tobedeleted = new Set()
+
+
         const game = this
         const w = this.w = new GameWorld(this.rect.copy)
         this.add_drawable(w, 4)
@@ -301,7 +361,7 @@ COPY creates copies of its argument.
         (() => {
             Object.keys(Piece.TYPES).concat("copy").forEach(x => this.addPiece(x))
             const pos =
-                [[30, 30], [1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [689, 394]]
+                [[30, 30], [1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386]]
             pos.forEach((u, i) => this.piecesArr[i].button.topleftat(u[0], u[1]))
 
         })()
@@ -340,24 +400,25 @@ COPY creates copies of its argument.
         /**@type {Set<Poly>} */
         const polys = this.polys = new Set()
         em.on("processed", (value, target, toDeleteArr) => {
-            tobeadded.add([value, target]);
+            tobeadded.add([value, target])
             toDeleteArr && [].concat(toDeleteArr).forEach(p => tobedeleted.add(p))
         })
         em.on("submitted", poly => {
             tobedeleted.add(poly)
             this.SUBMITTED.push(Poly.universalFn(poly.value))
             console.log("Submitted", poly.value)
-            if (this.level.OUTPUTS.length == this.SUBMITTED.length) this.checkVictory()
+            this.checkVictory()
         })
         em.on("received", v => {
             console.log("Received", v)
+            this.checkVictory()
         })
         this.tempAnimStorage = []
         const _move = (buttonWhat, buttonFrom, buttonTo) => {
             const cp = buttonWhat.copy
             cp.visible = true
             buttonWhat.visible = false
-            w.add_drawable(cp)
+            w.add_drawable(cp, 7)
             return Anim.custom(cp, stepTime, (t) => {
                 cp.centerat(
                     Anim.interpol(buttonFrom.cx, buttonTo.cx, t),
@@ -365,12 +426,13 @@ COPY creates copies of its argument.
                 )
             }, "", {
                 ditch: true, on_end: () => {
-                    w.remove_drawable(cp)
                     buttonWhat.visible = true
+                    w.remove_drawable(cp)
                 }
             })
 
         }
+        /**@deprecated */
         const _away = (buttonWhat) => {
             const cp = buttonWhat.copy
             cp.visible = true
@@ -400,7 +462,9 @@ COPY creates copies of its argument.
         this.RECEIVED = []
         this.SUBMITTED = []
         this.isProducingInputs = false
+        this.tempHidden = []
         const step = () => {
+            this.tempHidden.forEach(x => x.visible = true)
             if (this.isProducingInputs && !this.input.outputs[0].hold && this.RECEIVED.length < INPUTS.length) {
                 const v = INPUTS[this.RECEIVED.length]
                 this.RECEIVED.push(v)
@@ -408,25 +472,30 @@ COPY creates copies of its argument.
                 em.emit("received", v)
             }
             const newlyFilled = new Set()
+            const polyAlreadySent = new Set()
             for (const [outB, inB] of lines) {
                 if (!outB.hold) continue
                 if (inB.hold) continue
                 if (newlyFilled.has(inB)) continue
+                if (polyAlreadySent.has(outB.hold)) continue
                 tobeadded.add([outB.hold.value, inB])
                 tobedeleted.add(outB.hold)
                 newlyFilled.add(inB)
-                // em.emit("move", outB.hold.button, outB, inB)
+                polyAlreadySent.add(outB.hold)
+                em.emit("move", outB.hold.button, outB, inB)
             }
             for (const p of this.pieces) {
                 p.process()
             }
 
-            this.tempAnimStorage.forEach(x => this.animator.add_anim(x))
-
 
             for (const [val, but] of tobeadded)
-                if (Number.isFinite(val))
-                    polys.add(new Poly(val, but))
+                if (Number.isFinite(val)) {
+                    const p = new Poly(val, but)
+                    polys.add(p)
+                    this.tempHidden.push(p.button)
+                    p.button.visible = false
+                }
             for (const p of tobedeleted) {
                 polys.delete(p)
                 p.where.hold = null
@@ -434,7 +503,18 @@ COPY creates copies of its argument.
             tobeadded.clear()
             tobedeleted.clear()
 
+
+            this.tempAnimStorage.forEach(x => { this.animator.add_anim(x) })
+            this.tempAnimStorage.length = 0
+            this.tempHidden.forEach(x => {
+                // if (!this.animator.locked.has(x)) x.visible = true
+            })
+
         }
+
+
+
+
         const polysDrawable = {
             draw(ctx) {
                 for (const p of polys) {
@@ -468,6 +548,7 @@ COPY creates copies of its argument.
             this.isProducingInputs = true
             stopStart.deactivate()
         }
+        // stopStart.on_click()
         this.add_drawable(stopStart)
         this.add_drawable(corner)
         const tools = new Button({ width: 200, height: 100, txt: "Menu", x: 0 })
@@ -482,10 +563,22 @@ COPY creates copies of its argument.
                     ["Erase", () => this.initLevel()],
                     [`stepTime = ${stepTime}`, () => stepTime = clockwork.interval = +prompt()],
                     ["hide errors", wDiv.hide],
-                    ["Back to levels", () => main()],
+                    ["Back to levels", () => {
+                        this.animator.resetAndFlushAll()
+                        on_clockwork.length = 0
+                        main()
+                    }],
                 ]
             )
         }
+
+
+
+        {
+            const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
+            if (stage in vic) this.loadSave(vic[stage])
+        }
+
 
     }
     //#endregion
@@ -493,11 +586,19 @@ COPY creates copies of its argument.
 
 
     checkVictory = () => {
+        if (
+            this.RECEIVED.length != this.level.INPUTS.length
+            ||
+            this.SUBMITTED.length != this.level.OUTPUTS.length
+        ) return
         if (this.SUBMITTED.every((x, i) =>
             x == this.level.OUTPUTS[i]
         )) {//win
             GameEffects.fireworksShow()
             GameEffects.popup("VICTORY!")
+            const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
+            cultistVictories[this.level.STAGE] = this.getSaveData()
+            localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
         } else {//lose
             GameEffects.popup("you lose")
         }
