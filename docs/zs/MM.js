@@ -2637,7 +2637,7 @@ class GameEffects {
 
     /**
      * @param {Array<[string,Function]>} objTextAndOnRelease 
-     * @param {{ backgroundRect?: any; gridRows?: any; gridColumns?: number; moreButtonSettings?: {}; alsoClosingButtons?: any; addCloseButton?: boolean; on_close?: any; autoClose?: boolean; }} [param0={}] 
+     * @param {Object} [param0={}] 
      * @param {Rect} [param0.backgroundRect=null] 
      * @param {number|null} [param0.gridRows=null] 
      * @param {number} [param0.gridColumns=1] 
@@ -2746,7 +2746,7 @@ class GameEffects {
         const hijacker = game.keyboarder.getHijacker()
         if (on_pressingEnter) hijacker.start()
         /** @type {HTMLInputElement & {close:Function}}*/
-        const input = document.createElement((on_input && !on_pressingEnter) ? 'textarea' : 'input')
+        const input = document.createElement((!on_pressingEnter) ? 'textarea' : 'input')
         input.style.position = 'absolute'
         input.id = "inputBox" //my own thing
         input.style.left = x + "px"
@@ -2792,6 +2792,31 @@ class GameEffects {
         })
     }
 
+    static async editJSON(objectOrTxt, forbidParseAndAssign = false) {
+        const json = typeof objectOrTxt === 'string'
+            ? objectOrTxt
+            : JSON.stringify(objectOrTxt, null, 2)
+        const rect =
+            game.mouser.rectCanvasToEvent(
+                new Rect(game.mouser.pos.x, game.mouser.pos.y, 1200, 30 * (1 + json.split("\n").length))
+                    .fitWithinAnother(game.rect))
+
+        const inp = GameEffects.inputBox(rect.x, rect.y, rect.width, rect.height)
+        // inp.cols = Math.max(...json.split("\n").map(x => x.length)) + 10
+        inp.textContent = json
+        const received = await new Promise(resolve =>
+            game.keyboarder.on_keydownDict["Enter"] = () => {
+                if (game.keyboarder.held["Control"]) { resolve(inp.value); inp.close() }
+            })
+        if (!forbidParseAndAssign && (typeof objectOrTxt !== 'string')) {
+            const parsed = JSON.parse(received)
+            if (Array.isArray(objectOrTxt)) {
+                objectOrTxt.length = 0
+                objectOrTxt.push(...parsed)
+            } else Object.assign(objectOrTxt, parsed)
+        }
+        return received
+    }
 
     static latexButton(alsoAddTEXforScripting = true) {
         const a = MM.pipe(new Button(),
@@ -2854,7 +2879,8 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         on_yes = null, yes: yesTxt = "Yes", no: noTxt = "No", on_no = null, on_close = null,
         sizeFrac = [.5, .3],
         draggable = false,
-        buttonColor = "linen", yesColor = "lightgreen", noColor = "lightsalmon" } = {}) {
+        buttonColor = "linen", yesColor = "lightgreen", noColor = "lightsalmon"
+    } = {}) {
         const button = Button.fromRect(game.rect.copy.stretch(...sizeFrac))
         button.isBlocking = true
         button.outline = 3
@@ -2907,7 +2933,8 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
     static getStarDrawable({
         width = 1920 + 400, height = 1080 + 400,
-        starCount = 220 } = {}) {
+        starCount = 220
+    } = {}) {
         const stars = []
         for (let i = 0; i < starCount; i++) {
             stars.push({

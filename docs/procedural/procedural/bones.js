@@ -1,5 +1,5 @@
 class Bone {
-    constructor() {
+    constructor(skeleton) {
         this.x = 400
         this.y = 400
         this.r = 50
@@ -11,11 +11,19 @@ class Bone {
         this.tail = null
 
         this.cap = 30 * ONEDEG
+        /**@type {?Skeleton} */
+        this.skeleton = skeleton
     }
     polar(ang = 0, rCoeff = 1) {
         return {
             x: this.x + this.size * rCoeff * Math.cos(ang + this.ang),
             y: this.y + this.size * rCoeff * Math.sin(ang + this.ang)
+        }
+    }
+    polarAbsolute(ang, rCoeff = 1) {
+        return {
+            x: this.x + this.size * rCoeff * Math.cos(ang),
+            y: this.y + this.size * rCoeff * Math.sin(ang)
         }
     }
     /**@param {Bone} bone  */
@@ -29,6 +37,7 @@ class Bone {
     }
     /**
      * @param {Bone} bone  
+     * @deprecated
     */
     capTo(bone) {
         let diff = this.ang - bone.ang
@@ -63,6 +72,8 @@ class Bone {
     }
     getButton() {
         const button = new Button()
+        button.tag = "boneButton"
+        button._bone = this
         button.visible = false
         button.isBlocking = true
         button.on_drag = (pos) => {
@@ -96,20 +107,26 @@ class Bone {
 
 
 class Skeleton {
+    /**@type {Bone[]}*/
+    bones = []
     constructor(
         sizes = [64, 84, 90, 87, 83, 77, 64, 60, 51, 38, 32, 19, 12]
             .map(x => x * .6),
-        radii = sizes.map(x => 30),
+        radii = [],
     ) {
-        /**@type {Bone[]}*/
-        const bones = this.bones = sizes.map(_ => new Bone())
-        bones.forEach((b, i) => {
-            b.x = 800 - i * 200
-            b.r = radii[i]
-            b.size = sizes[i]
-            if (i != 0) b.head = bones[i - 1]
-            if (i != bones.length - 1) b.tail = bones[i + 1]
-        })
+        sizes.forEach((x, i) => this.addBone(x, radii[i] ?? 30))
+        this.bones.forEach((b, i) => { b.x = 800 - i * 200 })
+    }
+
+    addBone(size, r) {
+        const bone = new Bone(this)
+        bone.size = size
+        bone.r = r
+        if (this.bones.length) {
+            bone.head = this.bones.at(-1)
+            this.bones.at(-1).tail = bone
+        }
+        this.bones.push(bone)
     }
 
     /**@param {RenderingContext} ctx */
@@ -168,66 +185,49 @@ class Skeleton {
         bones[0].ang = bones[1].ang
 
     }
+
+    straighten() {
+        const fisrtAng = this.bones[0].ang
+        this.bones.forEach((b, i) => {
+            if (i != 0) {
+                const { x, y } = this.bones[i - 1].polarAbsolute(fisrtAng, -1)
+                b.x = x
+                b.y = y
+            }
+        })
+        // this.update(0)
+    }
 }
 
 
 class Fish extends Skeleton {
     color = "lightblue"
+    fins = [
+        { anchor: 3, angleDeg: 30, width: 0.8, height: 0.4 },
+        { anchor: 6, angleDeg: 30, width: 0.65, height: 0.3 },
+    ]
     draw_below(ctx) {
         const { bones } = this
-        {
+        this.fins.forEach(fin => [1, -1].forEach(side => { //fins are guided by the bone before the anchor
             ctx.save()
-            const { x, y } = bones[3].polar(-NINETYDEG)
+            const { x, y } = bones[fin.anchor].polar(-NINETYDEG * side)
             ctx.translate(x, y)
-            ctx.rotate(bones[4].ang + 30 * ONEDEG)
-            MM.drawEllipse(ctx, 0, 0, bones[4].size * .8, bones[4].size * .4,
+            ctx.rotate(bones[fin.anchor - 1].ang + fin.angleDeg * ONEDEG * side)
+            MM.drawEllipse(ctx, 0, 0, bones[fin.anchor].size * fin.width, bones[fin.anchor].size * fin.height,
                 { color: this.color, outline: this.outline, outline_color: this.outline_color }
             )
             ctx.restore()
-        }
-        {
-            ctx.save()
-            const { x, y } = bones[3].polar(NINETYDEG)
-            ctx.translate(x, y)
-            ctx.rotate(bones[4].ang - 30 * ONEDEG)
-            MM.drawEllipse(ctx, 0, 0, bones[4].size * .8, bones[4].size * .4,
-                { color: this.color, outline: this.outline, outline_color: this.outline_color }
-            )
-            ctx.restore()
-        }
+        }))
 
-        {
-            ctx.save()
-            const { x, y } = bones[6].polar(-NINETYDEG)
-            ctx.translate(x, y)
-            ctx.rotate(bones[4].ang + 30 * ONEDEG)
-            MM.drawEllipse(ctx, 0, 0, bones[6].size * .65, bones[6].size * .3,
-                { color: this.color, outline: this.outline, outline_color: this.outline_color }
-            )
-            ctx.restore()
-        }
-        {
-            ctx.save()
-            const { x, y } = bones[6].polar(NINETYDEG)
-            ctx.translate(x, y)
-            ctx.rotate(bones[4].ang - 30 * ONEDEG)
-            MM.drawEllipse(ctx, 0, 0, bones[6].size * .65, bones[6].size * .3,
-                { color: this.color, outline: this.outline, outline_color: this.outline_color }
-            )
-            ctx.restore()
-        }
-
-        {
-            const last = bones[bones.length - 1]
-            const tailpoints = []
-            tailpoints.push(last.polar(45 * ONEDEG, -1))
-            tailpoints.push(last.polar(-45 * ONEDEG, -1))
-            tailpoints.push(last.polar(-25 * ONEDEG, -6))
-            tailpoints.push(last.polar(25 * ONEDEG, -6))
-            MM.drawQuadraticSpline(ctx, tailpoints,
-                { color: this.color, outline: this.outline, outline_color: this.outline_color }
-            )
-        }
+        const last = bones[bones.length - 1] //tail is static for now
+        const tailpoints = []
+        tailpoints.push(last.polar(45 * ONEDEG, -1))
+        tailpoints.push(last.polar(-45 * ONEDEG, -1))
+        tailpoints.push(last.polar(-25 * ONEDEG, -6))
+        tailpoints.push(last.polar(25 * ONEDEG, -6))
+        MM.drawQuadraticSpline(ctx, tailpoints,
+            { color: this.color, outline: this.outline, outline_color: this.outline_color }
+        )
 
     }
     eye_color = "black"

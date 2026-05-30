@@ -214,11 +214,73 @@ class Game extends GameCore {
 
 
 
+        const editButton = Button.fromRectShallow(controls[0])
+        editButton.rightat(this.WIDTH - 10)
+        editButton.txt = "Manage fish"
+        this.add_drawable(editButton)
+        editButton.on_release = () => {
+            const ddm = GameEffects.dropDrownBetter(
+                animals.map((x, i) => [`Fish #${i}`, () => manageFish(x)]),
+                { moreButtonSettings: { hover_color: null, width: 200 } }
+            )
+            animals.forEach((x, i) => ddm.menuButtons[i].color = x.color)
+        }
+        /**@param {Fish} fish */
+        const manageFish = (fish) => {
+            const ddm = GameEffects.dropDrownBetter(
+                [
+                    ["Center on", () => {
+                        w.worldRect.centerat(fish.bones[0].x, fish.bones[0].y)
+                        w.worldRect.resize(this.WIDTH * 1.5, this.HEIGHT * 1.5)
+                    }],
+                    /*["Edit shape", () => GameEffects.editJSON(
+                        `[\n  [\n${fish.bones.map(x => x.size.toPrecision(3)).join("\n,\n")
+                        }\n],\n  [${fish.bones.map(x => x.r).join(",")
+                        }]\n]`
+                    ).then(out => {
+                        out = JSON.parse(out)
+                        fish.bones.forEach((x, i) => {
+                            x.size = out[0][i]
+                            x.r = out[1][i]
+                        })
+                    }) ],*/
+                    ["Edit shape", () => GameEffects.editJSON(
+                        fish.bones.map(x => x.size.toPrecision(3)).join("\n")
+                    ).then(out => {
+                        const parsed = out.split("\n").map(x => +x).filter(x => x)
+                        this.once(() => {
+                            if (parsed.length < fish.bones.length) fish.bones = fish.bones.slice(0, parsed.length)
+                            else for (let i = fish.bones.length; i < parsed.length; i++)
+                                fish.addBone()
+                            parsed.forEach((x, i) => fish.bones[i].size = x)
+                            fish.straighten()
+                        })
+                    })],
+                    ["Edit fins", () => GameEffects.editJSON(fish.fins)],
+                ], { moreButtonSettings: { width: 400 } }
+            )
+        }
+        animals.forEach((x, i) => x.id = i)
+        let lastFish = null
+        const lastFishButton = editButton.copy
+        lastFishButton.update = () => {
+            for (const recent of w.lastClicked)
+                if (recent?.tag === "boneButton") {
+                    lastFish = recent._bone.skeleton
+                    lastFishButton.txt = `Fish #${lastFish.id}`
+                    lastFishButton.color = lastFish.color
+                    break;
+                }
+        }
+        lastFishButton.move(-1.2 * lastFishButton.width, 0)
+        lastFishButton.txt = ""
+        lastFishButton.on_release = () => lastFish && manageFish(lastFish)
+        this.add_drawable(lastFishButton)
 
 
-        Object.assign(this, { bones })
+        Object.assign(this, { bones, animals, w })
 
-
+        underlay.on_click = wDiv.hide
     }
     //#endregion
 
