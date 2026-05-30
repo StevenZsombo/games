@@ -276,9 +276,12 @@ class Game extends GameCore {
             else GameEffects.popup(`
 IN produces inputs, OUT creates outputs.
 All other modules map from left to right like a function.
+Modules have one (x) or two (x,y) arguments.
 
 You can drag the modules around, and you can connect them.
 Connect the right side of any module to the left side of any other.
+
+COPY creates copies of its argument.
 `,
                 { close_on_release: true, floatTime: 8000 }, GameEffects.popupPRESETS.megaBlue)
         }
