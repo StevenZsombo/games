@@ -359,7 +359,7 @@ class MM {
         // fontSize /= window.devicePixelRatio || 1
         // fontSize /= game?.mouser?.scaleX || 1
         screen.textAlign = textAlign
-        const drawTextStartX = textAlign == "left" ? rect.x : (rect.x + rect.width / 2)
+        const drawTextStartX = textAlign == "left" ? rect.x : textAlign == "center" ? (rect.x + rect.width / 2) : rect.x + rect.width
         screen.textBaseline = textBaseline
         //const f = font.split("px")
         //font = `${Math.round(f[0] * dpr)}px${f.slice(1)}`
