@@ -2077,6 +2077,17 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
     }
 
 
+    /**@param {string} str  */
+    static delimitedArrayFromString(str) {
+        return ["\n", "\r", "\t", ",", ";"]
+            .reduce((s, t) => s.flatMap(x => x.split(t)), [str])
+            .map(x => x.trim())
+            .filter(x => x !== "")
+    }
+
+    static delimitedNumberArrayFromString(str) {
+        return MM.delimitedArrayFromString(str).map(x => +x).filter(x => Number.isFinite(x))
+    }
 
 
 

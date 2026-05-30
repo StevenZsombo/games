@@ -247,16 +247,19 @@ class Game extends GameCore {
                     ["Edit shape", () => GameEffects.editJSON(
                         fish.bones.map(x => x.size.toPrecision(3)).join("\n")
                     ).then(out => {
-                        const parsed = out.split("\n").map(x => +x).filter(x => x)
+                        const parsed = MM.delimitedNumberArrayFromString(out)
+                        // aiIsOn = false
                         this.once(() => {
                             if (parsed.length < fish.bones.length) fish.bones = fish.bones.slice(0, parsed.length)
                             else for (let i = fish.bones.length; i < parsed.length; i++)
                                 fish.addBone()
                             parsed.forEach((x, i) => fish.bones[i].size = x)
                             fish.straighten()
+                            // aiIsOn = true
                         })
                     })],
                     ["Edit fins", () => GameEffects.editJSON(fish.fins)],
+                    ["Edit tail", () => GameEffects.editJSON(fish.tail)]
                 ], { moreButtonSettings: { width: 400 } }
             )
         }

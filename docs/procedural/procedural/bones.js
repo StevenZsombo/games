@@ -206,9 +206,13 @@ class Fish extends Skeleton {
         { anchor: 3, angleDeg: 30, width: 0.8, height: 0.4 },
         { anchor: 6, angleDeg: 30, width: 0.65, height: 0.3 },
     ]
+    tail = [
+        [45, -1], [-45, -1], [-25, -6], [25, -6]
+    ]
     draw_below(ctx) {
         const { bones } = this
         this.fins.forEach(fin => [1, -1].forEach(side => { //fins are guided by the bone before the anchor
+            if (!bones[fin.anchor] || !bones[fin.anchor - 1]) return
             ctx.save()
             const { x, y } = bones[fin.anchor].polar(-NINETYDEG * side)
             ctx.translate(x, y)
@@ -220,11 +224,7 @@ class Fish extends Skeleton {
         }))
 
         const last = bones[bones.length - 1] //tail is static for now
-        const tailpoints = []
-        tailpoints.push(last.polar(45 * ONEDEG, -1))
-        tailpoints.push(last.polar(-45 * ONEDEG, -1))
-        tailpoints.push(last.polar(-25 * ONEDEG, -6))
-        tailpoints.push(last.polar(25 * ONEDEG, -6))
+        const tailpoints = this.tail.map(x => last.polar(x[0] * ONEDEG, x[1]))
         MM.drawQuadraticSpline(ctx, tailpoints,
             { color: this.color, outline: this.outline, outline_color: this.outline_color }
         )
