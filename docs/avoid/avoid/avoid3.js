@@ -84,7 +84,7 @@ class Game extends GameCore {
         const COLS = 9 * detail
         const cS = but.height / COLS
 
-        const radius = 120
+        let radius = 120
         // Math.min(rS, cS) * 5
 
         const posToIJ = (pos) => ({
@@ -149,7 +149,7 @@ class Game extends GameCore {
 
 
         const spreadoutvel = 0.4
-        const crawlCoeff = 0.02
+        let crawlCoeff = 0.02
         but.update = (dt) => {
             const pos = this.mouser
             /*const { i, j } = posToIJ({ x: pos.x - but.x, y: pos.y - but.y })
@@ -158,8 +158,8 @@ class Game extends GameCore {
             for (const g of gridFlat) {
                 const dx = g.x - pos.x + but.x
                 const dy = g.y - pos.y + but.y
-                const mag = Math.hypot(dx, dy)
-                if (mag < radius) {
+                let mag
+                if (Math.abs(dx) < radius && Math.abs(dy) < radius && (mag = Math.hypot(dx, dy)) < radius) {
                     g.disturbed = true
                     g.vx = dx / mag * spreadoutvel
                     g.vy = dy / mag * spreadoutvel
@@ -229,7 +229,38 @@ class Game extends GameCore {
             animRelease()
 
         }
-        const allAnims = { wave, corner, random, splitMid, spiral }
+        const dazzle = () => {
+            gridFlat.forEach(p => {
+                // if (Math.random() < .8 ) return
+                p.x += MM.random(-1, 1) * 20
+                p.y += MM.random(-1, 1) * 20
+                p.disturbed = true
+            })
+        }
+
+        const jitter = () => {
+            // if (!canAnim) return
+            // canAnim = true
+            gridFlat.forEach(p => {
+                p.rnd = MM.random(0, TWOPI)
+            })
+            let tot = 0
+            const r = 5
+            game.animator.add_anim(Anim.custom(null, 5000, (t) => {
+                tot += t / 3
+                gridFlat.forEach(p => {
+                    p.x = p.origX + Math.cos(tot + p.rnd) * r
+                    p.y = p.origY + Math.sin(tot + p.rnd) * r
+                })
+            }, null, { on_end: () => gridFlat.forEach(p => p.disturbed = true) }))
+        }
+        const setRadius = () =>
+            radius = +prompt(`Set radius (current = ${radius}):`)
+
+        const setCrawlCoeff = () =>
+            crawlCoeff = +prompt(`Set crawlCoeff (current = ${crawlCoeff}):`)
+
+        const allAnims = { setRadius, setCrawlCoeff, wave, corner, random, splitMid, spiral, dazzle, jitter }
         Object.assign(this, allAnims)
 
         const ab = new Button({ width: 200, x: 0, height: 80, txt: "Animate!" })
