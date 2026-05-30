@@ -252,7 +252,7 @@ class Game extends GameCore {
                         this.once(() => {
                             if (parsed.length < fish.bones.length) fish.bones = fish.bones.slice(0, parsed.length)
                             else for (let i = fish.bones.length; i < parsed.length; i++)
-                                fish.addBone()
+                                fish.addBone(parsed[i])
                             parsed.forEach((x, i) => fish.bones[i].size = x)
                             fish.straighten()
                             // aiIsOn = true

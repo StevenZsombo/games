@@ -114,14 +114,14 @@ class Skeleton {
             .map(x => x * .6),
         radii = [],
     ) {
-        sizes.forEach((x, i) => this.addBone(x, radii[i] ?? 30))
+        sizes.forEach((x, i) => this.addBone(x, radii[i])) //r defaults to 30 anyways
         this.bones.forEach((b, i) => { b.x = 800 - i * 200 })
     }
 
     addBone(size, r) {
         const bone = new Bone(this)
         bone.size = size
-        bone.r = r
+        bone.r = r ?? 30
         if (this.bones.length) {
             bone.head = this.bones.at(-1)
             this.bones.at(-1).tail = bone

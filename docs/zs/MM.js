@@ -1290,6 +1290,7 @@ class MM {
         color = "blue", outline = 2, outline_color = "black"
     } = {}) {
         if (!color && !outline) return
+        if (!positions || !positions.length) return
         ctx.beginPath()
         const n = positions.length
         for (let i = 0; i <= n; i++) {//quadratic
