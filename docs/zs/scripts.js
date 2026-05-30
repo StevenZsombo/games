@@ -1148,15 +1148,21 @@ class Malleable {
 		this.interactable = true
 		this.isBlocking = false
 	}
-	check(...params) {
+	check(checkParamsObj) {
 		if (!this.interactable) return false
-		let anyBlock = false
+		let { x, y, clicked, released, held, wheel } = checkParamsObj
+		let blocked = false
 		for (let i = this.components.length - 1; i >= 0; i--) {
 			const child = this.components[i]
 			if (!child) continue; // skip if removed
-			if (child.check?.(...params) && child.isBlocking) anyBlock = true
+			if (child.check?.({ x, y, clicked, released, held, wheel }) && child.isBlocking) {
+				blocked = true
+				clicked = false
+				released = false
+				held = false
+			}
 		}
-		return anyBlock
+		return blocked
 	}
 
 	update(dt) {
