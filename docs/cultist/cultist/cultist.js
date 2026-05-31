@@ -47,7 +47,7 @@ class Game extends GameCore {
     //#region initialize_more
     async initialize_more() {
         em.flushAndEraseAll()
-        dev.notes()
+        // dev.notes()
 
         let batch
         let stage
@@ -56,7 +56,7 @@ class Game extends GameCore {
                 { topText: "Select zone:", doNotConfirm: true })
             ns.buts.forEach(x => {
                 Button.make_roundedRect(x)
-                x.stretch(.75, .75)
+                x.stretch(.85, .85)
             })
             ns.top.transparent = true
             batch = await ns.promise()
@@ -306,6 +306,12 @@ COPY creates copies of its argument.
         tools.color = "lightpink"
         Button.make_roundedRect(tools)
         this.keyboarder.on_copy = () => this.getSaveData()
+        this.keyboarder.on_keydownDict["p"] = () => {
+            const a = [...this.getSaveData().positions]
+            a.push([a.at(-1)].flatMap(([x, y]) => [x, y + 200]))
+            navigator.clipboard.writeText(JSON.stringify(a))
+        }
+        this.getSaveData().positions
         this.keyboarder.on_paste = val => this.loadSave(val)
         tools.on_release = () => {
             const ddm = GameEffects.dropDrownBetter(
@@ -442,6 +448,7 @@ COPY creates copies of its argument.
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
             localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
             if (true) { //replace with permissions later
+                // if (!Supabase.name) return
                 Supabase.addCultistRow("cultist", currentVictoryData)
                     .then(() => {
                         GameEffects.popup("Data sent to server.", {

@@ -30,13 +30,13 @@ class Piece {
         props ??= Piece.TYPES[type][2] ?? {}
         this.type = type
         /**@type {function(...number):number} */
-        this.fn = fn
         this.button = Button.make_latex(new Button({
             width: 200,
             height: 120,
             isBlocking: true,
         }))
         if (props.moreButtonSettings) Object.assign(this.button, props.moreButtonSettings)
+        this.fn = fn
         this.tex = latex
         this.button.imgScale = type.startsWith("Efn") ? 1 : 2.5
         const inputsNr = props.inputs ?? fn.length
@@ -99,11 +99,42 @@ class Piece {
                 this.button.latex.tex = latex(trigger)
             }
             editButton.on_release = () => {
-                const user = prompt(msg)
+                const user = prompt(msg).trim()
                 if (user == "") return
                 this.onTrigger(user)
             }
             this.misc.push(editButton)
+        }
+        if (props.swappable) {
+            const { swappable } = props
+            const swapButton = new Button({
+                width: 60,
+                height: 30,
+                isBlocking: true,
+                txt: "Swap"
+            })
+            swapButton.centeratX(this.button.centerX)
+            swapButton.centeratY(this.button.bottom)
+            this._swappable = swappable
+            this.onTrigger = (i) => {
+                const [_, fn, latex] = this._swappable[i]
+                this.fn = fn
+                this.tex = latex
+                this.type = this.type.split("_")[0] + "_" + i
+            }
+            this.onSwap = () => {
+                const parr = swappable.map(
+                    (x, i) => [x[0], () => this.onTrigger(i)]
+                )
+                GameEffects.dropDrownBetter(parr, {
+                    autoClose: true, addCloseButton: false,
+                    moreButtonSettings: { width: 120, height: 80 }
+                })
+            }
+            swapButton.on_release = () => {
+                this.onSwap()
+            }
+            this.misc.push(swapButton)
         }
 
 
@@ -119,7 +150,7 @@ class Piece {
         this.panel = new Malleable(this.button, ...others)
         this.panel.isBlocking = true
 
-        if (props.editable && origType.includes("_")) {
+        if ((props.editable || props.swappable) && origType.includes("_")) {
             this.onTrigger(origType.split("_").slice(1).join(""))
         }
 
@@ -127,6 +158,7 @@ class Piece {
     set tex(v) { this.button.latex.tex = v }
     get tex() { return this.button.latex.tex }
     onTrigger() { }
+    onSwap() { }
 
     readyToProcess = true
     process() {
@@ -185,6 +217,7 @@ class Piece {
         log: [x => Math.log10(x), String.raw`\log_{10}(x)`],
         exp: [x => 10 ** x, String.raw`10^{x}`],
         div: [(x, y) => x / y, String.raw`\frac{x}{y}`],
+        pow: [(x, y) => x ** y, String.raw`x^{y}`],
         sin: [x => Math.sin(x), String.raw`\sin(x)`],
         cos: [x => Math.cos(x), String.raw`\cos(x)`],
         tan: [x => Math.tan(x), String.raw`\tan(x)`],
@@ -255,7 +288,7 @@ class Piece {
                 condition: trigger => Number.isFinite(+trigger) && Number.isInteger(+trigger) && +trigger > 0,
                 type: trigger => "Esqrt_" + trigger,
                 fn: trigger => (x => x ** (1 / +trigger)),
-                latex: trigger => String.raw`\sqrt[${+trigger}]{x}`,
+                latex: trigger => String.raw`\ \sqrt[${+trigger}]{x}\ `,
             }
         }],
         Etrig: [Piece.TRIG_PRESETS[0][1], Piece.TRIG_PRESETS[0][2], {
@@ -270,6 +303,30 @@ class Piece {
                 latex: trigger => Piece.TRIG_PRESETS[+trigger][2],
             }
         }],
+        Otrig: [x => Math.sin(x), String.raw`\sin(x)`, {
+            swappable:
+                [
+                    ["sin", x => Math.sin(x), String.raw`\sin(x)`],
+                    ["cos", x => Math.cos(x), String.raw`\cos(x)`],
+                    ["tan", x => Math.tan(x), String.raw`\tan(x)`],
+                ]
+        }],
+        Obin: [(x, y) => x + y, String.raw`x+y`, {
+            swappable: [
+                ["x+y", (x, y) => x + y, String.raw`x+y`],
+                ["x-y", (x, y) => x + y, String.raw`x-y`],
+                ["xy", (x, y) => x * y, String.raw`x\cdot y`],
+                ["x/y", (x, y) => x / y, String.raw`\frac{x}{y}`],
+                ["x^y", (x, y) => x ^ y, String.raw`x^y`],
+            ]
+        }],
+        Onth: [, {
+            swappable: [
+                ["x mod y", (x, y) => ((x % y) + y) % y, String.raw`x \text{mod} y`],
+                ["gcd(x,y)", (x, y) => MM.gcd(x, y), String.raw`\text{gcd}(x,y)`],
+                ["lcm(x,y)", (x, y) => MM.lcm(x, y), String.raw`\text{lcm}(x,y)`],
+            ]
+        }]
     }
     static preset(type) {
         return new Piece(type)
@@ -491,20 +548,21 @@ class Level {
             levels: {
                 "set2026": ["Map each input to 2026 using the editable contant module.", _ => 2026],
                 "mul11": ["Multiply each input by 11 using the editable multiplication module.", x => 11 * x],
-                "raise7": ["Raise each input to the 7th using the editable power module", x => x ** 7, _ => MM.randomInt(-10, 10)],
+                "raise7": ["Raise each input to the 7th power.", x => x ** 7, _ => MM.randomInt(-10, 10)],
                 "is91": ["Return 1 for 91, and 0 otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
                 "mod37": ["Return the remainder when dividing the positive integer input by 37.", x => x % 37, _ => MM.randomInt(1, 200)],
+                // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
                 "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
                     {
-                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "sum", "diff", "prod", "div", "Efn", "Efn", "Efn2", "Etrig", "signum"]
+                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "Obin_0", "Obin_1", "Obin_2", "Obin_3", "Efn", "Efn", "Efn2", "Otrig", "signum"]
                     }
                 ]
             },
             modules: [
-                "copy", "copy", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "sum", "diff", "prod", "div", "sum", "diff", "prod", "div", "signum"
+                "copy", "copy", "Econst_12", "pow", "Econst_300", "Emul_-7", "floor", "abs", "sum", "diff", "copy", "copy", "sum", "diff", "prod", "div", "signum"
             ],
             positions:
-                [[1706, 930], [55, 433], [55, 561], [826, 384], [885, 546], [1120, 415], [1173, 569], [50, 703], [52, 834], [326, 446], [334, 596], [360, 745], [340, 878], [582, 447], [591, 599], [628, 740], [602, 881], [901, 708], [23, 25], [23, 225]]
+                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
 
         }
     }
