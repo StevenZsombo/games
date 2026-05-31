@@ -5,7 +5,7 @@ var univ = {
     framerateUnlocked: true,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: true,
+    showFramerate: false,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto",
@@ -30,304 +30,42 @@ let lineButton = null
 /**@type {Set<[Button,Button]>} */
 let lines = new Set()
 
-class Poly {
-    static universalFn = x =>
-        Number.isFinite(x) ? (Number.isInteger(x) ? x : +x.toPrecision(3)) : x
-    constructor(value, container) {
-        this.value = value
-        this.button = new Button({
-            width: 120,
-            height: 60,
-            check: null,
-            color: "yellow",
-            txt: Poly.universalFn(value),
-            fontSize: 40,
-            // visible: false
-        })
-        this.where = this._container = container
-    }
-    get where() { return this._container }
-    set where(but) { this._container = but; this.button.centerinRect(but); but.hold = this }
-}
 
 const em = new EventManager()
 em.isLogging = false
 
 
-class Piece {
-    constructor(type, fn, latex, props) {
-        fn ??= Piece.TYPES[type][0]
-        latex ??= Piece.TYPES[type][1]
-        props ??= Piece.TYPES[type][2] ?? {}
-        this.type = type
-        /**@type {function(...number):number} */
-        this.fn = fn
-        this.button = Button.make_latex(new Button({
-            width: 200,
-            height: 120,
-            isBlocking: true,
-        }))
-        if (props.x) this.button.x = props.x
-        if (props.y) this.button.y = props.y
-        this.tex = latex
-        this.button.imgScale = 2.5
-        const inputsNr = props.inputs ?? fn.length
-        this.inputs = []
-        for (let i = 0; i < inputsNr; i++) {
-            const inB = new Button({
-                width: 50,
-                height: 50,
-                isBlocking: true,
-                txt: Piece.variableNames[i]
-            })
-            inB.centeratX(this.button.left)
-            inB.tag = "in"
-            inB.on_click = (pos) => {
-                lineStart = pos
-                lineButton = inB
-            }
-            inB.hold = null
-            this.inputs.push(inB)
-        }
-        this.inputs.forEach((x, i) => {
-            x.centeratY(Anim.interpol(this.button.top - 25, this.button.bottom + 25, (i + 1) / (1 + this.inputs.length)))
-        })
-        const outputsNr = props.outputs ?? 1
-        this.outputs = []
-        for (let i = 0; i < outputsNr; i++) {
-            const outB = new Button({
-                width: 50,
-                height: 50,
-                isBlocking: true
-            })
-            outB.centeratX(this.button.right)
-            outB.tag = "out"
-            outB.on_click = (pos) => {
-                lineStart = pos
-                lineButton = outB
-            }
-            outB.hold = null
-            this.outputs.push(outB)
-        }
-        this.outputs.forEach((x, i) => {
-            x.centeratY(Anim.interpol(this.button.top - 25, this.button.bottom + 25, (i + 1) / (1 + this.outputs.length)))
-        })
 
-        if (!props.nodrag) Button.make_draggable(this.button)
-        const others = this.inputs.concat(this.outputs)
-        others.concat(this.button).forEach(x => {
-            x.piece = this
-        })
-        Button.make_anchor(this.button, [])
-        Object.defineProperty(this.button, "anchor_list", {
-            get() { return others.concat(others.map(x => x.hold?.button)).filter(x => x) }
-        })
-        this.panel = new Malleable(this.button, ...others)
-        this.panel.isBlocking = true
-
-    }
-    set tex(v) { this.button.latex.tex = v }
-    get tex() { return this.button.latex.tex }
-
-
-    process() {
-        //inB should be an array of buttons
-        //when all are filled, have this run and process. 
-        //thus needs reactor access
-        //could make something fun out of this
-        if (this.type == "in") return
-        if (this.inputs.some(x => !x.hold)) return
-        if (this.type == "out") return em.emit("submitted", this.inputs[0].hold)
-        if (this.outputs.some(x => x.hold)) return
-        const out = this.fn(...this.inputs.map(x => x.hold.value))
-            ;
-        Array().concat(out).forEach((u, i) => {
-            em.emit("processed", u, this.outputs[i], this.inputs.map(x => x.hold))
-            this.inputs.forEach(x => {
-                em.emit("move", x.hold.button, x, this.outputs[i])
-            })
-        })
-
-    }
-
-    static variableNames = ["x", "y", "z"]
-
-    static TYPES = {
-        in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, x: 30, y: 30 }],
-        out: [x => x, String.raw`\text{OUT}`, { outputs: 0, nodrag: false, x: 1630, y: 950 }],
-        square: [x => x ** 2, String.raw`x^2`],
-        sqrt: [x => Math.sqrt(x), String.raw`\sqrt{x}`],
-        triple: [x => 3 * x, String.raw`3 x`],
-        halve: [x => x / 2, String.raw`\frac{x}{2}`],
-        sgn: [x => Math.sign(x), String.raw`\text{sign}(x)`],
-        copy: [x => [x, x], String.raw`\text{COPY}`, { outputs: 2 }],
-        add: [x => x + 1, String.raw`x+1`],
-        remove: [x => x - 1, String.raw`x-1`],
-        floor: [x => Math.floor(x), String.raw`\lfloor x \rfloor`],
-        sum: [(x, y) => x + y, String.raw`x+y`],
-        diff: [(x, y) => x - y, String.raw`x-y`],
-        prod: [(x, y) => x * y, String.raw`x \cdot y`],
-        // div: [(x, y) => x / y, String.raw`\frac{x}{y}`],
-        log: [x => Math.log10(x), String.raw`\log_{10}x`],
-        exp: [x => 10 ** x, String.raw`10^{x}`],
-    }
-    static preset(type) {
-        return new Piece(type)
-    }
-}
-
-
-class Level {
-    constructor(stage, instructions, outputsOrRule, inputsOrFunc) {
-        this.STAGE = stage
-        this.INSTRUCTIONS = instructions
-        const INPUTS = Array.isArray(inputsOrFunc) ? inputsOrFunc : Array(30).fill().map(_ => inputsOrFunc?.() ?? MM.randomInt(-100, 100))
-        const OUTPUTS = Array.isArray(outputsOrRule) ? outputsOrRule : INPUTS.map(x => outputsOrRule(x))
-        this.INPUTS = INPUTS
-        this.OUTPUTS = OUTPUTS.filter(x => Number.isFinite(x)).map(Poly.universalFn)
-    }
-}
 
 class Game extends GameCore {
     /**@type {Set<Piece>}*/
     pieces = new Set()
     get piecesArr() { return Array.from(this.pieces) }
-    getIDArrAll() { return this.piecesArr.flatMap(p => [p.type, ...p.inputs, ...p.outputs]) }
-    getSaveData() {
-        const pieces = this.piecesArr
-        const types = pieces.map(x => x.type)
-        const positions = pieces.map(x => [x.button.x, x.button.y].map(Math.round))
-        const all = this.getIDArrAll()
-        const linesID = Array.from(lines).map(x => x.map(u => all.indexOf(u)))
-        return {
-            stage: this.level.STAGE,
-            types,
-            positions,
-            lines: linesID
-        }
-    }
-    saveSave() {
-        const saveData = this.getSaveData()
-        const str = JSON.stringify(saveData)
-        console.log(str)
-        return str
-
-
-    }
-    loadSave(data) {
-        const saveData =
-            !data || (typeof data === 'string')
-                ? JSON.parse(data || prompt("Save data:"))
-                : data
-        if (this.level.STAGE !== saveData.stage) throw new Error(`badness: saveData has ${saveData.stage} isntead of ${this.level.STAGE}`)
-        this.pieces.forEach(x => this.deletePiece(x))
-        saveData.types.forEach(key =>
-            this.addPiece(key))
-        this.initLevel()
-        const pieces = this.piecesArr
-        saveData.positions.forEach(([x, y], i) => {
-            pieces[i].button.x = x
-            pieces[i].button.y = y
-        })
-        const all = this.getIDArrAll()
-        lines.clear()
-        saveData.lines.forEach(([i, j]) =>
-            lines.add([all[i], all[j]])
-        )
-    }
-    addPiece(key) {
-        const p = Piece.preset(key)
-        this.pieces.add(p)
-        this.w.add_drawable(p.panel)
-    }
-    deletePiece(piece) {
-        this.pieces.delete(piece)
-        this.w.remove_drawable(piece.panel)
-    }
-    resetInputs() {
-        this.polys?.forEach(x => x.where.hold = null)
-        this.polys?.clear()
-        this.tobeadded?.clear()
-        // tobedeleted.clear()
-
-        this.RECEIVED = []
-        this.SUBMITTED = []
-    }
-    initLevel() {
-        this.resetInputs()
-        this.input = this.piecesArr.find(x => x.type == "in")
-        lines.clear()
-    }
 
     //#region initialize_more
     async initialize_more() {
         em.flushAndEraseAll()
-        const levels = {
-            "square": ["Square each input", x => x ** 2],
-            "abs": ["Take absolute value", x => Math.abs(x)],
-            "noneg": ["Return the nonnegative inputs only", x => x >= 0 ? x : null],
-            "double": ["Double each input.", x => 2 * x],
-            "cube": ["Raise each input to the third power", x => x ** 3],
-            "fourth": ["Raise each input to the fourth power", x => x ** 4],
-            "sumupto": ["Return the sum of all integers from 1 to n.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
-            "mulfive": ["Multiply by 5.", x => x * 5],
-            "isodd": ["Return 1 for odd input, and 0 otherwise.", x => Math.abs(x % 2)],
-            "isint": ["Return 1 for integers, and 0 otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
-            "subtract": ["Take two consecutive inputs, and return their difference.", ...(() => {
-                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
-                return [out, inp]
-            })()],
-            "mean": ["Take two consecutive inputs, and return their mean.", ...(() => {
-                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
-                return [out, inp]
-            })()],
-            "divide": ["Take two consecutive inputs, and return their ratio.", ...(() => {
-                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
-                return [out, inp]
-            })()],
-            /*"largestpower": ["Return the largest power of 2 not greater than the positive input.", x => {
-                // let a = x
-                // while (a % 2 == 0) a /= 2
-                // return a
-                let a = 1
-                while (a <= x) a *= 2
-                return a / 2
-            }, () => Math.random() < .5 ? MM.randomInt(1, 200) : 2 * MM.randomInt(1, 200)],
-            */
-            "rounded": ["Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
-            "eight": ["Map each input to 8.", x => 8],
-            // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
-            "manynines": ["Input is a positive integer.\nReturn a number with that many 9s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
-            "digits": ["Return the number of digits in the given positive integer.", x => `${x}`.length, () => {
-                const a = MM.randomInt(1, 9)
-                let b = 10 ** a
-                b += MM.randomInt(1, Math.floor(b / 10))
-                return b
-            }],
-            // "digitsonly": ["Inputs are positive integers. Return only the inputs that are a single digit", x => [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(x) ? x : null, () => Math.random() < .5 ? MM.randomInt(1, 9) : MM.randomInt(1, 200)]
-            /*
-            "max": ["Take two consecutive inputs, and return the larger one.", ...(() => {
-                const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                const out = Array(30).fill().map((x, i) => Math.max(inp[2 * i], inp[2 * i + 1]))
-                return [out, inp]
-            })()],
-            */
-            // "onesdigit": ["Return the ones digit of the positive integer.", x => x % 10, () => MM.randomInt(1, 999)]
-        }
+        dev.notes()
+
+        let batch
         let stage
-        while (true) {
-            const ns = GameEffects.nameSelect(["Tutorial message"].concat(Array.from(Object.keys(levels))), {
+        {
+            const ns = GameEffects.nameSelect(Object.keys(Level.BATCHES),
+                { topText: "Select zone:", doNotConfirm: true })
+            batch = await ns.promise()
+        }
+        // while (true)
+        {
+            const ns = GameEffects.nameSelect(
+                //["Tutorial message"].concat
+                (Array.from(Object.keys(Level.BATCHES[batch].levels))), {
                 topText: "Select level:",
                 doNotConfirm: true
             })
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             ns.buts.forEach(x => { if (x.tag in vic) x.color = "lightgreen" })
-            ns.buts[0].color = "lightblue"
             stage = await ns.promise()
-            if (stage !== "Tutorial message") break
+            /*if (stage !== "Tutorial message") break
             else GameEffects.popup(`
 IN produces inputs, OUT creates outputs.
 All other modules map from left to right like a function.
@@ -339,8 +77,9 @@ Connect the right side of any module to the left side of any other.
 COPY creates copies of its argument.
 `,
                 { close_on_release: true, floatTime: 8000 }, GameEffects.popupPRESETS.megaBlue)
+        }*/
         }
-        const level = this.level = new Level(stage, ...levels[stage])
+        const level = this.level = new Level(batch, stage)
         this.initLevel()
 
 
@@ -351,17 +90,11 @@ COPY creates copies of its argument.
         const game = this
         const w = this.w = new GameWorld(this.rect.copy)
         this.add_drawable(w, 4)
-            /*
-            this.underlay = Button.fromRect(w.screenRect, { visible: false })
-            w.make_button_on_screen_drag_world(this.underlay)
-            this.add_drawable(this.underlay, 2)
-            */
-
             ;
         (() => {
-            Object.keys(Piece.TYPES).concat("copy").forEach(x => this.addPiece(x))
-            const pos =
-                [[30, 30], [1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386]]
+            // Object.keys(Piece.TYPES).concat("copy").forEach(x => this.addPiece(x))
+            level.MODULES.forEach(x => this.addPiece(x))
+            const pos = level.POSITIONS.slice(0, this.pieces.size)
             pos.forEach((u, i) => this.piecesArr[i].button.topleftat(u[0], u[1]))
 
         })()
@@ -396,7 +129,7 @@ COPY creates copies of its argument.
         }
         w.add_drawable(linesDrawable, 6)
 
-        this.input = this.piecesArr.find(x => x.type == "in")
+        this.initInputModules()
         /**@type {Set<Poly>} */
         const polys = this.polys = new Set()
         em.on("processed", (value, target, toDeleteArr) => {
@@ -454,23 +187,27 @@ COPY creates copies of its argument.
         em.on("away", (what) => {
             this.tempAnimStorage.push(_away(what))
         })
-        let stepTime = 250
+        let stepTime =
+            +location.search.slice(1) || 250
         // const INPUTS = Array(20).fill().map(x => MM.randomInt(-50, 50))
         // const OUTPUTS = INPUTS.map(x => Math.abs(x % 2))
         // const INSTRUCTIONS = "Output 1 for odd, 0 for even."
         const { INPUTS, OUTPUTS, INSTRUCTIONS } = level
-        this.RECEIVED = []
-        this.SUBMITTED = []
+        // this.RECEIVED_COUNT = INPUTS[0].map(x => 0)
+        // this.SUBMITTED = []
         this.isProducingInputs = false
         this.tempHidden = []
         const step = () => {
             this.tempHidden.forEach(x => x.visible = true)
-            if (this.isProducingInputs && !this.input.outputs[0].hold && this.RECEIVED.length < INPUTS.length) {
-                const v = INPUTS[this.RECEIVED.length]
-                this.RECEIVED.push(v)
-                tobeadded.add([v, this.input.outputs[0]])
-                em.emit("received", v)
-            }
+            if (this.inputModules.length == 1 || (this.polys.size == 0))
+                this.inputModules.forEach((particularInputModule, inputIndex) => {
+                    if (this.isProducingInputs && !particularInputModule.outputs[0].hold && this.RECEIVED_COUNT[inputIndex] < INPUTS.length) {
+                        const v = INPUTS[this.RECEIVED_COUNT[inputIndex]][inputIndex]
+                        this.RECEIVED_COUNT[inputIndex] += 1
+                        tobeadded.add([v, particularInputModule.outputs[0]])
+                        em.emit("received", v)
+                    }
+                })
             const newlyFilled = new Set()
             const polyAlreadySent = new Set()
             for (const [outB, inB] of lines) {
@@ -559,9 +296,9 @@ COPY creates copies of its argument.
         tools.on_release = () => {
             const ddm = GameEffects.dropDrownBetter(
                 [
-                    ["Reset", () => this.resetInputs()],
-                    ["Erase", () => this.initLevel()],
-                    [`stepTime = ${stepTime}`, () => stepTime = clockwork.interval = +prompt()],
+                    ["Reset inputs", () => this.resetInputs()],
+                    ["Erase lines", () => this.initLevel()],
+                    [`stepTime = ${stepTime}`, () => stepTime = clockwork.interval = +prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster.")],
                     ["hide errors", wDiv.hide],
                     ["Back to levels", () => {
                         this.animator.resetAndFlushAll()
@@ -584,10 +321,86 @@ COPY creates copies of its argument.
     //#endregion
 
 
+    getIDArrAll() { return this.piecesArr.flatMap(p => [p.type, ...p.inputs, ...p.outputs]) }
+    getSaveData() {
+        const pieces = this.piecesArr
+        const types = pieces.map(x => x.type)
+        const positions = pieces.map(x => [x.button.x, x.button.y].map(Math.round))
+        const all = this.getIDArrAll()
+        const linesID = Array.from(lines).map(x => x.map(u => all.indexOf(u)))
+        return {
+            stage: this.level.STAGE,
+            types,
+            positions,
+            lines: linesID
+        }
+    }
+    saveSave() {
+        const saveData = this.getSaveData()
+        const str = JSON.stringify(saveData)
+        console.log(str)
+        return str
+    }
+    eraseSave(stage) {
+        const saveData = JSON.parse(localStorage.getItem("cultistVictories" || "{}"))
+        delete saveData[stage]
+        localStorage.setItem("cultistVictories", JSON.stringify(saveData))
+    }
+    loadSave(data) {
+        const saveData =
+            !data || (typeof data === 'string')
+                ? JSON.parse(data || prompt("Save data:"))
+                : data
+        if (this.level.STAGE !== saveData.stage) throw new Error(`badness: saveData has ${saveData.stage} isntead of ${this.level.STAGE}`)
+        this.pieces.forEach(x => this.deletePiece(x))
+        saveData.types.forEach(key =>
+            this.addPiece(key))
+        this.initLevel()
+        const pieces = this.piecesArr
+        saveData.positions.forEach(([x, y], i) => {
+            pieces[i].button.x = x
+            pieces[i].button.y = y
+        })
+        const all = this.getIDArrAll()
+        lines.clear()
+        saveData.lines.forEach(([i, j]) =>
+            lines.add([all[i], all[j]])
+        )
+    }
+    addPiece(key) {
+        const p = Piece.preset(key)
+        this.pieces.add(p)
+        this.w.add_drawable(p.panel)
+    }
+    deletePiece(piece) {
+        this.pieces.delete(piece)
+        this.w.remove_drawable(piece.panel)
+    }
+    resetInputs() {
+        this.polys?.forEach(x => x.where.hold = null)
+        this.polys?.clear()
+        this.tobeadded?.clear()
+        // tobedeleted.clear()
+
+        this.RECEIVED_COUNT = this.level.INPUTS[0].map(x => 0)
+        this.SUBMITTED = []
+    }
+    initLevel() {
+        this.resetInputs()
+        this.initInputModules()
+        lines.clear()
+    }
+
+    initInputModules() {
+        this.inputModules = ["in", "ina", "inb", "inc", "ind"]
+            .map(x => this.piecesArr.find(k => k.type === x))
+            .filter(x => x != null)
+
+    }
 
     checkVictory = () => {
         if (
-            this.RECEIVED.length != this.level.INPUTS.length
+            this.RECEIVED_COUNT.some(x => x != this.level.INPUTS.length)
             ||
             this.SUBMITTED.length != this.level.OUTPUTS.length
         ) return
@@ -647,6 +460,29 @@ COPY creates copies of its argument.
 //#region dev options
 /// dev options
 const dev = {
+    notes: () => GameEffects.popup(`
+Still ironing out a lot of quirks. Better UI coming eventually. Sorry about the flicker.
+Level completion is sent to server, which cannot be disabled.
+Game speed is changed via Menu -> stepTime (for now).
 
+IN produces inputs, OUT submits outputs.
+All other modules map from left to right like a function.
+Modules have one (x) or two (x,y) arguments.
+
+You can drag the modules around, and you can connect them.
+Connect the right side of any module to the left side of any other.
+
+COPY creates copies of its argument.
+If multiple lines are available, the one the user placed first is preferred.
+
+For single-input machines, next input is sent ASAP.
+For multi-input machines, inputs are sent in a synchronized manner, and only if
+there are no numbers left in the machine.
+
+Click to close this and begin playing.
+`.slice(1, -1), {
+        close_on_release: true, floatTime: 60 * 1000,
+        moreButtonSettings: { fontSize: 24, textSettings: { textAlign: "left" } }
+    }, GameEffects.popupPRESETS.megaBlue)
 
 }/// end of dev
