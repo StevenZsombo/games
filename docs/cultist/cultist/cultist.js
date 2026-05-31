@@ -48,6 +48,7 @@ class Game extends GameCore {
     async initialize_more() {
         em.flushAndEraseAll()
         // dev.notes()
+        dev.check()
 
         let batch
         let stage
@@ -283,7 +284,8 @@ COPY creates copies of its argument.
         corner.textSettings.textBaseline = "top"
         corner.font_font = "myMonospace"
         corner.dynamicText = () => `${INSTRUCTIONS}\n${MM.tableStr(
-            MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),
+            // MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),
+            MM.transposeArrayStringPadded([INPUTS, this.level.OUTPUTS, this.SUBMITTED]),
             "INPUTS OUTPUTS SUBMITTED".split(" "),
             3
         )}`
@@ -529,6 +531,11 @@ Click to close this and begin playing.
 `.slice(1, -1), {
         close_on_release: true, floatTime: 60 * 1000,
         moreButtonSettings: { fontSize: 24, textSettings: { textAlign: "left" } }
-    }, GameEffects.popupPRESETS.megaBlue)
-
+    }, GameEffects.popupPRESETS.megaBlue),
+    check() {
+        const allLevels = Object.entries(Level.BATCHES).flatMap(([_, v]) => {
+            return Object.keys(v.levels)
+        })
+        console.log("unique?:", allLevels.length == new Set(allLevels).size, allLevels)
+    }
 }/// end of dev

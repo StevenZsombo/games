@@ -38,7 +38,7 @@ class Piece {
         if (props.moreButtonSettings) Object.assign(this.button, props.moreButtonSettings)
         this.fn = fn
         this.tex = latex
-        this.button.imgScale = type.startsWith("Efn") ? 1 : 2.5
+        this.button.imgScale = type.startsWith("Efn") ? 1 : 2.4
         const inputsNr = props.inputs ?? fn.length
         this.inputs = []
         for (let i = 0; i < inputsNr; i++) {
@@ -175,9 +175,10 @@ class Piece {
             ;
         Array().concat(out).forEach((u, i) => {
             em.emit("processed", u, this.outputs[i], this.inputs.map(x => x.hold))
-            this.inputs.forEach(x => {
-                em.emit("move", x.hold.button, x, this.outputs[i])
-            })
+            if (this.outputs.length)
+                this.inputs.forEach(x => {
+                    em.emit("move", x.hold.button, x, this.outputs[i])
+                })
         })
 
     }
@@ -314,19 +315,51 @@ class Piece {
         Obin: [(x, y) => x + y, String.raw`x+y`, {
             swappable: [
                 ["x+y", (x, y) => x + y, String.raw`x+y`],
-                ["x-y", (x, y) => x + y, String.raw`x-y`],
+                ["x-y", (x, y) => x - y, String.raw`x-y`],
                 ["xy", (x, y) => x * y, String.raw`x\cdot y`],
                 ["x/y", (x, y) => x / y, String.raw`\frac{x}{y}`],
                 ["x^y", (x, y) => x ^ y, String.raw`x^y`],
             ]
         }],
-        Onth: [, {
+        Onth: [(x, y) => ((x % y) + y) % y, String.raw`x\,\text{mod}\,y`, {
             swappable: [
                 ["x mod y", (x, y) => ((x % y) + y) % y, String.raw`x \text{mod} y`],
-                ["gcd(x,y)", (x, y) => MM.gcd(x, y), String.raw`\text{gcd}(x,y)`],
-                ["lcm(x,y)", (x, y) => MM.lcm(x, y), String.raw`\text{lcm}(x,y)`],
+                ["gcd(x,y)", (x, y) =>
+                    (Number.isInteger(x) && Number.isInteger(y))
+                        ? MM.gcd(x, y)
+                        : null, String.raw`\text{gcd}(x,y)`],
+                ["lcm(x,y)", (x, y) =>
+                    (Number.isInteger(x) && Number.isInteger(y))
+                        ? MM.lcm(x, y)
+                        : null, String.raw`\text{lcm}(x,y)`],
+                /*["p-adic", (x, y) =>
+                    (Number.isInteger(x) && Number.isInteger(y))
+                        ? //@TODO
+                        : null, String.raw`\text{lcm}(x,y)`],*/
+            ],
+        }],
+        Osigma: [x => Number.isInteger(x) ? MM.divisors(x).length : null, String.raw`\sigma_0`, {
+            swappable: [
+                ["#divisors", x => (Number.isInteger(x) && x >= 1) ? MM.divisors(x).length : null, String.raw`\sigma_0(x)`],
+                ["sum of divisors", x => (Number.isInteger(x) && x >= 1) ? MM.divisors(x).length : null, String.raw`\sigma_1(x)`],
+                ["square sum of divisors", x => (Number.isInteger(x) && x >= 1) ? MM.divisors(x).length : null, String.raw`\sigma_2(x)`],
+                ["eulers totient", x => (Number.isInteger(x) && x >= 1) ? MM.totient(x) : null, String.raw`\phi(x)`]
             ]
-        }]
+        }],
+        Oabs: [x => Math.abs(x), String.raw`|x|`, {
+            swappable: [
+                ["|x|", x => Math.abs(x), String.raw`|x|`],
+                ["sign(x)", x => Math.sign(x), String.raw`\text{sgn}(x)`],
+                ["floor(x)", x => Math.floor(x), String.raw`\lfloor x \rfloor`],
+            ]
+        }],
+        spf2: [x =>
+            (Number.isInteger(x) && x >= 2)
+                ? Array(2).fill(MM.smallestPrimeFactor(x)).flatMap(u => [u, x / u])
+                : [null, null],
+        String.raw`\begin{array}{l|l}\nearrow p_{\text{min}}\\\searrow \frac{x}{p_{\text{min}}}\end{array}`, { outputs: 2 }
+        ],
+        consume: [x => null, String.raw`\emptyset`, { outputs: 0 }],
     }
     static preset(type) {
         return new Piece(type)
@@ -552,11 +585,6 @@ class Level {
                 "is91": ["Return 1 for 91, and 0 otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
                 "mod37": ["Return the remainder when dividing the positive integer input by 37.", x => x % 37, _ => MM.randomInt(1, 200)],
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
-                "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
-                    {
-                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "Obin_0", "Obin_1", "Obin_2", "Obin_3", "Efn", "Efn", "Efn2", "Otrig", "signum"]
-                    }
-                ]
             },
             modules: [
                 "copy", "copy", "Econst_12", "pow", "Econst_300", "Emul_-7", "floor", "abs", "sum", "diff", "copy", "copy", "sum", "diff", "prod", "div", "signum"
@@ -564,6 +592,38 @@ class Level {
             positions:
                 [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
 
+        },
+        "Number theory 2\n(unfinished)": {
+            levels: {
+                "spf": ["Return the smallest prime factor of the input", x => MM.smallestPrimeFactor(x), () => MM.randomInt(2, 125)],
+                "fullyfactor": ["Return the prime factorization of the input, in increasing order.", ...(() => {
+                    let inputs = []
+                    let outputs = []
+                    while (true) {
+                        const n = MM.randomInt(2, 125)
+                        const factors = MM.primeFactorization(n)
+                        if (factors.length + outputs.length <= 30) {
+                            inputs.push(n)
+                            outputs.push(...factors)
+                        } else break
+                    }
+                    return [outputs, inputs]
+                })()],
+                "gcd": ["Return the greatest common divisor gcd(a,b)\nby swapping the swappable number theory module to gcd", (a, b) => MM.gcd(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                "isprime": ["Inputs are integers >= 2. Return 1 for primes, and 0 otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
+                "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
+                    {
+                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "Obin_0", "Obin_1", "Obin_2", "Obin_3", "Efn", "Efn", "Efn2", "Otrig", "signum"]
+                    }
+                ],
+
+
+            },
+            modules: [
+                "copy", "copy", "copythree", "spf2", "consume", "Obin_0", "Obin_1", "Obin_2", "Onth_2", "Oabs", "Oabs_1", "Econst_12", "Osigma"
+            ],
+            positions:
+                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
         }
     }
     //#endregion

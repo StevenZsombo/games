@@ -491,6 +491,19 @@ class MM {
         return matrix[0].map((_, col) => matrix.map(row => row[col]))
     }
 
+    static transposeArrayStringPadded(matrix, padding = "") {
+        const maxLen = Math.max(...matrix.map(row => row.length))
+        const result = []
+        for (let col = 0; col < maxLen; col++) {
+            const newRow = []
+            for (let row = 0; row < matrix.length; row++) {
+                newRow.push(matrix[row][col] ?? padding)
+            }
+            result.push(newRow)
+        }
+        return result
+    }
+
     static gcd(a, b) {
         while (b !== 0) [a, b] = [b, a % b]
         return Math.abs(a)
@@ -498,7 +511,9 @@ class MM {
     static lcm(a, b) {
         return Math.abs(a / this.gcd(a, b) * b)
     }
-
+    static totient(n) {
+        MM.rangeArr(1, n + 1).filter(x => this.gcd(x, n) == 1).length
+    }
     static fact(n) {
         //if (n == 0 || n == 1) return 1
         return this.range(1, n + 1).reduce((s, t) => s * t, 1)
@@ -578,6 +593,7 @@ class MM {
         }
         return ret
     }
+
     static * fibonacci() {
         yield 0n
         let [a, b] = [0n, 1n]
