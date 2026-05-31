@@ -3058,7 +3058,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             })
         )
         const promise = () => promBefore
-        return { promise, buts, top }
+        return { promise, buts, top: lab }
     }
 
 

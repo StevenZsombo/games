@@ -14,7 +14,9 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: null,
-    on_first_run: null,
+    on_first_run: () => {
+        Supabase.initProfile()
+    },
     on_first_run_blocking: null,
     on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
@@ -52,6 +54,11 @@ class Game extends GameCore {
         {
             const ns = GameEffects.nameSelect(Object.keys(Level.BATCHES),
                 { topText: "Select zone:", doNotConfirm: true })
+            ns.buts.forEach(x => {
+                Button.make_roundedRect(x)
+                x.stretch(.75, .75)
+            })
+            ns.top.transparent = true
             batch = await ns.promise()
         }
         // while (true)
@@ -139,6 +146,9 @@ COPY creates copies of its argument.
         em.on("submitted", poly => {
             tobedeleted.add(poly)
             this.SUBMITTED.push(Poly.universalFn(poly.value))
+            const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
+            if (this.SUBMITTED.length == breakpoint) this.changeStepTime(this.DEFAULTS.fastStepTime)
+            if (this.SUBMITTED.length == 2 * breakpoint) this.changeStepTime(this.DEFAULTS.fastestStepTime)
             console.log("Submitted", poly.value)
             this.checkVictory()
         })
@@ -152,7 +162,7 @@ COPY creates copies of its argument.
             cp.visible = true
             buttonWhat.visible = false
             w.add_drawable(cp, 7)
-            return Anim.custom(cp, stepTime, (t) => {
+            return Anim.custom(cp, this.stepTime, (t) => {
                 cp.centerat(
                     Anim.interpol(buttonFrom.cx, buttonTo.cx, t),
                     Anim.interpol(buttonFrom.cy, buttonTo.cy, t),
@@ -172,7 +182,7 @@ COPY creates copies of its argument.
             buttonWhat.visible = false
             w.add_drawable(cp)
             return new Anim(
-                cp, stepTime * .5, Anim.f.scaleToFactor,
+                cp, this.stepTime * .5, Anim.f.scaleToFactor,
                 {
                     ditch: true, scaleFactor: 0, on_end: () => {
                         w.remove_drawable(cp)
@@ -187,8 +197,6 @@ COPY creates copies of its argument.
         em.on("away", (what) => {
             this.tempAnimStorage.push(_away(what))
         })
-        let stepTime =
-            +location.search.slice(1) || 250
         // const INPUTS = Array(20).fill().map(x => MM.randomInt(-50, 50))
         // const OUTPUTS = INPUTS.map(x => Math.abs(x % 2))
         // const INSTRUCTIONS = "Output 1 for odd, 0 for even."
@@ -199,7 +207,7 @@ COPY creates copies of its argument.
         this.tempHidden = []
         const step = () => {
             this.tempHidden.forEach(x => x.visible = true)
-            if (this.inputModules.length == 1 || (this.polys.size == 0))
+            if (this.level.CONSECUTIVE || (this.polys.size == 0))
                 this.inputModules.forEach((particularInputModule, inputIndex) => {
                     if (this.isProducingInputs && !particularInputModule.outputs[0].hold && this.RECEIVED_COUNT[inputIndex] < INPUTS.length) {
                         const v = INPUTS[this.RECEIVED_COUNT[inputIndex]][inputIndex]
@@ -261,7 +269,7 @@ COPY creates copies of its argument.
         }
         w.add_drawable(polysDrawable, 7)
         const on_clockwork = []
-        const clockwork = this.animator.createClockwork(stepTime, () => on_clockwork.forEach(fn => fn()))
+        this.clockwork = this.animator.createClockwork(this.stepTime, () => on_clockwork.forEach(fn => fn()))
         on_clockwork.push(step)
 
 
@@ -300,7 +308,7 @@ COPY creates copies of its argument.
                 [
                     ["Reset inputs", () => this.resetInputs()],
                     ["Erase lines", () => this.initLevel()],
-                    [`stepTime = ${stepTime}`, () => stepTime = clockwork.interval = +prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster.")],
+                    [`stepTime = ${this.stepTime}`, () => this.changeStepTime(+prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster."))],
                     ["hide errors", wDiv.hide],
                     ["Back to levels", () => {
                         this.animator.resetAndFlushAll()
@@ -390,6 +398,7 @@ COPY creates copies of its argument.
     initLevel() {
         this.resetInputs()
         this.initInputModules()
+        this.initStepTime()
         lines.clear()
     }
 
@@ -399,7 +408,21 @@ COPY creates copies of its argument.
             .filter(x => x != null)
 
     }
+    DEFAULTS = {
+        slowStepTime: 250,
+        fastStepTime: 50,
+        fastestStepTime: 10,
+    }
+    initStepTime() {
+        this.changeStepTime(+location.search?.slice(1) || this.DEFAULTS.slowStepTime)
+    }
 
+
+    changeStepTime(value) {
+        if (!value || !Number.isFinite(value)) return
+        this.stepTime = value
+        if (this.clockwork) this.clockwork.interval = value
+    }
     checkVictory = () => {
         if (
             this.RECEIVED_COUNT.some(x => x != this.level.INPUTS.length)
@@ -412,8 +435,19 @@ COPY creates copies of its argument.
             GameEffects.fireworksShow()
             GameEffects.popup("VICTORY!")
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
-            cultistVictories[this.level.STAGE] = this.getSaveData()
+            const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
             localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
+            if (true) { //replace with permissions later
+                Supabase.addCultistRow("cultist", currentVictoryData)
+                    .then(() => {
+                        GameEffects.popup("Data sent to server.", {
+                            posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
+                            moreButtonSettings: { color: "pink", fontSize: 30 }
+                        })
+                    })
+                    .catch()
+
+            }
         } else {//lose
             GameEffects.popup("you lose")
         }
@@ -477,9 +511,8 @@ Connect the right side of any module to the left side of any other.
 COPY creates copies of its argument.
 If multiple lines are available, the one the user placed first is preferred.
 
-For single-input machines, next input is sent ASAP.
-For multi-input machines, inputs are sent in a synchronized manner, and only if
-there are no numbers left in the machine.
+Inputs are sent only if there are not numbers in the machine,
+except for when the level says that inputs are "consecutive".
 
 Click to close this and begin playing.
 `.slice(1, -1), {

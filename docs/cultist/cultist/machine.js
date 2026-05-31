@@ -1,6 +1,7 @@
+//#region Poly
 class Poly {
     static universalFn = x =>
-        Number.isFinite(x) ? (Number.isInteger(x) ? x : +x.toPrecision(3)) : x
+        Number.isFinite(x) ? (Number.isInteger(x) ? x : (Math.abs(x) < 10 ** -8 ? 0 : +x.toPrecision(3))) : null
     constructor(value, container) {
         this.value = value
         this.button = new Button({
@@ -17,9 +18,9 @@ class Poly {
     get where() { return this._container }
     set where(but) { this._container = but; this.button.centerinRect(but); but.hold = this }
 }
+//#endregion
 
-
-
+//#region Piece
 class Piece {
     constructor(type, fn, latex, props) {
         fn ??= Piece.TYPES[type][0]
@@ -116,7 +117,7 @@ class Piece {
     }
 
     static variableNames = ["x", "y", "z"]
-
+    //#region TYPES
     static TYPES = {
         in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
         ina: [x => x, String.raw`\text{IN:a}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
@@ -130,6 +131,10 @@ class Piece {
         double: [x => 2 * x, String.raw`2 x`],
         triple: [x => 3 * x, String.raw`3 x`],
         halve: [x => x / 2, String.raw`\frac{x}{2}`],
+        perthree: [x => x / 3, String.raw`\frac{x}{3}`],
+        perfour: [x => x / 4, String.raw`\frac{x}{4}`],
+        perfive: [x => x / 5, String.raw`\frac{x}{5}`],
+        persix: [x => x / 6, String.raw`\frac{x}{6}`],
         signum: [x => Math.sign(x), String.raw`\text{sgn}(x)`],
         copy: [x => [x, x], String.raw`\text{COPY}`, { outputs: 2 }],
         add: [x => x + 1, String.raw`x+1`],
@@ -143,18 +148,35 @@ class Piece {
         div: [(x, y) => x / y, String.raw`\frac{x}{y}`],
         sin: [x => Math.sin(x), String.raw`\sin(x)`],
         cos: [x => Math.cos(x), String.raw`\cos(x)`],
+        tan: [x => Math.tan(x), String.raw`\tan(x)`],
+        atan: [x => Math.atan(x), String.raw`\tan^{-1}(x)`],
+        abs: [x => Math.abs(x), String.raw`|x|`],
+        one: [_ => 1, String.raw`1`],
+        minusone: [_ => -1, String.raw`-1`],
+        neg: [x => -x, String.raw`-x`],
+        reciprocal: [x => 1 / x, String.raw`\frac{1}{x}`],
+        pi: [_ => Math.PI, String.raw`\pi`],
+        pihalf: [_ => Math.PI / 2, String.raw`\frac{\pi}{2}`],
+        pithird: [_ => Math.PI / 3, String.raw`\frac{\pi}{3}`],
+        ninetydeg: [_ => Math.PI / 2, String.raw`\frac{\pi}{4}`],
+        s_quadratic: [(a, b, c) => Poly.SOLVERS.quadratic(a, b, c), String.raw`\frac{-b+\sqrt{b^2-4ac}{2a}}`, { variables: ["a", "b", "c"] }]
     }
     static preset(type) {
         return new Piece(type)
     }
+    static SOLVERS = {
+        quadratic: (a, b, c) => (-b + Math.sqrt(b ^ 2 - 4 * a * c)) / (2 * a)
+    }
+    //#endregion
 }
-
+//#endregion
 
 
 
 
 class Level {
-    constructor(batch, stage, instructions, outputsOrRule, inputsOrFunc, { modules, positions } = {}) {
+    //#region new Level
+    constructor(batch, stage, instructions, outputsOrRule, inputsOrFunc, { modules, positions, consecutive } = {}) {
         this.BATCH = batch
         this.STAGE = stage
         instructions ??= Level.BATCHES[batch].levels[stage][0]
@@ -172,6 +194,7 @@ class Level {
         this.OUTPUTS = OUTPUTS.filter(x => Number.isFinite(x)).map(Poly.universalFn)
         /**@type {string[]} */
         this.MODULES = [...(modules ?? Level.BATCHES[batch].levels[stage][3]?.modules ?? Level.BATCHES[batch].modules)]
+        this.CONSECUTIVE = !!(consecutive ?? Level.BATCHES[batch].levels[stage][3]?.consecutive)
         this.INPUTS[0].length == 1 ?
             this.MODULES.push("in") :
             ["ina", "inb", "inc", "ind"].slice(0, this.INPUTS[0].length)
@@ -180,8 +203,8 @@ class Level {
         /**@type {[number,number][]} */
         this.POSITIONS = positions ?? Level.BATCHES[batch].levels[stage][3]?.positions ?? Level.BATCHES[batch].positions
     }
-
-
+    //#endregion
+    //#region BATCHES
     /**
      * @type {Record<string, {
      *   levels: Record<string, [
@@ -209,17 +232,17 @@ class Level {
                 "subtract": ["Take two consecutive inputs, and return their difference.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
-                    return [out, inp]
+                    return [out, inp, { consecutive: true }]
                 })()],
                 "mean": ["Take two consecutive inputs, and return their mean.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
-                    return [out, inp]
+                    return [out, inp, { consecutive: true }]
                 })()],
                 "divide": ["Take two consecutive inputs, and return their ratio.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
-                    return [out, inp]
+                    return [out, inp, { consecutive: true }]
                 })()],
                 /*"largestpower": ["Return the largest power of 2 not greater than the positive input.", x => {
                     // let a = x
@@ -263,35 +286,96 @@ class Level {
                 "quadmean": ["Return the quadratic mean.", (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "max": ["Return the larger of the two postive inputs", (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "twodigit": ["You receive nonzero digits a,b. Return the two-digit number ab", (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
+                "quadratic": ["Your inputs are coefficients of ax^2+bx+c,\nwhere a is positive and the discriminant is nonnegative.\nReturn the larger root.",
+                    ...(() => {
+                        const roots = Array(30).fill().map(() => [
+                            MM.randomInt(-13, 13),
+                            MM.randomInt(-13, 13)
+                        ])
+                        const polys = roots.map(([r1, r2]) => {
+                            let a = MM.randomInt(1, 5)
+                            return [a, -a * (r1 + r2), a * r1 * r2]
+                        })
+                        const out = roots.map(([r1, r2]) => Math.max(r1, r2))
+                        return [out, polys]
+                    })(),
+                    { modules: ["square", "sqrt", "diff", "halve", "signum", "copy", "add", "remove", "div", "sum", "diff", "prod", "double", "double", "copy",] }
+                ]
             },
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [30, 430], [30, 630]],
+                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [330, 30], [330, 230]],
         },
         "Trigonometry": {
             levels: {
                 "sin": ["Find sin(x)", x => Math.sin(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                "sinhalf": ["Return sin(x/2)", x => Math.sin(x / 2), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 "sec": ["Return sec(x)", x => 1 / Math.cos(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 "tan": ["Find tan(x)", x => Math.tan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 "isacute": ["Inputs are acute or obtuse angles. Return 1 for acute angles, 0 otherwise.", x => +(Math.cos(x) > 0), () => +MM.random(0, PI).toPrecision(3)],
-                /*"one": ["Inputs are random angles. Map each to 1.", () => 1, () =>
-                    +MM.random(-TWOPI, TWOPI).toPrecision(3)
-                    // [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3))
-                ],*/
-                "xcos": ["Inputs are acute angles, find their cosine.\ncos module is missing", (x) => Math.cos(x), () => +MM.random(0, NINETYDEG).toPrecision(3),
+                "xcos": ["Inputs are acute angles, find their cosine.\nIndeed, the cos module is missing", (x) => Math.cos(x), () => +MM.random(0, NINETYDEG).toPrecision(3),
                     { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "identity", "sum", "diff", "prod", "div",] }
+                ],
+                "three": ["Inputs are random angles. Map each to 3.\nIndeed, sgn is missing", () => 3, () =>
+                    +MM.random(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "identity", "sin", "cos", "sum", "diff", "prod", "div",] }
                 ],
                 "xcosdiff": ["Inputs are a,b. Return cos(a-b).\nIndeed, the x-y module is missing, and\ninstead you have the *seemingly* useless 'x'.", (a, b) => Math.cos(a - b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
                     { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "identity", "prod", "div",] }
                 ],
+                "coscos": ["Inputs are a,b. Return the product cos(a)cos(b).\nIndeed, the xy module has been replaced with x+y.", (a, b) => Math.cos(a) * Math.cos(b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
+                    { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "sum", "div",] }
+                ],
+                "polar": ["Input is vector with length a and whose angle from the positive x-axis is b radians.\nReturn its x-component coordinate.",
+                    (a, b) => a * Math.cos(b)],
+                // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
+
 
             },
             modules: [
                 "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div",
             ],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [36, 21]]
+                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692],
+                // [985, 890],
+                [36, 21], [36, 221]]
+        },
+        "Trigonometry 2": {
+            levels: {
+                "ninetydeg": ["Return pi/2", (_) => Math.PI / 2],
+                "oost": ["Return the reciprocal of the square root of 3", _ => 1 / Math.sqrt(3)],
+                "sqrttwo": ["Return the square root of 2", _ => Math.sqrt(2)],
+                "xsin": ["Return sin(x).\nIndeed, sin(x) module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                "complement": ["Input is an acute angle. Return its complementary angle", x => Math.PI / 2 - x, () => +MM.random(0, PI / 2).toPrecision(3)],
+                "xsin2": ["Return sin(x).\nIndeed, sin(x) and tan(x) are both missing.", x => Math.sin(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                "xtanhalf": ["Return the absolute value of tan(x/2).\nIndeed, tan(x) module is missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "sqrt", "abs", "sin", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                "xtanhalf2": ["Return the absolute value of tan(x/2).\nIndeed, tan(x) and x/2 are both missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "sqrt", "abs", "sin", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "identity", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                "goldentrig": ["Return the golden ratio, (sqrt(5)-1)/2.\nIndeed, sqrt(x) is missing.", _ => (Math.sqrt(5) - 1) / 2, () => +MM.random(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "identity", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
+                ],
+
+                /*
+                "xsinhalf": ["Return the absolute value of sin(x/2).\nIndeed, sin(x) module is missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                    { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                */
+            },
+            modules: [
+                "copy", "copy", "square", "sqrt", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"
+            ],
+            positions:
+                [[1710, 950], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [645, 494], [635, 642], [655, 787], [605, 923], [1169, 631], [604, 327], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212]]
         }
     }
+    //#endregion
 }

@@ -53,6 +53,28 @@ class Supabase {
 			console.error("Failed to write", event, data)
 		}
 	}
+	static async addCultistRow(event, data) {
+		const { SUPABASE_KEY, SUPABASE_URL } = Supabase
+		try {
+			const sent = await fetch(`${SUPABASE_URL}/rest/v1/gameCultist`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'apikey': SUPABASE_KEY,
+					'Authorization': `Bearer ${SUPABASE_KEY}`
+				},
+				body: JSON.stringify({
+					event, data,
+					name: Supabase.name,
+					nameID: Supabase.nameID
+				})
+			})
+			console.log("Sent to server", event, data)
+			return sent
+		} catch (e) {
+			console.error("Failed to write", event, data)
+		}
+	}
 
 	/** @returns {Promise<Array<{name: string, stage_text: string}>>} */
 	static async readAllWins(callback) {
@@ -194,7 +216,7 @@ class Supabase {
 	}
 
 	static isVerifiedAlready = false
-	static initProfile() {
+	static initProfile(doNotVerify = false) {
 		Supabase.loadProfile()
 		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
 		Supabase.name ??= localStorage.getItem("name") || MM.promptUntilGood(
@@ -208,7 +230,7 @@ class Supabase {
 			v => v.length >= 3 && v.length <= 20
 		)
 		Supabase.saveProfile()
-		if (!Supabase.isVerifiedAlready) {
+		if (!doNotVerify && !Supabase.isVerifiedAlready) {
 			Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
 				console.error("Supabase.initProfile -> verifyProfile failed")
 			})
