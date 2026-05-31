@@ -288,9 +288,11 @@ COPY creates copies of its argument.
         // stopStart.on_click()
         this.add_drawable(stopStart)
         this.add_drawable(corner)
-        const tools = new Button({ width: 200, height: 100, txt: "Menu", x: 0 })
-        tools.bottomat(this.HEIGHT)
+        const tools = new Button({ width: 200, height: 100, txt: "Menu", x: 10 })
+        tools.bottomat(this.HEIGHT - 10)
         this.add_drawable(tools)
+        tools.color = "lightpink"
+        Button.make_roundedRect(tools)
         this.keyboarder.on_copy = () => this.getSaveData()
         this.keyboarder.on_paste = val => this.loadSave(val)
         tools.on_release = () => {

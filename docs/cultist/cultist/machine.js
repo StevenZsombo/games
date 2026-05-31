@@ -118,12 +118,12 @@ class Piece {
     static variableNames = ["x", "y", "z"]
 
     static TYPES = {
-        in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
-        ina: [x => x, String.raw`\text{IN:a}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
-        inb: [x => x, String.raw`\text{IN:b}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
-        inc: [x => x, String.raw`\text{IN:c}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
-        ind: [x => x, String.raw`\text{IN:d}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
-        out: [x => x, String.raw`\text{OUT}`, { outputs: 0, nodrag: false, moreButtonSettings: { color: "lightpink" } }],
+        in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
+        ina: [x => x, String.raw`\text{IN:a}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
+        inb: [x => x, String.raw`\text{IN:b}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
+        inc: [x => x, String.raw`\text{IN:c}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
+        ind: [x => x, String.raw`\text{IN:d}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
+        out: [x => x, String.raw`\text{OUT}`, { outputs: 0, nodrag: false, moreButtonSettings: { color: "lightblue" } }],
         identity: [x => x, String.raw`x`, { moreButtonSettings: { color: "white" } }],
         square: [x => x ** 2, String.raw`x^2`],
         sqrt: [x => Math.sqrt(x), String.raw`\sqrt{x}`],
@@ -291,7 +291,7 @@ class Level {
                 "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div",
             ],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [30, 430], [30, 630]],
+                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [36, 21]]
         }
     }
 }
