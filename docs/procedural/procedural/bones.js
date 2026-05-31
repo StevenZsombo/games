@@ -313,7 +313,7 @@ class Fish extends Skeleton {
             .map(x => MM.toDP(x, 2))
             .slice(4, -1)
         sizes[0] *= MM.random(.75, .9)
-        sizes.push([sizes.at(-1) * MM.random(0.4, 0.7)])
+        sizes.push(sizes.at(-1) * MM.random(0.4, 0.7))
         return sizes
     }
 

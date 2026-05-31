@@ -255,6 +255,7 @@ class Game extends GameCore {
                                 fish.addBone(parsed[i])
                             parsed.forEach((x, i) => fish.bones[i].size = x)
                             fish.straighten()
+                            fish.straighten()
                             // aiIsOn = true
                         })
                     })],
