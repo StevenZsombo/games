@@ -147,8 +147,12 @@ COPY creates copies of its argument.
             tobedeleted.add(poly)
             this.SUBMITTED.push(Poly.universalFn(poly.value))
             const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
-            if (this.SUBMITTED.length == breakpoint) this.changeStepTime(this.DEFAULTS.fastStepTime)
-            if (this.SUBMITTED.length == 2 * breakpoint) this.changeStepTime(this.DEFAULTS.fastestStepTime)
+            if (this.SUBMITTED.length == breakpoint)
+                if (this.stepTime >= this.DEFAULTS.fastStepTime)
+                    this.changeStepTime(this.DEFAULTS.fastStepTime)
+            if (this.SUBMITTED.length == 2 * breakpoint)
+                if (this.stepTime >= this.DEFAULTS.fastestStepTime)
+                    this.changeStepTime(this.DEFAULTS.fastestStepTime)
             console.log("Submitted", poly.value)
             this.checkVictory()
         })
@@ -442,10 +446,10 @@ COPY creates copies of its argument.
                     .then(() => {
                         GameEffects.popup("Data sent to server.", {
                             posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
-                            moreButtonSettings: { color: "pink", fontSize: 30 }
+                            moreButtonSettings: { color: "pink", fontSize: 30, check: null },
                         })
                     })
-                    .catch()
+                    .catch(() => GameEffects.popup("Could not conenct to server", GameEffects.popupPRESETS.rightError()))
 
             }
         } else {//lose

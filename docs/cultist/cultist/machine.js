@@ -23,6 +23,8 @@ class Poly {
 //#region Piece
 class Piece {
     constructor(type, fn, latex, props) {
+        const origType = type
+        if (type.includes("_")) type = origType.split("_")[0]
         fn ??= Piece.TYPES[type][0]
         latex ??= Piece.TYPES[type][1]
         props ??= Piece.TYPES[type][2] ?? {}
@@ -36,7 +38,7 @@ class Piece {
         }))
         if (props.moreButtonSettings) Object.assign(this.button, props.moreButtonSettings)
         this.tex = latex
-        this.button.imgScale = 2.5
+        this.button.imgScale = type.startsWith("Efn") ? 1 : 2.5
         const inputsNr = props.inputs ?? fn.length
         this.inputs = []
         for (let i = 0; i < inputsNr; i++) {
@@ -79,8 +81,34 @@ class Piece {
             x.centeratY(Anim.interpol(this.button.top - 25, this.button.bottom + 25, (i + 1) / (1 + this.outputs.length)))
         })
 
+        this.misc = []
+        if (props.editable) {
+            const { condition, type, fn, latex, msg } = props.editable
+            const editButton = new Button({
+                width: 60,
+                height: 30,
+                isBlocking: true,
+                txt: "Edit"
+            })
+            editButton.centeratX(this.button.centerX)
+            editButton.centeratY(this.button.bottom)
+            this.onTrigger = (trigger) => {
+                if (!condition(trigger)) return
+                this.type = type(trigger)
+                this.fn = fn(trigger)
+                this.button.latex.tex = latex(trigger)
+            }
+            editButton.on_release = () => {
+                const user = prompt(msg)
+                if (user == "") return
+                this.onTrigger(user)
+            }
+            this.misc.push(editButton)
+        }
+
+
         if (!props.nodrag) Button.make_draggable(this.button)
-        const others = this.inputs.concat(this.outputs)
+        const others = [...this.inputs, ...this.outputs, ...this.misc].filter(x => x != null)
         others.concat(this.button).forEach(x => {
             x.piece = this
         })
@@ -91,16 +119,22 @@ class Piece {
         this.panel = new Malleable(this.button, ...others)
         this.panel.isBlocking = true
 
+        if (props.editable && origType.includes("_")) {
+            this.onTrigger(origType.split("_").slice(1).join(""))
+        }
+
     }
     set tex(v) { this.button.latex.tex = v }
     get tex() { return this.button.latex.tex }
+    onTrigger() { }
 
-
+    readyToProcess = true
     process() {
         //inB should be an array of buttons
         //when all are filled, have this run and process. 
         //thus needs reactor access
         //could make something fun out of this
+        if (!this.readyToProcess) return
         if (this.type == "in") return
         if (this.inputs.some(x => !x.hold)) return
         if (this.type == "out") return em.emit("submitted", this.inputs[0].hold)
@@ -118,6 +152,10 @@ class Piece {
 
     static variableNames = ["x", "y", "z"]
     //#region TYPES
+    static TRIG_PRESETS = [//string,fn,latex 
+        ["sin", x => Math.sin(x), String.raw`\sin(x)`],
+        ["cos", x => Math.cos(x), String.raw`\cos(x)`],
+    ]
     static TYPES = {
         in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
         ina: [x => x, String.raw`\text{IN:a}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
@@ -137,6 +175,7 @@ class Piece {
         persix: [x => x / 6, String.raw`\frac{x}{6}`],
         signum: [x => Math.sign(x), String.raw`\text{sgn}(x)`],
         copy: [x => [x, x], String.raw`\text{COPY}`, { outputs: 2 }],
+        copythree: [x => [x, x, x], String.raw`\text{COPY3}`, { outputs: 3 }],
         add: [x => x + 1, String.raw`x+1`],
         remove: [x => x - 1, String.raw`x-1`],
         floor: [x => Math.floor(x), String.raw`\lfloor x \rfloor`],
@@ -159,7 +198,78 @@ class Piece {
         pihalf: [_ => Math.PI / 2, String.raw`\frac{\pi}{2}`],
         pithird: [_ => Math.PI / 3, String.raw`\frac{\pi}{3}`],
         ninetydeg: [_ => Math.PI / 2, String.raw`\frac{\pi}{4}`],
-        s_quadratic: [(a, b, c) => Poly.SOLVERS.quadratic(a, b, c), String.raw`\frac{-b+\sqrt{b^2-4ac}{2a}}`, { variables: ["a", "b", "c"] }]
+        Squadratic: [(a, b, c) => Poly.SOLVERS.quadratic(a, b, c), String.raw`\frac{-b+\sqrt{b^2-4ac}{2a}}`, { variables: ["a", "b", "c"] }],
+        Efn: [x => Math.round(x), String.raw`\text{Math.round(x)}`,
+        {
+            editable: {
+                msg: "Any single-variable javascript function in variable x.\nWill crash the game if you don't know what you're doing.",
+                condition: _ => true,
+                type: trigger => "Efn_" + trigger,
+                fn: trigger => (eval(`x=>${trigger}`)),
+                latex: trigger => String.raw`\text{${trigger}}`
+            },
+            moreButtonSettings: { color: "fuchsia" }
+        }],
+        Efn2: [(x, y) => x ** y, String.raw`\text{x**y}`,
+        {
+            editable: {
+                msg: "Any two-variable javascript function in variables (x,y)\nWill crash the game if you don't know what you're doing.",
+                condition: _ => true,
+                type: trigger => "Efn_" + trigger,
+                fn: trigger => (eval(`(x,y)=>${trigger}`)),
+                latex: trigger => String.raw`\text{${trigger}}`
+
+            },
+            moreButtonSettings: { color: "fuchsia" }
+        }],
+        Econst: [(_) => 451, String.raw`451`, {
+            editable: {
+                msg: "Function f(x) = C for your choice of constant C.",
+                condition: trigger => Number.isFinite(+trigger),
+                type: trigger => "Econst_" + trigger,
+                fn: trigger => ((_) => +trigger),
+                latex: trigger => String.raw`${trigger}`,
+            }
+        }],
+        Emul: [(x) => 7 * x, String.raw`7x`, {
+            editable: {
+                msg: "Function f(x) = Cx for you constant C of your choice.",
+                condition: trigger => Number.isFinite(+trigger),
+                type: trigger => "Emul_" + trigger,
+                fn: trigger => (x => x * (+trigger)),
+                latex: trigger => String.raw`{${+trigger}}x`,
+            }
+        }],
+        Epow: [(x) => x ** 5, String.raw`x^{5}`, {
+            editable: {
+                msg: "Function f(x) = x^C for your an integer C of your choice.",
+                condition: trigger => Number.isFinite(+trigger) && Number.isInteger(+trigger),
+                type: trigger => "Epow_" + trigger,
+                fn: trigger => (x => x ** (+trigger)),
+                latex: trigger => String.raw`x^{${+trigger}}`,
+            }
+        }],
+        Esqrt: [(x) => x ** (1 / 3), String.raw`\sqrt[3]{x}`, {
+            editable: {
+                msg: "Function f(x) = (C-th root of x) for your a positive integer C of your choice.",
+                condition: trigger => Number.isFinite(+trigger) && Number.isInteger(+trigger) && +trigger > 0,
+                type: trigger => "Esqrt_" + trigger,
+                fn: trigger => (x => x ** (1 / +trigger)),
+                latex: trigger => String.raw`\sqrt[${+trigger}]{x}`,
+            }
+        }],
+        Etrig: [Piece.TRIG_PRESETS[0][1], Piece.TRIG_PRESETS[0][2], {
+            editable: {
+                msg: `Choose on of the following, typing in the number\n` + Piece.TRIG_PRESETS.map((x, i) => `${i}: ${x[0]}`).join("\n"),
+                condition: trigger =>
+                    Number.isFinite(+trigger)
+                    && Number.isInteger(+trigger)
+                    && Piece.TRIG_PRESETS[+trigger] != null,
+                type: trigger => "Etrig_" + trigger,
+                fn: trigger => Piece.TRIG_PRESETS[+trigger][1],
+                latex: trigger => Piece.TRIG_PRESETS[+trigger][2],
+            }
+        }],
     }
     static preset(type) {
         return new Piece(type)
@@ -257,7 +367,7 @@ class Level {
                 "eight": ["Map each input to 8.", x => 8],
                 // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
                 "manynines": ["Input is a positive integer.\nReturn a number with that many 9s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
-                "digits": ["Return the number of digits in the given positive integer.", x => `${x}`.length, () => {
+                "digits": ["Return the number of digits in the given positive integer.", x => `${x} `.length, () => {
                     const a = MM.randomInt(1, 9)
                     let b = 10 ** a
                     b += MM.randomInt(1, Math.floor(b / 10))
@@ -345,6 +455,7 @@ class Level {
         "Trigonometry 2": {
             levels: {
                 "ninetydeg": ["Return pi/2", (_) => Math.PI / 2],
+                "circlearea": ["Return the area of the circle whose radius was given", x => x ** 2 * Math.PI, () => MM.randomInt(1, 20)],
                 "oost": ["Return the reciprocal of the square root of 3", _ => 1 / Math.sqrt(3)],
                 "sqrttwo": ["Return the square root of 2", _ => Math.sqrt(2)],
                 "xsin": ["Return sin(x).\nIndeed, sin(x) module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
@@ -375,6 +486,26 @@ class Level {
             ],
             positions:
                 [[1710, 950], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [645, 494], [635, 642], [655, 787], [605, 923], [1169, 631], [604, 327], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212]]
+        },
+        "Number theory": {
+            levels: {
+                "set2026": ["Map each input to 2026 using the editable contant module.", _ => 2026],
+                "mul11": ["Multiply each input by 11 using the editable multiplication module.", x => 11 * x],
+                "raise7": ["Raise each input to the 7th using the editable power module", x => x ** 7, _ => MM.randomInt(-10, 10)],
+                "is91": ["Return 1 for 91, and 0 otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
+                "mod37": ["Return the remainder when dividing the positive integer input by 37.", x => x % 37, _ => MM.randomInt(1, 200)],
+                "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
+                    {
+                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "sum", "diff", "prod", "div", "Efn", "Efn", "Efn2", "Etrig", "signum"]
+                    }
+                ]
+            },
+            modules: [
+                "copy", "copy", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "sum", "diff", "prod", "div", "sum", "diff", "prod", "div", "signum"
+            ],
+            positions:
+                [[1706, 930], [55, 433], [55, 561], [826, 384], [885, 546], [1120, 415], [1173, 569], [50, 703], [52, 834], [326, 446], [334, 596], [360, 745], [340, 878], [582, 447], [591, 599], [628, 740], [602, 881], [901, 708], [23, 25], [23, 225]]
+
         }
     }
     //#endregion
