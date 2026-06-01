@@ -131,15 +131,17 @@ COPY creates copies of its argument.
             }
             lineButton = null
         }
+        const linesLineWidth = 6
         const linesDrawable = {
             /**@param {RenderingContext} ctx  */
             draw(ctx) {
+                ctx.lineCap = "round"
                 if (lineStart) {
                     const { x, y } = game.mouser.pos
-                    MM.drawLine(ctx, lineStart.x, lineStart.y, x, y)
+                    MM.drawLine(ctx, lineStart.x, lineStart.y, x, y, { width: linesLineWidth })
                 }
                 lines.forEach(([a, b]) =>
-                    MM.drawLine(ctx, a.cx, a.cy, b.cx, b.cy))
+                    MM.drawLine(ctx, a.cx, a.cy, b.cx, b.cy, { width: linesLineWidth }))
             }
         }
         w.add_drawable(linesDrawable, 6)
@@ -154,13 +156,15 @@ COPY creates copies of its argument.
         em.on("submitted", poly => {
             tobedeleted.add(poly)
             this.SUBMITTED.push(Poly.universalFn(poly.value))
-            const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
-            if (this.SUBMITTED.length == breakpoint)
-                if (this.stepTime >= this.DEFAULTS.fastStepTime)
-                    this.changeStepTime(this.DEFAULTS.fastStepTime)
-            if (this.SUBMITTED.length == 2 * breakpoint)
-                if (this.stepTime >= this.DEFAULTS.fastestStepTime)
-                    this.changeStepTime(this.DEFAULTS.fastestStepTime)
+            if (this.DEFAULTS.allowAutoSpeedUp) {
+                const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
+                if (this.SUBMITTED.length == breakpoint)
+                    if (this.stepTime >= this.DEFAULTS.fastStepTime)
+                        this.changeStepTime(this.DEFAULTS.fastStepTime)
+                if (this.SUBMITTED.length == 2 * breakpoint)
+                    if (this.stepTime >= this.DEFAULTS.fastestStepTime)
+                        this.changeStepTime(this.DEFAULTS.fastestStepTime)
+            }
             console.log("Submitted", poly.value)
             this.table.colors[2][this.SUBMITTED.length] =
                 this.checkParticularAtI(this.SUBMITTED.length - 1)
@@ -171,6 +175,7 @@ COPY creates copies of its argument.
         em.on("received", v => {
             console.log("Received", v)
             this.checkVictory()
+            this.table.colors[0][this.RECEIVED_COUNT[0]] = `hsla(60,100%,50%,0.5)`
         })
         this.tempAnimStorage = []
         const _move = (buttonWhat, buttonFrom, buttonTo) => {
@@ -308,7 +313,49 @@ COPY creates copies of its argument.
         this.add_drawable(this.table)
 
         corner.txt = INSTRUCTIONS
-        corner.height = 50
+        const cornerHeight = 50
+        corner.height = cornerHeight
+
+        corner.width = this.WIDTH * .3
+        corner.rightat(this.WIDTH)
+        // corner.topat(0)
+        // corner.bottomstretchat(this.table.backgroundRect.top)
+        // corner.width = this.table.backgroundRect.width * 3
+        // corner.rightat(this.WIDTH)
+        if (INSTRUCTIONS.includes("\\") || INSTRUCTIONS.includes("$")) {
+            Button.make_latex(corner,
+                INSTRUCTIONS.includes("$")
+                    ? LatexManager.dollarToPure(INSTRUCTIONS)
+                    : INSTRUCTIONS
+            )
+            corner.txt = null
+            corner.color = "antiquewhite"
+            corner.transparent = false
+            corner.imgScale = 1
+            const resize = () => {
+                corner.imgScale = 1
+                corner.width = corner.img.width + 20
+                corner.rightat(this.WIDTH)
+                corner.height = cornerHeight
+                corner.hover_color = "orange"
+            }
+            if (corner.img && corner.img.width) resize()
+            else corner.img.onload = () => resize()
+            let big = false
+            corner.on_click = () => {
+                if (!big) {
+                    big = true
+                    corner.putOver(this.rect)
+                    corner.imgScale = 0
+                    corner.hover_color = null
+                } else {
+                    big = false
+                    resize()
+                }
+                corner.rightat(this.WIDTH)
+                corner.topat(0)
+            }
+        }
         {
             let i = Math.max(5, ...INPUTS.map(x => `${x}`.length))
             let o = Math.max(7, ...this.level.OUTPUTS.map(x => `${x}`.length))
@@ -318,7 +365,7 @@ COPY creates copies of its argument.
             this.table.backgroundRect.width = (i + o + s) * 14 + 10
             this.table.widthWeights = [i, o, s]
         }
-        this.table.backgroundRect.topat(corner.bottom)
+        this.table.backgroundRect.topat(corner.bottom + 10)
         this.table.backgroundRect.rightat(this.WIDTH - 10)
         this.table.heightRatio = 1.2
         this.table.outline = 1
@@ -336,11 +383,13 @@ COPY creates copies of its argument.
             2
         )}`*/
         const stopStart = this.stopStart = new Button({
-            width: 600, height: 60,
+            width: 900, height: 60,
             color:
                 `hsla(60,100%,50%,0.5)`,
             // "yellow",
-            y: 0, txt: "Connect modules, then click here to start."
+            y: 10, txt: "Connect modules, then click here to start.",
+            fontSize: 48,
+            hover_color: "orange"
         })
         stopStart.centeratX(this.rect.centerX)
         stopStart.on_click = () => {
@@ -350,7 +399,7 @@ COPY creates copies of its argument.
         // stopStart.on_click()
         this.add_drawable(stopStart)
         this.add_drawable(corner)
-        const tools = new Button({ width: 200, height: 100, txt: "Menu", x: 10 })
+        const tools = new Button({ width: 200, height: 60, x: 10 })
         tools.bottomat(this.HEIGHT - 10)
         this.add_drawable(tools)
         tools.color = `hsla(0,100%,80%,0.5)`
@@ -364,23 +413,56 @@ COPY creates copies of its argument.
             }
             this.keyboarder.on_paste = val => this.loadSave(val)
         }
+        tools.txt = "Menu"
+        tools.hover_color = "orange"
         tools.on_release = () => {
             const ddm = GameEffects.dropDrownBetter(
                 [
-                    ["Reset inputs", () => this.resetInputs()],
-                    ["Erase lines", () => this.initLevel()],
-                    [`stepTime = ${this.stepTime}`, () => this.changeStepTime(+prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster."))],
-                    ["hide errors", wDiv.hide],
-                    ["Back to levels", () => {
+                    // ["Reset inputs", () => this.resetInputs()],
+                    ["Erase all lines", () => this.initLevel()],
+                    // [`stepTime = ${this.stepTime}`, () => this.changeStepTime(+prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster."))],
+                    // ["hide errors", wDiv.hide],
+                    ["Back to main menu", () => {
                         this.animator.resetAndFlushAll()
                         on_clockwork.length = 0
                         main()
                     }],
-                ]
+                ], { moreButtonSettings: { width: 300 }, }
             )
         }
+        const multipliers = [0, 0.1, 1, 10, 50]
+        const speedButtons = this.speedButtons =
+            new Rect(tools.right + tools.left, tools.top, 500, tools.height)
+                .splitCol(1.3, 1.3, ...multipliers.slice(1).map(_ => 1)).map(x => Button.fromRect(x))
+        speedButtons[0].txt = "Speed:"
+        speedButtons[0].transparent = true
+        speedButtons.forEach(x => {
+            // x.stretch(null, .7)
+            x.bottomat(tools.bottom)
+        })
+        speedButtons.slice(1).forEach((x, i) => {
+            x.txt = multipliers[i] + "x"
+            if (x.txt == "0x") x.txt = "PAUSE"
+            x.on_click = () => this.animator.speedMultiplier = multipliers[i]
+            x.color = tools.color
+            x.hover_color = "orange"
+            x.selected_color = `hsla(60,100%,50%,0.5)`
+        })
+        Button.make_radio(this.speedButtons.slice(1), true)
+        this.resetSpeed()
+        const speedPanel = this.speedPanel = new Malleable(...speedButtons)
+        this.add_drawable(speedPanel)
 
-
+        const resetButton = this.resetButton = tools.copy
+        resetButton.centeratY(MM.midpoint(this.table.getBottom(), this.HEIGHT))
+        resetButton.centeratX(this.table.backgroundRect.centerX)
+        resetButton.resize(this.table.backgroundRect.width * .85, (resetButton.top - this.HEIGHT) * .75)
+        resetButton.untangle()
+        resetButton.txt = "Reset inputs"
+        resetButton.hover_color = "orange"
+        this.add_drawable(resetButton)
+        resetButton.eraseClickables()
+        resetButton.on_release = () => this.resetInputs()
 
         {
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
@@ -456,6 +538,13 @@ COPY creates copies of its argument.
         this.RECEIVED_COUNT = this.level.INPUTS[0].map(_ => 0)
         this.SUBMITTED ??= []
         this.SUBMITTED.length = 0
+        this.resetSpeed()
+        if (this.table) {
+            this.table.colors.forEach(x => x.forEach((_, i) => i !== 0 && (x[i] = null)))
+        }
+    }
+    resetSpeed() {
+        this.speedButtons?.find(x => x.txt == "1x").on_click()
     }
     initLevel() {
         this.resetInputs()
@@ -471,7 +560,8 @@ COPY creates copies of its argument.
 
     }
     DEFAULTS = {
-        slowStepTime: 250,
+        allowAutoSpeedUp: false,
+        slowStepTime: 400,
         fastStepTime: 50,
         fastestStepTime: 10,
     }
@@ -497,15 +587,24 @@ COPY creates copies of its argument.
             ||
             this.SUBMITTED.length != this.level.OUTPUTS.length
         ) return
+        this.resetSpeed()
+        // this.speedPanel.deactivate()
         if (this.SUBMITTED.every((_, i) =>
-            this.accuracyFunction(i)
+            this.checkParticularAtI(i)
         )) {//win
+            this.resetButton.txt = "Back to main menu"
+            this.resetButton.on_click = () => main()
+            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.3,
+                { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
+            )
+
             GameEffects.fireworksShow()
             GameEffects.popup("VICTORY!")
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
+            const isNewVictory = !cultistVictories[this.level.STAGE]
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
             localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
-            if (true) { //replace with permissions later
+            if (isNewVictory) { //replace with permissions later
                 // if (!Supabase.name) return
                 Supabase.addCultistRow("cultist", currentVictoryData)
                     .then(() => {

@@ -31,7 +31,7 @@ class Piece {
         this.type = type
         /**@type {function(...number):number} */
         this.button = Button.make_latex(new Button({
-            width: 200,
+            width: 180,
             height: 120,
             isBlocking: true,
         }))
@@ -488,13 +488,14 @@ class Level {
         },
         "Algebra 2": {
             levels: {
-                "sumtwo": ["You receive inputs a and b. Return a+b.", (a, b) => a + b],
-                "hypot": ["Find the length of vector (a,b)", (a, b) => Math.hypot(a, b)],
-                "geom": ["Return the difference of the arithmetic and geometric mean", (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
-                "quadmean": ["Return the quadratic mean.", (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
-                "max": ["Return the larger of the two postive inputs", (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
-                "twodigit": ["You receive nonzero digits a,b. Return the two-digit number ab", (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
-                "quadratic": ["Your inputs are coefficients of ax^2+bx+c,\nwhere a is positive and the discriminant is nonnegative.\nReturn the larger root.",
+                "sumtwo": [String.raw`You receive two inputs $a$ and $b$. Return $a+b$.`, (a, b) => a + b],
+                "hypot": [String.raw`\text{Find the length of vector }\binom{a}{b}`, (a, b) => Math.hypot(a, b)],
+                "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
+                "quadmean": [String.raw`Return the quadratic mean.$$`, (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
+                "max": [String.raw`Return the larger of the two inputs.$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
+                "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $\overline{ab}$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
+                "quadratic": [
+                    String.raw`Your inputs are the coefficients of $ax^2+bx+c$,\\where $a>0$ and $\Delta >=0$.\\Return the larger of the two roots.`,
                     ...(() => {
                         const roots = Array(30).fill().map(() => [
                             MM.randomInt(-13, 13),

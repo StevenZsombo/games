@@ -965,7 +965,9 @@ class Button extends Clickable {
 		button.radius ??= Math.min(button.width, button.height) / 3
 		button.draw_background = function (screen) {
 			MM.drawRoundedRect(screen, this.x, this.y, this.width, this.height, this.radius, {
-				color: this.color, outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
+				color:
+					this.just_entered && this.hover_color ? this.hover_color : this.color,
+				outline: this.outline, outline_color: this.outline_color, opacity: this.opacity
 			})
 		}
 		button.draw_outline = function () { }
@@ -1146,7 +1148,7 @@ class Malleable {
 		this.components = [...comps]
 		this.visible = true
 		this.interactable = true
-		this.isBlocking = false
+		this.isBlocking = true
 	}
 	check(checkParamsObj) {
 		if (!this.interactable) return false
@@ -1729,7 +1731,7 @@ class Slider extends Panel {
 	_value = 0
 	integer = false
 	lineSettings = { color: "black", width: 10 }
-	/**@param {Button} button */
+	/**@param {?Button} button will be the new movingButton*/
 	constructor(button) {
 		super()
 		const lineDrawable = {
@@ -1752,6 +1754,12 @@ class Slider extends Panel {
 	}
 	get value() {
 		return this._value
+	}
+	setValue(val, alsoClamp = false) {
+		this.value = val
+		const possiblyClamped = alsoClamp ? this.value : val
+		this.on_value_change?.(possiblyClamped)
+		this.on_value_end?.(possiblyClamped)
 	}
 	on_value_change = null
 	on_value_end = null
@@ -1781,7 +1789,38 @@ class Slider extends Panel {
 		this.value = this.min
 		return this
 	}
+	/**
+	 * @param {[number,number,?boolean][]} minMaxArray 
+	 * @param {Rect} backgroundRect
+	 * @param {Button} moreButtonSettings
+	 * @returns {{panel: Malleable, sliders: Slider[], labels: Button[]}}
+	 */
+	static createManySlidersFromObject(props = {}, minMaxArray, backgroundRect,
+		{ moreButtonSettings = {} } = {}) {
+		const button = new Button({ width: 40, height: 60, ...moreButtonSettings })
+		const sliders = []
+		const labels = []
+		Object.entries(props).forEach(([key, val], i, a) => {
+			const s = new Slider(button.copy)
+			s.leftX = backgroundRect.left + button.width
+			s.rightX = backgroundRect.right - button.width
+			s.leftY = s.rightY = backgroundRect.y + ((i + .5) / a.length) * backgroundRect.height
+			s.min = minMaxArray[i][0]
+			s.max = minMaxArray[i][1]
+			s.integer = !!minMaxArray[i][2]
 
+			const l = Button.fromRectShallow(backgroundRect, { transparent: true })
+			l.height = backgroundRect.height / a.length / 2
+			l.topat(i / a.length * backgroundRect.height)
+			l.dynamicText = () => `${key} = ${props[key]}`
+			labels.push(l)
+			s.value = val
+			s.on_value_change = v => props[key] = v
+			sliders.push(s)
+		})
+		const panel = new Malleable(...sliders, ...labels)
+		return { panel, sliders, labels }
+	}
 
 
 }
@@ -2103,17 +2142,13 @@ class Table {
 		const widthWeights = this.widthWeights
 		const totalWeights = this.totalWeights
 		const pieceWiseWidth = this.backgroundRect.width / totalWeights
-		const longestColumnLength =
-			this.longestColumnLength
-			?? Math.max(...this.columns.map(x => x.length))
+		const longestColumnLength = this.getLongestColumnLength()
+
 		const height = this.getHeightPerRow()
 		const {
 			// bottom,
 			right } = this.backgroundRect
-		const bottom =
-			this.bottomAutoAdjust
-				? this.backgroundRect.y + height * longestColumnLength
-				: this.backgroundRect.bottom
+		const bottom = this.getBottom(height, longestColumnLength)
 
 		let x = this.backgroundRect.x
 		for (let i = 0; i < this.columns.length; i++) {
@@ -2130,7 +2165,7 @@ class Table {
 				let txt = this.columns?.[i]?.[k]
 				const formatter = this.columns_textFormattingFns?.[i]
 				if (formatter) txt = formatter(txt, k)
-				if (txt) {
+				if (txt != null && txt !== "") {
 					ctx.fillStyle = this.colors_font?.[i]?.[k] || "black"
 					ctx.fillText(txt, x + this.cell_leftPadding, y + this.cell_topPadding)
 				}
@@ -2188,6 +2223,16 @@ class Table {
 	}
 	getHeightPerRow() {
 		return this.heightRatio * this.fontSize
+	}
+	getLongestColumnLength() {
+		return this.longestColumnLength
+			?? Math.max(...this.columns.map(x => x.length))
+	}
+	getBottom(height = this.getHeightPerRow(), longestColumnLength = this.getLongestColumnLength()) {
+		return this.bottomAutoAdjust
+			? this.backgroundRect.y + height * longestColumnLength
+			: this.backgroundRect.bottom
+
 	}
 
 	getCloneOfColumnsFilledWith(fill = null) {

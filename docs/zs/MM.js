@@ -41,6 +41,9 @@ class MM {
     static toDP(x, sf = 3) {
         return Math.round(x * 10 ** sf) / (10 ** sf)
     }
+    static midpoint(a, b) {
+        return (a + b) / 2
+    }
 
     static extendFunction(func, ext,
         extensionGoesBeforeInsteadOfAfter = false,
@@ -1342,7 +1345,7 @@ class MM {
         if (!color && !outline) return
         ctx.beginPath()
         const n = positions.length
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < n - 1; i++) {
             const p0 = positions[(i - 1 + n) % n]
             const p1 = positions[i]
             const p2 = positions[(i + 1) % n]
@@ -1362,7 +1365,7 @@ class MM {
             }
             ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y)
         }
-        ctx.closePath()
+        // ctx.closePath()
         if (color) {
             ctx.fillStyle = color
             ctx.fill()
