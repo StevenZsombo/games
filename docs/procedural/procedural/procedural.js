@@ -190,7 +190,8 @@ class Game extends GameCore {
         underlay.visible = false
         underlay._drag_force_within = true
         underlay.on_drag = (pos) => {
-            centeredFish = null
+            if (performance.now() - this.mouser.lastClickedTime > 1000)
+                centeredFish = null
             w.worldRect.move(
                 (underlay.last_held.x - pos.x) / w.scaleX,
                 (underlay.last_held.y - pos.y) / w.scaleY
