@@ -3032,7 +3032,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
      * @param {string} [param1.topText="Your name:"] 
      * @param {number} param1.layer8 
      * @param {Button} [param1.moreButtonSettings={}]  
-     * @returns {{ promise: ()=>Promise<string; buts: Button[]; top: Button; }} 
+     * @returns {{ promise: ()=>Promise<string; buts: Button[]; top: Button; fm: Malleable }} 
      */
     static nameSelect(options, {
         topText = "Your name:", layer = 7, moreButtonSettings = {},
@@ -3074,7 +3074,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             })
         )
         const promise = () => promBefore
-        return { promise, buts, top: lab }
+        return { promise, buts, top: lab, fm }
     }
 
 

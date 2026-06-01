@@ -70,6 +70,13 @@ class Game extends GameCore {
                 topText: "Select level:",
                 doNotConfirm: true
             })
+            const back = new Button({ width: 100, height: 80, txt: "Go back", color: "lightgray" })
+            back.topat(20)
+            back.color = `hsla(0,0%,50%,.5)`
+            back.rightat(this.WIDTH - back.y)
+            ns.fm.push(back)
+            back.on_release = () => main()
+            Button.make_roundedRect(back)
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             ns.buts.forEach(x => { if (x.tag in vic) x.color = "lightgreen" })
             stage = await ns.promise()
@@ -426,7 +433,7 @@ COPY creates copies of its argument.
         fastestStepTime: 10,
     }
     initStepTime() {
-        this.changeStepTime(+location.search?.slice(1) || this.DEFAULTS.slowStepTime)
+        this.changeStepTime(+Array.from(location.search || "").filter(x => Number.isFinite(+x)).join("") || this.DEFAULTS.slowStepTime)
     }
 
 
@@ -510,7 +517,7 @@ COPY creates copies of its argument.
 /// dev options
 const dev = {
     notes: () => GameEffects.popup(`
-Still ironing out a lot of quirks. Better UI coming eventually. Sorry about the flicker.
+Still ironing out quirks. Better UI coming eventually. Sorry about the flicker.
 Level completion is sent to server, which cannot be disabled.
 Game speed is changed via Menu -> stepTime (for now).
 
@@ -524,12 +531,12 @@ Connect the right side of any module to the left side of any other.
 COPY creates copies of its argument.
 If multiple lines are available, the one the user placed first is preferred.
 
-Inputs are sent only if there are not numbers in the machine,
+Inputs are sent only if there are no numbers in the machine,
 except for when the level says that inputs are "consecutive".
 
 Click to close this and begin playing.
 `.slice(1, -1), {
-        close_on_release: true, floatTime: 60 * 1000,
+        close_on_release: true, floatTime: Infinity,
         moreButtonSettings: { fontSize: 24, textSettings: { textAlign: "left" } }
     }, GameEffects.popupPRESETS.megaBlue),
     check() {
