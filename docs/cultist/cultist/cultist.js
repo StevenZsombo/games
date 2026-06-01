@@ -47,7 +47,7 @@ class Game extends GameCore {
     //#region initialize_more
     async initialize_more() {
         em.flushAndEraseAll()
-        // dev.notes()
+        if (!location.search.includes("skip")) dev.notes()
         dev.check()
 
         let batch
