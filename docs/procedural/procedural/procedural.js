@@ -303,6 +303,7 @@ class Game extends GameCore {
         Object.assign(this, { bones, animals, w })
 
         underlay.on_click = wDiv.hide
+        this.BGCOLOR = `hsl(200,30%,80%)`
     }
     //#endregion
 
