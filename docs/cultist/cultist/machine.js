@@ -35,10 +35,10 @@ class Piece {
             height: 120,
             isBlocking: true,
         }))
+        this.button.imgScale = type.startsWith("Efn") ? 1 : 2.4
         if (props.moreButtonSettings) Object.assign(this.button, props.moreButtonSettings)
         this.fn = fn
         this.tex = latex
-        this.button.imgScale = type.startsWith("Efn") ? 1 : 2.4
         const inputsNr = props.inputs ?? fn.length
         this.inputs = []
         for (let i = 0; i < inputsNr; i++) {
@@ -206,7 +206,11 @@ class Piece {
         perfour: [x => x / 4, String.raw`\frac{x}{4}`],
         perfive: [x => x / 5, String.raw`\frac{x}{5}`],
         persix: [x => x / 6, String.raw`\frac{x}{6}`],
-        signum: [x => Math.sign(x), String.raw`\text{sgn}(x)`],
+        signum: [x => Math.sign(x),
+        // String.raw`\begin{cases}1 &\text{if }x>0\\0 &\text{if }x=0\\-1 &\text{if }x<0\end{cases}`,
+        // { moreButtonSettings: { imgScale: 1.2 } }
+        String.raw`\text{sgn}(x)`
+        ],
         copy: [x => [x, x], String.raw`\text{COPY}`, { outputs: 2 }],
         copythree: [x => [x, x, x], String.raw`\text{COPY3}`, { outputs: 3 }],
         add: [x => x + 1, String.raw`x+1`],
@@ -349,7 +353,10 @@ class Piece {
         Oabs: [x => Math.abs(x), String.raw`|x|`, {
             swappable: [
                 ["|x|", x => Math.abs(x), String.raw`|x|`],
-                ["sign(x)", x => Math.sign(x), String.raw`\text{sgn}(x)`],
+                ["sign(x)", x => Math.sign(x),
+                    // String.raw`\begin{cases}1 &\text{if }x>0\\0 &\text{if }x=0\\-1 &\text{if }x<0\end{cases}`
+                    String.raw`\text{sgn}(x)`
+                ],
                 ["floor(x)", x => Math.floor(x), String.raw`\lfloor x \rfloor`],
             ]
         }],
