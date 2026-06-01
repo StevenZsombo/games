@@ -294,7 +294,7 @@ COPY creates copies of its argument.
             // MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),
             MM.transposeArrayStringPadded([INPUTS, this.level.OUTPUTS, this.SUBMITTED]),
             "INPUTS OUTPUTS SUBMITTED".split(" "),
-            3
+            2
         )}`
         const stopStart = new Button({
             width: 600, height: 60,
@@ -314,14 +314,15 @@ COPY creates copies of its argument.
         this.add_drawable(tools)
         tools.color = "lightpink"
         Button.make_roundedRect(tools)
-        this.keyboarder.on_copy = () => this.getSaveData()
-        this.keyboarder.on_keydownDict["p"] = () => {
-            const a = [...this.getSaveData().positions]
-            a.push([a.at(-1)].flatMap(([x, y]) => [x, y + 200]))
-            navigator.clipboard.writeText(JSON.stringify(a))
+        if (location.search.includes("dev")) {
+            this.keyboarder.on_copy = () => this.getSaveData()
+            this.keyboarder.on_keydownDict["p"] = () => {
+                const a = [...this.getSaveData().positions]
+                a.push([a.at(-1)].flatMap(([x, y]) => [x, y + 200]))
+                navigator.clipboard.writeText(JSON.stringify(a))
+            }
+            this.keyboarder.on_paste = val => this.loadSave(val)
         }
-        this.getSaveData().positions
-        this.keyboarder.on_paste = val => this.loadSave(val)
         tools.on_release = () => {
             const ddm = GameEffects.dropDrownBetter(
                 [
@@ -543,7 +544,7 @@ Click to close this and begin playing.
         const allLevels = Object.entries(Level.BATCHES).flatMap(([_, v]) => {
             return Object.keys(v.levels)
         })
-        const unique = 
-        console.log("unique?:", allLevels.length == new Set(allLevels).size, allLevels)
+        const unique =
+            console.log("unique?:", allLevels.length == new Set(allLevels).size, allLevels)
     }
 }/// end of dev
