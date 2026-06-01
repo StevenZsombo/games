@@ -2037,3 +2037,180 @@ class CalculatorButtons extends Malleable {
 }
 
 //#endregion
+
+
+//#region Table
+class Table {
+	/**@type {string[][]} @deprecated*/
+	rows //bad idea?
+	/**@type {string[][]} */
+	columns
+	/**@type {function(): string[][]} */
+	columnsFunction
+	/**@type {?number} */
+	longestColumnLength = null
+	/**@type {?Array<function(string):string>} */
+	columns_textFormattingFns
+	/**@type {string[][]} */ //must match data origin
+	colors
+	/**@type {string[][]} */ //must match data origin
+	colors_font
+	/**type {string[]} */
+	colors_columns
+	/**@type {string[]} */
+	headers = []
+	/**@type {string[]} */
+	headers_colors = [] //works too
+	padding = ""
+	fontSize = 24
+	heightRatio = 1.1
+	cell_leftPadding = 4
+	cell_topPadding = 4
+	outline = 2
+	outline_outer = 4
+	/**@type {Rect} */
+	backgroundRect = null
+	font_font = "mySerif" //over monospace, reducing load load
+	bottomAutoAdjust = true
+
+	/**
+	 * @param {Rect} backgroundRect 
+	 * @param {string[][] | function():string[][]} columnsOrFn
+	 */
+	constructor(backgroundRect, columnsOrFn,
+		// headers
+		//	{ rows, columns } = {}
+	) {
+		this.backgroundRect = backgroundRect
+		// this.rows = rows
+		if (Array.isArray(columnsOrFn)) this.columns = columnsOrFn
+		else if (typeof columnsOrFn === "function") {
+			this.columnsFunction = columnsOrFn
+			this.columns = columnsOrFn()
+		}
+		// this.headers = headers
+
+
+		this.widthWeights = []
+	}
+	/**@param {RenderingContext} ctx  */
+	draw(ctx) {
+		if (!this.columns && !this.columnsFunction) return
+		if (this.columnsFunction) this.columns = this.columnsFunction()
+		ctx.textBaseline = "top"
+		ctx.textAlign = "left"
+		ctx.font = `${this.fontSize}px ${this.font_font}`
+		const widthWeights = this.widthWeights
+		const totalWeights = this.totalWeights
+		const pieceWiseWidth = this.backgroundRect.width / totalWeights
+		const longestColumnLength =
+			this.longestColumnLength
+			?? Math.max(...this.columns.map(x => x.length))
+		const height = this.getHeightPerRow()
+		const {
+			// bottom,
+			right } = this.backgroundRect
+		const bottom =
+			this.bottomAutoAdjust
+				? this.backgroundRect.y + height * longestColumnLength
+				: this.backgroundRect.bottom
+
+		let x = this.backgroundRect.x
+		for (let i = 0; i < this.columns.length; i++) {
+			let y = this.backgroundRect.y
+			const currentWidth = pieceWiseWidth * widthWeights[i]
+			for (let k = 0; k < longestColumnLength; k++) {
+				//background
+				const cellColor = this.colors?.[i]?.[k] || this.colors_columns?.[i]
+				if (cellColor) {
+					ctx.fillStyle = cellColor
+					ctx.fillRect(x, y, currentWidth, height)
+				}
+				//text
+				let txt = this.columns?.[i]?.[k]
+				const formatter = this.columns_textFormattingFns?.[i]
+				if (formatter) txt = formatter(txt, k)
+				if (txt) {
+					ctx.fillStyle = this.colors_font?.[i]?.[k] || "black"
+					ctx.fillText(txt, x + this.cell_leftPadding, y + this.cell_topPadding)
+				}
+				if (this.outline && i !== 0) { //vertical lines, no leftmost
+					ctx.lineWidth = this.outline
+					ctx.strokeStyle = "black"
+					ctx.beginPath()
+					ctx.moveTo(x, y)
+					ctx.lineTo(x, bottom)
+					ctx.stroke()
+				}
+				y += height
+			}
+			x += currentWidth
+		}
+
+		//outline_inner
+		if (this.outline) { //horizontal lines
+			ctx.lineWidth = this.outline
+			ctx.strokeStyle = "black"
+			const x = this.backgroundRect.x
+			let y = this.backgroundRect.y
+			for (let j = 0; j < longestColumnLength; j++) {//also bottommost line
+				y += height
+				ctx.beginPath()
+				ctx.moveTo(x, y)
+				ctx.lineTo(right, y)
+				ctx.stroke()
+			}
+
+		}
+		//outline_outer
+		if (this.outline_outer) {
+			ctx.strokeStyle = "black"
+			ctx.lineWidth = this.outline_outer
+			ctx.strokeRect(this.backgroundRect.x, this.backgroundRect.y, this.backgroundRect.width,
+				// this.backgroundRect.height
+				bottom - this.backgroundRect.y
+			)
+		}
+
+	}
+	/**@type {number[]} */ ///////////////what a pain. but hey, that's what i get for not writing boilerplate
+	_widthWeights = []
+	totalWeights
+	get widthWeights() {
+		if (this._widthWeights.length < this.columns.length)
+			this.widthWeights = this._widthWeights
+		return this._widthWeights
+	}
+	set widthWeights(arr) {
+		this._widthWeights = arr ?? []
+		while (this._widthWeights.length < this.columns.length) this._widthWeights.push(1)
+		this.totalWeights = this._widthWeights.reduce((s, t) => s + t, 0)
+	}
+	getHeightPerRow() {
+		return this.heightRatio * this.fontSize
+	}
+
+	getCloneOfColumnsFilledWith(fill = null) {
+		return (this.columns).map(x => x.map(_ => fill))
+	}
+
+	getCellCoordinates(pos) {
+		let { x, y } = pos
+		if (!this.backgroundRect.collidepoint(x, y)) return null
+		x -= this.backgroundRect.x
+		y -= this.backgroundRect.y
+		const { widthWeights, totalWeights } = this
+		const pieceWiseWidth = this.backgroundRect.width / totalWeights
+		let i = 0
+		let u = 0
+		for (const colW of widthWeights) {
+			u += colW * pieceWiseWidth
+			if (u > x) break
+			i += 1
+		}
+		const height = this.getHeightPerRow()
+		let k = Math.floor(y / height)
+		return [i, k]
+	}
+}
+//#endregion

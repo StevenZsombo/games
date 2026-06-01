@@ -327,7 +327,7 @@ COPY creates copies of its argument.
         this.table.fontSize = 26
         this.table.colors = this.table.getCloneOfColumnsFilledWith()
         this.table.colors[0][0] = `rgba(0,255,0,0.3)`
-        this.table.colors[1][0] = this.table.colors[2][0] = `rgba(173, 216, 230,0.5)`
+        this.table.colors[2][0] = `rgba(173, 216, 230,0.5)`
         /*corner.dynamicText = () =>
             `${INSTRUCTIONS}\n${MM.tableStr(
             // MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),

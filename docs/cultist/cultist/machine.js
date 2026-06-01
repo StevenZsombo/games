@@ -592,6 +592,7 @@ class Level {
                 "raise7": ["Raise each input to the 7th power.", x => x ** 7, _ => MM.randomInt(-10, 10)],
                 "is91": ["Return 1 for 91, and 0 otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
                 "mod37": ["Return the remainder when dividing the positive integer input by 37.", x => x % 37, _ => MM.randomInt(1, 200)],
+                "palindrome": ["Input is a nonzero digit. For 4, return 1234321 and so on.", x => ((10 ** x - 1) / 9) ** 2, _ => MM.randomInt(1, 9)],
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
             },
             modules: [
