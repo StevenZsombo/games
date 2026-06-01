@@ -296,7 +296,7 @@ COPY creates copies of its argument.
             "INPUTS OUTPUTS SUBMITTED".split(" "),
             2
         )}`
-        const stopStart = new Button({
+        const stopStart = this.stopStart = new Button({
             width: 600, height: 60,
             color: "yellow",
             y: 0, txt: "Connect modules, then click here to start."
@@ -407,12 +407,12 @@ COPY creates copies of its argument.
         this.w.remove_drawable(piece.panel)
     }
     resetInputs() {
+        this.isProducingInputs = false
         this.polys?.forEach(x => x.where.hold = null)
         this.polys?.clear()
         this.tobeadded?.clear()
-        // tobedeleted.clear()
-
-        this.RECEIVED_COUNT = this.level.INPUTS[0].map(x => 0)
+        this.stopStart?.activate()
+        this.RECEIVED_COUNT = this.level.INPUTS[0].map(_ => 0)
         this.SUBMITTED = []
     }
     initLevel() {

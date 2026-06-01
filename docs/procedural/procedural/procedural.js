@@ -190,6 +190,7 @@ class Game extends GameCore {
         underlay.visible = false
         underlay._drag_force_within = true
         underlay.on_drag = (pos) => {
+            centeredFish = null
             w.worldRect.move(
                 (underlay.last_held.x - pos.x) / w.scaleX,
                 (underlay.last_held.y - pos.y) / w.scaleY
@@ -225,13 +226,20 @@ class Game extends GameCore {
             )
             animals.forEach((x, i) => ddm.menuButtons[i].color = x.color)
         }
+        let centeredFish = null
+        this.extras_on_update.push(() => {
+            if (!centeredFish) return
+            const dx = w.worldRect.centerX - centeredFish.bones[0].x
+            const dy = w.worldRect.centerY - centeredFish.bones[0].y
+            const followCoeff = 0.02
+            w.worldRect.move(-dx * followCoeff, -dy * followCoeff)
+        })
         /**@param {Fish} fish */
         const manageFish = (fish) => {
             const ddm = GameEffects.dropDrownBetter(
                 [
                     ["Center on", () => {
-                        w.worldRect.centerat(fish.bones[0].x, fish.bones[0].y)
-                        w.worldRect.resize(this.WIDTH * 1.5, this.HEIGHT * 1.5)
+                        centeredFish = fish
                     }],
                     /*["Edit shape", () => GameEffects.editJSON(
                         `[\n  [\n${fish.bones.map(x => x.size.toPrecision(3)).join("\n,\n")

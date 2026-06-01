@@ -362,9 +362,10 @@ class Piece {
         }],
         spf2: [x =>
             (Number.isInteger(x) && x >= 2)
-                ? Array(2).fill(MM.smallestPrimeFactor(x)).flatMap(u => [u, x / u])
+                ? [MM.smallestPrimeFactor(x)].flatMap(u => [u, x / u])
                 : [null, null],
-        String.raw`\begin{array}{l|l}\nearrow p_{\text{min}}\\\searrow \frac{x}{p_{\text{min}}}\end{array}`, { outputs: 2 }
+        String.raw`\begin{array}{l|l}\nearrow p_{\text{min}}\\\searrow \frac{x}{p_{\text{min}}}\end{array}`,
+        { outputs: 2 }
         ],
         consume: [x => null, String.raw`\emptyset`, { outputs: 0 }],
     }
