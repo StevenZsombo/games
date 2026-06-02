@@ -3115,7 +3115,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
     /**@param {Rect[]} rects  */
     static balls(rects, {
-        number = 200,
+        number = 400,
         backgroundRect = game.rect.copy,
         gravity = 0.001,
         dampFactor = 0.95,

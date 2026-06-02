@@ -621,18 +621,7 @@ COPY creates copies of its argument.
             Anim.stepper(this.resetButton, 2000, "rad", 0, 0.3,
                 { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
             )
-
-            // GameEffects.fireworksShow()
-            GameEffects.balls(
-                [
-                    ...this.piecesArr.map(x => x.button),
-                    this.speedButtonsBGRect,
-                    this.resetButton,
-                    this.table.backgroundRect,
-                    this.tools
-                ].filter(x => x)
-            )
-            GameEffects.popup("VICTORY!")
+            this.celebrate()
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             const isNewVictory = !cultistVictories[this.level.STAGE]
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
@@ -652,6 +641,20 @@ COPY creates copies of its argument.
         } else {//lose
             GameEffects.popup("you lose")
         }
+    }
+
+    celebrate() {
+        // GameEffects.fireworksShow()
+        GameEffects.balls(
+            [
+                ...this.piecesArr.map(x => x.button),
+                this.speedButtonsBGRect,
+                this.resetButton,
+                this.table.backgroundRect,
+                this.tools
+            ].filter(x => x)
+        )
+        GameEffects.popup("VICTORY!")
     }
 
 
