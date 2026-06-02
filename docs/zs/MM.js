@@ -3109,5 +3109,77 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
     }
 
 
+
+
+
+
+    /**@param {Rect[]} rects  */
+    static balls(rects, {
+        number = 200,
+        backgroundRect = game.rect.copy,
+        gravity = 0.001,
+        dampFactor = 0.95,
+
+    } = {}) {
+        const circles = new Set(
+            Array(number).fill().map(_ => ({
+                x: MM.randomInt(0, this.WIDTH),
+                y: MM.randomInt(0, this.HEIGHT),
+                radius: MM.randomInt(2, 16),
+                vx: MM.random(-0.5, 0.5),
+                vy: MM.random(-0.5, 0.5),
+                color: `hsl(${MM.randomInt(0, 360)},100%,50%)`,
+                draw(ctx) { MM.drawCircle(ctx, this.x, this.y, this.radius, { ...this }) }
+            }))
+        )
+        const bg = backgroundRect
+        const circlesDrawable = {
+            update(dt) {
+                for (let c of circles) {
+                    c.vy += gravity * dt;
+                    c.x += c.vx * dt;
+                    c.y += c.vy * dt;
+                    for (let r of rects) {
+                        let cx = Math.max(r.x, Math.min(c.x, r.x + r.width));
+                        let cy = Math.max(r.y, Math.min(c.y, r.y + r.height));
+                        let dx = c.x - cx;
+                        let dy = c.y - cy;
+                        let dist = Math.hypot(dx, dy);
+                        if (dist < c.radius) {
+                            let angle = Math.atan2(dy, dx);
+                            c.x = cx + Math.cos(angle) * c.radius;
+                            c.y = cy + Math.sin(angle) * c.radius;
+                            let nx = dx / dist;
+                            let ny = dy / dist;
+                            let dot = c.vx * nx + c.vy * ny;
+                            c.vx -= 2 * dot * nx;
+                            c.vy -= 2 * dot * ny;
+                        }
+                    }
+                    let anyBoundaryHit = false
+                    const left = bg.x + c.radius
+                    const right = bg.x + bg.width - c.radius
+                    const top = bg.y + c.radius
+                    const bottom = bg.y + bg.height - c.radius
+                    if (c.x <= left) { c.x = left; c.vx = -c.vx; anyBoundaryHit = true }
+                    if (c.x >= right) { c.x = right; c.vx = -c.vx; anyBoundaryHit = true }
+                    if (c.y <= top) { c.y = top; c.vy = -c.vy; anyBoundaryHit = true }
+                    if (c.y >= bottom) { c.y = bottom; c.vy = -c.vy; anyBoundaryHit = true }
+                    if (anyBoundaryHit) { c.vx *= dampFactor; c.vy *= dampFactor }
+                    if (!Number.isFinite(c.x) || !Number.isFinite(c.y) || !Number.isFinite(c.vx) || !Number.isFinite(c.vy)) {
+                        circles.delete(c)
+                    }
+
+                }
+            },
+            draw(ctx) {
+                circles.forEach(c => c.draw(ctx))
+            },
+        }
+
+        game.add_drawable(circlesDrawable)
+
+        return { circles, circlesDrawable, rects }
+    }
 }
 //#endregion
