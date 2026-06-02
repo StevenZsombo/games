@@ -3,6 +3,7 @@ class Poly {
     static isZeroWithEpsilon = x => Math.abs(x) < 10 ** -8
     static universalFn = x =>
         Number.isFinite(x) ? (Number.isInteger(x) ? x : (Poly.isZeroWithEpsilon(x) ? 0 : +x.toPrecision(3))) : null
+    static primes200 = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199]
     constructor(value, container) {
         this.value = value
         this.button = new Button({
@@ -26,6 +27,37 @@ class Poly {
         if (spl.length !== 2) return null
         if (spl.some(x => !Number.isFinite(+x))) return null
         return [+spl[0], +spl[1]]
+    }
+
+    static getSequence(
+        outputFn = x => x.at(-1),
+        inputFn = _ => MM.randomInt(2, 120),
+        { length = 30, minLength = 3, maxLength = 5 } = {}
+    ) {
+        let totalLength = 0
+        const all = []
+        const allWithoutZeros = []
+        minLength += 1
+        maxLength += 1
+        const addseq = (n) => {
+            const items = []
+            totalLength += n
+            for (let i = 0; i < n - 1; i++)
+                items.push(inputFn())
+            allWithoutZeros.push([...items]) //copy of items without 0
+            items.push(0)
+            all.push(items)
+        }
+        while (totalLength < length - minLength) {
+            const current = MM.randomInt(minLength, maxLength)
+            if (totalLength + current <= length - minLength)
+                addseq(current)
+            else break
+        }
+        addseq(length - totalLength)
+        const inp = all.flat()
+        const out = allWithoutZeros.map(outputFn)
+        return [out, inp]
     }
 
 }
@@ -173,12 +205,14 @@ class Piece {
         if ((props.editable || props.swappable) && origType.includes("_")) {
             this.onTrigger(origType.split("_").slice(1).join(""))
         }
+        if (props.reset) this.onReset = props.reset.bind(this)
 
     }
     set tex(v) { this.button.latex.tex = v }
     get tex() { return this.button.latex.tex }
     onTrigger() { }
     onSwap() { }
+    onReset() { }
 
     readyToProcess = true
     process() {
@@ -436,16 +470,32 @@ class Piece {
         { outputs: 2 }
         ],
         consume: [x => null, String.raw`\emptyset`, { outputs: 0 }],
-        mem: [function (x) {
-            let stored = null
-            if (Poly.isZeroWithEpsilon(x)) {
-                return stored
-            } else {
-                stored = x
-                this.tex = String.raw`\begin{array}{c}\text{MEM:}\\${Poly.universalFn(x)}\end{array}`
-                return null
-            }
-        }, String.raw`\text{MEM}`]
+        mem: [ //javascript is beyond awesome
+            ...(() => {
+                let stored = null
+                const latex = String.raw`\text{MEM}`
+                const fn = function (x) {
+                    if (x == 0 || Poly.isZeroWithEpsilon(x)) {
+                        const copy = stored
+                        reset.apply(this)
+                        return copy
+                    } else {
+                        stored = x
+                        this.tex = String.raw`\begin{array}{c}\text{MEM:}\\${Poly.universalFn(x)}\end{array}`
+                        return null
+                    }
+                }
+                const reset = function () {
+                    game.polys.clear()
+                    game.tobeadded.clear()
+                    stored = null
+                    this.tex = latex
+                }
+                const props = {
+                    reset
+                }
+                return [fn, latex, props]
+            })()]
     }
     static preset(type) {
         return new Piece(type)
@@ -505,27 +555,28 @@ class Level {
     static BATCHES = {
         "Algebra": {
             levels: {
-                "square": ["Square each input", x => x ** 2],
-                "abs": ["Take absolute value", x => Math.abs(x)],
-                "noneg": ["Return the nonnegative inputs only", x => x >= 0 ? x : null],
-                "double": ["Double each input.", x => 2 * x],
-                "cube": ["Raise each input to the third power", x => x ** 3],
-                "fourth": ["Raise each input to the fourth power", x => x ** 4],
-                "sumupto": ["Return the sum of all integers from 1 to n.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
-                "mulfive": ["Multiply by 5.", x => x * 5],
-                "isodd": ["Return 1 for odd input, and 0 otherwise.", x => Math.abs(x % 2)],
-                "isint": ["Return 1 for integers, and 0 otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
-                "subtract": ["Take two consecutive inputs, and return their difference.", ...(() => {
+                "square": ["$$Square each input.", x => x ** 2],
+                "abs": ["$$Take absolute value.", x => Math.abs(x)],
+                "noneg": ["$$Return the nonnegative inputs only.", x => x >= 0 ? x : null],
+                "double": ["$$Double each input.", x => 2 * x],
+                "cube": ["Return $x^3$.", x => x ** 3],
+                "fourth": ["Return $x^4.", x => x ** 4],
+                "sumupto": ["Return the sum of all integers from $1$ to $n$.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
+                "mulfive": ["$$Multiply by 5.", x => x * 5],
+                "tutsgn": [String.raw`Return the sign, $\text{sgn}(x)$ for each input. \\\ \\Recall the definition: $\text{sgn}(x) = \begin{cases} 1&\text{if }x>0,\\0&\text{if }x=0,\\-1&\text{if }x<0.\end{cases}$`, x => Math.sign(x)],
+                "isodd": ["Return $1$ for odd input, and $0$ otherwise.", x => Math.abs(x % 2)],
+                "isint": ["Return $1$ for integers, and $0$ otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
+                "subtract": ["$$Take two consecutive inputs, and return their difference.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
                     return [out, inp, { consecutive: true }]
                 })()],
-                "mean": ["Take two consecutive inputs, and return their mean.", ...(() => {
+                "mean": ["$$Take two consecutive inputs, and return their mean $\\frac{x_1+x_2}{2}$.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
                     return [out, inp, { consecutive: true }]
                 })()],
-                "divide": ["Take two consecutive inputs, and return their ratio.", ...(() => {
+                "divide": ["$$Take two consecutive inputs, and return their ratio.", ...(() => {
                     const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
                     const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
                     return [out, inp, { consecutive: true }]
@@ -539,11 +590,11 @@ class Level {
                     return a / 2
                 }, () => Math.random() < .5 ? MM.randomInt(1, 200) : 2 * MM.randomInt(1, 200)],
                 */
-                "rounded": ["Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
-                "eight": ["Map each input to 8.", x => 8],
+                "rounded": ["$$Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
+                "eight": ["Map each input to $8$.", x => 8],
                 // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
-                "manynines": ["Input is a positive integer.\nReturn a number with that many 9s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
-                "digits": ["Return the number of digits in the given positive integer.", x => `${x} `.length, () => {
+                "manynines": ["$$Input is a positive integer.\\\\Return a number with that many $9$s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
+                "digits": ["$$Return the number of digits in the given positive integer.", x => `${x} `.length, () => {
                     const a = MM.randomInt(1, 9)
                     let b = 10 ** a
                     b += MM.randomInt(1, Math.floor(b / 10))
@@ -596,26 +647,26 @@ class Level {
         },
         "Trigonometry": {
             levels: {
-                "sin": ["Find sin(x)", x => Math.sin(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
-                "sinhalf": ["Return sin(x/2)", x => Math.sin(x / 2), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
-                "sec": ["Return sec(x)", x => 1 / Math.cos(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
-                "tan": ["Find tan(x)", x => Math.tan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
-                "isacute": ["Inputs are acute or obtuse angles. Return 1 for acute angles, 0 otherwise.", x => +(Math.cos(x) > 0), () => +MM.random(0, PI).toPrecision(3)],
-                "xcos": ["Inputs are acute angles, find their cosine.\nIndeed, the cos module is missing", (x) => Math.cos(x), () => +MM.random(0, NINETYDEG).toPrecision(3),
+                "sin": ["Return $\\sin(x).$", x => Math.sin(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                "sinhalf": [String.raw`Return $\sin\left(\frac{x}{2}\right)$.`, x => Math.sin(x / 2), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                "sec": ["Return $\\text{sec}(x)$.", x => 1 / Math.cos(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                "tan": ["Find $\\text{tan}(x)$.", x => Math.tan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                "isacute": ["Inputs are acute or obtuse angles. Return $1$ for acute angles, and $0$ otherwise.", x => +(Math.cos(x) > 0), () => +MM.random(0, PI).toPrecision(3)],
+                "xcos": ["Inputs are acute angles, find their cosine..\\\\Indeed, the $\\boxed{\\cos(x)}$ module is missing.", (x) => Math.cos(x), () => +MM.random(0, NINETYDEG).toPrecision(3),
                     { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "identity", "sum", "diff", "prod", "div",] }
                 ],
-                "three": ["Inputs are random angles. Map each to 3.\nIndeed, sgn is missing", () => 3, () =>
+                "three": ["Inputs are random angles. Map each to $3$.\\\\Indeed, $\\boxed{\\text{sgn}(x)}$ is missing", () => 3, () =>
                     +MM.random(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "identity", "sin", "cos", "sum", "diff", "prod", "div",] }
                 ],
-                "xcosdiff": ["Inputs are a,b. Return cos(a-b).\nIndeed, the x-y module is missing, and\ninstead you have the *seemingly* useless 'x'.", (a, b) => Math.cos(a - b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
+                "xcosdiff": ["Return $\\cos(a-b)$.\\\\Indeed, the $\\boxed{x-y}$ module is missing, and\\\\instead you have the *seemingly* useless $\\boxed{x}$.", (a, b) => Math.cos(a - b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
                     { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "identity", "prod", "div",] }
                 ],
-                "coscos": ["Inputs are a,b. Return the product cos(a)cos(b).\nIndeed, the xy module has been replaced with x+y.", (a, b) => Math.cos(a) * Math.cos(b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
-                    { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "sum", "div",] }
+                "coscos": [String.raw`Return the product $\cos(a)\cos(b)$.\\Indeed, the $\boxed{x\cdot y}$ module has been replaced with $\boxed{x+y}$.`, (a, b) => Math.cos(a) * Math.cos(b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
+                { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "sum", "div",] }
                 ],
-                "polar": ["Input is vector with length a and whose angle from the positive x-axis is b radians.\nReturn its x-component coordinate.",
-                    (a, b) => a * Math.cos(b)],
+                "polar": [String.raw`The Input is vector with length $a$ and whose angle from the positive x-axis is $b$ radians.\\Return its $x$-component coordinate.`,
+                (a, b) => a * Math.cos(b)],
                 // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
 
@@ -631,24 +682,29 @@ class Level {
         },
         "Trigonometry 2": {
             levels: {
-                "ninetydeg": ["Return pi/2", (_) => Math.PI / 2],
-                "circlearea": ["Return the area of the circle whose radius was given", x => x ** 2 * Math.PI, () => MM.randomInt(1, 20)],
-                "oost": ["Return the reciprocal of the square root of 3", _ => 1 / Math.sqrt(3)],
-                "sqrttwo": ["Return the square root of 2", _ => Math.sqrt(2)],
-                "xsin": ["Return sin(x).\nIndeed, sin(x) module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                "ninetydeg": ["Return $\\frac{\\pi}{2}$.", (_) => Math.PI / 2],
+                "circlearea": ["Return the area of the circle with the input radius.$$", x => x ** 2 * Math.PI, () => MM.randomInt(1, 20)],
+                "oost": [String.raw`Return $\frac{1}{\sqrt{3}}$.`, _ => 1 / Math.sqrt(3)],
+                "sqrttwo": ["Return $\sqrt{2}$.", _ => Math.sqrt(2)],
+                "xsin": ["Return $\\sin(x)$.\\\\Indeed, the $\\boxed{\\sin(x)}$ module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
                 ],
-                "complement": ["Input is an acute angle. Return its complementary angle", x => Math.PI / 2 - x, () => +MM.random(0, PI / 2).toPrecision(3)],
+                "complement": ["Input is an acute angle. Return its complementary angle.$$", x => Math.PI / 2 - x, () => +MM.random(0, PI / 2).toPrecision(3)],
                 "xsin2": ["Return sin(x).\nIndeed, sin(x) and tan(x) are both missing.", x => Math.sin(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
                 ],
-                "xtanhalf": ["Return the absolute value of tan(x/2).\nIndeed, tan(x) module is missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                "xtanhalf": ["Return $\\left|\\tan\\left(\\frac{x}{2}\\right)\\right|$.\\\\Indeed, the $\\boxed{\\tan(x)}$ module is missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "sin", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
                 ],
-                "xtanhalf2": ["Return the absolute value of tan(x/2).\nIndeed, tan(x) and x/2 are both missing.", x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
+                "xtanhalf2": [
+                    "Return $\\left|\\tan\\left(\\frac{x}{2}\\right)\\right|$.\\\\Indeed, $\\boxed{\\tan(x)}$ and $\\boxed{\\frac{x}{2}}$ are both missing."
+                    , x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "sin", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "identity", "perthree", "double", "add", "one", "minusone"] }
                 ],
-                "goldentrig": ["Return the golden ratio, (sqrt(5)-1)/2.\nIndeed, sqrt(x) is missing.", _ => (Math.sqrt(5) - 1) / 2, () => +MM.random(-TWOPI, TWOPI).toPrecision(3),
+                "goldentrig": [
+                    String.raw`Return the golden ratio $\frac{\sqrt{5}-1}{2}$.\\Indeed, $\boxed{\sqrt{x}}$ is missing.`
+                    // "Return the golden ratio, (sqrt(5)-1)/2.\nIndeed, sqrt(x) is missing."
+                    , _ => (Math.sqrt(5) - 1) / 2, () => +MM.random(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "identity", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
                 ],
 
@@ -666,12 +722,12 @@ class Level {
         },
         "Number theory": {
             levels: {
-                "set2026": ["Map each input to 2026 using the editable contant module.", _ => 2026],
-                "mul11": ["Multiply each input by 11 using the editable multiplication module.", x => 11 * x],
-                "raise7": ["Raise each input to the 7th power.", x => x ** 7, _ => MM.randomInt(-10, 10)],
-                "is91": ["Return 1 for 91, and 0 otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
-                "mod37": ["Return the remainder when dividing the positive integer input by 37.", x => x % 37, _ => MM.randomInt(1, 200)],
-                "palindrome": ["Input is a nonzero digit. For 4, return 1234321 and so on.", x => ((10 ** x - 1) / 9) ** 2, _ => MM.randomInt(1, 9)],
+                "set2026": ["Map each input to $2026$ using \\fbox{Edit} on the contant module \\fbox{12} or \\fbox{300}.", _ => 2026],
+                "mul11": ["Multiply each input by $11$ using \\fbox{Edit} on the multiplication module $\\boxed{-7x}$.", x => 11 * x],
+                "raise7": ["Return $x^7$.", x => x ** 7, _ => MM.randomInt(-10, 10)],
+                "is91": ["Return $1$ for $91$, and $0$ otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
+                "mod37": ["Return the remainder when dividing the positive integer input by $37$.", x => x % 37, _ => MM.randomInt(1, 200)],
+                "palindrome": ["Input is a nonzero digit. For $4$, return $1234321$ and so on.", x => ((10 ** x - 1) / 9) ** 2, _ => MM.randomInt(1, 8)],//9 is too much lol
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
             },
             modules: [
@@ -681,10 +737,13 @@ class Level {
                 [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225], [373, 25], [373, 225]]
 
         },
-        "Number theory 2\n(unfinished)": {
+        "Number theory 2\n(work in progress)": {
             levels: {
-                "spf": ["Return the smallest prime factor of the input", x => MM.smallestPrimeFactor(x), () => MM.randomInt(2, 125)],
-                "fullyfactor": ["Return the prime factorization of the input, in increasing order.", ...(() => {
+                "spf": [
+                    `Return the smallest prime factor $p_{\\text{min}}$ of the input.\\\\You can use the empty set module $\\boxed{\\emptyset}$ to\\\\discard unwanted numbers,\\\\such as the other output of`
+                    + `\ $\\boxed{${Piece.TYPES.spf2[1]}}$.`
+                    , x => MM.smallestPrimeFactor(x), () => MM.randomInt(2, 125)],
+                "fullyfactor": ["Return the prime factorization of the input, in increasing order.$$", ...(() => {
                     let inputs = []
                     let outputs = []
                     while (true) {
@@ -697,58 +756,107 @@ class Level {
                     }
                     return [outputs, inputs]
                 })()],
-                "lcm": ["Return the least common multiple lcm(a,b)\nby swapping the swappable number theory module to lcm", (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
-                "isprime": ["Inputs are integers >= 2. Return 1 for primes, and 0 otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
+                "tutlcm": [
+                    // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
+                    String.raw`Return the least common multiple $\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`
+                    , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                "isprime": ["Inputs are integers $\geq 2$. Return $1$ for primes, and $0$ otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
+                /*
                 "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
                     {
                         modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "Obin_0", "Obin_1", "Obin_2", "Obin_3", "Efn", "Efn", "Efn2", "Otrig", "signum"]
                     }
                 ],
+                */
 
 
             },
             modules: [
-                "copy", "copy", "copythree", "spf2", "consume", "Obin_0", "Obin_1", "Obin_2", "Onth", "Oabs", "Oabs_1", "Econst_12", "Onth"
+                "copy", "copy", "copythree", "spf2", "consume", "Obin", "Obin", "Obin", "Onth", "Oabs", "Oabs", "Econst_12", "Econst_300", "Emul"
             ],
             positions:
-                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
+                [[1375, 910], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 24], [23, 224], [373, 24], [373, 224]]
         },
-        "Programming\n(unfinished)": {
+        "Programming": {
             levels: {
                 "harmfour": [String.raw`Return the harmonic mean of a,b,c,d.\\\\Recall: the harmonig mean is $\frac{4}{\frac{1}{a}+\frac{1}{b}+\frac{1}{c}+\frac{1}{d}}$.\\Note: you can \fbox{Swap} $\boxed{x+1}$ to $\boxed{\frac{1}{x}}$.`,
                 (a, b, c, d) => 4 / (1 / a + 1 / b + 1 / c + 1 / d),
                 _ => Array(4).fill().map(_ => MM.randomInt(1, 120))
                 ],
-                "tutpath": [String.raw`Return the nonnegative integers only.\\The $\boxed{${Piece.TYPES.Opath[2].swappable[0][2]}}$ module send its input in a different direction according to its sign.\\You can \fbox{Swap} it for a $\boxed{${Piece.TYPES.Opath[2].swappable[1][2]}}$ module as well.`,
+                "tutpath": [String.raw`Return the nonnegative integers only.\\The $\boxed{${Piece.TYPES.Opath[2].swappable[0][2]}}$ module send its input in a different direction according to its sign.\\You can \fbox{Swap} it for a $\boxed{${Piece.TYPES.Opath[2].swappable[1][2]}}$ module as well.\\Recall that unwanted numbers can be destroyed by sending them to the empty set $\boxed{\emptyset}$.`,
                 ...(() => {
                     const inp = []
                     for (let i = 0; i < 10; i++) {
                         inp.push(MM.randomInt(-100, 100))
-                        inp.push(MM.random(-10, 10))
-                        inp.push(0)
+                        inp.push(+MM.random(-10, 10).toPrecision(3))
+                        inp.push(+(Math.random() < .5))
                     }
                     const out = inp.map(x => Number.isInteger(x) && x >= 0 ? x : null).filter(x => x != null)
                     return [out, inp]
                 })()],
-                "xabs": [String.raw`Return |x|.`, x => Math.abs(x)],
-                "ismult5": [String.raw`Return only the multiples of 5.`, x => (x % 5 == 0) ? x : null, _ => Math.random() < .4 ? Math.randomInt(1, 40) * 5 : Math.randomInt(1, 200)],
-                "countdown": ["todo", [], [[]]],
-                "factorial": ["todo", [], [[]]],
-                "nrdiv": ["todo", [], [[]]],
-                "primeonly": ["todo", [], [[]]],
-                "totient": ["todo", [], [[]]],
-                "tutmem": ["todo", [], [[]]],
-                "seqsum": ["todo", [], [[]]],
-                "seqprod": ["todo", [], [[]]],
-                "seqmin": ["todo", [], [[]]],
-                "seqmean": ["todo", [], [[]]],
-                "seqseclast": ["todo", [], [[]]],
+                "xabs": [String.raw`Return |x|.$$`, x => Math.abs(x)],
+                "ismult5": [String.raw`Return only the multiples of 5.$$`, x => (x % 5 == 0) ? x : null, _ => Math.random() < .4 ? MM.randomInt(1, 40) * 5 : MM.randomInt(1, 200)],
+                "countdown": [String.raw`Return all positive integers not greater than the input in descending order.\\Hint: you'll need to create a loop.$$`, ...(() => {
+                    const a = MM.shuffle([4, 6, 7, 3, 8, 2])
+                    const inp = [...a]
+                    const out = a.flatMap(n => Array.from({ length: n }, (_, i) => n - i))
+                    return [out, inp]
+                })()],
+                "factorial": [String.raw`Return $n!$.`, x => MM.factArr(x), _ => MM.randomInt(1, 10)],
+                /*
+                "nrdiv": [String.raw`Return the number of divisors of $n$.`, x => MM.divisors(x).length, _ => MM.randomInt(2, 200)],
+                "primeonly": [String.raw`Return only the primes.$$`, ...(() => {
+                    const inp = []
+                    for (let i = 0; i < 30; i++) {
+                        if (Math.random() < .4)
+                            inp.push(MM.choice(Poly.primes200))
+                        else inp.push(MM.randomInt(2, 200))
+                    }
+                    const out = inp.filter(x => Poly.primes200.includes(x))
+                    return [out, inp]
+                })()],
+                */
+                //"totient": [String.raw`Return $\varphi(n)$ (Euler's totient function).\\Recall: $\varphi(n) = \#\{k=1,2,\dots,n \,\big|\,\text{gcd}(k,n)=1\}$.`, x => MM.totient(x), _ => MM.randomInt(2, 200)],
+                "xfloor": [String.raw`Return $\lfloor x \rfloor$ given positive $x$.`, x => Math.floor(x), _ => +MM.random(1, 30).toPrecision(3)],
+                /*
+                "tutmem": [String.raw`Return the last item of each zero-terminated positive sequence.\\The \fbox{MEM} ("memory")$$ module is not a mathematical function, but a programming tool.\\It stores every non-zero input it receives. Upon receiving a zero it first outputs the last stored number, also erasing all other numbers in the machine.\\The following "sequence" puzzles will each involve a zero-terminated positive sequence of positive numbers.\\Unlike other puzzles, these ones will push the next input available immediately,\\even if there are already numbers present in the machine.`,
+                ...Poly.getSequence(x => x.at(-1)),
+                { consecutive: true }
+                ],
+                "seqsum": [String.raw`$$Return the sum of the terms of each zero-terminated positive sequence.`,
+                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0)),
+                { consecutive: true }
+                ],
+                "seqmin": [String.raw`Return the minimum of each zero-terminated positive sequence.`,
+                ...Poly.getSequence(x => Math.min(...x)),
+                { consecutive: true }
+                ],
+                "seqprod": [String.raw`$$Return the product of each of the terms of each zero-terminated positive sequence.`,
+                ...Poly.getSequence(x => x.reduce((s, t) => s * t, 1)),
+                { consecutive: true }
+                ],
+                "seqmean": [String.raw`$$Return the mean of each zero-terminated positive sequence.`,
+                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0) / x.length),
+                { consecutive: true }
+                ],
+                "seqseclast": [String.raw`$$Return the second to last term of each zero-terminated positive sequence.`,
+                ...Poly.getSequence(x => x.at(-1)),
+                { consecutive: true }
+                ],
+                */
 
 
             },
-            modules: ["copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "mem", "mem", "consume", "Ostep", "Ostep"],
+            modules: [
+                // "mem", "mem",
+                "Onth",
+                "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep"],
             positions:
-                [[1184, 881], [27, 417], [71, 562], [50, 726], [324, 719], [602, 859], [326, 865], [612, 701], [592, 385], [642, 543], [867, 429], [316, 395], [347, 565], [890, 722], [881, 882], [43, 875], [1020, 573], [1183, 700], [13, 46], [13, 246], [363, 46], [363, 246]]
+                [
+                    // [1365, 530], [1356, 881],
+                    [1365, 530],
+                    [1292, 737], [27, 417], [71, 562], [50, 726], [324, 719], [602, 859], [326, 865], [612, 701], [592, 385], [642, 543], [867, 429], [316, 395], [347, 565], [43, 875], [925, 690], [882, 876], [13, 46], [13, 246], [363, 46], [363, 246]
+                ]
 
         }
     }

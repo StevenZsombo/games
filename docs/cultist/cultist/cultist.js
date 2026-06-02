@@ -21,7 +21,7 @@ var univ = {
     on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
     on_beforeunload: null,
-    allowQuietReload: true,
+    allowQuietReload: false,
     acquireNameStr: "Your English name (at least 4 letters):", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
@@ -53,8 +53,11 @@ class Game extends GameCore {
         let batch
         let stage
         {
-            const ns = GameEffects.nameSelect(Object.keys(Level.BATCHES),
-                { topText: "Select zone:", doNotConfirm: true })
+            let zoneKeys = Object.keys(Level.BATCHES)
+            if (!location.search.includes("unfinished") && !location.search.includes("dev"))
+                zoneKeys = zoneKeys.filter(x => !x.includes("unfinished"))
+            const ns = GameEffects.nameSelect(zoneKeys,
+                { topText: "Select puzzle type:", doNotConfirm: true })
             const height = ns.top.height
             ns.top.height = height / 3
             ns.but
@@ -550,6 +553,7 @@ COPY creates copies of its argument.
         this.isProducingInputs = false
         this.polys?.forEach(x => x.where.hold = null)
         this.polys?.clear()
+        this.pieces.forEach(x => x.onReset())
         this.tobeadded?.clear()
         this.stopStart?.activate()
         this.RECEIVED_COUNT = this.level.INPUTS[0].map(_ => 0)
@@ -681,7 +685,8 @@ COPY creates copies of its argument.
 //#region dev options
 /// dev options
 const dev = {
-    notes: () => GameEffects.popup(`
+    skip: true,
+    notes: () => !dev.skip && GameEffects.popup(`
 Still ironing out quirks. Better UI coming eventually. Sorry about the flicker.
 Level completion is sent to server, which cannot be disabled.
 Game speed is changed via Menu -> stepTime (for now).
