@@ -951,6 +951,17 @@ class LatexManager {
 			MathJax.tex2svg(this._tex).firstElementChild.outerHTML
 		)
 	}
+	async promise(tex) {
+		if (tex) this._tex = tex
+		const svg = await MathJax.tex2svgPromise(this._tex)
+		const svgString = svg.firstElementChild.outerHTML
+		this.img.src = 'data:image/svg+xml;base64,' + btoa(svgString)
+
+		return new Promise((resolve, reject) => {
+			this.img.onload = resolve
+			this.img.onerror = reject
+		})
+	}
 
 	static dollarToPure(strWithDollars) {
 		// const chopped = MM.delimitedText(strWithDollars, ["$", "@"])

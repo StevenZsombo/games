@@ -2851,7 +2851,7 @@ class GameEffects {
         }
         return received
     }
-
+    /**@returns {{Button & {latex: LatexManager}}} */
     static latexButton(alsoAddTEXforScripting = true) {
         const a = MM.pipe(new Button(),
             x => game.add_drawable(x)[0],

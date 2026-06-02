@@ -78,6 +78,7 @@ class Game extends GameCore {
         but.imgScale = 1
         this.add_drawable(but)
         this.add_drawable(canv)
+        Object.assign(this, { but, canv })
 
         const ROWS = 16 * detail
         const rS = but.width / ROWS
@@ -216,17 +217,52 @@ class Game extends GameCore {
             })
         }
         const spiral = () => {
-            return GameEffects.popup("TODO")
-            if (!canAnim) return
-            canAnim = false
-            gridFlat.forEach(p => {
-                p.disturbed = true
-                p.x = but.width / 2
-                p.y = but.height / 2
-                p.vx = 10
-                p.vy = 10
+            // return GameEffects.popup("TODO")
+            // if (!canAnim) return
+            const totalSteps = 180
+            const polar = new Map()
+            const { cx, cy } = canv.worldRect
+            const angleStep = TWOPI / totalSteps //2 degrees each
+            const magStep = canv.worldRect.width / totalSteps / 2 //half-widht
+            gridFlat.forEach((p) => {
+                const dx = p.x - cx
+                const dy = p.y - cy
+                const mag = Math.hypot(dx, dy)
+                const ang = Math.atan2(dy, dx)
+                // console.log({ mag, ang })
+                let index = [mag / magStep, ang / angleStep].map(Math.floor)
+                index = Math.max(...index)
+
+                if (!polar.has(index)) polar.set(index, [])
+                polar.get(index).push(p)
+
             })
-            animRelease()
+            //sweep
+            const all = new Set(gridFlat)
+            all.forEach(p => {
+                p.disturbed = false
+                p.vx = p.vy = 0
+            })
+            let i = 0
+            const a = setInterval(() => {
+                let mag = i * magStep
+                let ang = i * angleStep
+                all.forEach(p => {
+                    p.x = cx + Math.cos(ang) * mag
+                    p.y = cy + Math.sin(ang) * mag
+                })
+                polar.get(i)?.forEach(p => {
+                    all.delete(p)
+                    p.disturbed = true
+                })
+                i++
+                if (i > totalSteps) {
+                    clearInterval(a)
+                    all.forEach(p => p.disturbed = true)
+                }
+            }, 30)
+            this.polar = polar
+            console.log({ polar, all, cx, cy })
 
         }
         const dazzle = () => {
@@ -267,6 +303,8 @@ class Game extends GameCore {
         ab.bottomat(this.HEIGHT)
         ab.on_click = GameEffects.dropDownDebugFunctionsFromAnObject(allAnims)
         this.add_drawable(ab)
+
+        Object.assign(this, { grid, gridFlat })
 
     }
     //#region update_more

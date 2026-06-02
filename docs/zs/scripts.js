@@ -438,6 +438,13 @@ class Rect {
 		return new Rect(this.x, this.y, this.width, this.height)
 	}
 
+	get XYWHarray() {
+		return [this.x, this.y, this.width, this.height]
+	}
+	get XYWHobject() {
+		return { x: this.x, y: this.y, width: this.width, height: this.height }
+	}
+
 
 	static packArray(rectsToMove, destinationRects, alsoResize = false) {
 		rectsToMove.forEach((b, i) => {
