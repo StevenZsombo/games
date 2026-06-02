@@ -55,9 +55,13 @@ class Game extends GameCore {
         {
             const ns = GameEffects.nameSelect(Object.keys(Level.BATCHES),
                 { topText: "Select zone:", doNotConfirm: true })
+            const height = ns.top.height
+            ns.top.height = height / 3
+            ns.but
             ns.buts.forEach(x => {
                 Button.make_roundedRect(x)
                 x.stretch(.85, .85)
+                x.move(0, -2 / 3 * height)
             })
             ns.top.transparent = true
             batch = await ns.promise()
@@ -331,26 +335,36 @@ COPY creates copies of its argument.
             corner.txt = null
             corner.color = "antiquewhite"
             corner.transparent = false
-            corner.imgScale = 1
-            const resize = () => {
-                corner.imgScale = 1
+            corner.font_color = "blue"
+            corner.fontSize = 36
+            const resizeSmall = () => {
                 corner.width = corner.img.width + 20
-                corner.rightat(this.WIDTH)
                 corner.height = cornerHeight
                 corner.hover_color = "orange"
+                corner.imgScale = 1
+                if (corner.img.height > corner.height * 1.1) {
+                    corner.width = 550
+                    corner.imgScale = 0
+                    corner.txt = `${this.level.STAGE}: click here for instructions`
+                }
+                corner.rightat(this.WIDTH)
             }
-            if (corner.img && corner.img.width) resize()
-            else corner.img.onload = () => resize()
+            const resizeBig = () => {
+                corner.putOver(this.rect)
+                corner.imgScale = 0
+                corner.hover_color = null
+                corner.txt = null
+            }
+            if (corner.img && corner.img.width) resizeSmall()
+            else corner.img.onload = () => resizeSmall()
             let big = false
             corner.on_click = () => {
                 if (!big) {
                     big = true
-                    corner.putOver(this.rect)
-                    corner.imgScale = 0
-                    corner.hover_color = null
+                    resizeBig()
                 } else {
                     big = false
-                    resize()
+                    resizeSmall()
                 }
                 corner.rightat(this.WIDTH)
                 corner.topat(0)
@@ -370,7 +384,7 @@ COPY creates copies of its argument.
         this.table.heightRatio = 1.2
         this.table.outline = 1
         this.table.outline_outer = 1
-        this.table.columns_textFormattingFns = [x => x.join(", ")]
+        this.table.columns_textFormattingFns = [x => x?.join(", ")]
         this.table.fontSize = 26
         this.table.colors = this.table.getCloneOfColumnsFilledWith()
         this.table.colors[0][0] = `rgba(0,255,0,0.3)`
@@ -391,7 +405,7 @@ COPY creates copies of its argument.
             fontSize: 48,
             hover_color: "orange"
         })
-        stopStart.centeratX(this.rect.centerX)
+        stopStart.centeratX(this.rect.centerX - 200)
         stopStart.on_click = () => {
             this.isProducingInputs = true
             stopStart.deactivate()
@@ -408,7 +422,10 @@ COPY creates copies of its argument.
             this.keyboarder.on_copy = () => this.getSaveData()
             this.keyboarder.on_keydownDict["p"] = () => {
                 const a = [...this.getSaveData().positions]
-                a.push([a.at(-1)].flatMap(([x, y]) => [x, y + 200]))
+                const [x, y] = a.at(-1)
+                a.push([x, y + 200])
+                a.push([x + 350, y])
+                a.push([x + 350, y + 200])
                 navigator.clipboard.writeText(JSON.stringify(a))
             }
             this.keyboarder.on_paste = val => this.loadSave(val)

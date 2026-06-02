@@ -1,7 +1,8 @@
 //#region Poly
 class Poly {
+    static isZeroWithEpsilon = x => Math.abs(x) < 10 ** -8
     static universalFn = x =>
-        Number.isFinite(x) ? (Number.isInteger(x) ? x : (Math.abs(x) < 10 ** -8 ? 0 : +x.toPrecision(3))) : null
+        Number.isFinite(x) ? (Number.isInteger(x) ? x : (Poly.isZeroWithEpsilon(x) ? 0 : +x.toPrecision(3))) : null
     constructor(value, container) {
         this.value = value
         this.button = new Button({
@@ -17,6 +18,16 @@ class Poly {
     }
     get where() { return this._container }
     set where(but) { this._container = but; this.button.centerinRect(but); but.hold = this }
+
+    /**@returns {number | null | [number,number]} */
+    static parseDecimalOrFraction(str) {
+        if (Number.isFinite(+str)) return str
+        const spl = str.split("/")
+        if (spl.length !== 2) return null
+        if (spl.some(x => !Number.isFinite(+x))) return null
+        return [+spl[0], +spl[1]]
+    }
+
 }
 //#endregion
 
@@ -28,10 +39,14 @@ class Piece {
         fn ??= Piece.TYPES[type][0]
         latex ??= Piece.TYPES[type][1]
         props ??= Piece.TYPES[type][2] ?? {}
+        if (props.swappable && Piece.TYPES[type]) {
+            fn = props.swappable[0][1]
+            latex = props.swappable[0][2]
+        }
         this.type = type
         /**@type {function(...number):number} */
         this.button = Button.make_latex(new Button({
-            width: 180,
+            width: 210,
             height: 120,
             isBlocking: true,
         }))
@@ -57,8 +72,13 @@ class Piece {
             inB.hold = null
             this.inputs.push(inB)
         }
+        const onSideRatios = [
+            [0.5],
+            [0.25, 0.75],
+            [0.05, 0.5, .95]
+        ]
         this.inputs.forEach((x, i) => {
-            x.centeratY(Anim.interpol(this.button.top - 25, this.button.bottom + 25, (i + 1) / (1 + this.inputs.length)))
+            x.centeratY(Anim.interpol(this.button.top, this.button.bottom, onSideRatios[this.inputs.length - 1][i]))
         })
         const outputsNr = props.outputs ?? 1
         this.outputs = []
@@ -78,7 +98,7 @@ class Piece {
             this.outputs.push(outB)
         }
         this.outputs.forEach((x, i) => {
-            x.centeratY(Anim.interpol(this.button.top - 25, this.button.bottom + 25, (i + 1) / (1 + this.outputs.length)))
+            x.centeratY(Anim.interpol(this.button.top, this.button.bottom, onSideRatios[this.outputs.length - 1][i]))
         })
 
         this.misc = []
@@ -99,8 +119,8 @@ class Piece {
                 this.button.latex.tex = latex(trigger)
             }
             editButton.on_release = () => {
-                const user = prompt(msg).trim()
-                if (user == "") return
+                const user = prompt(msg)?.trim()
+                if (user === "" || user == null) return
                 this.onTrigger(user)
             }
             this.misc.push(editButton)
@@ -177,7 +197,8 @@ class Piece {
             em.emit("processed", u, this.outputs[i], this.inputs.map(x => x.hold))
             if (this.outputs.length)
                 this.inputs.forEach(x => {
-                    em.emit("move", x.hold.button, x, this.outputs[i])
+                    if (u != null)
+                        em.emit("move", x.hold.button, x, this.outputs[i])
                 })
         })
 
@@ -272,10 +293,22 @@ class Piece {
         Emul: [(x) => 7 * x, String.raw`7x`, {
             editable: {
                 msg: "Function f(x) = Cx for you constant C of your choice.",
-                condition: trigger => Number.isFinite(+trigger),
+                condition: trigger => Poly.parseDecimalOrFraction(trigger) != null,
                 type: trigger => "Emul_" + trigger,
-                fn: trigger => (x => x * (+trigger)),
-                latex: trigger => String.raw`{${+trigger}}x`,
+                fn: trigger => (() => {
+                    const parsed = Poly.parseDecimalOrFraction(trigger)
+                    if (Array.isArray(parsed))
+                        return x => parsed[0] / parsed[1] * x
+                    else
+                        return x => parsed * x
+                })(),
+                latex: trigger => (() => {
+                    const parsed = Poly.parseDecimalOrFraction(trigger)
+                    if (Array.isArray(parsed))
+                        return String.raw`\frac{${parsed[0]}}{${parsed[1]}}x`
+                    else
+                        return String.raw`${parsed}x`
+                })(),
             }
         }],
         Epow: [(x) => x ** 5, String.raw`x^{5}`, {
@@ -323,24 +356,59 @@ class Piece {
                 ["xy", (x, y) => x * y, String.raw`x\cdot y`],
                 ["x/y", (x, y) => x / y, String.raw`\frac{x}{y}`],
                 ["x^y", (x, y) => x ^ y, String.raw`x^y`],
+                ["log_x(y)", (x, y) => Math.log(y) / Math.log(x), String.raw`\log_{x}(y)`],
             ]
         }],
-        Onth: [(x, y) => ((x % y) + y) % y, String.raw`x\,\text{mod}\,y`, {
+        Ostep: [0, 0, {
             swappable: [
-                ["x mod y", (x, y) => ((x % y) + y) % y, String.raw`x \text{mod} y`],
+                ["x+1", x => x + 1, String.raw`x+1`],
+                ["x-1", x => x - 1, String.raw`x-1`],
+                ["-x", x => -x, String.raw`-x`],
+                ["1/x", x => 1 / x, String.raw`\frac{1}{x}`],
+                ["x^2", x => x ^ 2, String.raw`x^2`],
+                ["sqrt(x)", x => Math.sqrt(x), String.raw`\sqrt{x}`],
+                // ["", , String.raw``],
+            ]
+        }],
+        Onth: [0, 0, {
+            swappable: [
                 ["gcd(x,y)", (x, y) =>
-                    (Number.isInteger(x) && Number.isInteger(y))
+                    (Number.isInteger(x) && Number.isInteger(y) && x > 0 && y > 0)
                         ? MM.gcd(x, y)
                         : null, String.raw`\text{gcd}(x,y)`],
                 ["lcm(x,y)", (x, y) =>
-                    (Number.isInteger(x) && Number.isInteger(y))
+                    (Number.isInteger(x) && Number.isInteger(y) && x > 0 && y > 0)
                         ? MM.lcm(x, y)
                         : null, String.raw`\text{lcm}(x,y)`],
+                ["x mod y", (x, y) => ((x % y) + y) % y, String.raw`x\,\text{mod}\,y`],
+                ["min(x,y)", (x, y) => Math.min(x, y), String.raw`\text{min}(x,y)`],
+                ["max(x,y)", (x, y) => Math.max(x, y), String.raw`\text{max}(x,y)`],
                 /*["p-adic", (x, y) =>
                     (Number.isInteger(x) && Number.isInteger(y))
                         ? //@TODO
                         : null, String.raw`\text{lcm}(x,y)`],*/
             ],
+        }],
+        Opath: [0, 0, {
+            swappable:
+                [
+                    ["+=-",
+                        x =>
+                            Poly.isZeroWithEpsilon(x) ? [null, x, null] :
+                                x > 0 ? [x, null, null] :
+                                    [null, null, x],
+                        String.raw`\begin{array}{r}x>0\nearrow\\x=0\to\\x<0\searrow\end{array}`
+                    ],
+                    ["1ZnZ",
+                        x =>
+                            x == 1 ? [1, null, null] :
+                                Number.isInteger(x) ? [null, x, null] :
+                                    [null, null, x],
+                        String.raw`\begin{array}{r}x=1\nearrow\\x\in\mathbb{Z}\setminus\{1\}\to\\x\notin\mathbb{Z}\searrow\end{array}`
+                    ]
+                ],
+            outputs: 3,
+            moreButtonSettings: { imgScale: 1.4 }
         }],
         Osigma: [x => Number.isInteger(x) ? MM.divisors(x).length : null, String.raw`\sigma_0`, {
             swappable: [
@@ -368,6 +436,16 @@ class Piece {
         { outputs: 2 }
         ],
         consume: [x => null, String.raw`\emptyset`, { outputs: 0 }],
+        mem: [function (x) {
+            let stored = null
+            if (Poly.isZeroWithEpsilon(x)) {
+                return stored
+            } else {
+                stored = x
+                this.tex = String.raw`\begin{array}{c}\text{MEM:}\\${Poly.universalFn(x)}\end{array}`
+                return null
+            }
+        }, String.raw`\text{MEM}`]
     }
     static preset(type) {
         return new Piece(type)
@@ -493,7 +571,7 @@ class Level {
                 "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
                 "quadmean": [String.raw`Return the quadratic mean.$$`, (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "max": [String.raw`Return the larger of the two inputs.$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
-                "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $\overline{ab}$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
+                "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $ab$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
                 "quadratic": [
                     String.raw`Your inputs are the coefficients of $ax^2+bx+c$,\\where $a>0$ and $\Delta >=0$.\\Return the larger of the two roots.`,
                     ...(() => {
@@ -584,7 +662,7 @@ class Level {
                 "copy", "copy", "square", "sqrt", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"
             ],
             positions:
-                [[1710, 950], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [645, 494], [635, 642], [655, 787], [605, 923], [1169, 631], [604, 327], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212]]
+                [[1710, 950], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [642, 448], [632, 580], [659, 724], [608, 860], [1169, 631], [600, 274], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212], [371, 12], [371, 212]]
         },
         "Number theory": {
             levels: {
@@ -600,7 +678,7 @@ class Level {
                 "copy", "copy", "Econst_12", "pow", "Econst_300", "Emul_-7", "floor", "abs", "sum", "diff", "copy", "copy", "sum", "diff", "prod", "div", "signum"
             ],
             positions:
-                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
+                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225], [373, 25], [373, 225]]
 
         },
         "Number theory 2\n(unfinished)": {
@@ -619,7 +697,7 @@ class Level {
                     }
                     return [outputs, inputs]
                 })()],
-                "gcd": ["Return the greatest common divisor gcd(a,b)\nby swapping the swappable number theory module to gcd", (a, b) => MM.gcd(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                "lcm": ["Return the least common multiple lcm(a,b)\nby swapping the swappable number theory module to lcm", (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
                 "isprime": ["Inputs are integers >= 2. Return 1 for primes, and 0 otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
                 "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
                     {
@@ -630,10 +708,48 @@ class Level {
 
             },
             modules: [
-                "copy", "copy", "copythree", "spf2", "consume", "Obin_0", "Obin_1", "Obin_2", "Onth_2", "Oabs", "Oabs_1", "Econst_12", "Osigma"
+                "copy", "copy", "copythree", "spf2", "consume", "Obin_0", "Obin_1", "Obin_2", "Onth", "Oabs", "Oabs_1", "Econst_12", "Onth"
             ],
             positions:
                 [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [588, 864], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225]]
+        },
+        "Programming\n(unfinished)": {
+            levels: {
+                "harmfour": [String.raw`Return the harmonic mean of a,b,c,d.\\\\Recall: the harmonig mean is $\frac{4}{\frac{1}{a}+\frac{1}{b}+\frac{1}{c}+\frac{1}{d}}$.\\Note: you can \fbox{Swap} $\boxed{x+1}$ to $\boxed{\frac{1}{x}}$.`,
+                (a, b, c, d) => 4 / (1 / a + 1 / b + 1 / c + 1 / d),
+                _ => Array(4).fill().map(_ => MM.randomInt(1, 120))
+                ],
+                "tutpath": [String.raw`Return the nonnegative integers only.\\The $\boxed{${Piece.TYPES.Opath[2].swappable[0][2]}}$ module send its input in a different direction according to its sign.\\You can \fbox{Swap} it for a $\boxed{${Piece.TYPES.Opath[2].swappable[1][2]}}$ module as well.`,
+                ...(() => {
+                    const inp = []
+                    for (let i = 0; i < 10; i++) {
+                        inp.push(MM.randomInt(-100, 100))
+                        inp.push(MM.random(-10, 10))
+                        inp.push(0)
+                    }
+                    const out = inp.map(x => Number.isInteger(x) && x >= 0 ? x : null).filter(x => x != null)
+                    return [out, inp]
+                })()],
+                "xabs": [String.raw`Return |x|.`, x => Math.abs(x)],
+                "ismult5": [String.raw`Return only the multiples of 5.`, x => (x % 5 == 0) ? x : null, _ => Math.random() < .4 ? Math.randomInt(1, 40) * 5 : Math.randomInt(1, 200)],
+                "countdown": ["todo", [], [[]]],
+                "factorial": ["todo", [], [[]]],
+                "nrdiv": ["todo", [], [[]]],
+                "primeonly": ["todo", [], [[]]],
+                "totient": ["todo", [], [[]]],
+                "tutmem": ["todo", [], [[]]],
+                "seqsum": ["todo", [], [[]]],
+                "seqprod": ["todo", [], [[]]],
+                "seqmin": ["todo", [], [[]]],
+                "seqmean": ["todo", [], [[]]],
+                "seqseclast": ["todo", [], [[]]],
+
+
+            },
+            modules: ["copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "mem", "mem", "consume", "Ostep", "Ostep"],
+            positions:
+                [[1184, 881], [27, 417], [71, 562], [50, 726], [324, 719], [602, 859], [326, 865], [612, 701], [592, 385], [642, 543], [867, 429], [316, 395], [347, 565], [890, 722], [881, 882], [43, 875], [1020, 573], [1183, 700], [13, 46], [13, 246], [363, 46], [363, 246]]
+
         }
     }
     //#endregion
