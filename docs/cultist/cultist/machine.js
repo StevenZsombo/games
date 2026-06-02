@@ -1,3 +1,13 @@
+const stgs = {
+    colors: {
+        tPink: `hsla(0,100%,80%,0.5)`,
+        tYellow: `hsla(60,100%,50%,0.5)`,
+        tGreen: `rgba(0,255,0,0.3)`,
+        tRed: `rgba(255,0,0,0.3)`,
+        tBlue: `rgba(173, 216, 230,0.5)`,
+    }
+}
+
 //#region Poly
 class Poly {
     static isZeroWithEpsilon = x => Math.abs(x) < 10 ** -8
@@ -317,16 +327,28 @@ class Piece {
         }],
         Econst: [(_) => 451, String.raw`451`, {
             editable: {
-                msg: "Function f(x) = C for your choice of constant C.",
-                condition: trigger => Number.isFinite(+trigger),
-                type: trigger => "Econst_" + trigger,
-                fn: trigger => ((_) => +trigger),
-                latex: trigger => String.raw`${trigger}`,
+                msg: "Function f(x) = Cx for you constant C (decimal or fraction) of your choice.",
+                condition: trigger => Poly.parseDecimalOrFraction(trigger) != null,
+                type: trigger => "Emul_" + trigger,
+                fn: trigger => (() => {
+                    const parsed = Poly.parseDecimalOrFraction(trigger)
+                    if (Array.isArray(parsed))
+                        return x => parsed[0] / parsed[1]
+                    else
+                        return x => parsed
+                })(),
+                latex: trigger => (() => {
+                    const parsed = Poly.parseDecimalOrFraction(trigger)
+                    if (Array.isArray(parsed))
+                        return String.raw`\frac{${parsed[0]}}{${parsed[1]}}`
+                    else
+                        return String.raw`${parsed}`
+                })(),
             }
         }],
         Emul: [(x) => 7 * x, String.raw`7x`, {
             editable: {
-                msg: "Function f(x) = Cx for you constant C of your choice.",
+                msg: "Function f(x) = Cx for a constant C (decimal or fraction) of your choice.",
                 condition: trigger => Poly.parseDecimalOrFraction(trigger) != null,
                 type: trigger => "Emul_" + trigger,
                 fn: trigger => (() => {
@@ -613,7 +635,7 @@ class Level {
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30]],
+                [[1387, 58], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [380, 30], [380, 230]]
         },
         "Algebra 2": {
             levels: {
@@ -643,7 +665,7 @@ class Level {
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [330, 30], [330, 230]],
+                [[1372, 55], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 28], [30, 228], [380, 28], [380, 228]]
         },
         "Trigonometry": {
             levels: {
@@ -676,9 +698,8 @@ class Level {
                 "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div",
             ],
             positions:
-                [[1710, 950], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692],
-                // [985, 890],
-                [36, 21], [36, 221]]
+                [[1379, 60], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [36, 21], [36, 221], [386, 21], [386, 221]]
+
         },
         "Trigonometry 2": {
             levels: {
@@ -718,7 +739,7 @@ class Level {
                 "copy", "copy", "square", "sqrt", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"
             ],
             positions:
-                [[1710, 950], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [642, 448], [632, 580], [659, 724], [608, 860], [1169, 631], [600, 274], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212], [371, 12], [371, 212]]
+                [[1394, 68], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [642, 448], [632, 580], [659, 724], [608, 860], [1169, 631], [600, 274], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 12], [21, 212], [371, 12], [371, 212]]
         },
         "Number theory": {
             levels: {
@@ -734,12 +755,12 @@ class Level {
                 "copy", "copy", "Econst_12", "pow", "Econst_300", "Emul_-7", "floor", "abs", "sum", "diff", "copy", "copy", "sum", "diff", "prod", "div", "signum"
             ],
             positions:
-                [[1706, 930], [55, 433], [55, 561], [941, 165], [434, 365], [1247, 168], [1208, 376], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225], [373, 25], [373, 225]]
+                [[1383, 69], [55, 433], [55, 561], [790, 273], [434, 365], [940, 436], [1069, 271], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225], [373, 25], [373, 225]]
 
         },
         "Number theory 2\n(work in progress)": {
             levels: {
-                "spf": [
+                "tutspf": [
                     `Return the smallest prime factor $p_{\\text{min}}$ of the input.\\\\You can use the empty set module $\\boxed{\\emptyset}$ to\\\\discard unwanted numbers,\\\\such as the other output of`
                     + `\ $\\boxed{${Piece.TYPES.spf2[1]}}$.`
                     , x => MM.smallestPrimeFactor(x), () => MM.randomInt(2, 125)],
@@ -775,7 +796,7 @@ class Level {
                 "copy", "copy", "copythree", "spf2", "consume", "Obin", "Obin", "Obin", "Onth", "Oabs", "Oabs", "Econst_12", "Econst_300", "Emul"
             ],
             positions:
-                [[1375, 910], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 24], [23, 224], [373, 24], [373, 224]]
+                [[1389, 65], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 24], [23, 224], [373, 24], [373, 224]]
         },
         "Programming": {
             levels: {
@@ -848,15 +869,11 @@ class Level {
 
             },
             modules: [
-                // "mem", "mem",
                 "Onth",
                 "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep"],
             positions:
-                [
-                    // [1365, 530], [1356, 881],
-                    [1365, 530],
-                    [1292, 737], [27, 417], [71, 562], [50, 726], [324, 719], [602, 859], [326, 865], [612, 701], [592, 385], [642, 543], [867, 429], [316, 395], [347, 565], [43, 875], [925, 690], [882, 876], [13, 46], [13, 246], [363, 46], [363, 246]
-                ]
+                [[1392, 59], [1292, 737], [27, 417], [71, 562], [50, 726], [324, 719], [602, 859], [326, 865], [612, 701], [592, 385], [642, 543], [867, 429], [316, 395], [347, 565], [43, 875], [925, 690], [882, 876], [13, 46], [13, 246], [363, 46], [363, 246]]
+
 
         }
     }

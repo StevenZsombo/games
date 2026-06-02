@@ -21,7 +21,7 @@ var univ = {
     on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
     on_beforeunload: null,
-    allowQuietReload: false,
+    allowQuietReload: location.search.includes("dev") || location.search.includes("skip"),
     acquireNameStr: "Your English name (at least 4 letters):", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
@@ -65,6 +65,7 @@ class Game extends GameCore {
                 Button.make_roundedRect(x)
                 x.stretch(.85, .85)
                 x.move(0, -2 / 3 * height)
+                x.hover_color = "orange"
             })
             ns.top.transparent = true
             batch = await ns.promise()
@@ -77,9 +78,10 @@ class Game extends GameCore {
                 topText: "Select level:",
                 doNotConfirm: true
             })
-            const back = new Button({ width: 100, height: 80, txt: "Go back", color: "lightgray" })
+            const back = new Button({ width: 160, height: 80, txt: "Go back", fontSize: 28 })
             back.topat(20)
-            back.color = `hsla(0,0%,50%,.5)`
+            back.color = stgs.colors.tPink
+            back.hover_color = "orange"
             back.rightat(this.WIDTH - back.y)
             ns.fm.push(back)
             back.on_release = () => main()
@@ -175,14 +177,14 @@ COPY creates copies of its argument.
             console.log("Submitted", poly.value)
             this.table.colors[2][this.SUBMITTED.length] =
                 this.checkParticularAtI(this.SUBMITTED.length - 1)
-                    ? `rgba(0,255,0,0.3)` //color if bad
-                    : `rgba(255,0,0,0.3)`//color if good
+                    ? stgs.colors.tGreen //color if bad
+                    : stgs.colors.tRed//color if good
             this.checkVictory()
         })
         em.on("received", v => {
             console.log("Received", v)
             this.checkVictory()
-            this.table.colors[0][this.RECEIVED_COUNT[0]] = `hsla(60,100%,50%,0.5)`
+            this.table.colors[0][this.RECEIVED_COUNT[0]] = stgs.colors.tYellow
         })
         this.tempAnimStorage = []
         const _move = (buttonWhat, buttonFrom, buttonTo) => {
@@ -390,8 +392,8 @@ COPY creates copies of its argument.
         this.table.columns_textFormattingFns = [x => x?.join(", ")]
         this.table.fontSize = 26
         this.table.colors = this.table.getCloneOfColumnsFilledWith()
-        this.table.colors[0][0] = `rgba(0,255,0,0.3)`
-        this.table.colors[1][0] = this.table.colors[2][0] = `rgba(173, 216, 230,0.5)`
+        this.table.colors[0][0] = stgs.colors.tGreen
+        this.table.colors[1][0] = this.table.colors[2][0] = stgs.colors.tBlue
         /*corner.dynamicText = () =>
             `${INSTRUCTIONS}\n${MM.tableStr(
             // MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),
@@ -402,7 +404,7 @@ COPY creates copies of its argument.
         const stopStart = this.stopStart = new Button({
             width: 900, height: 60,
             color:
-                `hsla(60,100%,50%,0.5)`,
+                stgs.colors.tYellow,
             // "yellow",
             y: 10, txt: "Connect modules, then click here to start.",
             fontSize: 48,
@@ -419,7 +421,7 @@ COPY creates copies of its argument.
         const tools = new Button({ width: 200, height: 60, x: 10 })
         tools.bottomat(this.HEIGHT - 10)
         this.add_drawable(tools)
-        tools.color = `hsla(0,100%,80%,0.5)`
+        tools.color = stgs.colors.tPink
         Button.make_roundedRect(tools)
         if (location.search.includes("dev")) {
             this.keyboarder.on_copy = () => this.getSaveData()
@@ -447,7 +449,7 @@ COPY creates copies of its argument.
                         on_clockwork.length = 0
                         main()
                     }],
-                ], { moreButtonSettings: { width: 300 }, }
+                ], { moreButtonSettings: { width: 300 }, addCloseButton: false, autoClose: true }
             )
         }
         const multipliers = [0, 0.1, 1, 10, 50]
@@ -466,7 +468,7 @@ COPY creates copies of its argument.
             x.on_click = () => this.animator.speedMultiplier = multipliers[i]
             x.color = tools.color
             x.hover_color = "orange"
-            x.selected_color = `hsla(60,100%,50%,0.5)`
+            x.selected_color = stgs.colors.tYellow
         })
         Button.make_radio(this.speedButtons.slice(1), true)
         this.resetSpeed()
