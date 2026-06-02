@@ -632,7 +632,7 @@ class Game extends GameCore {
         )) {//win
             this.resetButton.txt = "Back to main menu"
             this.resetButton.on_click = () => main()
-            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.3,
+            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.2,
                 { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
             )
             this.celebrate()

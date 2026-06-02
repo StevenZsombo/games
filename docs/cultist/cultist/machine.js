@@ -696,14 +696,29 @@ class Level {
                 (a, b) => a * Math.cos(b)],
                 // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
-
+                "cosdouble": [String.raw`Your input is $\cos(x)$. Return $\cos(2x)$.`,
+                x => 2 * x ** 2 - 1,
+                () => +MM.random(-PI, PI).toPrecision(3)
+                ],
+                "cosdouble2": [String.raw`Your input is $\tan(x)$. Return $\cos(2x)$.`,
+                x => (1 - x ** 2) / (1 + x ** 2),
+                () => +MM.random(-PI, PI).toPrecision(3)
+                ],
+                "sindouble": [String.raw`Your input is $\tan(x)$. Return $\sin(2x)$.`,
+                x => (2 * x) / (1 - x ** 2),
+                () => (x => x !== 1 ? x : 1.2)(+MM.random(-PI, PI).toPrecision(3))
+                ],
+                "tanthree": [String.raw`Your input is $\tan(\theta)$. Return $-\tan(3\theta)$.`,
+                x => -((3 * x - x ** 3) / (1 - 3 * x ** 2)),
+                () => +MM.random(-1, PI).toPrecision(3)
+                ]
 
             },
             modules: [
-                "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div",
+                "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div", "copythree",
             ],
             positions:
-                [[1379, 60], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [36, 40], [36, 240], [386, 40], [386, 240]]
+                [[1379, 60], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [950, 840], [36, 40], [36, 240], [386, 40], [386, 240]]
 
         },
         "Trigonometry 2": {
