@@ -3123,8 +3123,8 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         const circles = new Set(
             Array(number).fill().map(_ => ({
                 x: MM.randomInt(0, game.WIDTH),
-                y: 0,
-                radius: MM.randomInt(2, 16),
+                y: 16,
+                radius: MM.randomInt(2, 15),
                 vx: MM.random(-0.5, 0.5),
                 vy: MM.random(-0.5, 0.5),
                 color: `hsl(${MM.randomInt(0, 360)},100%,50%)`,
