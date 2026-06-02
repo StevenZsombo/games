@@ -418,7 +418,7 @@ COPY creates copies of its argument.
         // stopStart.on_click()
         this.add_drawable(stopStart)
         this.add_drawable(corner)
-        const tools = new Button({ width: 200, height: 60, x: 10 })
+        const tools = this.tools = new Button({ width: 200, height: 60, x: 10 })
         tools.bottomat(this.HEIGHT - 10)
         this.add_drawable(tools)
         tools.color = stgs.colors.tPink
@@ -453,8 +453,9 @@ COPY creates copies of its argument.
             )
         }
         const multipliers = [0, 0.1, 1, 10, 50]
+        this.speedButtonsBGRect = new Rect(tools.right + tools.left, tools.top, 500, tools.height)
         const speedButtons = this.speedButtons =
-            new Rect(tools.right + tools.left, tools.top, 500, tools.height)
+            this.speedButtonsBGRect
                 .splitCol(1.3, 1.3, ...multipliers.slice(1).map(_ => 1)).map(x => Button.fromRect(x))
         speedButtons[0].txt = "Speed:"
         speedButtons[0].transparent = true
@@ -621,7 +622,16 @@ COPY creates copies of its argument.
                 { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
             )
 
-            GameEffects.fireworksShow()
+            // GameEffects.fireworksShow()
+            GameEffects.balls(
+                [
+                    ...this.piecesArr.map(x => x.button),
+                    this.speedButtonsBGRect,
+                    this.resetButton,
+                    this.table.backgroundRect,
+                    this.tools
+                ].filter(x => x)
+            )
             GameEffects.popup("VICTORY!")
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             const isNewVictory = !cultistVictories[this.level.STAGE]

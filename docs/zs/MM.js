@@ -3119,12 +3119,11 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         backgroundRect = game.rect.copy,
         gravity = 0.001,
         dampFactor = 0.95,
-
     } = {}) {
         const circles = new Set(
             Array(number).fill().map(_ => ({
-                x: MM.randomInt(0, this.WIDTH),
-                y: MM.randomInt(0, this.HEIGHT),
+                x: MM.randomInt(0, game.WIDTH),
+                y: 0,
                 radius: MM.randomInt(2, 16),
                 vx: MM.random(-0.5, 0.5),
                 vy: MM.random(-0.5, 0.5),
