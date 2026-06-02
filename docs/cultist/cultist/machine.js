@@ -32,7 +32,7 @@ class Poly {
 
     /**@returns {number | null | [number,number]} */
     static parseDecimalOrFraction(str) {
-        if (Number.isFinite(+str)) return str
+        if (Number.isFinite(+str)) return +str
         const spl = str.split("/")
         if (spl.length !== 2) return null
         if (spl.some(x => !Number.isFinite(+x))) return null
@@ -423,7 +423,7 @@ class Piece {
                 ["1/x", x => 1 / x, String.raw`\frac{1}{x}`],
                 ["x^2", x => x ^ 2, String.raw`x^2`],
                 ["sqrt(x)", x => Math.sqrt(x), String.raw`\sqrt{x}`],
-                // ["", , String.raw``],
+                // ["sgn(x)", x => Math.sign(x), String.raw`\text{sgn}(x)`],
             ]
         }],
         Onth: [0, 0, {
@@ -508,8 +508,8 @@ class Piece {
                     }
                 }
                 const reset = function () {
-                    game.polys.clear()
-                    game.tobeadded.clear()
+                    // game.polys.clear()
+                    // game.tobeadded.clear()
                     stored = null
                     this.tex = latex
                 }
@@ -840,30 +840,48 @@ class Level {
                 //"totient": [String.raw`Return $\varphi(n)$ (Euler's totient function).\\Recall: $\varphi(n) = \#\{k=1,2,\dots,n \,\big|\,\text{gcd}(k,n)=1\}$.`, x => MM.totient(x), _ => MM.randomInt(2, 200)],
                 "xfloor": [String.raw`Return $\lfloor x \rfloor$ given positive $x$.`, x => Math.floor(x), _ => +MM.random(1, 30).toPrecision(3)],
                 /*
-                "tutmem": [String.raw`Return the last item of each zero-terminated positive sequence.\\The \fbox{MEM} ("memory")$$ module is not a mathematical function, but a programming tool.\\It stores every non-zero input it receives. Upon receiving a zero it first outputs the last stored number, also erasing all other numbers in the machine.\\The following "sequence" puzzles will each involve a zero-terminated positive sequence of positive numbers.\\Unlike other puzzles, these ones will push the next input available immediately,\\even if there are already numbers present in the machine.`,
-                ...Poly.getSequence(x => x.at(-1)),
-                { consecutive: true }
-                ],
-                "seqsum": [String.raw`$$Return the sum of the terms of each zero-terminated positive sequence.`,
-                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0)),
-                { consecutive: true }
-                ],
-                "seqmin": [String.raw`Return the minimum of each zero-terminated positive sequence.`,
-                ...Poly.getSequence(x => Math.min(...x)),
-                { consecutive: true }
-                ],
-                "seqprod": [String.raw`$$Return the product of each of the terms of each zero-terminated positive sequence.`,
-                ...Poly.getSequence(x => x.reduce((s, t) => s * t, 1)),
-                { consecutive: true }
-                ],
-                "seqmean": [String.raw`$$Return the mean of each zero-terminated positive sequence.`,
-                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0) / x.length),
-                { consecutive: true }
-                ],
-                "seqseclast": [String.raw`$$Return the second to last term of each zero-terminated positive sequence.`,
-                ...Poly.getSequence(x => x.at(-1)),
-                { consecutive: true }
-                ],
+                                "tutmem": [String.raw`Return the last item of each zero-terminated positive sequence.\\The \fbox{MEM} ("memory")$$ module is not a mathematical function, but a programming tool.\\It stores every non-zero input it receives. Upon receiving a zero it first outputs the last stored number, also erasing all other numbers in the machine.\\The following "sequence" puzzles will each involve a zero-terminated positive sequence of positive numbers.\\Unlike other puzzles, these ones will push the next input available immediately,\\even if there are already numbers present in the machine.`,
+                                ...Poly.getSequence(x => x.at(-1)),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
+                                "seqsum": [String.raw`$$Return the sum of the terms of each zero-terminated positive sequence.`,
+                                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0)),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
+                                "seqmin": [String.raw`Return the minimum of each zero-terminated positive sequence.`,
+                                ...Poly.getSequence(x => Math.min(...x)),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
+                                "seqprod": [String.raw`$$Return the product of each of the terms of each zero-terminated positive sequence.`,
+                                ...Poly.getSequence(x => x.reduce((s, t) => s * t, 1)),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
+                                "seqmean": [String.raw`$$Return the mean of each zero-terminated positive sequence.`,
+                                ...Poly.getSequence(x => x.reduce((s, t) => s + t, 0) / x.length),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
+                                "seqseclast": [String.raw`$$Return the second to last term of each zero-terminated positive sequence.`,
+                                ...Poly.getSequence(x => x.at(-1)),
+                                {
+                                    consecutive: true,
+                                    modules: ["Onth", "copy", "copythree", "copythree", "Obin", "Obin", "Obin", "Obin", "Econst_12", "Econst_300", "Emul", "Opath_0", "Opath_0", "consume", "Ostep", "Ostep", "mem", "mem"]
+                                }
+                                ],
                 */
 
 
