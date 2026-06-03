@@ -72,9 +72,15 @@ class Game extends GameCore {
         }
         // while (true)
         {
+            let levelKeys = Array.from(Object.keys(Level.BATCHES[batch].levels))
+            if (!stgs.allowUntested && !location.search.includes("dev")) {
+                levelKeys = levelKeys.filter(x =>
+                    !Level.BATCHES[batch].levels[x][0].includes("UNTESTED")
+                )
+            }
             const ns = GameEffects.nameSelect(
                 //["Tutorial message"].concat
-                (Array.from(Object.keys(Level.BATCHES[batch].levels))), {
+                levelKeys, {
                 topText: "Select level:",
                 doNotConfirm: true
             })
@@ -87,21 +93,14 @@ class Game extends GameCore {
             back.on_release = () => main()
             Button.make_roundedRect(back)
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
-            ns.buts.forEach(x => { if (x.tag in vic) x.color = "lightgreen" })
+            ns.buts.forEach(x => {
+                const hasVictory = x.tag in vic
+                const hasUntested = Level.BATCHES[batch].levels[x.tag][0].includes("UNTESTED")
+                if (hasVictory && !hasUntested) x.color = "lightgreen"
+                if (!hasVictory && hasUntested) x.color = "red"
+                if (hasVictory && hasUntested) x.color = "purple"
+            })
             stage = await ns.promise()
-            /*if (stage !== "Tutorial message") break
-            else GameEffects.popup(`
-IN produces inputs, OUT creates outputs.
-All other modules map from left to right like a function.
-Modules have one (x) or two (x,y) arguments.
-
-You can drag the modules around, and you can connect them.
-Connect the right side of any module to the left side of any other.
-
-COPY creates copies of its argument.
-`,
-                { close_on_release: true, floatTime: 8000 }, GameEffects.popupPRESETS.megaBlue)
-        }*/
         }
         const level = this.level = new Level(batch, stage)
         this.initLevel()
@@ -149,8 +148,17 @@ COPY creates copies of its argument.
                     const { x, y } = game.mouser.pos
                     MM.drawLine(ctx, lineStart.x, lineStart.y, x, y, { width: linesLineWidth })
                 }
-                lines.forEach(([a, b]) =>
-                    MM.drawLine(ctx, a.cx, a.cy, b.cx, b.cy, { width: linesLineWidth }))
+                lines.forEach(([a, b]) => {
+                    const { cx, cy } = a
+                    const { centerX, centerY } = b
+                    const dist = (cx - centerX) ** 2 + (cy - centerY) ** 2
+                    MM.drawLine(ctx, cx, cy, centerX, centerY, {
+                        width:
+                            dist < 5000 ?
+                                linesLineWidth * 3 :
+                                linesLineWidth
+                    })
+                })
             }
         }
         w.add_drawable(linesDrawable, 6)
@@ -425,6 +433,12 @@ COPY creates copies of its argument.
         Button.make_roundedRect(tools)
         if (location.search.includes("dev")) {
             this.keyboarder.on_copy = () => this.getSaveData()
+            this.once(() => {
+                this.keyboarder.on_keydownDict["r"] = () => this.resetInputs()
+                this.speedButtons.forEach((x, i) =>
+                    this.keyboarder.on_keydownDict["" + i] = () => x.on_click?.())
+                this.keyboarder.on_keydownDict["0"] = () => this.stopStart.on_click?.()
+            })
             this.keyboarder.on_keydownDict["p"] = () => {
                 const a = [...this.getSaveData().positions]
                 const [x, y] = a.at(-1)
@@ -618,7 +632,7 @@ COPY creates copies of its argument.
         )) {//win
             this.resetButton.txt = "Back to main menu"
             this.resetButton.on_click = () => main()
-            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.3,
+            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.2,
                 { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
             )
             this.celebrate()

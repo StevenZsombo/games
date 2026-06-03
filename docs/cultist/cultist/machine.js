@@ -1,4 +1,5 @@
 const stgs = {
+    allowUntested: true,
     colors: {
         tPink: `hsla(0,100%,80%,0.5)`,
         tYellow: `hsla(60,100%,50%,0.5)`,
@@ -213,7 +214,7 @@ class Piece {
         this.panel.isBlocking = true
 
         if ((props.editable || props.swappable) && origType.includes("_")) {
-            this.onTrigger(origType.split("_").slice(1).join(""))
+            this.onTrigger(origType.split("_").slice(1).join("_"))
         }
         if (props.reset) this.onReset = props.reset.bind(this)
 
@@ -411,7 +412,7 @@ class Piece {
                 ["x-y", (x, y) => x - y, String.raw`x-y`],
                 ["xy", (x, y) => x * y, String.raw`x\cdot y`],
                 ["x/y", (x, y) => x / y, String.raw`\frac{x}{y}`],
-                ["x^y", (x, y) => x ^ y, String.raw`x^y`],
+                ["x^y", (x, y) => x ** y, String.raw`x^y`], //oops
                 ["log_x(y)", (x, y) => Math.log(y) / Math.log(x), String.raw`\log_{x}(y)`],
             ]
         }],
@@ -423,7 +424,7 @@ class Piece {
                 ["1/x", x => 1 / x, String.raw`\frac{1}{x}`],
                 ["x^2", x => x ^ 2, String.raw`x^2`],
                 ["sqrt(x)", x => Math.sqrt(x), String.raw`\sqrt{x}`],
-                // ["sgn(x)", x => Math.sign(x), String.raw`\text{sgn}(x)`],
+                ["sgn(x)", x => Math.sign(x), String.raw`\text{sgn}(x)`],
             ]
         }],
         Onth: [0, 0, {
@@ -432,10 +433,11 @@ class Piece {
                     (Number.isInteger(x) && Number.isInteger(y) && x > 0 && y > 0)
                         ? MM.gcd(x, y)
                         : null, String.raw`\text{gcd}(x,y)`],
-                ["lcm(x,y)", (x, y) =>
+                /*["lcm(x,y)", (x, y) =>
                     (Number.isInteger(x) && Number.isInteger(y) && x > 0 && y > 0)
                         ? MM.lcm(x, y)
                         : null, String.raw`\text{lcm}(x,y)`],
+                        */
                 ["x mod y", (x, y) => ((x % y) + y) % y, String.raw`x\,\text{mod}\,y`],
                 ["min(x,y)", (x, y) => Math.min(x, y), String.raw`\text{min}(x,y)`],
                 ["max(x,y)", (x, y) => Math.max(x, y), String.raw`\text{max}(x,y)`],
@@ -534,7 +536,7 @@ class Piece {
 
 class Level {
     //#region new Level
-    constructor(batch, stage, instructions, outputsOrRule, inputsOrFunc, { modules, positions, consecutive } = {}) {
+    constructor(batch, stage, instructions, outputsOrRule, inputsOrFunc, { modules, positions, consecutive, replace } = {}) {
         this.BATCH = batch
         this.STAGE = stage
         instructions ??= Level.BATCHES[batch].levels[stage][0]
@@ -559,9 +561,18 @@ class Level {
                 .forEach(x => this.MODULES.push(x))
         this.MODULES.unshift("out")
         /**@type {[number,number][]} */
-        this.POSITIONS = positions ?? Level.BATCHES[batch].levels[stage][3]?.positions ?? Level.BATCHES[batch].positions
+        this.POSITIONS = positions ?? Level.BATCHES[batch].levels[stage][3]?.positions ?? Level.BATCHES[batch].positions;
+        (replace ?? Level.BATCHES[batch].levels[stage][3]?.replace)?.forEach(([before, after]) => {
+            for (let i = 0; i < this.MODULES.length; i++) {
+                if (this.MODULES[i].startsWith(before))
+                    this.MODULES[i] = after
+            }
+        })
     }
     //#endregion
+
+    static UNTESTED = String.raw`{\color{red}(UNTESTED - might be impossible)}`
+    static HARD = String.raw`{\color{red}(Hard)}`
     //#region BATCHES
     /**
      * @type {Record<string, {
@@ -623,19 +634,13 @@ class Level {
                     return b
                 }],
                 // "digitsonly": ["Inputs are positive integers. Return only the inputs that are a single digit", x => [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(x) ? x : null, () => Math.random() < .5 ? MM.randomInt(1, 9) : MM.randomInt(1, 200)]
-                /*
-                "max": ["Take two consecutive inputs, and return the larger one.", ...(() => {
-                    const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                    const out = Array(30).fill().map((x, i) => Math.max(inp[2 * i], inp[2 * i + 1]))
-                    return [out, inp]
-                })()],
-                */
+
                 // "onesdigit": ["Return the ones digit of the positive integer.", x => x % 10, () => MM.randomInt(1, 999)]
             },
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
             positions:
-                [[1387, 58], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 230], [380, 30], [380, 230]]
+                [[1387, 58], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 40], [30, 240], [380, 40], [380, 240]]
         },
         "Algebra 2": {
             levels: {
@@ -643,7 +648,7 @@ class Level {
                 "hypot": [String.raw`\text{Find the length of vector }\binom{a}{b}`, (a, b) => Math.hypot(a, b)],
                 "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
                 "quadmean": [String.raw`Return the quadratic mean.$$`, (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
-                "max": [String.raw`Return the larger of the two inputs.$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
+                "max": [String.raw`Return the larger of the two inputs.${Level.HARD}$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $ab$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
                 "quadratic": [
                     String.raw`Your inputs are the coefficients of $ax^2+bx+c$,\\where $a>0$ and $\Delta >=0$.\\Return the larger of the two roots.`,
@@ -665,7 +670,7 @@ class Level {
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
             positions:
-                [[1372, 55], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 30], [30, 228], [380, 30], [380, 228]]
+                [[1372, 55], [62, 428], [67, 561], [37, 700], [117, 841], [342, 566], [350, 409], [377, 710], [378, 870], [613, 532], [743, 664], [645, 797], [740, 936], [980, 767], [880, 502], [638, 386], [30, 40], [30, 238], [380, 40], [380, 238]]
         },
         "Trigonometry": {
             levels: {
@@ -691,14 +696,29 @@ class Level {
                 (a, b) => a * Math.cos(b)],
                 // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
                 // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
-
+                "cosdouble": [String.raw`Your input is $\cos(x)$. Return $\cos(2x)$.`,
+                x => 2 * x ** 2 - 1,
+                () => +MM.random(-PI, PI).toPrecision(3)
+                ],
+                "cosdouble2": [String.raw`Your input is $\tan(x)$. Return $\cos(2x)$.`,
+                x => (1 - x ** 2) / (1 + x ** 2),
+                () => +MM.random(-PI, PI).toPrecision(3)
+                ],
+                "sindouble": [String.raw`Your input is $\tan(x)$. Return $\sin(2x)$.`,
+                x => (2 * x) / (1 - x ** 2),
+                () => (x => x !== 1 ? x : 1.2)(+MM.random(-PI, PI).toPrecision(3))
+                ],
+                "tanthree": [String.raw`Your input is $\tan(\theta)$. Return $-\tan(3\theta)$.`,
+                x => -((3 * x - x ** 3) / (1 - 3 * x ** 2)),
+                () => +MM.random(-1, PI).toPrecision(3)
+                ]
 
             },
             modules: [
-                "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div",
+                "square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "prod", "div", "copythree",
             ],
             positions:
-                [[1379, 60], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [36, 30], [36, 230], [386, 30], [386, 230]]
+                [[1379, 60], [62, 428], [67, 561], [37, 700], [117, 841], [354, 722], [344, 556], [378, 884], [381, 400], [645, 442], [641, 589], [645, 747], [708, 898], [923, 692], [950, 840], [36, 40], [36, 240], [386, 40], [386, 240]]
 
         },
         "Trigonometry 2": {
@@ -739,7 +759,7 @@ class Level {
                 "copy", "copy", "square", "sqrt", "abs", "sin", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"
             ],
             positions:
-                [[1394, 68], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [642, 448], [632, 580], [659, 724], [608, 860], [1169, 631], [600, 274], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 32], [21, 232], [371, 32], [371, 232]]
+                [[1394, 68], [87, 691], [44, 828], [41, 366], [83, 530], [335, 878], [332, 405], [349, 571], [352, 745], [642, 448], [632, 580], [659, 724], [608, 860], [1169, 631], [600, 274], [902, 586], [1203, 797], [1144, 948], [931, 759], [877, 908], [894, 397], [1169, 460], [21, 40], [21, 240], [371, 40], [371, 240]]
         },
         "Number theory": {
             levels: {
@@ -749,13 +769,18 @@ class Level {
                 "is91": ["Return $1$ for $91$, and $0$ otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
                 "mod37": ["Return the remainder when dividing the positive integer input by $37$.", x => x % 37, _ => MM.randomInt(1, 200)],
                 "palindrome": ["Input is a nonzero digit. For $4$, return $1234321$ and so on.", x => ((10 ** x - 1) / 9) ** 2, _ => MM.randomInt(1, 8)],//9 is too much lol
+                "nextsquare": [String.raw`Return the smallest square number not greater than the input.$$`,
+                x => Math.floor(Math.sqrt(x)) ** 2,
+                _ => MM.randomInt(2, 200)
+                ]
+
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
             },
             modules: [
                 "copy", "copy", "Econst_12", "pow", "Econst_300", "Emul_-7", "floor", "abs", "sum", "diff", "copy", "copy", "sum", "diff", "prod", "div", "signum"
             ],
             positions:
-                [[1383, 69], [55, 433], [55, 561], [790, 273], [434, 365], [940, 436], [1069, 271], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 25], [23, 225], [373, 25], [373, 225]]
+                [[1383, 69], [55, 433], [55, 561], [790, 273], [434, 365], [940, 436], [1069, 271], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 40], [23, 240], [373, 40], [373, 240]]
 
         },
         "Number theory 2\n(work in progress)": {
@@ -777,11 +802,19 @@ class Level {
                     }
                     return [outputs, inputs]
                 })()],
-                "tutlcm": [
-                    // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
-                    String.raw`Return the least common multiple $\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`
-                    , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
                 "isprime": ["Inputs are integers $\geq 2$. Return $1$ for primes, and $0$ otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
+                "lcm": [
+                    // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
+                    String.raw`Return the least common multiple of $a$ and $b$.`//$\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`
+                    , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                "ssquaref": [String.raw`${Level.UNTESTED}Return the smallest square number ($\neq 1$) that divides the input.\\\textit{(The inputs are not square-free.)}`,
+                x => {
+                    for (let i = 2; i < x; i++)
+                        if (x % (i ** 2) == 0) return i
+                },
+                () => MM.randomInt(2, 30) ** 2 * MM.randomInt(1, 13)
+                ]
+
                 /*
                 "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
                     {
@@ -796,7 +829,7 @@ class Level {
                 "copy", "copy", "copythree", "spf2", "consume", "Obin", "Obin", "Obin", "Onth", "Oabs", "Oabs", "Econst_12", "Econst_300", "Emul"
             ],
             positions:
-                [[1389, 65], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 24], [23, 224], [373, 24], [373, 224]]
+                [[1389, 65], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 40], [23, 240], [373, 40], [373, 240]]
         },
         "Programming": {
             levels: {
@@ -824,9 +857,12 @@ class Level {
                     return [out, inp]
                 })()],
                 "factorial": [String.raw`Return $n!$.`, x => MM.factArr(x), _ => MM.randomInt(1, 10)],
-                /*
-                "nrdiv": [String.raw`Return the number of divisors of $n$.`, x => MM.divisors(x).length, _ => MM.randomInt(2, 200)],
-                "primeonly": [String.raw`Return only the primes.$$`, ...(() => {
+                "xfloor": [String.raw`Return $\lfloor x \rfloor$ given positive $x$.`, x => Math.floor(x), _ => +MM.random(1, 30).toPrecision(3)],
+                "xabs2": [String.raw`$$Take absolute value.\\Your new favourite module is missing.`, x => Math.abs(x), _ => Math.random() < .3 ? 0 : MM.randomInt(-20, 20),
+                { replace: [["Opath", "identity"]] }
+                ],
+                "nrdiv": [String.raw`${Level.UNTESTED}Return the number of divisors of $n$.`, x => MM.divisors(x).length, _ => MM.randomInt(2, 200)],
+                "primeonly": [String.raw`${Level.UNTESTED}Return only the primes.$$`, ...(() => {
                     const inp = []
                     for (let i = 0; i < 30; i++) {
                         if (Math.random() < .4)
@@ -836,9 +872,7 @@ class Level {
                     const out = inp.filter(x => Poly.primes200.includes(x))
                     return [out, inp]
                 })()],
-                */
-                //"totient": [String.raw`Return $\varphi(n)$ (Euler's totient function).\\Recall: $\varphi(n) = \#\{k=1,2,\dots,n \,\big|\,\text{gcd}(k,n)=1\}$.`, x => MM.totient(x), _ => MM.randomInt(2, 200)],
-                "xfloor": [String.raw`Return $\lfloor x \rfloor$ given positive $x$.`, x => Math.floor(x), _ => +MM.random(1, 30).toPrecision(3)],
+                "totient": [String.raw`${Level.UNTESTED}Return $\varphi(n)$ (Euler's totient function).\\Recall: $\varphi(n) = \#\{k=1,2,\dots,n \,\big|\,\text{gcd}(k,n)=1\}$.`, x => MM.totient(x), _ => MM.randomInt(2, 200)],
                 /*
                                 "tutmem": [String.raw`Return the last item of each zero-terminated positive sequence.\\The \fbox{MEM} ("memory")$$ module is not a mathematical function, but a programming tool.\\It stores every non-zero input it receives. Upon receiving a zero it first outputs the last stored number, also erasing all other numbers in the machine.\\The following "sequence" puzzles will each involve a zero-terminated positive sequence of positive numbers.\\Unlike other puzzles, these ones will push the next input available immediately,\\even if there are already numbers present in the machine.`,
                                 ...Poly.getSequence(x => x.at(-1)),
