@@ -129,11 +129,12 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
             },
             update(dt) {
                 const { x, y } = game.mouser.pos
+                const held = game.mouser.held
                 if (!x && !y) return
                 particles.forEach(p => {
                     const dx = p.x - x
                     const dy = p.y - y
-                    if (dx ** 2 + dy ** 2 > mouseRadiusSquare) {
+                    if (!held || dx ** 2 + dy ** 2 > mouseRadiusSquare) {
                         const wx = p.origX - p.x
                         const wy = p.origY - p.y
                         p.color = particleColor
@@ -193,7 +194,7 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
         controlRect.leftat(areaRect.right + 20)
         controlRect.rightstretchat(this.WIDTH - 20)
 
-        const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1, 1).map(
+        const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1, 1, 1).map(
             x => Button.fromRect(x.deflate(0, 5))
         )
         controlButtons[0].dynamicText = () => `effect = ${effect}`
@@ -228,6 +229,9 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
                 .split(",")
             particleColor = p[0]
             mouseColor = p[1]
+        }
+        controlButtons[6].dynamicText = () => `TODO`
+        controlButtons[6].on_click = () => {
 
         }
 
