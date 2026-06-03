@@ -2,7 +2,7 @@
 var univ = {
     isOnline: false, //server is offline!
     PORT: 80,
-    framerateUnlocked: false,
+    framerateUnlocked: true,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
     showFramerate: true,
@@ -39,9 +39,17 @@ class Game extends GameCore {
         const heightRatioOfCanvas = 0.8
 
         // await new Promise(res => game.framerate.button.on_click = res)
-        let pixelStep = 8
-        const defaultTex = String.raw`\begin{array}{c}@\frac{-b\pm\sqrt{b^2-4ac}}{2a}@\end{array}`.split("@").join("\n")
-        let radius = 4
+        let pixelStep = 4
+        let radius = 2.5
+        const defaultTex =
+            String.raw`\begin{array}{c}
+x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
+\\
+\int x^n dx = \frac{x^{n+1}}{n+1}+C
+\end{array}`
+
+        let particleColor = "blue"
+        let mouseColor = "red"
         let imageData, data, activeIndices = [], particles = [], goodCoordinates = []
         let cached = defaultTex
         const render = async (tex, forced = false) => {
@@ -50,6 +58,7 @@ class Game extends GameCore {
             cached = tex //needed in enxt line
             await b.promise(cached) //cached = tex anyways
             const fittedRect = new Rect(b.img.x, b.img.y, b.img.width, b.img.height)
+            fittedRect.centeratX(this.rect.centerX)
             fittedRect.scaleWithinAnother(this.rect.copy.stretch(1, heightRatioOfCanvas))
             canv.canvas.width = fittedRect.width
             canv.canvas.height = fittedRect.height
@@ -96,7 +105,7 @@ class Game extends GameCore {
                 origY: y,
                 vx: 0,
                 vy: 0,
-                color: "red"
+                color: particleColor
             })))
             console.log("new particles!")
         }
@@ -124,7 +133,7 @@ class Game extends GameCore {
                     if (dx ** 2 + dy ** 2 > mouseRadiusSquare) {
                         const wx = p.origX - p.x
                         const wy = p.origY - p.y
-                        p.color = "red"
+                        p.color = particleColor
                         p.x += wx * dt * crawlCoeff
                         p.y += wy * dt * crawlCoeff
                         return
@@ -148,7 +157,7 @@ class Game extends GameCore {
                         p.y = p.origY + Math.sin(game.dtTotal / TWOPI / 100 + p.x / 100 * waveRat) * 100 * effectMag
                         // dy * dt * awayCoeff * effectMag * waveRat * 100
                     }
-                    p.color = "blue"
+                    p.color = mouseColor
                 })
             }
         }
@@ -178,28 +187,11 @@ class Game extends GameCore {
         controlRect.leftat(areaRect.right + 20)
         controlRect.rightstretchat(this.WIDTH - 20)
 
-        const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1).map(
+        const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1, 1).map(
             x => Button.fromRect(x.deflate(0, 5))
         )
-        controlButtons[0].dynamicText = () => `pixelStep = ${pixelStep}`
+        controlButtons[0].dynamicText = () => `effect = ${effect}`
         controlButtons[0].on_click = () => {
-            pixelStep = Math.max(1, Math.floor(+prompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
-        }
-        controlButtons[1].dynamicText = () => `radius = ${radius}`
-        controlButtons[1].on_click = () => {
-            radius = +prompt("Determines the radius of each drawn circle.", radius); render(null, true)
-        }
-        controlButtons[2].dynamicText = () => `mouseRadius = ${Math.sqrt(mouseRadiusSquare)}`
-        controlButtons[2].on_click = () => {
-            mouseRadiusSquare = (+prompt("Determines the radius of the mouse hover effect.", Math.sqrt(mouseRadiusSquare))) ** 2; render(null, true)
-        }
-        controlButtons[3].dynamicText = () => `effectMag = ${effectMag}`
-        controlButtons[3].on_click = () => {
-            effectMag = +prompt("Determines the magnitude (intensity) of the mouse hover effects.", effectMag); render(null, true)
-        }
-
-        controlButtons[4].dynamicText = () => `effect = ${effect}`
-        controlButtons[4].on_click = () => {
             /*const want = prompt("Chooose effect from this list:\n" + effectsAvailable.join("\n"))
             if (!effectsAvailable.includes(want)) return
             effect = want*/
@@ -208,10 +200,31 @@ class Game extends GameCore {
                 effectsAvailable.map(x => [x, () => effect = x])
             )
         }
-        controlButtons.slice(0, -1).forEach((x, i) =>
-            x.topat(controlButtons[i + 1].top)
-        )
-        controlButtons.at(-1).topat(areaRect.top)
+        controlButtons[1].dynamicText = () => `pixelStep = ${pixelStep}`
+        controlButtons[1].on_click = () => {
+            pixelStep = Math.max(1, Math.floor(+prompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
+        }
+        controlButtons[2].dynamicText = () => `radius = ${radius}`
+        controlButtons[2].on_click = () => {
+            radius = +prompt("Determines the radius of each drawn circle.", radius); render(null, true)
+        }
+        controlButtons[3].dynamicText = () => `mouseRadius = ${Math.sqrt(mouseRadiusSquare)}`
+        controlButtons[3].on_click = () => {
+            mouseRadiusSquare = (+prompt("Determines the radius of the mouse hover effect.", Math.sqrt(mouseRadiusSquare))) ** 2; render(null, true)
+        }
+        controlButtons[4].dynamicText = () => `effectMag = ${effectMag}`
+        controlButtons[4].on_click = () => {
+            effectMag = +prompt("Determines the magnitude (intensity) of the mouse hover effects.", effectMag); render(null, true)
+        }
+        controlButtons[5].dynamicText = () => `colors = ${particleColor},${mouseColor}`
+        controlButtons[5].on_click = () => {
+            const p = prompt(`Colors, when away from / near the mouse, separated by a comma.`, `${particleColor},${mouseColor}`)
+                .split(",")
+            particleColor = p[0]
+            mouseColor = p[1]
+
+        }
+
 
         this.add_drawable(controlButtons)
 
@@ -230,7 +243,8 @@ class Game extends GameCore {
             this.framerate.fps > 55 ? "yellow" :
                 this.framerate.fps > 25 ? "orange" :
                     "red"
-        this.framerate.button.bottomat(areaRect.top - 20)
+        // this.framerate.button.bottomat(areaRect.top - 20)
+        this.framerate.button.rightat(this.rect.right)
 
     }
     //#endregion
