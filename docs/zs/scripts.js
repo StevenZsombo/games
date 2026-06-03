@@ -653,7 +653,7 @@ class Clickable extends Rect {
 //#endregion
 //#region Button
 class Button extends Clickable {
-	/**@param {Button} [options={}]  */
+	/**@param {Button} [options]  */
 	constructor(options = {}) {
 		super(options)
 		/**@type {string} */
