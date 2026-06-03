@@ -31,19 +31,26 @@ class Game extends GameCore {
     async initialize_more() {
         const b = new LatexManager()
         // b.tex = "testing"
-        // await new Promise(res => b.img.onload = res)
+        await new Promise(res => b.img.onload = res)
         // await new Promise(res => setTimeout(res, 3000))
-        await b.promise("testing")
+        // await b.promise("")
         const canv = new GameCanvas(this.rect.copy)
         canv.visible = false
+        const heightRatioOfCanvas = 0.8
 
         // await new Promise(res => game.framerate.button.on_click = res)
-        const pixelStep = 8
+        let pixelStep = 8
+        const defaultTex = String.raw`\begin{array}{c}@\frac{-b\pm\sqrt{b^2-4ac}}{2a}@\end{array}`.split("@").join("\n")
+        let radius = 4
         let imageData, data, activeIndices = [], particles = [], goodCoordinates = []
-        const regenerate = async (tex) => {
-            await b.promise(tex)
+        let cached = defaultTex
+        const render = async (tex, forced = false) => {
+            tex ??= cached
+            if (!forced && tex.trim() == cached.trim()) return
+            cached = tex //needed in enxt line
+            await b.promise(cached) //cached = tex anyways
             const fittedRect = new Rect(b.img.x, b.img.y, b.img.width, b.img.height)
-            fittedRect.scaleWithinAnother(this.rect)
+            fittedRect.scaleWithinAnother(this.rect.copy.stretch(1, heightRatioOfCanvas))
             canv.canvas.width = fittedRect.width
             canv.canvas.height = fittedRect.height
             console.log(fittedRect)
@@ -93,12 +100,15 @@ class Game extends GameCore {
             })))
             console.log("new particles!")
         }
-        regenerate()
+        render(defaultTex, true)
 
-        const radius = pixelStep / 2
         const awayCoeff = 0.002
-        const awayRadiusSquare = 100 ** 2
+        let mouseRadiusSquare = 300 ** 2
         const crawlCoeff = 0.003
+
+        let effectsAvailable = ["push", "pull", "swirl", "grab", "wave"]
+        let effect = effectsAvailable[0]
+        let effectMag = 1
         const particlesDrawable = {
             draw(ctx) {
                 particles.forEach(p => {
@@ -111,17 +121,34 @@ class Game extends GameCore {
                 particles.forEach(p => {
                     const dx = p.x - x
                     const dy = p.y - y
-                    if (dx ** 2 + dy ** 2 > awayRadiusSquare) {
-                        p.color = "red"
+                    if (dx ** 2 + dy ** 2 > mouseRadiusSquare) {
                         const wx = p.origX - p.x
                         const wy = p.origY - p.y
+                        p.color = "red"
                         p.x += wx * dt * crawlCoeff
                         p.y += wy * dt * crawlCoeff
                         return
+                    } //else:
+                    if (effect == "push") {
+                        p.x += dx * dt * awayCoeff * effectMag
+                        p.y += dy * dt * awayCoeff * effectMag
+                    }
+                    if (effect == "pull" || effect == "grab") {
+                        const pullRat = 1
+                        p.x += dx * dt * awayCoeff * effectMag * -pullRat
+                        p.y += dy * dt * awayCoeff * effectMag * -pullRat
+                    }
+                    if (effect == "swirl" || effect == "grab") {
+                        const swirlRat = 1
+                        p.x += dy * dt * awayCoeff * effectMag * -1 * swirlRat
+                        p.y += dx * dt * awayCoeff * effectMag * swirlRat
+                    }
+                    if (effect == "wave") {
+                        const waveRat = 0.5
+                        p.y = p.origY + Math.sin(game.dtTotal / TWOPI / 100 + p.x / 100 * waveRat) * 100 * effectMag
+                        // dy * dt * awayCoeff * effectMag * waveRat * 100
                     }
                     p.color = "blue"
-                    p.x += dx * dt * awayCoeff
-                    p.y += dy * dt * awayCoeff
                 })
             }
         }
@@ -129,27 +156,90 @@ class Game extends GameCore {
 
         this.add_drawable(particlesDrawable)
 
-        this.framerate.button.on_click = () => this.regenerate(
-            // LatexManager.dollarToPure(prompt())
-            prompt()
+
+
+        const areaRect = this.rect.copy.stretch(.8, 1 - heightRatioOfCanvas)
+            .bottomat(this.rect.bottom)
+            .leftat(20)
+
+        const wanted = this.mouser.rectCanvasToEvent(
+            areaRect
         )
-        this.framerate.button.on_drag = null
+        const area = GameEffects.inputBox(
+            ...wanted.XYWHarray,
+            null,
+            x => render(x))
+        area.value = defaultTex
+        this.keyboarder.on_copy = () => area.value
+        this.keyboarder.denyCopyPaste = false
+
+
+        const controlRect = areaRect.copy
+        controlRect.leftat(areaRect.right + 20)
+        controlRect.rightstretchat(this.WIDTH - 20)
+
+        const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1).map(
+            x => Button.fromRect(x.deflate(0, 5))
+        )
+        controlButtons[0].dynamicText = () => `pixelStep = ${pixelStep}`
+        controlButtons[0].on_click = () => {
+            pixelStep = Math.max(1, Math.floor(+prompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
+        }
+        controlButtons[1].dynamicText = () => `radius = ${radius}`
+        controlButtons[1].on_click = () => {
+            radius = +prompt("Determines the radius of each drawn circle.", radius); render(null, true)
+        }
+        controlButtons[2].dynamicText = () => `mouseRadius = ${Math.sqrt(mouseRadiusSquare)}`
+        controlButtons[2].on_click = () => {
+            mouseRadiusSquare = (+prompt("Determines the radius of the mouse hover effect.", Math.sqrt(mouseRadiusSquare))) ** 2; render(null, true)
+        }
+        controlButtons[3].dynamicText = () => `effectMag = ${effectMag}`
+        controlButtons[3].on_click = () => {
+            effectMag = +prompt("Determines the magnitude (intensity) of the mouse hover effects.", effectMag); render(null, true)
+        }
+
+        controlButtons[4].dynamicText = () => `effect = ${effect}`
+        controlButtons[4].on_click = () => {
+            /*const want = prompt("Chooose effect from this list:\n" + effectsAvailable.join("\n"))
+            if (!effectsAvailable.includes(want)) return
+            effect = want*/
+            this.mouser.blockNextRelease()
+            GameEffects.dropDrownBetter(
+                effectsAvailable.map(x => [x, () => effect = x])
+            )
+        }
+        controlButtons.slice(0, -1).forEach((x, i) =>
+            x.topat(controlButtons[i + 1].top)
+        )
+        controlButtons.at(-1).topat(areaRect.top)
+
+        this.add_drawable(controlButtons)
+
 
         const ALL = {
+            area,
             b, canv, imageData, data, activeIndices, goodCoordinates, particles, particlesDrawable,
-            regenerate
+            render,
+            controlButtons, controlRect, areaRect
         }
         console.log("done", { ...ALL })
         Object.assign(this, { ...ALL })
 
+
+        this.framerate.button.dynamicColor = () =>
+            this.framerate.fps > 55 ? "yellow" :
+                this.framerate.fps > 25 ? "orange" :
+                    "red"
+        this.framerate.button.bottomat(areaRect.top - 20)
 
     }
     //#endregion
 
 
     //#region update_more
+    dtSin = 0
     update_more(dt) {
-
+        this.dtSin = Math.sin(this.dtTotal / TWOPI / 50)
 
 
 

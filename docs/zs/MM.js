@@ -2785,9 +2785,12 @@ class GameEffects {
         input.id = "inputBox" //my own thing
         input.style.left = x + "px"
         input.style.top = y + "px"
-        input.style.margin = input.style.padding = "0"
-        input.style.border = outline ? "" : "2px solid black"
+        input.style.margin = "0"
+        input.style.padding = "2 px"
         input.style.boxSizing = "border-box"
+        input.style.border = outline ? "" : "${outline}px solid gray"
+        input.style.outline = "none"
+        // input.onfocus = () => input.style.border = outline ? "" : "${outline}px solid gray"
         input.style.backgroundColor = color
         width && (input.style.width = width + "px")
         height && (input.style.height = height + "px")

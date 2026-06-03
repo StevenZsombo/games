@@ -80,6 +80,7 @@ class Keyboarder {
 		this.on_paste = null //(text) => ...
 		this.on_pasteEvent = null //(event) => ...
 		this.on_copy = null
+		this.denyCopyPaste = true
 		this.on_undo = null
 		this.on_redo = null
 		this.isLogging = true //for copy paste undo redo
@@ -114,6 +115,7 @@ class Keyboarder {
 			this.lastPasted = text
 			this.on_paste?.(text)
 			this.isLogging && console.log("Pasted: ", text)
+			if (!this.denyCopyPaste) return
 			e.preventDefault()
 			e.stopPropagation()
 		}
@@ -126,6 +128,7 @@ class Keyboarder {
 				navigator.clipboard.writeText(data)
 				this.isLogging && console.log("Copied: ", data)
 			}
+			if (!this.denyCopyPaste) return
 			e.preventDefault()
 			e.stopPropagation()
 		}
