@@ -91,7 +91,7 @@ class Game extends GameCore {
             ["posRatio", 0.1, 2],
             ["light1", 0, 1],
             ["light2", 0, 1],
-            ["branchSize", 20, 300],
+            ["branchSize", 20, 1000],
         ]
         const bgRect = new Rect()
         bgRect.putOver(frac)

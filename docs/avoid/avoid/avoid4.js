@@ -118,7 +118,7 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
         let mouseRadiusSquare = 300 ** 2
         const crawlCoeff = 0.003
 
-        let effectsAvailable = ["push", "pull", "swirl", "grab", "wave"]
+        let effectsAvailable = ["push", "pull", "swirl", "grab", "up", "wave"]
         let effect = effectsAvailable[0]
         let effectMag = 1
         const particlesDrawable = {
@@ -144,6 +144,9 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
                     if (effect == "push") {
                         p.x += dx * dt * awayCoeff * effectMag
                         p.y += dy * dt * awayCoeff * effectMag
+                    }
+                    if (effect == "up") {
+                        p.y += effectMag * 3 * -1
                     }
                     if (effect == "pull" || effect == "grab") {
                         const pullRat = 1
