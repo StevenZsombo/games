@@ -40,7 +40,10 @@ class Game extends GameCore {
 
         // await new Promise(res => game.framerate.button.on_click = res)
         let pixelStep = 4
-        let radius = 2.5
+        if (location.search && Number.isFinite(+location.search.slice(1)))
+            pixelStep = +location.search.slice(1)
+        console.log({ search: location.search, pixelStep })
+        let radius = pixelStep * .6
         const defaultTex =
             String.raw`\begin{array}{c}
 x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
