@@ -660,20 +660,18 @@ class Game extends GameCore {
 
     celebrate() {
         // GameEffects.fireworksShow()
-        const helper = new WeakMap()
+        const helper = new Map()
         for (const piece of this.pieces) {
             helper.set(piece, {
                 y: piece.button.y,
                 phase: MM.random(3, 10) / 1000
             })
         }
-        Anim.custom(null, 30_000, (t) => {
-            this.pieces.forEach(p => {
-                if (p.button.last_held) { helper.delete(p); return; }
-                const h = helper.get(p)
-                if (!h) return
-                const { y, phase } = h
-                p.button.y = y + Math.sin(t / phase) * 20
+        Anim.custom(null, 15_000, (t) => {
+            helper.forEach((data, piece) => {
+                if (piece.button.last_held) { helper.delete(piece); return; }
+                const { y, phase } = data
+                piece.button.y = y + Math.sin(t / phase) * 20
             })
         }, "", {
             // repeat: 2000,
