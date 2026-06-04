@@ -1,11 +1,11 @@
 precision mediump float;
-varying vec2 t;
-uniform sampler2D u_tex;
-uniform float u_time;
-uniform float u_width;
-    void main() {
-        float wave = sin(u_time * 6.2831 + t.x * u_width / 200.0) * 20.0 / u_width;
-        vec2 offset = vec2(0, wave);
-        vec2 uv = vec2(t.x, 1.0 - t.y) + offset;
-        gl_FragColor = texture2D(u_tex, uv);
+varying vec2 textureCoord;
+uniform sampler2D screenTexture;
+uniform float elapsedSeconds;
+uniform float canvasWidth;
+
+void main() {
+    float waveOffset = sin(elapsedSeconds * 6.2831 + textureCoord.x * canvasWidth / 200.0) * 20.0 / canvasWidth;
+    vec2 displacedCoord = vec2(textureCoord.x, 1.0 - textureCoord.y) + vec2(0, waveOffset);
+    gl_FragColor = texture2D(screenTexture, displacedCoord);
 }

@@ -72,62 +72,93 @@ class Game extends GameCore {
 
     //#region initialize_more
     async initialize_more() {
+        const off = this.off = new GameCanvas(this.rect.copy)
         const bg = Button.fromRect(this.rect.copy.stretch(.8, .8), {
             color: "darkred"
         })
         // Cropper.loadImagePromise("cats.png").then(x => bg.img = x)
         bg.img = await Cropper.loadImagePromise("cats.png")
-        this.add_drawable(bg)
+        off.add_drawable(bg)
+        // const fg = bg.copy
+        // fg.color = "blue"
+        // fg.img = off.canvas
+        // this.add_drawable(fg)
 
         // WebGL setup
         const fxCanvas = document.createElement("canvas")
         fxCanvas.width = this.WIDTH
         fxCanvas.height = this.HEIGHT
         const gl = fxCanvas.getContext("webgl")
-
-        // Shaders
-        const vs = gl.createShader(gl.VERTEX_SHADER)
-        gl.shaderSource(vs, "attribute vec2 p;varying vec2 t;void main(){gl_Position=vec4(p,0,1);t=(p+1.)/2.;}")
-        gl.compileShader(vs)
-
-        const fs = gl.createShader(gl.FRAGMENT_SHADER)
-        gl.shaderSource(fs, await (await fetch("shader.frag")).text())
-        gl.compileShader(fs)
-
-        const prog = gl.createProgram()
-        gl.attachShader(prog, vs)
-        gl.attachShader(prog, fs)
-        gl.linkProgram(prog)
-        gl.useProgram(prog)
-
-        const buf = gl.createBuffer()
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
-        const a = gl.getAttribLocation(prog, "p")
-        gl.enableVertexAttribArray(a)
-        gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0)
-
-        const tex = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, tex)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-        this.uTime = gl.getUniformLocation(prog, "u_time")
-        this.uWidth = gl.getUniformLocation(prog, "u_width")
-        this.gl = gl
-        this.fxCanvas = fxCanvas
-        this.fxTexture = tex
-        this.fxCanvasCtx = fxCanvas.getContext("2d") // not used, just for drawImage
-
-        // Add the fxCanvas as a drawable overlay
-        this.fxOverlay = {
+        const fxDrawable = {
             draw(ctx) {
                 ctx.drawImage(fxCanvas, 0, 0)
             }
         }
-        this.add_drawable(this.fxOverlay)
+        // this.add_drawable(off)
+        this.add_drawable(fxDrawable)
 
+
+        // Shaders
+        this.shader = {}
+
+        // Vertex shader
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER)
+        gl.shaderSource(vertexShader, "attribute vec2 cornerPosition; varying vec2 textureCoord; void main() { gl_Position = vec4(cornerPosition, 0, 1); textureCoord = (cornerPosition + 1.0) / 2.0; }")
+        gl.compileShader(vertexShader)
+
+        // Fragment shader (loaded from file)
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+        gl.shaderSource(fragmentShader, await (await fetch("shader.frag")).text())
+        gl.compileShader(fragmentShader)
+
+        // Link shaders into a program
+        const shaderProgram = gl.createProgram()
+        gl.attachShader(shaderProgram, vertexShader)
+        gl.attachShader(shaderProgram, fragmentShader)
+        gl.linkProgram(shaderProgram)
+        gl.useProgram(shaderProgram)
+        // const textureUniform = gl.getUniformLocation(shaderProgram, "screenTexture")
+        // gl.uniform1i(textureUniform, 0)
+
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            console.error("Vertex shader error:", gl.getShaderInfoLog(vertexShader))
+        }
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            console.error("Fragment shader error:", gl.getShaderInfoLog(fragmentShader))
+        }
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            console.error("Program link error:", gl.getProgramInfoLog(shaderProgram))
+        }
+        // Fullscreen quad geometry
+        const quadBuffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+        const cornerAttrib = gl.getAttribLocation(shaderProgram, "cornerPosition")
+        gl.enableVertexAttribArray(cornerAttrib)
+        gl.vertexAttribPointer(cornerAttrib, 2, gl.FLOAT, false, 0, 0)
+
+        // Texture that will hold the main canvas
+        const screenTexture = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, screenTexture)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+        this.shader.gl = gl
+        this.shader.fxCanvas = fxCanvas
+        this.shader.program = shaderProgram
+        this.shader.screenTexture = screenTexture
+        // this.shader.textureUniform = textureUniform
+        this.shader.elapsedUniform = gl.getUniformLocation(shaderProgram, "elapsedSeconds")
+        this.shader.widthUniform = gl.getUniformLocation(shaderProgram, "canvasWidth")
+
+
+
+
+
+
+
+        //last line
         this.hasFinishedLoading = true
     }
     //#endregion
@@ -142,18 +173,21 @@ class Game extends GameCore {
     /**@param {CanvasRenderingContext2D} ctx */
     draw_more(ctx) {
         if (!this.hasFinishedLoading) return
-        const gl = this.gl
+        const s = this.shader
+        this.off.draw()
+        this.shader.gl.drawImage(this.off.canvas, 0, 0)
 
-        // Upload the current main canvas to the texture
-        gl.bindTexture(gl.TEXTURE_2D, this.fxTexture)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, ctx.canvas)
 
-        // Set uniforms
-        gl.uniform1f(this.uTime, this.dtTotal / 1000)
-        gl.uniform1f(this.uWidth, this.WIDTH)
+        // Copy the main canvas into the texture
+        s.gl.bindTexture(s.gl.TEXTURE_2D, s.screenTexture)
+        s.gl.texImage2D(s.gl.TEXTURE_2D, 0, s.gl.RGBA, s.gl.RGBA, s.gl.UNSIGNED_BYTE, this.shader.fxCanvas)
 
-        // Draw the effect onto the fxCanvas
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+        // Pass time and canvas width to the shader
+        s.gl.uniform1f(s.elapsedUniform, this.dtTotal / 1000)
+        s.gl.uniform1f(s.widthUniform, this.WIDTH)
+
+        // Run the shader, rendering to the offscreen fxCanvas
+        s.gl.drawArrays(s.gl.TRIANGLE_STRIP, 0, 4)
     }
     //#endregion
     //#endregion
