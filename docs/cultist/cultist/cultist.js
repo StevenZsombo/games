@@ -27,6 +27,25 @@ var univ = {
 }
 //#endregion
 
+const stgs = {
+    celebrationFireworks: true,
+    celebrationBalls: false,
+    celebrationBounce: true,
+    linesSpringy: true, //not yet implemented
+    sendNewVictoriesToServer: true,
+    alreadyNotifiedOfOnlineDataCollection: false,
+    read() { Object.assign(this, JSON.parse(localStorage.getItem("cultistSettings") || "{}")); },
+    save() { localStorage.setItem("cultistSettings", JSON.stringify(this)); },
+    erase() { localStorage.removeItem("cultistSettings") }
+};
+if (location.hash.includes("flush")) { stgs.erase(); location.hash = location.hash.replace("flush", "") }
+stgs.read(); stgs.save()
+if (location.hash.includes("low")) {
+    stgs.linesSpringy = false
+    stgs.celebrationBalls = false
+    stgs.celebrationFireworks = true
+}
+
 let lineStart = null
 let lineButton = null
 /**@type {Set<[Button,Button]>} */
@@ -49,6 +68,23 @@ class Game extends GameCore {
         em.flushAndEraseAll()
         if (!location.search.includes("skip")) dev.notes()
         dev.check()
+        await this.master()
+        if (!stgs.alreadyNotifiedOfOnlineDataCollection) {
+            const ns = GameEffects.nameSelect(["I understand."],
+                { doNotConfirm: true }
+            )
+            ns.top.txt = `This game automatically sends your solutions to a public server.
+Your name/teacher will be displayed in the online leaderboards.
+While the game is still under development, this feature cannot be turned off.`
+            ns.top.height = this.HEIGHT * .5
+            ns.top.transparent = true
+            ns.buts[0].centeratY(MM.midpoint(ns.top.bottom, this.HEIGHT))
+            ns.buts[0].resize(null, this.HEIGHT / 5)
+            ns.buts[0].hover_color = "pink"
+            await ns.promise()
+            stgs.alreadyNotifiedOfOnlineDataCollection = true
+            stgs.save()
+        }
 
         let batch
         let stage
@@ -73,7 +109,7 @@ class Game extends GameCore {
         // while (true)
         {
             let levelKeys = Array.from(Object.keys(Level.BATCHES[batch].levels))
-            if (!stgs.allowUntested && !location.search.includes("dev")) {
+            if (!deets.allowUntested && !location.search.includes("dev")) {
                 levelKeys = levelKeys.filter(x =>
                     !Level.BATCHES[batch].levels[x][0].includes("UNTESTED")
                 )
@@ -86,7 +122,7 @@ class Game extends GameCore {
             })
             const back = new Button({ width: 160, height: 80, txt: "Go back", fontSize: 28 })
             back.topat(20)
-            back.color = stgs.colors.tPink
+            back.color = deets.colors.tPink
             back.hover_color = "orange"
             back.rightat(this.WIDTH - back.y)
             ns.fm.push(back)
@@ -140,23 +176,51 @@ class Game extends GameCore {
             lineButton = null
         }
         const linesLineWidth = 6
+        const linesDrawingFuncSpringy =/**@param {CanvasRenderingContext2D} ctx */
+            (ctx, x, y, u, w, { width, color = "black" } = {}) => {
+                ctx.beginPath()
+                ctx.moveTo(x, y)
+                const dx = u - x
+                const dy = w - y
+                const mag = Math.hypot(dx, dy)
+                const sideMag = 6
+                const perpX = -dy / mag * sideMag
+                const perpY = dx / mag * sideMag
+                for (let t = 0; t < 1; t += 0.01) {
+                    const X = x + dx * t
+                    const Y = y + dy * t
+                    const s = Math.sin(t * TWOPI * 6)
+                    ctx.lineTo(
+                        X + perpX * s,
+                        Y + perpY * s,
+                    )
+                }
+                ctx.strokeStyle = color
+                ctx.lineWidth = width
+                ctx.stroke()
+                ctx.closePath()
+            }
         const linesDrawable = {
             /**@param {RenderingContext} ctx  */
             draw(ctx) {
+                const drawingFunc =
+                    stgs.linesSpringy
+                        ? linesDrawingFuncSpringy
+                        : MM.drawLine
                 ctx.lineCap = "round"
                 if (lineStart) {
                     const { x, y } = game.mouser.pos
-                    MM.drawLine(ctx, lineStart.x, lineStart.y, x, y, { width: linesLineWidth })
+                    drawingFunc(ctx, lineStart.x, lineStart.y, x, y, { width: linesLineWidth })
                 }
                 lines.forEach(([a, b]) => {
                     const { cx, cy } = a
                     const { centerX, centerY } = b
-                    const dist = (cx - centerX) ** 2 + (cy - centerY) ** 2
-                    MM.drawLine(ctx, cx, cy, centerX, centerY, {
-                        width:
-                            dist < 5000 ?
-                                linesLineWidth * 3 :
-                                linesLineWidth
+                    // const dist = (cx - centerX) ** 2 + (cy - centerY) ** 2
+                    drawingFunc(ctx, cx, cy, centerX, centerY, {
+                        width: linesLineWidth
+                        // dist < 5000 ? //no bueno
+                        //     linesLineWidth * 3 :
+                        //     linesLineWidth
                     })
                 })
             }
@@ -185,14 +249,14 @@ class Game extends GameCore {
             console.log("Submitted", poly.value)
             this.table.colors[2][this.SUBMITTED.length] =
                 this.checkParticularAtI(this.SUBMITTED.length - 1)
-                    ? stgs.colors.tGreen //color if bad
-                    : stgs.colors.tRed//color if good
+                    ? deets.colors.tGreen //color if bad
+                    : deets.colors.tRed//color if good
             this.checkVictory()
         })
         em.on("received", v => {
             console.log("Received", v)
             this.checkVictory()
-            this.table.colors[0][this.RECEIVED_COUNT[0]] = stgs.colors.tYellow
+            this.table.colors[0][this.RECEIVED_COUNT[0]] = deets.colors.tYellow
         })
         this.tempAnimStorage = []
         const _move = (buttonWhat, buttonFrom, buttonTo) => {
@@ -400,8 +464,8 @@ class Game extends GameCore {
         this.table.columns_textFormattingFns = [x => x?.join(", ")]
         this.table.fontSize = 26
         this.table.colors = this.table.getCloneOfColumnsFilledWith()
-        this.table.colors[0][0] = stgs.colors.tGreen
-        this.table.colors[1][0] = this.table.colors[2][0] = stgs.colors.tBlue
+        this.table.colors[0][0] = deets.colors.tGreen
+        this.table.colors[1][0] = this.table.colors[2][0] = deets.colors.tBlue
         /*corner.dynamicText = () =>
             `${INSTRUCTIONS}\n${MM.tableStr(
             // MM.transposeArray([INPUTS, INPUTS.map((x, i) => this.level.OUTPUTS[i] ?? ""), INPUTS.map((x, i) => this.SUBMITTED[i] ?? "")]),
@@ -412,7 +476,7 @@ class Game extends GameCore {
         const stopStart = this.stopStart = new Button({
             width: 900, height: 60,
             color:
-                stgs.colors.tYellow,
+                deets.colors.tYellow,
             // "yellow",
             y: 10, txt: "Connect modules, then click here to start.",
             fontSize: 48,
@@ -429,7 +493,7 @@ class Game extends GameCore {
         const tools = this.tools = new Button({ width: 200, height: 60, x: 10 })
         tools.bottomat(this.HEIGHT - 10)
         this.add_drawable(tools)
-        tools.color = stgs.colors.tPink
+        tools.color = deets.colors.tPink
         Button.make_roundedRect(tools)
         if (location.search.includes("dev")) {
             this.keyboarder.on_copy = () => this.getSaveData()
@@ -458,6 +522,10 @@ class Game extends GameCore {
                     ["Erase all lines", () => this.initLevel()],
                     // [`stepTime = ${this.stepTime}`, () => this.changeStepTime(+prompt("stepTime determines the game's speed, as in: how long it takes to move one step in milliseconds. So smaller = faster."))],
                     // ["hide errors", wDiv.hide],
+                    [`Lines: ${stgs.linesSpringy ? "springy" : "straight"}`, () => {
+                        stgs.linesSpringy ^= 1
+                        stgs.save()
+                    }],
                     ["Back to main menu", () => {
                         this.animator.resetAndFlushAll()
                         on_clockwork.length = 0
@@ -483,7 +551,7 @@ class Game extends GameCore {
             x.on_click = () => this.animator.speedMultiplier = multipliers[i]
             x.color = tools.color
             x.hover_color = "orange"
-            x.selected_color = stgs.colors.tYellow
+            x.selected_color = deets.colors.tYellow
         })
         Button.make_radio(this.speedButtons.slice(1), true)
         this.resetSpeed()
@@ -505,11 +573,15 @@ class Game extends GameCore {
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             if (stage in vic) this.loadSave(vic[stage])
         }
-
-
     }
     //#endregion
-
+    async master() {
+        if (!location.search.includes("master")) return
+        // await GameEffects.editJSON(stgs)
+        const a = prompt("Edit:", JSON.stringify(stgs))
+        Object.assign(stgs, a)
+        location.search = location.search.replace("master", "")
+    }
 
     getIDArrAll() { return this.piecesArr.flatMap(p => [p.type, ...p.inputs, ...p.outputs]) }
     getSaveData() {
@@ -533,6 +605,8 @@ class Game extends GameCore {
     }
     eraseSave(stage) {
         const saveData = JSON.parse(localStorage.getItem("cultistVictories" || "{}"))
+        if (saveData[stage]) console.log("Deleted:", stage)
+        else return console.log(`Stage ${stage} has no save.`)
         delete saveData[stage]
         localStorage.setItem("cultistVictories", JSON.stringify(saveData))
     }
@@ -632,14 +706,15 @@ class Game extends GameCore {
         )) {//win
             this.resetButton.txt = "Back to main menu"
             this.resetButton.on_click = () => main()
-            Anim.stepper(this.resetButton, 2000, "rad", 0, 0.2,
-                { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
-            )
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             const isNewVictory = !cultistVictories[this.level.STAGE]
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
             localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
-            if (isNewVictory) { //replace with permissions later
+            if (
+                isNewVictory
+                &&
+                stgs.sendNewVictoriesToServer
+            ) { //replace with permissions later
                 // if (!Supabase.name) return
                 Supabase.addCultistRow("cultist", currentVictoryData)
                     .then(() => {
@@ -649,9 +724,7 @@ class Game extends GameCore {
                         })
                     })
                     .catch(() => GameEffects.popup("Could not conenct to server", GameEffects.popupPRESETS.rightError()))
-
             }
-
             this.celebrate()
         } else {//lose
             GameEffects.popup("you lose")
@@ -659,33 +732,42 @@ class Game extends GameCore {
     }
 
     celebrate() {
-        // GameEffects.fireworksShow()
-        const helper = new Map()
-        for (const piece of this.pieces) {
-            helper.set(piece, {
-                y: piece.button.y,
-                phase: MM.random(3, 10) / 1000
+        Anim.stepper(this.resetButton, 2000, "rad", 0, 0.2,
+            { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
+        )
+        if (stgs.celebrationBounce) {
+            const helper = new Map()
+            for (const piece of this.pieces) {
+                helper.set(piece, {
+                    y: piece.button.y,
+                    phase: MM.random(5, 10) / 1000
+                })
+            }
+            Anim.custom(null, 15_000, (t) => {
+                helper.forEach((data, piece) => {
+                    if (piece.button.last_held) { helper.delete(piece); return; }
+                    const { y, phase } = data
+                    piece.button.y = y + Math.sin(t / phase) * 12
+                })
+            }, "", {
+                // repeat: 2000,
+                add: this
             })
         }
-        Anim.custom(null, 15_000, (t) => {
-            helper.forEach((data, piece) => {
-                if (piece.button.last_held) { helper.delete(piece); return; }
-                const { y, phase } = data
-                piece.button.y = y + Math.sin(t / phase) * 20
-            })
-        }, "", {
-            // repeat: 2000,
-            add: this
-        })
-        GameEffects.balls(
-            [
-                ...this.piecesArr.map(x => x.button),
-                this.speedButtonsBGRect,
-                this.resetButton,
-                this.table.backgroundRect,
-                this.tools
-            ].filter(x => x)
-        )
+        if (stgs.celebrationBalls) {
+            GameEffects.balls(
+                [
+                    ...this.piecesArr.map(x => x.button),
+                    this.speedButtonsBGRect,
+                    this.resetButton,
+                    this.table.backgroundRect,
+                    this.tools
+                ].filter(x => x)
+            )
+        }
+        if (stgs.celebrationFireworks) {
+            GameEffects.fireworksShow(15)
+        }
         GameEffects.popup("VICTORY!")
     }
 

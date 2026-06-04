@@ -1,4 +1,4 @@
-const stgs = {
+const deets = {
     allowUntested: true,
     colors: {
         tPink: `hsla(0,100%,80%,0.5)`,
@@ -599,21 +599,6 @@ class Level {
                 "tutsgn": [String.raw`Return the sign, $\text{sgn}(x)$ for each input. \\\ \\Recall the definition: $\text{sgn}(x) = \begin{cases} 1&\text{if }x>0,\\0&\text{if }x=0,\\-1&\text{if }x<0.\end{cases}$`, x => Math.sign(x)],
                 "isodd": ["Return $1$ for odd input, and $0$ otherwise.", x => Math.abs(x % 2)],
                 "isint": ["Return $1$ for integers, and $0$ otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
-                "subtract": ["$$Take two consecutive inputs, and return their difference.", ...(() => {
-                    const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                    const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
-                    return [out, inp, { consecutive: true }]
-                })()],
-                "mean": ["$$Take two consecutive inputs, and return their mean $\\frac{x_1+x_2}{2}$.", ...(() => {
-                    const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                    const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
-                    return [out, inp, { consecutive: true }]
-                })()],
-                "divide": ["$$Take two consecutive inputs, and return their ratio.", ...(() => {
-                    const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
-                    const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
-                    return [out, inp, { consecutive: true }]
-                })()],
                 /*"largestpower": ["Return the largest power of 2 not greater than the positive input.", x => {
                     // let a = x
                     // while (a % 2 == 0) a /= 2
@@ -624,7 +609,7 @@ class Level {
                 }, () => Math.random() < .5 ? MM.randomInt(1, 200) : 2 * MM.randomInt(1, 200)],
                 */
                 "rounded": ["$$Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
-                "eight": ["Map each input to $8$.", x => 8],
+                "eight": ["Map each input to $8$.", _ => 8],
                 // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
                 "manynines": ["$$Input is a positive integer.\\\\Return a number with that many $9$s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
                 "digits": ["$$Return the number of digits in the given positive integer.", x => `${x} `.length, () => {
@@ -645,9 +630,33 @@ class Level {
         "Algebra 2": {
             levels: {
                 "sumtwo": [String.raw`You receive two inputs $a$ and $b$. Return $a+b$.`, (a, b) => a + b],
+                "subtract": ["Given inputs $a$ and $b$, return their difference $a-b$.",
+                    (a, b) => a - b
+                    // ...(() => {
+                    // const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                    // const out = inp.map((x, i) => inp[2 * i] - inp[2 * i + 1])
+                    // return [out, inp, { consecutive: true }]
+                    // })()
+                ],
+                "mean": ["Given inputs $a$ and $b$, return their mean $\\frac{a+b}{2}$.",
+                    (a, b) => (a + b) / 2
+                    // ...(() => {
+                    // const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                    // const out = Array(15).fill().map((x, i) => (inp[2 * i] + inp[2 * i + 1]) / 2)
+                    // return [out, inp, { consecutive: true }]
+                    // })()
+                ],
+                "quadmean": [String.raw`Return the quadratic mean $\sqrt{\frac{a^2+b^2}{2}}.$`, (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
+                "divide": [String.raw`Given positive inputs $a$ and $b$ return their ratio.\\\textit{\color{gray}(Hint: inputs are always positive.)}`,
+                (a, b) => 10 ** (Math.log10(a) - Math.log10(b)), _ => [MM.randomInt(1, 120), MM.randomInt(1, 120)]
+                    // ...(() => {
+                    // const inp = Array(30).fill().map(x => MM.randomInt(1, 100))
+                    // const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
+                    // return [out, inp, { consecutive: true }]
+                    // })()
+                ],
                 "hypot": [String.raw`\text{Find the length of vector }\binom{a}{b}`, (a, b) => Math.hypot(a, b)],
                 "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
-                "quadmean": [String.raw`Return the quadratic mean.$$`, (a, b) => Math.sqrt((a ** 2 + b ** 2) / 2), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "max": [String.raw`Return the larger of the two inputs.${Level.HARD}$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $ab$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
                 "quadratic": [
@@ -692,10 +701,6 @@ class Level {
                 "coscos": [String.raw`Return the product $\cos(a)\cos(b)$.\\Indeed, the $\boxed{x\cdot y}$ module has been replaced with $\boxed{x+y}$.`, (a, b) => Math.cos(a) * Math.cos(b), () => [0, 0].map(_ => +MM.random(-TWOPI, TWOPI).toPrecision(3)),
                 { modules: ["square", "sqrt", "triple", "halve", "copy", "copy", "signum", "sin", "cos", "sum", "diff", "sum", "div",] }
                 ],
-                "polar": [String.raw`The Input is vector with length $a$ and whose angle from the positive x-axis is $b$ radians.\\Return its $x$-component coordinate.`,
-                (a, b) => a * Math.cos(b)],
-                // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
-                // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
                 "cosdouble": [String.raw`Your input is $\cos(x)$. Return $\cos(2x)$.`,
                 x => 2 * x ** 2 - 1,
                 () => +MM.random(-PI, PI).toPrecision(3)
@@ -711,7 +716,19 @@ class Level {
                 "tanthree": [String.raw`Your input is $\tan(\theta)$. Return $-\tan(3\theta)$.`,
                 x => -((3 * x - x ** 3) / (1 - 3 * x ** 2)),
                 () => +MM.random(-1, PI).toPrecision(3)
+                ],
+                "polarx": [String.raw`The input is vector with length $a$ and whose angle from the positive x-axis is $b$ radians.\\Return its $x$-component coordinate.`,
+                (a, b) => a * Math.cos(b)],
+                // "atan": ["Return arctan of the input", x => Math.atan(x), () => +MM.random(-TWOPI, TWOPI).toPrecision(3)],
+                // "atan2": ["Input is vector (a,b). Return the positive angle between it and x-axis.", (a, b) => Math.abs(Math.atan2(b, a)), () => [0, 0].map(_ => +MM.randomInt(-120, 120))],
+                "normalizedx": [String.raw`Given nonzero vector $\binom{a}{b}$, return the\\ $x$-coordinate of the unit vector in the same direction.`,
+                (a, b) => a / Math.hypot(a, b), () => [0, 0].map(_ => MM.randomInt(-20, 20) || 1)
+                ],
+                "rotx": [String.raw`Rotate the input vector $\binom{a}{b}$ by $c$ radians,\\and return the $x$-coordinate.`,
+                (a, b, c) => a * Math.cos(c) - b * Math.sin(c),
+                () => [MM.randomInt(-20, 20), MM.randomInt(-20, 20), +MM.random(0, TWOPI).toPrecision(3)]
                 ]
+
 
             },
             modules: [
@@ -802,7 +819,7 @@ class Level {
                     }
                     return [outputs, inputs]
                 })()],
-                "isprime": ["Inputs are integers $\geq 2$. Return $1$ for primes, and $0$ otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
+                "isprime": ["Inputs are integers $\\geq 2$. Return $1$ for primes, and $0$ otheriwise.", x => MM.isPrime(x) ? 1 : 0, () => MM.randomInt(2, 150)],
                 "lcm": [
                     // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
                     String.raw`Return the least common multiple of $a$ and $b$.`//$\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`

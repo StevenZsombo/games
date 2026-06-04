@@ -3041,10 +3041,13 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
     /**
      * @param {string[]} options
-     * @param {Object} [param1={}] 
-     * @param {string} [param1.topText="Your name:"] 
-     * @param {number} param1.layer8 
-     * @param {Button} [param1.moreButtonSettings={}]  
+     * @param {Object} [optional={}] 
+     * @param {string} [optional.topText="Your name:"] 
+     * @param {number} [optional.layer=8] 
+     * @param {Button} [optional.moreButtonSettings={}]  
+     * @param {boolean} [optional.doNotConfirm=false]
+     * @param {string} [optional.confirmText="Are you really?"]
+     * @param {string} [optional.confirmTextAfter="?"]
      * @returns {{ promise: ()=>Promise<string; buts: Button[]; top: Button; fm: Malleable }} 
      */
     static nameSelect(options, {
