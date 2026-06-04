@@ -2680,11 +2680,13 @@ class GameEffects {
      * @param {Button|Button[]|null} [param0.addCloseButton=true] 
      * @param {?Function} [param0.on_close=null] 
      * @param {boolean} [param0.autoClose=true] 
+     * @param {boolean} [param0.blockNextRelease=false]
      * @returns 
      */
     static dropDrownBetter(objTextAndOnRelease, { backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = { width: 200 }, alsoClosingButtons = null, addCloseButton = true, on_close = null,
-        autoClose = true } = {}) {
+        autoClose = true, blockNextRelease = false } = {}) {
+        if (blockNextRelease) game.mouser.blockNextRelease()
         const ddm = GameEffects.dropDownMenu(objTextAndOnRelease, backgroundRect, gridRows, gridColumns, moreButtonSettings, alsoClosingButtons, addCloseButton, on_close)
         autoClose && (ddm.autoClose())
         return ddm
@@ -2841,10 +2843,13 @@ class GameEffects {
         const inp = GameEffects.inputBox(rect.x, rect.y, rect.width, rect.height)
         // inp.cols = Math.max(...json.split("\n").map(x => x.length)) + 10
         inp.textContent = json
-        const received = await new Promise(resolve =>
+        const received = await new Promise(resolve => {
             game.keyboarder.on_keydownDict["Enter"] = () => {
                 if (game.keyboarder.held["Control"]) { resolve(inp.value); inp.close() }
-            })
+            }
+            game.keyboarder.on_keydownDict["Escape"] = () => { resolve("NOTHING"); inp.close() }
+        })
+        if (received === "NOTHING") return null
         if (!forbidParseAndAssign && (typeof objectOrTxt !== 'string')) {
             const parsed = JSON.parse(received)
             if (Array.isArray(objectOrTxt)) {

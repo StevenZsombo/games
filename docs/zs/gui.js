@@ -439,6 +439,11 @@ class Mouser {
 	blockNextClick() {
 		this._blockNextClick = true
 	}
+	blockCurrentInteraction() {
+		this.released = false
+		this.down = false
+		this.clicked = false
+	}
 
 }
 

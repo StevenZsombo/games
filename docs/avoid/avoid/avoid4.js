@@ -45,21 +45,31 @@ class Game extends GameCore {
         console.log({ search: location.search, pixelStep })
         let radius = pixelStep * .6
         const defaultTex =
-            String.raw`\begin{array}{c}
+            String.raw`%LaTeX goes here:
+\begin{array}{c}
 x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
 \\
 \int x^n dx = \frac{x^{n+1}}{n+1}+C
 \end{array}`
 
-        let particleColor = "blue"
-        let mouseColor = "red"
+        let colors = {
+            particleColor: "blue",
+            mouseColor: "red",
+            mouseOutlineColor: "orange"
+        }
         let imageData, data, activeIndices = [], particles = [], goodCoordinates = []
         let cached = defaultTex
         const render = async (tex, forced = false) => {
             tex ??= cached
             if (!forced && tex.trim() == cached.trim()) return
             cached = tex //needed in enxt line
-            await b.promise(cached) //cached = tex anyways
+            // let hasError = false
+            try {
+                await b.promise(cached)
+            } catch (_) {
+                return
+            }
+
             const fittedRect = new Rect(b.img.x, b.img.y, b.img.width, b.img.height)
             fittedRect.centeratX(this.rect.centerX)
             fittedRect.scaleWithinAnother(this.rect.copy.stretch(1, heightRatioOfCanvas))
@@ -78,8 +88,8 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
             activeIndices.length = 0
             {
                 let ind = 0
-                for (let j = 0; j < imageData.width * 4; j += pixelStep) {
-                    for (let i = 0; i < imageData.height * 4; i += pixelStep) {
+                for (let j = 0; j < imageData.height; j += pixelStep) {
+                    for (let i = 0; i < imageData.width; i += pixelStep) {
                         ind = (j * imageData.width + i) * 4
                         if (data[ind] || data[ind + 1] || data[ind + 2] || data[ind + 3])
                             activeIndices.push(ind)
@@ -108,21 +118,23 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
                 origY: y,
                 vx: 0,
                 vy: 0,
-                color: particleColor
+                color: colors.particleColor
             })))
             console.log("new particles!")
         }
         render(defaultTex, true)
 
         const awayCoeff = 0.002
-        let mouseRadiusSquare = 300 ** 2
+        let mouseRadiusSquare = 200 ** 2
         const crawlCoeff = 0.003
 
-        let effectsAvailable = ["push", "pull", "swirl", "grab", "up", "wave"]
+        let effectsAvailable = ["push", "pull", "swirl", "grab", "up", "wave", "reflect"]
         let effect = effectsAvailable[0]
         let effectMag = 1
         const particlesDrawable = {
             draw(ctx) {
+                MM.drawCircle(ctx, game.mouser.x, game.mouser.y, Math.sqrt(mouseRadiusSquare),
+                    { outline: 2, outline_color: colors.mouseOutlineColor, color: null })
                 particles.forEach(p => {
                     MM.drawCircle(ctx, p.x, p.y, radius, { color: p.color })
                 })
@@ -137,7 +149,7 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
                     if (!held || dx ** 2 + dy ** 2 > mouseRadiusSquare) {
                         const wx = p.origX - p.x
                         const wy = p.origY - p.y
-                        p.color = particleColor
+                        p.color = colors.particleColor
                         p.x += wx * dt * crawlCoeff
                         p.y += wy * dt * crawlCoeff
                         return
@@ -161,10 +173,17 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
                     }
                     if (effect == "wave") {
                         const waveRat = 0.5
-                        p.y = p.origY + Math.sin(game.dtTotal / TWOPI / 100 + p.x / 100 * waveRat) * 100 * effectMag
+                        const wantedY = p.origY + Math.sin(game.dtTotal / TWOPI / 100 + p.x / 100 * waveRat) * 100 * effectMag
+                        p.y += (wantedY - p.y) * dt * crawlCoeff * effectMag
                         // dy * dt * awayCoeff * effectMag * waveRat * 100
                     }
-                    p.color = mouseColor
+                    if (effect == "reflect") {
+                        const reflectRat = 1
+                        const wantedX = x + (x - p.origX)
+                        p.x +=
+                            (wantedX - p.x) * MM.clamp(dt * effectMag * crawlCoeff * reflectRat, 0, 1)
+                    }
+                    p.color = colors.mouseColor
                 })
             }
         }
@@ -197,9 +216,13 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
         const controlButtons = controlRect.splitRow(1, 1, 1, 1, 1, 1, 1).map(
             x => Button.fromRect(x.deflate(0, 5))
         )
+        const betterPrompt = (...args) => {
+            this.mouser.blockCurrentInteraction()
+            return prompt(...args)
+        }
         controlButtons[0].dynamicText = () => `effect = ${effect}`
         controlButtons[0].on_click = () => {
-            /*const want = prompt("Chooose effect from this list:\n" + effectsAvailable.join("\n"))
+            /*const want = betterPrompt("Chooose effect from this list:\n" + effectsAvailable.join("\n"))
             if (!effectsAvailable.includes(want)) return
             effect = want*/
             this.mouser.blockNextRelease()
@@ -209,26 +232,31 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
         }
         controlButtons[1].dynamicText = () => `pixelStep = ${pixelStep}`
         controlButtons[1].on_click = () => {
-            pixelStep = Math.max(1, Math.floor(+prompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
+            // pixelStep = Math.max(1, Math.floor(+betterPrompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
+            GameEffects.dropDrownBetter(MM.rangeArr(2, 13).reverse().map(x => [x, () => pixelStep = x]),
+                { blockNextRelease: true, on_close: () => render(null, true) })
+
+
         }
         controlButtons[2].dynamicText = () => `radius = ${radius}`
         controlButtons[2].on_click = () => {
-            radius = +prompt("Determines the radius of each drawn circle.", radius); render(null, true)
+            radius = +betterPrompt("Determines the radius of each drawn circle.", radius); render(null, true)
         }
         controlButtons[3].dynamicText = () => `mouseRadius = ${Math.sqrt(mouseRadiusSquare)}`
         controlButtons[3].on_click = () => {
-            mouseRadiusSquare = (+prompt("Determines the radius of the mouse hover effect.", Math.sqrt(mouseRadiusSquare))) ** 2; render(null, true)
+            mouseRadiusSquare = (+betterPrompt("Determines the radius of the mouse hover effect.", Math.sqrt(mouseRadiusSquare))) ** 2; render(null, true)
         }
         controlButtons[4].dynamicText = () => `effectMag = ${effectMag}`
         controlButtons[4].on_click = () => {
-            effectMag = +prompt("Determines the magnitude (intensity) of the mouse hover effects.", effectMag); render(null, true)
+            effectMag = +betterPrompt("Determines the magnitude (intensity) of the mouse hover effects.", effectMag); render(null, true)
         }
-        controlButtons[5].dynamicText = () => `colors = ${particleColor},${mouseColor}`
+        controlButtons[5].dynamicText = () => `colors = ${Object.values(colors).join(",")}`
         controlButtons[5].on_click = () => {
-            const p = prompt(`Colors, when away from / near the mouse, separated by a comma.`, `${particleColor},${mouseColor}`)
+            /*const p = betterPrompt(`Colors, when away from / near the mouse, separated by a comma.`, `${colors.particleColor},${colors.mouseColor}`)
                 .split(",")
-            particleColor = p[0]
-            mouseColor = p[1]
+            colors.particleColor = p[0]
+            colors.mouseColor = p[1]*/
+            GameEffects.editJSON(colors)
         }
         controlButtons[6].dynamicText = () => `TODO`
         controlButtons[6].on_click = () => {
