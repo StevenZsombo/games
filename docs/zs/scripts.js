@@ -272,6 +272,47 @@ class Rect {
 	deflate(dw, dh) {
 		return this.inflate(-dw, -dh)
 	}
+
+
+	cornersV() {
+		return [this.topleft, this.topright, this.bottomright, this.bottomleft]
+	}
+
+	cornerRectsInside(
+		{ width = 50, height = 50 } = {},
+		spreadFactor = 1
+	) {
+		const four = Array(4).fill().map(_ => new Rect(this.x, this.y
+			, width, height))
+		four[1].rightat(this.right)
+		four[2].rightat(this.right)
+		four[2].bottomat(this.bottom)
+		four[3].bottomat(this.bottom)
+		if (spreadFactor !== 1)
+			four.forEach(x => x.spread(this.centerX, this.centerY, spreadFactor, spreadFactor))
+		return four
+	}
+
+	cornerRectsOnVertex(
+		{ width = 50, height = 50 } = {},
+		spreadFactor = 1
+	) {
+		const four = Array(4).fill().map(_ => new Rect(this.x - width / 2, this.y - height / 2
+			, width, height))
+		four[1].rightat(this.right + width / 2)
+		four[2].rightat(this.right + width / 2)
+		four[2].bottomat(this.bottom + height / 2)
+		four[3].bottomat(this.bottom + height / 2)
+		if (spreadFactor !== 1)
+			four.forEach(x => x.spread(this.centerX, this.centerY, spreadFactor, spreadFactor))
+		return four
+	}
+
+
+
+
+
+
 	/**
 	 * @param {number} x @param {number} y
 	 * @returns {{x: number, y: number, leftOut: boolean, rightOut: boolean, topOut: boolean, bottomOut: boolean, anyOut: boolean}}
@@ -1036,6 +1077,65 @@ class Button extends Clickable {
 			}
 		)
 		return button
+	}
+	/**@param {Button} button @param {Game|GameCoreLayerCore} addToGame   */
+	static make_stretchable(button, addToGame) {
+		const four = button.cornerRectsOnVertex().map(x => new Button(x))
+
+		const adjustLeft = x => {
+			button.width = button.right - x
+			button.leftat(x)
+		}
+		const adjustTop = y => {
+			button.height = button.bottom - y
+			button.topat(y)
+		}
+		const adjustRight = x => button.rightstretchat(x)
+		const adjustBottom = y => button.bottomstretchat(y)
+		const reattach = () => {
+			// button.untangle()
+			Rect.packArray(four, button.cornerRectsOnVertex())
+		}
+
+		four[0].on_drag = ({ x, y }) => {
+			const dx = x - four[0].last_held.x
+			const dy = y - four[0].last_held.y
+			four[0].move(dx, dy)
+			adjustLeft(four[0].cx)
+			adjustTop(four[0].cy)
+			reattach()
+		}
+		four[1].on_drag = ({ x, y }) => {
+			const dx = x - four[1].last_held.x
+			const dy = y - four[1].last_held.y
+			four[1].move(dx, dy)
+			adjustRight(four[1].cx)
+			adjustTop(four[1].cy)
+			reattach()
+		}
+		four[2].on_drag = ({ x, y }) => {
+			const dx = x - four[2].last_held.x
+			const dy = y - four[2].last_held.y
+			four[2].move(dx, dy)
+			adjustRight(four[2].cx)
+			adjustBottom(four[2].cy)
+			reattach()
+		}
+		four[3].on_drag = ({ x, y }) => {
+			const dx = x - four[3].last_held.x
+			const dy = y - four[3].last_held.y
+			four[3].move(dx, dy)
+			adjustLeft(four[3].cx)
+			adjustBottom(four[3].cy)
+			reattach()
+		}
+		four.forEach(x => {
+			x._drag_force_within = true
+			x.isBlocking = true
+		})
+		if (addToGame) addToGame.add_drawable(four, 7)
+
+
 	}
 
 

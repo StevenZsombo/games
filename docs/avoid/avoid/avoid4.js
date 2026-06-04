@@ -221,7 +221,7 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
             return prompt(...args)
         }
         controlButtons[0].dynamicText = () => `effect = ${effect}`
-        controlButtons[0].on_click = () => {
+        controlButtons[0].on_release = () => {
             /*const want = betterPrompt("Chooose effect from this list:\n" + effectsAvailable.join("\n"))
             if (!effectsAvailable.includes(want)) return
             effect = want*/
@@ -231,7 +231,7 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
             )
         }
         controlButtons[1].dynamicText = () => `pixelStep = ${pixelStep}`
-        controlButtons[1].on_click = () => {
+        controlButtons[1].on_release = () => {
             // pixelStep = Math.max(1, Math.floor(+betterPrompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
             GameEffects.dropDrownBetter(MM.rangeArr(2, 13).reverse().map(x => [x, () => pixelStep = x]),
                 { blockNextRelease: true, on_close: () => render(null, true) })

@@ -2685,8 +2685,10 @@ class GameEffects {
      */
     static dropDrownBetter(objTextAndOnRelease, { backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = { width: 200 }, alsoClosingButtons = null, addCloseButton = true, on_close = null,
-        autoClose = true, blockNextRelease = false } = {}) {
-        if (blockNextRelease) game.mouser.blockNextRelease()
+        autoClose = true,
+        // blockNextRelease = false
+    } = {}) {
+        // if (blockNextRelease) game.mouser.blockNextRelease()
         const ddm = GameEffects.dropDownMenu(objTextAndOnRelease, backgroundRect, gridRows, gridColumns, moreButtonSettings, alsoClosingButtons, addCloseButton, on_close)
         autoClose && (ddm.autoClose())
         return ddm
