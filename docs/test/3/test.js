@@ -5,7 +5,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: false,
+    showFramerate: true,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto",
@@ -51,6 +51,9 @@ class Game extends GameCore {
             this.u = this.x + dx / mag * needleSize
             this.w = this.y + dy / mag * needleSize
 
+            const ang = MM.random(0, TWOPI)
+            this.u = this.x + Math.cos(ang) * needleSize
+            this.w = this.y + Math.sin(ang) * needleSize
             needles.push(this)
 
             this.draw = ctx => MM.drawLine(ctx, this.x, this.y, this.u, this.w, {
@@ -69,10 +72,15 @@ class Game extends GameCore {
         let hits = 0
         const needles = []
 
-
+        let alreadyTurnedOff = false
         const drawable = {
             /**@param {RenderingContext} ctx  */
             draw(ctx) {
+                if (!alreadyTurnedOff && needles.length > 20_001) {
+                    alreadyTurnedOff = true
+                    GameEffects.popup("Disabled drawing to help with performance")
+                }
+                if (alreadyTurnedOff) return
                 needles.forEach(n => n.draw(ctx))
                 linesX.forEach(x => MM.drawLine(ctx, x, 0, x, rect.bottom, { width: 1, color: "pink" }))
             }
