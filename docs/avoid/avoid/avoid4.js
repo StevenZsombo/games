@@ -226,14 +226,14 @@ x_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}
             if (!effectsAvailable.includes(want)) return
             effect = want*/
             this.mouser.blockNextRelease()
-            GameEffects.dropDrownBetter(
+            GameEffects.dropDownBetter(
                 effectsAvailable.map(x => [x, () => effect = x])
             )
         }
         controlButtons[1].dynamicText = () => `pixelStep = ${pixelStep}`
         controlButtons[1].on_release = () => {
             // pixelStep = Math.max(1, Math.floor(+betterPrompt("Determines resolution: the smaller the more detailed. Must be an integer.", pixelStep))); render(null, true)
-            GameEffects.dropDrownBetter(MM.rangeArr(2, 13).reverse().map(x => [x, () => pixelStep = x]),
+            GameEffects.dropDownBetter(MM.rangeArr(2, 13).reverse().map(x => [x, () => pixelStep = x]),
                 { blockNextRelease: true, on_close: () => render(null, true) })
 
 

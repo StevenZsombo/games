@@ -2683,7 +2683,7 @@ class GameEffects {
      * @param {boolean} [param0.blockNextRelease=false]
      * @returns 
      */
-    static dropDrownBetter(objTextAndOnRelease, { backgroundRect = null, gridRows = null, gridColumns = 1,
+    static dropDownBetter(objTextAndOnRelease, { backgroundRect = null, gridRows = null, gridColumns = 1,
         moreButtonSettings = { width: 200 }, alsoClosingButtons = null, addCloseButton = true, on_close = null,
         autoClose = true,
         // blockNextRelease = false

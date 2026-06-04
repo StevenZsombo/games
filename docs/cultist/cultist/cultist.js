@@ -34,6 +34,7 @@ const stgs = {
     linesSpringy: true, //not yet implemented
     sendNewVictoriesToServer: true,
     alreadyNotifiedOfOnlineDataCollection: false,
+    fullscreen: true,
     read() { Object.assign(this, JSON.parse(localStorage.getItem("cultistSettings") || "{}")); },
     save() { localStorage.setItem("cultistSettings", JSON.stringify(this)); },
     erase() { localStorage.removeItem("cultistSettings") }
@@ -68,7 +69,7 @@ class Game extends GameCore {
         em.flushAndEraseAll()
         if (!location.search.includes("skip")) dev.notes()
         dev.check()
-        await this.master()
+        await this.masterPre()
         if (!stgs.alreadyNotifiedOfOnlineDataCollection) {
             const ns = GameEffects.nameSelect(["I understand."],
                 { doNotConfirm: true }
@@ -78,6 +79,7 @@ Your name/teacher will be displayed in the online leaderboards.
 While the game is still under development, this feature cannot be turned off.`
             ns.top.height = this.HEIGHT * .5
             ns.top.transparent = true
+            stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
             ns.buts[0].centeratY(MM.midpoint(ns.top.bottom, this.HEIGHT))
             ns.buts[0].resize(null, this.HEIGHT / 5)
             ns.buts[0].hover_color = "pink"
@@ -96,12 +98,12 @@ While the game is still under development, this feature cannot be turned off.`
                 { topText: "Select puzzle type:", doNotConfirm: true })
             const height = ns.top.height
             ns.top.height = height / 3
-            ns.but
+            stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
             ns.buts.forEach(x => {
                 Button.make_roundedRect(x)
                 x.stretch(.85, .85)
                 x.move(0, -2 / 3 * height)
-                x.hover_color = "orange"
+                x.hover_color = deets.colors.generalHover
             })
             ns.top.transparent = true
             batch = await ns.promise()
@@ -123,7 +125,7 @@ While the game is still under development, this feature cannot be turned off.`
             const back = new Button({ width: 160, height: 80, txt: "Go back", fontSize: 28 })
             back.topat(20)
             back.color = deets.colors.tPink
-            back.hover_color = "orange"
+            back.hover_color = deets.colors.generalHover
             back.rightat(this.WIDTH - back.y)
             ns.fm.push(back)
             back.on_release = () => main()
@@ -136,6 +138,7 @@ While the game is still under development, this feature cannot be turned off.`
                 if (!hasVictory && hasUntested) x.color = "red"
                 if (hasVictory && hasUntested) x.color = "purple"
             })
+            stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
             stage = await ns.promise()
         }
         const level = this.level = new Level(batch, stage)
@@ -162,17 +165,31 @@ While the game is still under development, this feature cannot be turned off.`
             if (!lineStart) return
             lineStart = null
             let match = this.piecesArr
-                .flatMap(x => lineButton.tag == "in" ? x.outputs : x.inputs)
+                .flatMap(x => [...x.outputs, ...x.inputs])
                 .filter(x => x != null)
                 .find(x => x.collidepoint(pos.x, pos.y))
-            if (match && (match.piece !== lineButton.piece)) {
-                const inOut = lineButton.tag == "out"
-                    ? [lineButton, match]
-                    : [match, lineButton]
-                const existing = Array.from(lines).find(x => x[0] == inOut[0] && x[1] == inOut[1])
-                if (existing) lines.delete(existing)
-                else lines.add(inOut)
-            }
+            if (match)
+                if (match.piece === lineButton.piece) {
+                    GameEffects.popup(`Cannot connect a module to itself.`, {
+                        floatTime: 3000,
+                        close_on_release: true,
+                        moreButtonSettings: { color: deets.colors.popupInfoColor }
+                    })
+                } else if (match.tag === lineButton.tag) {
+                    const what = match.tag === "in" ? "input" : "output"
+                    GameEffects.popup(`Cannot connect an ${what} to another ${what}.`, {
+                        floatTime: 3000,
+                        close_on_release: true,
+                        moreButtonSettings: { color: deets.colors.popupInfoColor }
+                    })
+                } else {
+                    const inOut = lineButton.tag == "out"
+                        ? [lineButton, match]
+                        : [match, lineButton]
+                    const existing = Array.from(lines).find(x => x[0] == inOut[0] && x[1] == inOut[1])
+                    if (existing) lines.delete(existing)
+                    else lines.add(inOut)
+                }
             lineButton = null
         }
         const linesLineWidth = 6
@@ -210,7 +227,10 @@ While the game is still under development, this feature cannot be turned off.`
                 ctx.lineCap = "round"
                 if (lineStart) {
                     const { x, y } = game.mouser.pos
-                    drawingFunc(ctx, lineStart.x, lineStart.y, x, y, { width: linesLineWidth })
+                    drawingFunc(ctx, lineStart.x, lineStart.y, x, y, {
+                        width: linesLineWidth,
+                        color: deets.colors.linesActiveColor
+                    })
                 }
                 lines.forEach(([a, b]) => {
                     const { cx, cy } = a
@@ -417,7 +437,7 @@ While the game is still under development, this feature cannot be turned off.`
             const resizeSmall = () => {
                 corner.width = corner.img.width + 20
                 corner.height = cornerHeight
-                corner.hover_color = "orange"
+                corner.hover_color = deets.colors.generalHover
                 corner.imgScale = 1
                 if (corner.img.height > corner.height * 1.1) {
                     corner.width = 550
@@ -514,9 +534,10 @@ While the game is still under development, this feature cannot be turned off.`
             this.keyboarder.on_paste = val => this.loadSave(val)
         }
         tools.txt = "Menu"
-        tools.hover_color = "orange"
+        tools.hover_color = deets.colors.generalHover
         tools.on_release = () => {
-            const ddm = GameEffects.dropDrownBetter(
+            stgs.fullscreen && MM.toggleFullscreen(true)
+            const ddm = GameEffects.dropDownBetter(
                 [
                     // ["Reset inputs", () => this.resetInputs()],
                     ["Erase all lines", () => this.initLevel()],
@@ -531,7 +552,7 @@ While the game is still under development, this feature cannot be turned off.`
                         on_clockwork.length = 0
                         main()
                     }],
-                ], { moreButtonSettings: { width: 300 }, addCloseButton: false, autoClose: true }
+                ], { moreButtonSettings: { width: 300, hover_color: deets.colors.generalHover }, addCloseButton: false, autoClose: true }
             )
         }
         const multipliers = [0, 0.1, 1, 10, 50]
@@ -550,7 +571,7 @@ While the game is still under development, this feature cannot be turned off.`
             if (x.txt == "0x") x.txt = "PAUSE"
             x.on_click = () => this.animator.speedMultiplier = multipliers[i]
             x.color = tools.color
-            x.hover_color = "orange"
+            x.hover_color = deets.colors.generalHover
             x.selected_color = deets.colors.tYellow
         })
         Button.make_radio(this.speedButtons.slice(1), true)
@@ -564,7 +585,7 @@ While the game is still under development, this feature cannot be turned off.`
         resetButton.resize(this.table.backgroundRect.width * .85, (resetButton.top - this.HEIGHT) * .75)
         resetButton.untangle()
         resetButton.txt = "Reset inputs"
-        resetButton.hover_color = "orange"
+        resetButton.hover_color = deets.colors.generalHover
         this.add_drawable(resetButton)
         resetButton.eraseClickables()
         resetButton.on_release = () => this.resetInputs()
@@ -573,14 +594,23 @@ While the game is still under development, this feature cannot be turned off.`
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             if (stage in vic) this.loadSave(vic[stage])
         }
+        this.masterPost()
     }
     //#endregion
-    async master() {
-        if (!location.search.includes("master")) return
-        // await GameEffects.editJSON(stgs)
-        const a = prompt("Edit:", JSON.stringify(stgs))
-        Object.assign(stgs, a)
-        location.search = location.search.replace("master", "")
+    async masterPre() {
+        if (location.search.includes("master")) {
+            // await GameEffects.editJSON(stgs)
+            const a = prompt("Edit:", JSON.stringify(stgs))
+            Object.assign(stgs, a)
+            location.search = location.search.replace("master", "")
+        }
+        if (location.hash.includes("eval")) {
+            location.hash = location.hash.replace("eval", "")
+            eval(prompt())
+        }
+
+    }
+    async masterPost() {
     }
 
     getIDArrAll() { return this.piecesArr.flatMap(p => [p.type, ...p.inputs, ...p.outputs]) }

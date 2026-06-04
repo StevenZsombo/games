@@ -6,6 +6,14 @@ const deets = {
         tGreen: `rgba(0,255,0,0.3)`,
         tRed: `rgba(255,0,0,0.3)`,
         tBlue: `rgba(173, 216, 230,0.5)`,
+        generalHover: "orange",
+        pieceBG: "lightgray",
+        altButtonBG: "lightgray",
+        altButtonHover: "orange",
+        pieceSideButtonHover: "orange",
+        linesColor: "black",
+        linesActiveColor: "darkorange",
+        popupInfoColor: "orange"
     }
 }
 
@@ -92,6 +100,7 @@ class Piece {
             width: 210,
             height: 120,
             isBlocking: true,
+            color: deets.colors.pieceBG
         }))
         this.button.imgScale = type.startsWith("Efn") ? 1 : 2.4
         if (props.moreButtonSettings) Object.assign(this.button, props.moreButtonSettings)
@@ -104,7 +113,10 @@ class Piece {
                 width: 50,
                 height: 50,
                 isBlocking: true,
-                txt: Piece.variableNames[i]
+                txt: Piece.variableNames[i],
+                color: deets.colors.pieceBG,
+                hover_color: deets.colors.pieceSideButtonHover,
+
             })
             inB.centeratX(this.button.left)
             inB.tag = "in"
@@ -129,7 +141,9 @@ class Piece {
             const outB = new Button({
                 width: 50,
                 height: 50,
-                isBlocking: true
+                isBlocking: true,
+                color: deets.colors.pieceBG,
+                hover_color: deets.colors.pieceSideButtonHover,
             })
             outB.centeratX(this.button.right)
             outB.tag = "out"
@@ -151,7 +165,9 @@ class Piece {
                 width: 60,
                 height: 30,
                 isBlocking: true,
-                txt: "Edit"
+                txt: "Edit",
+                color: deets.colors.altButtonBG,
+                hover_color: deets.colors.altButtonHover,
             })
             editButton.centeratX(this.button.centerX)
             editButton.centeratY(this.button.bottom)
@@ -174,7 +190,9 @@ class Piece {
                 width: 60,
                 height: 30,
                 isBlocking: true,
-                txt: "Swap"
+                txt: "Swap",
+                color: deets.colors.altButtonBG,
+                hover_color: deets.colors.altButtonHover,
             })
             swapButton.centeratX(this.button.centerX)
             swapButton.centeratY(this.button.bottom)
@@ -189,9 +207,9 @@ class Piece {
                 const parr = swappable.map(
                     (x, i) => [x[0], () => this.onTrigger(i)]
                 )
-                GameEffects.dropDrownBetter(parr, {
+                GameEffects.dropDownBetter(parr, {
                     autoClose: true, addCloseButton: false,
-                    moreButtonSettings: { width: 120, height: 80 }
+                    moreButtonSettings: { width: 120, height: 80, hover_color: deets.colors.generalHover }
                 })
             }
             swapButton.on_release = () => {
@@ -328,7 +346,7 @@ class Piece {
         }],
         Econst: [(_) => 451, String.raw`451`, {
             editable: {
-                msg: "Function f(x) = Cx for you constant C (decimal or fraction) of your choice.",
+                msg: "Constant function f(x) = C.\nType in your choice of C (can be any fraction or decimal).",
                 condition: trigger => Poly.parseDecimalOrFraction(trigger) != null,
                 type: trigger => "Econst_" + trigger,
                 fn: trigger => (() => {
@@ -349,7 +367,7 @@ class Piece {
         }],
         Emul: [(x) => 7 * x, String.raw`7x`, {
             editable: {
-                msg: "Function f(x) = Cx for a constant C (decimal or fraction) of your choice.",
+                msg: "Linear function f(x) = Cx.\n Type in your choice of C (can be any fraction or decimal).",
                 condition: trigger => Poly.parseDecimalOrFraction(trigger) != null,
                 type: trigger => "Emul_" + trigger,
                 fn: trigger => (() => {
@@ -368,7 +386,7 @@ class Piece {
                 })(),
             }
         }],
-        Epow: [(x) => x ** 5, String.raw`x^{5}`, {
+        EpowDEPR: [(x) => x ** 5, String.raw`x^{5}`, {
             editable: {
                 msg: "Function f(x) = x^C for your an integer C of your choice.",
                 condition: trigger => Number.isFinite(+trigger) && Number.isInteger(+trigger),
@@ -377,7 +395,7 @@ class Piece {
                 latex: trigger => String.raw`x^{${+trigger}}`,
             }
         }],
-        Esqrt: [(x) => x ** (1 / 3), String.raw`\sqrt[3]{x}`, {
+        EsqrtDEPR: [(x) => x ** (1 / 3), String.raw`\sqrt[3]{x}`, {
             editable: {
                 msg: "Function f(x) = (C-th root of x) for your a positive integer C of your choice.",
                 condition: trigger => Number.isFinite(+trigger) && Number.isInteger(+trigger) && +trigger > 0,
@@ -386,7 +404,7 @@ class Piece {
                 latex: trigger => String.raw`\ \sqrt[${+trigger}]{x}\ `,
             }
         }],
-        Etrig: [Piece.TRIG_PRESETS[0][1], Piece.TRIG_PRESETS[0][2], {
+        EtrigDEPR: [Piece.TRIG_PRESETS[0][1], Piece.TRIG_PRESETS[0][2], {
             editable: {
                 msg: `Choose on of the following, typing in the number\n` + Piece.TRIG_PRESETS.map((x, i) => `${i}: ${x[0]}`).join("\n"),
                 condition: trigger =>
@@ -782,6 +800,7 @@ class Level {
             levels: {
                 "set2026": ["Map each input to $2026$ using \\fbox{Edit} on the contant module \\fbox{12} or \\fbox{300}.", _ => 2026],
                 "mul11": ["Multiply each input by $11$ using \\fbox{Edit} on the multiplication module $\\boxed{-7x}$.", x => 11 * x],
+                "multwofifths": ["Multiply each input by $\\frac{2}{5}$ using \\fbox{Edit} on the multiplication module $\\boxed{-7x}$.", x => x * 2 / 5],
                 "raise7": ["Return $x^7$.", x => x ** 7, _ => MM.randomInt(-10, 10)],
                 "is91": ["Return $1$ for $91$, and $0$ otherwise", x => +(x == 91), _ => Math.random() < .4 ? 91 : MM.randomInt(-120, 150)],
                 "mod37": ["Return the remainder when dividing the positive integer input by $37$.", x => x % 37, _ => MM.randomInt(1, 200)],
@@ -824,6 +843,12 @@ class Level {
                     // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
                     String.raw`Return the least common multiple of $a$ and $b$.`//$\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`
                     , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                /*                
+                "nextmersenne": [String.raw`Given input $n$, return the smallest prime\\with $p=2^{k}-1$ with $k\geq n$.`,
+                (n) => [2, 3, 5, 7, 13, 17, 19, 31, 61].find(x => x >= n)
+                    , _ => MM.randomInt(1, 50) //hardcoded lol
+                ],
+                */
                 "ssquaref": [String.raw`${Level.UNTESTED}Return the smallest square number ($\neq 1$) that divides the input.\\\textit{(The inputs are not square-free.)}`,
                 x => {
                     for (let i = 2; i < x; i++)
@@ -832,13 +857,6 @@ class Level {
                 () => MM.randomInt(2, 30) ** 2 * MM.randomInt(1, 13)
                 ]
 
-                /*
-                "freeplay999999": ["This not a puzzle, but free play & testing", _ => MM.randomInt(1, 999), _ => Math.random() < .5 ? MM.randomInt(-60, 200) : +MM.random(-10, 20).toPrecision(3),
-                    {
-                        modules: ["copy", "copythree", "Econst_12", "Emul", "Epow", "Esqrt", "floor", "abs", "Obin_0", "Obin_1", "Obin_2", "Obin_3", "Efn", "Efn", "Efn2", "Otrig", "signum"]
-                    }
-                ],
-                */
 
 
             },
