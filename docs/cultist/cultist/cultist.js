@@ -663,7 +663,7 @@ class Game extends GameCore {
         const helper = new WeakMap()
         for (const piece of this.pieces) {
             helper.set(piece, {
-                x: piece.button.x, y: piece.button.y,
+                y: piece.button.y,
                 phase: MM.random(3, 10) / 1000
             })
         }
@@ -672,7 +672,7 @@ class Game extends GameCore {
                 if (p.button.last_held) { helper.delete(p); return; }
                 const h = helper.get(p)
                 if (!h) return
-                const { x, y, phase } = h
+                const { y, phase } = h
                 p.button.y = y + Math.sin(t / phase) * 20
             })
         }, "", {
