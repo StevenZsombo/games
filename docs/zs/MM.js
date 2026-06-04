@@ -1831,7 +1831,7 @@ class MM {
             input.click()
         })
     }
-
+    /**@returns {Promise<string>} */
     static importJSON(alsoAlert = false) {
         if (alsoAlert)
             alert(`Your browser will now ask you to open a file.\nSelect a file you exported earlier to load in that data.`)

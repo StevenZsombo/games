@@ -90,7 +90,7 @@ While the game is still under development, this feature cannot be turned off.`
 
         let batch
         let stage
-        {
+        { //main menu is this
             let zoneKeys = Object.keys(Level.BATCHES)
             if (!location.search.includes("unfinished") && !location.search.includes("dev"))
                 zoneKeys = zoneKeys.filter(x => !x.includes("unfinished"))
@@ -106,6 +106,48 @@ While the game is still under development, this feature cannot be turned off.`
                 x.hover_color = deets.colors.generalHover
             })
             ns.top.transparent = true
+            const [left, middle, right] = this.rect.copy
+                .leftat(20)
+                .rightstretchat(this.WIDTH - 20)
+                .topat(this.HEIGHT - 20 - 80)
+                .bottomstretchat(this.HEIGHT - 20)
+                .splitCol(0, 2, 1, 2, 1, 2)
+                .filter((_, i) => i % 2)
+                .map(x => Button.fromRect(x, {
+                    fontSize: 32,
+                    color: "pink",
+                    hover_color: deets.colors.generalHover,
+
+                }))
+            ns.fm.push(left, middle, right)
+            right.txt = "Leaderboards"
+            let isWaitingForLeaderboard = false
+            right.on_release = async () => {
+                if (isWaitingForLeaderboard) return
+                isWaitingForLeaderboard = true
+                const table = await Supabase.readAllCultist()
+                const arr = table.map(x => [x.name, x.stage_text_list.split(";").length, x.stage_text_list])
+                arr.sort((x, y) => y[1] - x[1])
+                const rand = MM.randomInt(0, 360)
+                const colors = arr.map((x, i) => x.map(() => `hsl(${360 * i / arr.length + rand},40%,50%)`))
+                console.log(colors)
+                console.table(table)
+                console.table(arr)
+                GameEffects.pipDiv(
+                    `Double-click to exit. <br> &nbsp` +
+                    MM.tableHTML(arr, ["name", "victories", "stages"], { colors }),
+                    { removeOnDoubleClick: true }
+                )
+                isWaitingForLeaderboard = false
+            }
+            left.txt = "Options"
+            left.on_release = () => {
+                GameEffects.dropDownBetter([
+                    ["Export ALL", () => this.exportALL()],
+                    ["Import ALL", () => this.importALL()]
+                ], { moreButtonSettings: { hover_color: deets.colors.generalHover, width: 400 } })
+            }
+            middle.visible = false //for now
             batch = await ns.promise()
         }
         // while (true)
@@ -601,7 +643,8 @@ While the game is still under development, this feature cannot be turned off.`
         if (location.search.includes("master")) {
             // await GameEffects.editJSON(stgs)
             const a = prompt("Edit:", JSON.stringify(stgs))
-            Object.assign(stgs, a)
+            Object.assign(stgs, JSON.parse(a))
+            stgs.save()
             location.search = location.search.replace("master", "")
         }
         if (location.hash.includes("eval")) {
@@ -834,6 +877,24 @@ While the game is still under development, this feature cannot be turned off.`
 
     }//#endregion
 
+
+    async exportALL() {
+        const keys = ["cultistVictories", "cultistSettings"]
+        const obj = keys.map(x => [x, localStorage.getItem(x)])
+        const sb = JSON.parse(localStorage.getItem("Supabase") || "{}")
+        delete sb.nameID
+        obj.push(["Supabase", JSON.stringify(sb)])
+        MM.exportJSON(obj, Supabase.name + "_cultist_" + MM.dateAndTimeShort())
+    }
+
+    async importALL() {
+        let file
+        try { file = (await MM.importJSON()) }
+        catch (err) { GameEffects.popup(err, GameEffects.popupPRESETS.redLinger); return; }
+        const parsed = JSON.parse(file)
+        parsed.forEach(x => localStorage.setItem(x[0], x[1]))
+
+    }
 
 
     //
