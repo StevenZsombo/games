@@ -478,10 +478,10 @@ class GameCanvas extends GameWorld {
     /**
     @param {RenderingContext} ctx 
     */
-    draw() {
+    draw(ctx) {
         if (!this.visible) return
-        this.ctx.clearRect(0, 0, this.worldRect.width, this.worldRect.height)
-        this.draw_layers(this.ctx)
+        // this.ctx.clearRect(0, 0, this.worldRect.width, this.worldRect.height)
+        // this.draw_layers(this.ctx)
         /*if (this.screenRect)
             ctx.drawImage(this.canvas,
                 0, 0, this.canvas.width, this.canvas.height,
@@ -497,6 +497,7 @@ class GameCanvas extends GameWorld {
     update(dt) {
         this.update_drawables(dt)
         // if (!this.visible) return //ALWAYS draws.
+        this.ctx.clearRect(0, 0, this.worldRect.width, this.worldRect.height)
         this.draw_layers(this.ctx)
     }
 

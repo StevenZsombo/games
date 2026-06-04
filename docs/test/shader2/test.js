@@ -28,10 +28,12 @@ var univ = {
 
 class Game extends GameCore {
     //#region initialize_more
-    initialize_more() {
+    async initialize_more() {
         const other = this.other = new GameCanvas(this.rect.copy)
-        const b = new Button({ width: 500, height: 300, txt: "hi" })
+        const b = Button.fromRect(this.rect.copy.stretch(.8, .8), { color: "pink" })
+        Cropper.loadImagePromise("cats.png").then(x => b.img = x)
         other.add_drawable(b)
+        Button.make_draggable(b)
         this.add_drawable(other)
 
 
@@ -42,29 +44,21 @@ class Game extends GameCore {
         const fx = document.createElement('canvas');
         fx.width = w;
         fx.height = h;
-        document.body.appendChild(fx);
+        // document.body.appendChild(fx);
 
         const out = document.createElement('canvas');
         out.width = w;
         out.height = h;
-        document.body.appendChild(out);
+        // document.body.appendChild(out);
 
         const gl = fx.getContext('webgl', { preserveDrawingBuffer: true });
 
         const vs = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vs, 'attribute vec2 p;varying vec2 t;void main(){gl_Position=vec4(p,0,1);t=(p+1.)/2.;}');
+        gl.shaderSource(vs, 'attribute vec2 p;varying vec2 coords;void main(){gl_Position=vec4(p,0,1);coords=(p+1.)/2.;}');
         gl.compileShader(vs);
 
         const fs = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fs, `precision mediump float;
-varying vec2 t;
-uniform sampler2D u;
-uniform vec2 s;
-void main(){
-  float xo=t.x*s.x;
-  float xs=300.0+(xo-300.0)/2.0;
-  gl_FragColor=texture2D(u,vec2(xs/s.x,t.y));
-}`);
+        gl.shaderSource(fs, await (await fetch("s.frag")).text());
         gl.compileShader(fs);
 
         const prog = gl.createProgram();
@@ -89,8 +83,9 @@ void main(){
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off);
 
-        gl.uniform1i(gl.getUniformLocation(prog, 'u'), 0);
-        gl.uniform2f(gl.getUniformLocation(prog, 's'), w, h);
+        gl.uniform1i(gl.getUniformLocation(prog, 'texture'), 0);
+        gl.uniform2f(gl.getUniformLocation(prog, 'size'), w, h);
+        const uTime = gl.getUniformLocation(prog, 'time')
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -98,16 +93,17 @@ void main(){
         ctxOut.drawImage(fx, 0, 0);
 
 
-        const redraw = () => {
+        const redraw = (time) => {
+            gl.uniform1f(uTime, time)
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off); //can just use myCanvas instead for full-screen effect!
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             ctxOut.drawImage(fx, 0, 0);
         }
 
 
 
-        this.shader = { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw }
+        this.shader = { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw, uTime }
 
 
 
@@ -131,10 +127,12 @@ void main(){
 
     //#region draw_more
     draw_more(screen) {
+        if (!this.shader) return
         const { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw } = this.shader
-        ctxOut.fillStyle = "red"
-        ctxOut.fillRect(0, 0, w, h)
-        redraw()
+        // ctxOut.fillStyle = "transparent"
+        // ctxOut.fillRect(0, 0, w, h)
+        ctxOut.clearRect(0, 0, w, h)
+        redraw(this.dtTotal / 2)
         screen.drawImage(out, 0, 0)
 
 
