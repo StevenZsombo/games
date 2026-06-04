@@ -269,6 +269,7 @@ class GameCore extends GameCoreLayerCore {
         }
         const now = performance.now()
         const dt = Math.min((now - this.lastCycleTime), this.dtUpperLimit)
+        this.dt = dt
         this.lastCycleTime = now
 
         const screen = this.screen
