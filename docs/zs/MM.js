@@ -3129,6 +3129,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         backgroundRect = game.rect.copy,
         gravity = 0.001,
         dampFactor = 0.95,
+        layer = 4
     } = {}) {
         const circles = new Set(
             Array(number).fill().map(_ => ({
@@ -3186,7 +3187,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             },
         }
 
-        game.add_drawable(circlesDrawable)
+        game.add_drawable(circlesDrawable, layer)
 
         return { circles, circlesDrawable, rects }
     }

@@ -635,7 +635,6 @@ class Game extends GameCore {
             Anim.stepper(this.resetButton, 2000, "rad", 0, 0.2,
                 { lerp: Anim.l.wave, repeat: 100, add: this, noLock: true }
             )
-            this.celebrate()
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             const isNewVictory = !cultistVictories[this.level.STAGE]
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
@@ -652,6 +651,8 @@ class Game extends GameCore {
                     .catch(() => GameEffects.popup("Could not conenct to server", GameEffects.popupPRESETS.rightError()))
 
             }
+
+            this.celebrate()
         } else {//lose
             GameEffects.popup("you lose")
         }
@@ -659,6 +660,25 @@ class Game extends GameCore {
 
     celebrate() {
         // GameEffects.fireworksShow()
+        const helper = new WeakMap()
+        for (const piece of this.pieces) {
+            helper.set(piece, {
+                x: piece.button.x, y: piece.button.y,
+                phase: MM.random(3, 10) / 1000
+            })
+        }
+        Anim.custom(null, 30_000, (t) => {
+            this.pieces.forEach(p => {
+                if (p.button.last_held) { helper.delete(p); return; }
+                const h = helper.get(p)
+                if (!h) return
+                const { x, y, phase } = h
+                p.button.y = y + Math.sin(t / phase) * 20
+            })
+        }, "", {
+            // repeat: 2000,
+            add: this
+        })
         GameEffects.balls(
             [
                 ...this.piecesArr.map(x => x.button),
