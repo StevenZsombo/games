@@ -1080,6 +1080,7 @@ class Button extends Clickable {
 	}
 	/**@param {Button} button @param {Game|GameCoreLayerCore} addToGame   */
 	static make_stretchable(button, addToGame) {
+		addToGame ??= game
 		const four = button.cornerRectsOnVertex().map(x => new Button(x))
 
 		const adjustLeft = x => {

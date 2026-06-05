@@ -86,6 +86,18 @@ class Game extends GameCore {
         }
 
 
+        const sc = new GameCanvas(this.rect)
+        let sb = new Button({ x: 1700, y: 900 })
+        this.add_drawable(sc)
+        Button.make_stretchable(sb, this)
+        // Button.make_draggable(sb)
+        sb.img = this.canvas
+        this.add_drawable(sb, 8)
+
+
+
+        Object.assign(this, { sc, sb })
+
         const j = {
             "province_count": 61,
             "image_file": "fictional_provinces_bw.bmp",
