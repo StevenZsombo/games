@@ -62,6 +62,7 @@ class Animator {
 			if (anim.ignored) continue //clumsy optional flag undefined by default
 			anim.time -= dt //times+frames are only managed here
 			if (anim.time >= 0) {
+				if (anim.on_start) { anim.on_start(anim.obj); anim.on_start = null } //clumsy "once" thing
 				anim.animate()
 				newAnims.push(anim)
 			} else {
@@ -165,6 +166,7 @@ class Anim {
 	 * @param {Object} [args={}] - Animation configuration
 	 * @param {Anim} [args.chain] - Animation to chain to
 	 * @param {Aray<Anim>} [args.chainMany] - Animations to chain to
+	 * @param {Function} [args.on_start] - Callback when animation first triggers, receives (obj)
 	 * @param {Function} [args.on_end] - Callback when animation completes, receives (obj)
 	 * @param {string|Function} [args.lerp] - Lerp function name or function
 	 * @param {number} [args.repeat] - How many times to repeat

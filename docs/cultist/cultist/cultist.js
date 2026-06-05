@@ -170,10 +170,34 @@ While the game is still under development, this feature cannot be turned off.`
             }
             middle.transparent = true //for now
             middle.dynamicText = () => `You are: ${Supabase.name}`
+            {//zone select animation
+                const r = ns.buts[0].radius
+                // ns.buts.forEach(x => x.transparent = true)
+                /*
+                this.animator.add_staggered(ns.buts, 0,
+                    Anim.stepper(null, 500, "rad", 0, TWOPI, { noLock: true }),
+                )
+                this.animator.add_staggered([...ns.buts], 0,
+                    new Anim(null, 500, Anim.f.stretchFrom, { w: r, h: r, noLock: true })
+                )
+                */
+                const { width, height } = ns.buts[0]
+                this.animator.add_staggered([...ns.buts], 0,
+                    Anim.custom(null, 500, (t, obj) => {
+                        obj.resize(
+                            Anim.interpol(r, width, t),
+                            Anim.interpol(r, height, t)
+                        )
+                        // obj.rad = Anim.interpol(0, TWOPI, t)
+                    }, ["rad", "width", "height", "cx", "cy"])
+                )
+
+
+            }
             batch = await ns.promise()
         }
         // while (true)
-        {
+        {//level select
             let levelKeys = Array.from(Object.keys(Level.BATCHES[batch].levels))
             if (!deets.allowUntested && !location.search.includes("dev")) {
                 levelKeys = levelKeys.filter(x =>
@@ -204,6 +228,16 @@ While the game is still under development, this feature cannot be turned off.`
                 // else x.hover_color = deets.colors.generalHover
             })
             stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
+            { //stage select animation
+                // ns.buts.forEach(x => x.transparent = true)
+                this.animator.add_staggered(ns.buts, 0,
+                    new Anim(
+                        null, 500, Anim.f.stretchFrom, { h: 0, w: 0 }
+                    )
+                    // Anim.stepper(null, 300, "rad", 0, TWOPI)
+                )
+
+            }
             stage = await ns.promise()
         }
         const level = this.level = new Level(batch, stage)
@@ -622,6 +656,11 @@ While the game is still under development, this feature cannot be turned off.`
                         stgs.linesSpringy ^= 1
                         stgs.save()
                     }],
+                    ["Spin!", () => {
+                        this.animator.add_staggered(
+                            this.piecesArr.flatMap(x => [x.button, x.inputs, x.outputs].flat())
+                            , 50, Anim.stepper(null, 800, "rad", 0, TWOPI, { repeat: 4, noLock: true }))
+                    }],
                     this.levelWasSolvedAlready ? ["Reupload to server", () => {
                         this.resetInputs()
                         this.forceReupload = true
@@ -674,10 +713,17 @@ While the game is still under development, this feature cannot be turned off.`
         resetButton.eraseClickables()
         resetButton.on_release = () => this.resetInputs()
 
-        {
+        {//checking local saves
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             if (stage in vic) this.loadSave(vic[stage])
         }
+        { //highlight instructions anim
+            Anim.stepper(corner, 1000, "rad", 0, 0.1, {
+                lerp: Anim.l.wave, repeat: 5,
+                add: this
+            })
+        }
+
         this.masterPost()
     }
     //#endregion

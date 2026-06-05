@@ -804,6 +804,7 @@ class MM {
                     name,
                     obj
                 })
+                console.error("require failed", obj, propertyNamesWithSpace)
                 throw new Error("require failed")
             }
         }
@@ -815,6 +816,7 @@ class MM {
                 props1,
                 props2
             })
+            console.error("requireEither failed", obj, propertyNamesWithSpace)
             throw new Error("requireEither failed")
         }
     }
