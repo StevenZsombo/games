@@ -1236,6 +1236,57 @@ class Inspector extends Button {
 	}
 }
 //#endregion
+
+
+
+//#region InspectorBetter
+class InspectorBetter {
+	constructor(gameToInspect = game, { layer = 8 }) {
+		// this.children = new WeakMap() //I'm kinda stupid
+		this.gameToInspect = gameToInspect
+		this.inspectBox = new Button({
+			width: 850,
+			height: 120,
+			color: "moccasin",
+			outline: 3,
+			fontSize: 30,
+			check: null, //not interactable
+		})
+		this.gameToInspect.add_drawable(this.inspectBox, layer)
+	}
+	/**
+	 * @param {Clickable} clickable 
+	 * @param {string} str 
+	 */
+	addChild(clickable, str) {
+		// const parent = this
+		// this.children.set(clickable, str)
+		const inspectBox = this.inspectBox
+		const rect = this.gameToInspect.rect
+		clickable.on_hover = pos => {
+			// if (!pos) return //should be redundant
+			const { x, y } = pos
+			inspectBox.topat(y + 15)
+			inspectBox.rightat(x - 10)
+			inspectBox.fitWithinAnother(rect)
+			if (inspectBox.collidepoint(x, y)) {
+				inspectBox.bottomat(y - 15)
+				inspectBox.fitWithinAnother(rect)
+			}
+			inspectBox.txt = str
+		}
+		clickable.on_leave = () => this.inspectBox.deactivate()
+	}
+	removeChild(clickable) {
+		// if (!this.children.has(clickable)) return
+		// this.children.delete(clickable)
+		clickable.on_hover = null
+		clickable.on_leave = null
+	}
+}
+
+//#endregion
+
 //#region MouseHelper
 class MouseHelper extends Button {
 	constructor(execute = true) {

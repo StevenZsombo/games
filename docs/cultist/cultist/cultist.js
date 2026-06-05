@@ -199,8 +199,9 @@ While the game is still under development, this feature cannot be turned off.`
                 const hasVictory = x.tag in vic
                 const hasUntested = Level.BATCHES[batch].levels[x.tag][0].includes("UNTESTED")
                 if (hasVictory && !hasUntested) x.color = "lightgreen"
-                if (!hasVictory && hasUntested) x.color = "red"
-                if (hasVictory && hasUntested) x.color = "purple"
+                else if (!hasVictory && hasUntested) x.color = "red"
+                else if (hasVictory && hasUntested) x.color = "purple"
+                // else x.hover_color = deets.colors.generalHover
             })
             stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
             stage = await ns.promise()
@@ -638,7 +639,7 @@ While the game is still under development, this feature cannot be turned off.`
                 { moreButtonSettings: { width: 300, hover_color: deets.colors.generalHover }, addCloseButton: false, autoClose: true }
             )
         }
-        const multipliers = [0, 0.1, 1, 10, 50]
+        const multipliers = [0, 0.2, 1, 10, 50]
         this.speedButtonsBGRect = new Rect(tools.right + tools.left, tools.top, 500, tools.height)
         const speedButtons = this.speedButtons =
             this.speedButtonsBGRect
@@ -688,8 +689,14 @@ While the game is still under development, this feature cannot be turned off.`
             stgs.save()
             location.search = location.search.replace("master", "")
         }
-        if (location.hash.includes("eval")) {
-            location.hash = location.hash.replace("eval", "")
+        const hash = decodeURIComponent(location.hash.slice(1)); // remove # and decode
+        if (hash.includes("eval=")) {
+            const start = hash.indexOf("eval=");
+            const comm = hash.substring(start + 5);
+            console.log("eval=", eval(comm));
+            location.hash = hash.substring(0, start); // still encoded, but that's fine
+        } else if (hash.includes("eval")) {
+            location.hash = hash.replace("eval", "")
             eval(prompt())
         }
 
@@ -841,12 +848,15 @@ While the game is still under development, this feature cannot be turned off.`
                             moreButtonSettings: { color: "pink", fontSize: 30, check: null },
                         })
                     })
-                    .catch(() => GameEffects.popup("Could not conenct to server", GameEffects.popupPRESETS.rightError()))
+                    .catch(() => GameEffects.popup("Could not connect to server", GameEffects.popupPRESETS.rightError()))
             }
             this.canModifyLines = true
             this.celebrate()
         } else {//lose
-            GameEffects.popup("you lose")
+            this.canModifyLines = true
+            GameEffects.popup("You lose.\nAt least one input was incorrect."
+                // { moreButtonSettings: { color: deets.colors.popupInfoColor } }
+            )
         }
     }
 

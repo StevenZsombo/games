@@ -919,7 +919,19 @@ class Level {
                     return [out, inp]
                 })()],
                 "xabs": [String.raw`Return |x|.$$`, x => Math.abs(x)],
-                "ismult5": [String.raw`Return only the multiples of 5.$$`, x => (x % 5 == 0) ? x : null, _ => Math.random() < .4 ? MM.randomInt(1, 40) * 5 : MM.randomInt(1, 200)],
+                "mult5only": [String.raw`Return only the multiples of 5.$$`, x => (x % 5 == 0) ? x : null, _ =>
+                    Math.random() < .5 ? (Math.random(.2) < 1 ? 5 : MM.randomInt(1, 40) * 5) : MM.randomInt(1, 300)
+                ],
+                "geq100only": [String.raw`Return only the inputs with $x\geq 100$.`, x => (x >= 100) ? x : null, _ => MM.random(-200, 400)],
+                "20not100": [
+                    String.raw`Return only the inputs that are a multiple of $20$ but not $100$.`,
+                    year => ((year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0)) ? year : null,
+                    () => Math.random() < .3 ? MM.randomInt(1, 10) * 20 : Math.random() < .5 ? MM.randomInt(1, 5) * 100 : MM.randomInt(1, 400)
+                ],
+                "leapyear": [`${Level.UNTESTED}Return only the leap years.$$`,
+                x => (x % 4 === 0 && (x % 100 !== 0 || x % 400 === 0)) ? x : null,
+                () => Math.random() < .4 ? MM.randomInt(1, 520) * 4 : Math.random() < .7 ? MM.randomInt(1, 22) * 100 : MM.randomInt(1000, 2100),
+                ],
                 "countdown": [String.raw`Return all positive integers not greater than the input in descending order.\\Hint: you'll need to create a loop.$$`, ...(() => {
                     const a = MM.shuffle([4, 6, 7, 3, 8, 2])
                     const inp = [...a]
