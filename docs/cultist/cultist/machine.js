@@ -273,6 +273,16 @@ class Piece {
         ["sin", x => Math.sin(x), String.raw`\sin(x)`],
         ["cos", x => Math.cos(x), String.raw`\cos(x)`],
     ]
+    static _RIGGED_POWER = (x, y) => {
+        const approx = +(x ** y).toPrecision(8)
+        if (Number.isInteger(approx)) return approx
+        return x ** y
+    }
+    static RIGGED = (x) => {
+        const approx = +(x.toPrecision(8))
+        if (Number.isInteger(approx)) return approx
+        return x
+    }
     static TYPES = {
         in: [x => x, String.raw`\text{IN}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
         ina: [x => x, String.raw`\text{IN:a}`, { inputs: 0, nodrag: false, moreButtonSettings: { color: "lightgreen" } }],
@@ -306,7 +316,7 @@ class Piece {
         log: [x => Math.log10(x), String.raw`\log_{10}(x)`],
         exp: [x => 10 ** x, String.raw`10^{x}`],
         div: [(x, y) => x / y, String.raw`\frac{x}{y}`],
-        pow: [(x, y) => x ** y, String.raw`x^{y}`],
+        pow: [(x, y) => Piece._RIGGED_POWER(x, y), String.raw`x^y`],
         sin: [x => Math.sin(x), String.raw`\sin(x)`],
         cos: [x => Math.cos(x), String.raw`\cos(x)`],
         tan: [x => Math.tan(x), String.raw`\tan(x)`],
@@ -430,7 +440,7 @@ class Piece {
                 ["x-y", (x, y) => x - y, String.raw`x-y`],
                 ["xy", (x, y) => x * y, String.raw`x\cdot y`],
                 ["x/y", (x, y) => x / y, String.raw`\frac{x}{y}`],
-                ["x^y", (x, y) => x ** y, String.raw`x^y`], //oops
+                ["x^y", (x, y) => Piece._RIGGED_POWER(x, y), String.raw`x^y`], //oops
                 ["log_x(y)", (x, y) => Math.log(y) / Math.log(x), String.raw`\log_{x}(y)`],
             ]
         }],
@@ -641,9 +651,16 @@ class Level {
                     b += MM.randomInt(1, Math.floor(b / 10))
                     return b
                 }],
-                // "digitsonly": ["Inputs are positive integers. Return only the inputs that are a single digit", x => [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(x) ? x : null, () => Math.random() < .5 ? MM.randomInt(1, 9) : MM.randomInt(1, 200)]
+                "percentage": [
+                    String.raw`A student earned $a$ out of $b$ marks on the test. \\Return their score as a percentage.`,
+                    ...(() => {
+                        const inp = Array(30).fill().map(_ => MM.randomInt(10, 140)).map(x => [MM.randomInt(1, x), x])
+                        MM.choice(inp.map((_, i) => i), 3).forEach(i => inp[i][0] = 0)
+                        const out = inp.map(([a, b]) => 100 * a / b)
+                        return [out, inp]
+                    })()
+                ]
 
-                // "onesdigit": ["Return the ones digit of the positive integer.", x => x % 10, () => MM.randomInt(1, 999)]
             },
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
@@ -710,6 +727,21 @@ class Level {
                     })(),
                     { modules: ["square", "sqrt", "diff", "halve", "signum", "copy", "add", "remove", "div", "sum", "diff", "prod", "double", "double", "copy",] }
                 ],
+                "xprod": [
+                    String.raw`Return the product $ab$. Indeed, $\boxed{x\cdot y}$ is missing,\\ and inputs might be negative, but you get another $\boxed{x+y}$.`,
+                    (a, b) => a * b,
+                    () => [0, 0].map(_ => MM.randomInt(-20, 30)),
+                    { replace: [["prod", "sum"]] }
+                ],
+                /*
+                "linsolve": [
+                    String.raw`Solve $ax+b=cx+d$ or return nothing if there is no solution.`,
+                    (a, b, c, d) => (d - b) / (a - c),
+                    () => Math.random() < .7
+                        ? [0, 0, 0, 0].map(_ => MM.randomInt(-12, 12))
+                        : [0, 0, 0, 0].map(_ => MM.randomInt(-12, 12)).map((x, i, a) => i !== 2 ? x : a[0])
+                ],
+                */
 
             },
             modules: [
@@ -838,6 +870,7 @@ class Level {
                 x => Math.floor(Math.sqrt(x)) ** 2,
                 _ => MM.randomInt(2, 200)
                 ],
+                "onesdigit": [String.raw`Return the last digit of the positive integer.$$`, x => x % 10, () => MM.randomInt(1, 999)]
 
 
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
@@ -849,7 +882,7 @@ class Level {
                 [[1383, 69], [55, 433], [55, 561], [790, 273], [434, 365], [940, 436], [1069, 271], [921, 761], [910, 587], [335, 710], [331, 848], [55, 699], [52, 832], [611, 706], [606, 860], [352, 567], [635, 505], [871, 903], [23, 40], [23, 240], [373, 40], [373, 240]]
 
         },
-        "Number theory 2\n(work in progress)": {
+        "Number theory 2": {
             levels: {
                 "tutspf": [
                     `Return the smallest prime factor $p_{\\text{min}}$ of the input.\\\\You can use the empty set module $\\boxed{\\emptyset}$ to\\\\discard unwanted numbers,\\\\such as the other output of`
@@ -879,6 +912,38 @@ class Level {
                     (a, b) => +(MM.gcd(a, b) == 1),
                     () => [0, 0].map(_ => MM.randomInt(1, 120))
                 ],
+                "onesdigit2": [
+                    String.raw`Return the ones digit of the positive integer.\\Note that you can \fbox{Swap} $\boxed{\text{gcd}(a,b)}$ to $\boxed{x \text{ mod } y}$.`,
+                    x => x % 10, () => MM.randomInt(1, 999),
+                    { replace: [["diff", "identity"]] }
+                ],
+                "tensdigit": [
+                    String.raw`Return the tens digit of the positive integer.$$`,
+                    x => (x % 100 - x % 10) / 10, () => MM.randomInt(10, 999)
+                ],
+                "iscube": [String.raw`Return $1$ if the input is the cube of an integer, and $0$ otherwise.`,
+                x => +(Math.round(x ** (1 / 3)) ** 3 == x),
+                () => Math.random() < .5 ? MM.randomInt(1, 8) ** 3 : MM.randomInt(2, 500)
+                ],
+                "pexp": [
+                    String.raw`The input is $p^k$ for some prime $p$ and integer $k$. Return $k$.`,
+                    ...(() => {
+                        const nk = Array(30).fill().map(_ => [MM.choice(Poly.primes200), MM.randomInt(1, 5)])
+                        nk.forEach(([n, k], i) => {
+                            let t = k
+                            while (n ** k < 10 ** 8) {
+                                k++
+                            }
+                            nk[i][1] = MM.randomInt(t, k)
+                        })
+                        const inp = nk.map(([n, k]) => n ** k)
+                        const out = nk.map(([_, k]) => k)
+                        return [out, inp]
+                    })()
+                ],
+
+                // "digitsonly": ["$$Inputs are positive integers. Return only the inputs that are a single digit", x => [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(x) ? x : null, () => Math.random() < .5 ? MM.randomInt(1, 9) : MM.randomInt(1, 200)],
+
                 /*
                 "gcdthree": [String.raw`Return the greatest common divisor of $a$,$b$, and $c$.`,
                 (a, b, c) => MM.gcd(MM.gcd(a, b), c),
@@ -896,12 +961,12 @@ class Level {
 
             },
             modules: [
-                "copy", "copy", "copythree", "spf2", "consume", "Obin", "Obin", "Obin", "Onth", "Oabs", "Oabs", "Econst_12", "Econst_300", "Emul"
+                "copy", "copy", "copythree", "spf2", "consume", "Obin", "Obin", "Obin", "Onth", "Oabs", "Oabs", "Econst_12", "Econst_300", "Emul", "Obin",
             ],
             positions:
-                [[1389, 65], [55, 433], [55, 561], [331, 498], [487, 142], [863, 143], [375, 849], [656, 849], [91, 847], [61, 706], [430, 672], [709, 673], [730, 472], [991, 546], [1002, 714], [23, 40], [23, 240], [373, 40], [373, 240]]
+                [[1389, 65], [38, 543], [107, 678], [151, 400], [487, 142], [863, 143], [358, 851], [624, 852], [91, 847], [401, 553], [1196, 896], [1347, 769], [749, 409], [868, 576], [1043, 432], [898, 855], [36, 73], [36, 273], [386, 73], [386, 273]]
         },
-        "Programming": {
+        "Programming\n(work in progress)": {
             levels: {
                 "harmfour": [String.raw`Return the harmonic mean of a,b,c,d.\\\\Recall: the harmonig mean is $\frac{4}{\frac{1}{a}+\frac{1}{b}+\frac{1}{c}+\frac{1}{d}}$.\\Note: you can \fbox{Swap} $\boxed{x+1}$ to $\boxed{\frac{1}{x}}$.`,
                 (a, b, c, d) => 4 / (1 / a + 1 / b + 1 / c + 1 / d),
