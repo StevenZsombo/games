@@ -136,12 +136,24 @@ While the game is still under development, this feature cannot be turned off.`
                 console.table(arr)
                 const meIndex = arr.findIndex(x => x[0] === Supabase.name)
                 let meSolved = "no recorded"
+                let victoriesFromServer = []
+                let message = ""
                 if (meIndex !== -1) {
                     meSolved = arr[meIndex][1]
+                    victoriesFromServer = arr[meIndex][2].split(";")
                     // colors[meIndex][0] = "white"
                 }
+                const victoriesLocal =
+                    Object.keys(JSON.parse(localStorage.getItem("cultistVictories") || "{}"))
+                const victoriesUnrecorded = victoriesLocal.filter(x => !victoriesFromServer.includes(x))
+                if (victoriesUnrecorded.length) {
+                    message = `<div style="color: red";>` +
+                        `Your solution of ${victoriesUnrecorded.join(",")} ${victoriesUnrecorded.length == 1 ? "is" : "are"} missing from the leaderboards.` +
+                        `<br>Open ${victoriesUnrecorded.length == 1 ? "that level" : "those levels"}, then click Menu -> Reupload to server to add ${victoriesUnrecorded.length == 1 ? "it" : "them"}.` +
+                        `</div>`
+                }
                 GameEffects.pipDiv(
-                    `<div>You are: ${Supabase.name} with ${meSolved} solutions.</div>` +
+                    `<div>You are: ${Supabase.name} with ${meSolved} solutions.<br>${message}</div>` +
                     `<div style="overflow: auto;">` + MM.tableHTML(arr, ["name", "victories", "stages"], { colors }) + `</div>` +
                     `<div><br>Double-click to exit.</div>`
                     , { removeOnDoubleClick: true }
@@ -212,8 +224,14 @@ While the game is still under development, this feature cannot be turned off.`
             pos.forEach((u, i) => this.piecesArr[i].button.topleftat(u[0], u[1]))
 
         })()
-
+        this.canModifyLines = true
         this.mouser.on_release = (pos) => {
+            if (lineStart && !this.canModifyLines) {
+                GameEffects.popup("You can't modify the machine now.",
+                    { floatTime: 2000, travelTime: 0, moreButtonSettings: { color: deets.colors.popupInfoColor } })
+                lineStart = null
+                return
+            }
             if (!lineStart) return
             lineStart = null
             let match = this.piecesArr
@@ -309,16 +327,19 @@ While the game is still under development, this feature cannot be turned off.`
         em.on("submitted", poly => {
             tobedeleted.add(poly)
             this.SUBMITTED.push(Poly.universalFn(poly.value))
-            if (this.DEFAULTS.allowAutoSpeedUp) {
-                const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
-                if (this.SUBMITTED.length == breakpoint)
+            const breakpoint = Math.floor(this.level.OUTPUTS.length / 3)
+            if (this.SUBMITTED.length == breakpoint)
+                if (this.DEFAULTS.allowAutoSpeedUp)
                     if (this.stepTime >= this.DEFAULTS.fastStepTime)
                         this.changeStepTime(this.DEFAULTS.fastStepTime)
-                if (this.SUBMITTED.length == 2 * breakpoint)
+            if (this.SUBMITTED.length == 2 * breakpoint) {
+                if (this.DEFAULTS.allowAutoSpeedUp)
                     if (this.stepTime >= this.DEFAULTS.fastestStepTime)
                         this.changeStepTime(this.DEFAULTS.fastestStepTime)
+                this.canModifyLines = false
             }
-            console.log("Submitted", poly.value)
+            if (this.SUBMITTED.length)
+                console.log("Submitted", poly.value)
             this.table.colors[2][this.SUBMITTED.length] =
                 this.checkParticularAtI(this.SUBMITTED.length - 1)
                     ? deets.colors.tGreen //color if bad
@@ -599,12 +620,21 @@ While the game is still under development, this feature cannot be turned off.`
                         stgs.linesSpringy ^= 1
                         stgs.save()
                     }],
+                    this.levelWasSolvedAlready ? ["Reupload to server", () => {
+                        this.resetInputs()
+                        this.forceReupload = true
+                        this.stepTime = 1
+                        this.animator.speedMultiplier = multipliers.at(-1)
+                        this.isProducingInputs = true
+                        this.stopStart.deactivate()
+                    }] : null,
                     ["Back to main menu", () => {
                         this.animator.resetAndFlushAll()
                         on_clockwork.length = 0
                         main()
                     }],
-                ], { moreButtonSettings: { width: 300, hover_color: deets.colors.generalHover }, addCloseButton: false, autoClose: true }
+                ].filter(x => x),
+                { moreButtonSettings: { width: 300, hover_color: deets.colors.generalHover }, addCloseButton: false, autoClose: true }
             )
         }
         const multipliers = [0, 0.1, 1, 10, 50]
@@ -724,6 +754,7 @@ While the game is still under development, this feature cannot be turned off.`
         this.w.remove_drawable(piece.panel)
     }
     resetInputs() {
+        this.initStepTime() //why not
         this.isProducingInputs = false
         this.polys?.forEach(x => x.where.hold = null)
         this.polys?.clear()
@@ -737,6 +768,7 @@ While the game is still under development, this feature cannot be turned off.`
         if (this.table) {
             this.table.colors.forEach(x => x.forEach((_, i) => i !== 0 && (x[i] = null)))
         }
+        this.canModifyLines = true
     }
     resetSpeed() {
         this.speedButtons?.find(x => x.txt == "1x").on_click()
@@ -744,8 +776,9 @@ While the game is still under development, this feature cannot be turned off.`
     initLevel() {
         this.resetInputs()
         this.initInputModules()
-        this.initStepTime()
         lines.clear()
+        this.levelWasSolvedAlready =
+            this.level.STAGE in JSON.parse(localStorage.getItem("cultistVictories") || "{}")
     }
 
     initInputModules() {
@@ -755,7 +788,7 @@ While the game is still under development, this feature cannot be turned off.`
 
     }
     DEFAULTS = {
-        allowAutoSpeedUp: false,
+        allowAutoSpeedUp: false, //let the user handle it.
         slowStepTime: 400,
         fastStepTime: 50,
         fastestStepTime: 10,
@@ -776,6 +809,7 @@ While the game is still under development, this feature cannot be turned off.`
     checkParticularAtI(i) {
         return this.accuracyFunction(this.SUBMITTED[i], this.level.OUTPUTS[i])
     }
+    forceReupload = false
     checkVictory = () => {
         if (
             this.RECEIVED_COUNT.some(x => x != this.level.INPUTS.length)
@@ -788,15 +822,15 @@ While the game is still under development, this feature cannot be turned off.`
             this.checkParticularAtI(i)
         )) {//win
             this.resetButton.txt = "Back to main menu"
-            this.resetButton.on_click = () => main()
+            this.resetButton.on_release = () => main()
             const cultistVictories = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             const isNewVictory = !cultistVictories[this.level.STAGE]
             const currentVictoryData = cultistVictories[this.level.STAGE] = this.getSaveData()
             localStorage.setItem("cultistVictories", JSON.stringify(cultistVictories))
             if (
-                isNewVictory
-                &&
-                stgs.sendNewVictoriesToServer
+                this.forceReupload
+                ||
+                (isNewVictory && stgs.sendNewVictoriesToServer)
             ) { //replace with permissions later
                 // if (!Supabase.name) return
                 Supabase.addCultistRow("cultist", currentVictoryData)
@@ -808,6 +842,7 @@ While the game is still under development, this feature cannot be turned off.`
                     })
                     .catch(() => GameEffects.popup("Could not conenct to server", GameEffects.popupPRESETS.rightError()))
             }
+            this.canModifyLines = true
             this.celebrate()
         } else {//lose
             GameEffects.popup("you lose")
