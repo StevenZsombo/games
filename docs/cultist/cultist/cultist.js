@@ -130,7 +130,7 @@ While the game is still under development, this feature cannot be turned off.`
                 const arr = table.map(x => [x.name, x.stage_text_list.split(";").length, x.stage_text_list])
                 arr.sort((x, y) => y[1] - x[1])
                 const rand = MM.randomInt(0, 360)
-                const colors = arr.map((x, i) => x.map(() => `hsl(${360 * i / arr.length + rand},35%,50%)`))
+                const colors = arr.map((x, i) => x.map(() => `hsl(${360 * i / arr.length + rand},35%,85%)`))
                 console.log(colors)
                 console.table(table)
                 console.table(arr)
@@ -239,7 +239,8 @@ While the game is still under development, this feature cannot be turned off.`
                 .filter(x => x != null)
                 .find(x => x.collidepoint(pos.x, pos.y))
             if (match)
-                if (match.piece === lineButton.piece) {
+                if (match === lineButton) { }
+                else if (match.piece === lineButton.piece) {
                     GameEffects.popup(`Cannot connect a module to itself.`, {
                         floatTime: 3000,
                         close_on_release: true,

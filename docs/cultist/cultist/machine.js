@@ -614,6 +614,7 @@ class Level {
                 "fourth": ["Return $x^4.", x => x ** 4],
                 "sumupto": ["Return the sum of all integers from $1$ to $n$.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
                 "mulfive": ["$$Multiply by 5.", x => x * 5],
+                "boolflip": [String.raw`Your inputs are either $0$ or $1$.\\Return $1$ for $0$, and $0$ for $1$.`, x => 1 - x, () => +(Math.random() < .5)],
                 "tutsgn": [String.raw`Return the sign, $\text{sgn}(x)$ for each input. \\\ \\Recall the definition: $\text{sgn}(x) = \begin{cases} 1&\text{if }x>0,\\0&\text{if }x=0,\\-1&\text{if }x<0.\end{cases}$`, x => Math.sign(x)],
                 "allones": [String.raw`Return $1$ for each input.`, (_) => 1, () => Math.random() < 0.2 ? 0 : MM.randomInt(-50, 50)],
                 "isone": [String.raw`Return $1$ if the input is $1$, and $0$ otherwise.`, x => +(x == 1), () => Math.random() < .4 ? 1 : MM.randomInt(-50, 50)],
@@ -778,6 +779,10 @@ class Level {
                 "ninetydeg": ["Return $\\frac{\\pi}{2}$.", (_) => Math.PI / 2],
                 "circlearea": ["Return the area of the circle with the input radius.$$", x => x ** 2 * Math.PI, () => MM.randomInt(1, 20)],
                 "oost": [String.raw`Return $\frac{1}{\sqrt{3}}$.`, _ => 1 / Math.sqrt(3)],
+                "boolfliptrig": [String.raw`Your inputs are $0$ or $1$. Return $1$ for $0$, and $0$ for $1$.\\Indeed, the $\boxed{x+y}$ and $\boxed{x-y}$ modules are both missing.`,
+                x => 1 - x, () => +(Math.random() < .5),
+                { replace: [["sum", "identity"], ["diff", "identity"]] }
+                ],
                 "sqrttwo": ["Return $\sqrt{2}$.", _ => Math.sqrt(2)],
                 "xsin": ["Return $\\sin(x)$.\\\\Indeed, the $\\boxed{\\sin(x)}$ module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
@@ -793,6 +798,13 @@ class Level {
                     "Return $\\left|\\tan\\left(\\frac{x}{2}\\right)\\right|$.\\\\Indeed, $\\boxed{\\tan(x)}$ and $\\boxed{\\frac{x}{2}}$ are both missing."
                     , x => Math.abs(Math.tan(x / 2)), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "sin", "cos", "identity", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "identity", "perthree", "double", "add", "one", "minusone"] }
+                ],
+                "cone": [
+                    String.raw`Find the curved surface area of the cone with radius $a$ and height $b$.`
+                    + String.raw`\\Recall it is $\pi a  \sqrt{a^2 + b^2}$.`
+                    ,
+                    (a, b) => Math.PI * a * Math.sqrt(a * a + b * b),
+                    () => [MM.random(0, 10), MM.random(1, 30)].map(x => +x.toPrecision(3)),
                 ],
                 "goldentrig": [
                     String.raw`Return the golden ratio $\frac{\sqrt{5}-1}{2}$.\\Indeed, $\boxed{\sqrt{x}}$ is missing.`
@@ -825,7 +837,8 @@ class Level {
                 "nextsquare": [String.raw`Return the smallest square number not greater than the input.$$`,
                 x => Math.floor(Math.sqrt(x)) ** 2,
                 _ => MM.randomInt(2, 200)
-                ]
+                ],
+
 
                 // "nchoose3": ["Input is n. Return the binomial coefficient n choose 3.", x => (x) * (x - 1) * (x - 2) / 3 / 2 / 1, _ => MM.randomInt(1, 20)],
             },
@@ -859,20 +872,25 @@ class Level {
                 "lcm": [
                     // "Return the least common multiple $\boxed{\\text{lcm}(a,b)}$\\\\by swapping the swappable number theory module to lcm"
                     String.raw`Return the least common multiple of $a$ and $b$.`//$\text{lcm}(a,b),$\\by swapping to that module using \fbox{Swap} on $\boxed{\text{gcd}(a,b)}$.`
-                    , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))],
+                    , (a, b) => MM.lcm(a, b), () => [0, 0].map(_ => MM.randomInt(1, 120))
+                ],
+                "iscoprime": [
+                    String.raw`Return $1$ if the inputs are coprimes, and $0$ otherwise.`,
+                    (a, b) => +(MM.gcd(a, b) == 1),
+                    () => [0, 0].map(_ => MM.randomInt(1, 120))
+                ],
+                /*
+                "gcdthree": [String.raw`Return the greatest common divisor of $a$,$b$, and $c$.`,
+                (a, b, c) => MM.gcd(MM.gcd(a, b), c),
+                () => [0, 0, 0].map(_ => MM.randomInt(1, 130))
+                ],
+                /*
                 /*                
                 "nextmersenne": [String.raw`Given input $n$, return the smallest prime\\with $p=2^{k}-1$ with $k\geq n$.`,
                 (n) => [2, 3, 5, 7, 13, 17, 19, 31, 61].find(x => x >= n)
                     , _ => MM.randomInt(1, 50) //hardcoded lol
                 ],
                 */
-                "ssquaref": [String.raw`${Level.UNTESTED}Return the smallest square number ($\neq 1$) that divides the input.\\\textit{(The inputs are not square-free.)}`,
-                x => {
-                    for (let i = 2; i < x; i++)
-                        if (x % (i ** 2) == 0) return i
-                },
-                () => MM.randomInt(2, 30) ** 2 * MM.randomInt(1, 13)
-                ]
 
 
 
@@ -913,7 +931,14 @@ class Level {
                 "xabs2": [String.raw`$$Take absolute value.\\Your new favourite module is missing.`, x => Math.abs(x), _ => Math.random() < .3 ? 0 : MM.randomInt(-20, 20),
                 { replace: [["Opath", "identity"]] }
                 ],
-                "middle": [String.raw`Your inputs are $a$, $b$, $c$. Return the second smallest.${Level.HARD}`, (a, b, c) => Math.max(Math.min(a, b), c), () => [0, 0, 0].map(_ => MM.randomInt(-20, 50))],
+                "ssquaref": [String.raw`${Level.UNTESTED}Return the smallest square number ($\neq 1$) that divides the input.\\\textit{(The inputs are not square-free.)}`,
+                x => {
+                    for (let i = 2; i < x; i++)
+                        if (x % (i ** 2) == 0) return i
+                },
+                () => MM.randomInt(2, 30) ** 2 * MM.randomInt(1, 13)
+                ],
+                "middle": [String.raw`${Level.UNTESTED}Your inputs are $a$, $b$, $c$. Return the second smallest.`, (a, b, c) => [a, b, c].sort((x, y) => x - y)[1], () => [0, 0, 0].map(_ => MM.randomInt(-20, 50))],
                 "nrdiv": [String.raw`${Level.UNTESTED}Return the number of divisors of $n$.`, x => MM.divisors(x).length, _ => MM.randomInt(2, 200)],
                 "primeonly": [String.raw`${Level.UNTESTED}Return only the primes.$$`, ...(() => {
                     const inp = []
