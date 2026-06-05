@@ -124,20 +124,29 @@ While the game is still under development, this feature cannot be turned off.`
             let isWaitingForLeaderboard = false
             right.on_release = async () => {
                 if (isWaitingForLeaderboard) return
+                const g = GameEffects.popup("Loading...", { floatTime: 10_000 })
                 isWaitingForLeaderboard = true
                 const table = await Supabase.readAllCultist()
                 const arr = table.map(x => [x.name, x.stage_text_list.split(";").length, x.stage_text_list])
                 arr.sort((x, y) => y[1] - x[1])
                 const rand = MM.randomInt(0, 360)
-                const colors = arr.map((x, i) => x.map(() => `hsl(${360 * i / arr.length + rand},40%,50%)`))
+                const colors = arr.map((x, i) => x.map(() => `hsl(${360 * i / arr.length + rand},35%,50%)`))
                 console.log(colors)
                 console.table(table)
                 console.table(arr)
+                const meIndex = arr.findIndex(x => x[0] === Supabase.name)
+                let meSolved = "no recorded"
+                if (meIndex !== -1) {
+                    meSolved = arr[meIndex][1]
+                    // colors[meIndex][0] = "white"
+                }
                 GameEffects.pipDiv(
-                    `Double-click to exit. <br> &nbsp` +
-                    MM.tableHTML(arr, ["name", "victories", "stages"], { colors }),
-                    { removeOnDoubleClick: true }
+                    `<div>You are: ${Supabase.name} with ${meSolved} solutions.</div>` +
+                    `<div style="overflow: auto;">` + MM.tableHTML(arr, ["name", "victories", "stages"], { colors }) + `</div>` +
+                    `<div><br>Double-click to exit.</div>`
+                    , { removeOnDoubleClick: true }
                 )
+                g.close()
                 isWaitingForLeaderboard = false
             }
             left.txt = "Options"
@@ -147,7 +156,8 @@ While the game is still under development, this feature cannot be turned off.`
                     ["Import ALL", () => this.importALL()]
                 ], { moreButtonSettings: { hover_color: deets.colors.generalHover, width: 400 } })
             }
-            middle.visible = false //for now
+            middle.transparent = true //for now
+            middle.dynamicText = () => `You are: ${Supabase.name}`
             batch = await ns.promise()
         }
         // while (true)
@@ -267,13 +277,6 @@ While the game is still under development, this feature cannot be turned off.`
                         ? linesDrawingFuncSpringy
                         : MM.drawLine
                 ctx.lineCap = "round"
-                if (lineStart) {
-                    const { x, y } = game.mouser.pos
-                    drawingFunc(ctx, lineStart.x, lineStart.y, x, y, {
-                        width: linesLineWidth,
-                        color: deets.colors.linesActiveColor
-                    })
-                }
                 lines.forEach(([a, b]) => {
                     const { cx, cy } = a
                     const { centerX, centerY } = b
@@ -285,6 +288,13 @@ While the game is still under development, this feature cannot be turned off.`
                         //     linesLineWidth
                     })
                 })
+                if (lineStart) {
+                    const { x, y } = game.mouser.pos
+                    drawingFunc(ctx, lineStart.x, lineStart.y, x, y, {
+                        width: linesLineWidth,
+                        color: deets.colors.linesActiveColor
+                    })
+                }
             }
         }
         w.add_drawable(linesDrawable, 6)

@@ -1689,7 +1689,7 @@ class MM {
             return wrap("tr", cells)
         }).join("")
 
-        return `<table${border ? " border=" + border : ""}>${headers}${entries}</td>`
+        return `<table${border ? " border=" + border : ""}>${headers}${entries}</table>`
     }
     static lettersAndNumberOnly(str) {
         return str ? str.replace(/\W/g, '') : ""
@@ -3108,7 +3108,9 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         z-index: 1000;
         overflow: auto;
         padding: 20px;
-        box-sizing: border-box; 
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
     `
         pip.innerHTML = htmlContent
         document.body.appendChild(pip)

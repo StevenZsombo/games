@@ -615,8 +615,12 @@ class Level {
                 "sumupto": ["Return the sum of all integers from $1$ to $n$.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
                 "mulfive": ["$$Multiply by 5.", x => x * 5],
                 "tutsgn": [String.raw`Return the sign, $\text{sgn}(x)$ for each input. \\\ \\Recall the definition: $\text{sgn}(x) = \begin{cases} 1&\text{if }x>0,\\0&\text{if }x=0,\\-1&\text{if }x<0.\end{cases}$`, x => Math.sign(x)],
-                "isodd": ["Return $1$ for odd input, and $0$ otherwise.", x => Math.abs(x % 2)],
+                "allones": [String.raw`Return $1$ for each input.`, (_) => 1, () => Math.random() < 0.2 ? 0 : MM.randomInt(-50, 50)],
+                "isone": [String.raw`Return $1$ if the input is $1$, and $0$ otherwise.`, x => +(x == 1), () => Math.random() < .4 ? 1 : MM.randomInt(-50, 50)],
+                "tutfloor": [String.raw`Return the greatest integer less than or equal to $x$ using $\boxed{\lfloor x \rfloor}.$`, x => Math.floor(x),
+                () => Math.random() < .3 ? MM.randomInt(-20, 30) : +MM.random(-20, 30).toPrecision(3)],
                 "isint": ["Return $1$ for integers, and $0$ otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
+                "isodd": ["Return $1$ for odd input, and $0$ otherwise.", x => Math.abs(x % 2)],
                 /*"largestpower": ["Return the largest power of 2 not greater than the positive input.", x => {
                     // let a = x
                     // while (a % 2 == 0) a /= 2
@@ -630,7 +634,7 @@ class Level {
                 "eight": ["Map each input to $8$.", _ => 8],
                 // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
                 "manynines": ["$$Input is a positive integer.\\\\Return a number with that many $9$s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
-                "digits": ["$$Return the number of digits in the given positive integer.", x => `${x} `.length, () => {
+                "digits": ["$$Return the number of digits in the given positive integer.", x => `${x}`.length, () => {
                     const a = MM.randomInt(1, 9)
                     let b = 10 ** a
                     b += MM.randomInt(1, Math.floor(b / 10))
@@ -677,6 +681,18 @@ class Level {
                 "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
                 "max": [String.raw`Return the larger of the two inputs.${Level.HARD}$$`, (a, b) => Math.max(a, b), () => [0, 0].map(_ => MM.randomInt(1, 150))],
                 "twodigit": [String.raw`You receive two inputs, $a$ and $b$.\\Return the two-digit number $ab$.`, (a, b) => 10 * a + b, () => [0, 0].map(_ => MM.randomInt(1, 9))],
+                "quadmin": [
+                    String.raw`Your inputs are the coefficients of $f(x)=ax^2+bx+c$, where $a>0$.\\Return the minimum value of $f(x)$.`,//(Note: you have access to $\boxed{\frac{x}{y}}$).`,
+                    ...(() => {
+                        const inp = Array(30).fill().map(_ => [MM.randomInt(1, 20), MM.randomInt(-30, 50), MM.randomInt(-50, 80)])
+                        const out = inp.map(([a, b, c]) => c - b ** 2 / 4 / a)
+                        return [out, inp]
+                    })(),
+                    {
+                        modules: ["square", "sqrt", "diff", "halve", "signum", "copy", "add", "remove", "div", "sum", "diff", "prod", "double", "double", "copy",],
+                        // execute: function () { }
+                    }
+                ],
                 "quadratic": [
                     String.raw`Your inputs are the coefficients of $ax^2+bx+c$,\\where $a>0$ and $\Delta >=0$.\\Return the larger of the two roots.`,
                     ...(() => {
@@ -692,7 +708,8 @@ class Level {
                         return [out, polys]
                     })(),
                     { modules: ["square", "sqrt", "diff", "halve", "signum", "copy", "add", "remove", "div", "sum", "diff", "prod", "double", "double", "copy",] }
-                ]
+                ],
+
             },
             modules: [
                 "square", "sqrt", "triple", "halve", "signum", "copy", "add", "remove", "floor", "sum", "diff", "prod", "log", "exp", "copy",],
@@ -896,6 +913,7 @@ class Level {
                 "xabs2": [String.raw`$$Take absolute value.\\Your new favourite module is missing.`, x => Math.abs(x), _ => Math.random() < .3 ? 0 : MM.randomInt(-20, 20),
                 { replace: [["Opath", "identity"]] }
                 ],
+                "middle": [String.raw`Your inputs are $a$, $b$, $c$. Return the second smallest.${Level.HARD}`, (a, b, c) => Math.max(Math.min(a, b), c), () => [0, 0, 0].map(_ => MM.randomInt(-20, 50))],
                 "nrdiv": [String.raw`${Level.UNTESTED}Return the number of divisors of $n$.`, x => MM.divisors(x).length, _ => MM.randomInt(2, 200)],
                 "primeonly": [String.raw`${Level.UNTESTED}Return only the primes.$$`, ...(() => {
                     const inp = []
