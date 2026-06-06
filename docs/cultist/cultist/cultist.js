@@ -36,6 +36,7 @@ const stgs = {
     alreadyNotifiedOfOnlineDataCollection: false,
     fullscreen: true,
     lastPlayedBatch: "",
+    animations: true,
     read() { Object.assign(this, JSON.parse(localStorage.getItem("cultistSettings") || "{}")); },
     save() { localStorage.setItem("cultistSettings", JSON.stringify(this)); },
     erase() { localStorage.removeItem("cultistSettings") }
@@ -173,7 +174,7 @@ While the game is still under development, this feature cannot be turned off.`
             }
             middle.transparent = true //for now
             middle.dynamicText = () => `You are: ${Supabase.name}`
-            {//zone select animation
+            if (stgs.animations) {//zone select animation
                 const r = ns.buts[0].radius
                 // ns.buts.forEach(x => x.transparent = true)
                 /*
@@ -230,7 +231,7 @@ While the game is still under development, this feature cannot be turned off.`
                 // else x.hover_color = deets.colors.generalHover
             })
             stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
-            { //stage select animation
+            if (stgs.animations) { //stage select animation
                 // ns.buts.forEach(x => x.transparent = true)
                 this.animator.add_staggered(ns.buts, 0,
                     new Anim(
@@ -243,6 +244,23 @@ While the game is still under development, this feature cannot be turned off.`
             stage = await ns.promise()
             stgs.lastPlayedBatch = batch
             stgs.save()
+        }
+
+
+        /////////////////////////////////////// ******************** initLevel here
+        if (stgs.animations) {//level start animations
+            const peep = new Peep(this)
+            // peep.radius = this.WIDTH
+            this.add_drawable(peep, 9)
+            // peep.radius = 0
+            peep.color = "pink"
+            peep.x = this.WIDTH
+            peep.y = 0
+            Anim.stepper(peep, 600, "radius", 0, this.WIDTH * 2, {
+                on_end: () => { this.remove_drawable(peep) },
+                lerp: Anim.l.square,
+                add: this
+            })
         }
         const level = this.level = new Level(batch, stage)
         this.initLevel()

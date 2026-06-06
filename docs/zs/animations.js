@@ -228,8 +228,8 @@ class Anim {
 	 */
 	static stepper(obj, time, varNames, startVals, endVals, args = {}) {
 		if (!Array.isArray(varNames)) { varNames = varNames.split(" ") }
-		if (startVals && !Array.isArray(startVals)) { startVals = [startVals] }
-		if (endVals && !Array.isArray(endVals)) { endVals = [endVals] }
+		if (startVals != null && !Array.isArray(startVals)) { startVals = [startVals] }
+		if (endVals != null && !Array.isArray(endVals)) { endVals = [endVals] }
 
 		const settings = { varNames, startVals, endVals, ...args }
 		return new Anim(obj, time, "stepMany", settings)

@@ -2418,3 +2418,37 @@ class Table {
 	}
 }
 //#endregion
+
+//#region Peep
+class Peep {
+	/**@type {Boolean} follows mouse or not */
+	interactable = false
+	/**@type {Boolean} drawn or not  */
+	visible = true
+	constructor(gameToAddTo) {
+		gameToAddTo ??= game
+		this.game = game
+		this.x = this.game.rect.centerX
+		this.y = this.game.rect.centerY
+		this.radius = 400
+		this.color = "midnightblue"
+		this.tag = "Peep"
+	}
+	update() {
+		if (!this.interactable) return
+		this.x = this.game.mouser.pos.x
+		this.y = this.game.mouser.pos.y
+	}
+	draw(ctx) {
+		if (!this.visible) return
+		const { x, y, radius, color } = this
+		ctx.beginPath()
+		ctx.rect(0, 0, this.game.WIDTH, this.game.HEIGHT)
+		ctx.arc(x, y, radius, 0, Math.PI * 2)
+		ctx.closePath()
+		ctx.fillStyle = color
+		ctx.fill("evenodd")
+	}
+
+}
+//#endregion
