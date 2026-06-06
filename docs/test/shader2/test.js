@@ -30,11 +30,30 @@ class Game extends GameCore {
     //#region initialize_more
     async initialize_more() {
         const other = this.other = new GameCanvas(this.rect.copy)
-        const b = Button.fromRect(this.rect.copy.stretch(.8, .8), { color: "pink" })
+        const b = Button.fromRect(this.rect.copy
+            // .stretch(.8, .8)
+            , { color: "pink" })
         Cropper.loadImagePromise("cats.png").then(x => b.img = x)
         other.add_drawable(b)
-        Button.make_draggable(b)
+        // Button.make_draggable(b)
         this.add_drawable(other)
+        const shaderOutputButton = Button.fromRect(this.rect.copy
+            // .stretch(.9, .9)
+            , { color: "blue" })
+        Button.make_stretchable(shaderOutputButton)
+        this.add_drawable(shaderOutputButton, 8)
+        // shaderOutputButton.imgScale = 1
+        shaderOutputButton.update = () => {
+            if (!this.shader) return
+            const { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw } = this.shader
+            ctxOut.fillStyle = "lightgreen"
+            ctxOut.fillRect(0, 0, w, h)
+            // ctxOut.clearRect(0, 0, w, h)
+            redraw(this.dtTotal / 2)
+
+            shaderOutputButton.img = fx
+        }
+
 
 
 
@@ -54,7 +73,7 @@ class Game extends GameCore {
         const gl = fx.getContext('webgl', { preserveDrawingBuffer: true });
 
         const vs = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vs, 'attribute vec2 p;varying vec2 coords;void main(){gl_Position=vec4(p,0,1);coords=(p+1.)/2.;}');
+        gl.shaderSource(vs, 'attribute vec2 p;varying vec2 frac;void main(){gl_Position=vec4(p,0,1);frac=(p+1.0)/2.0;}');
         gl.compileShader(vs);
 
         const fs = gl.createShader(gl.FRAGMENT_SHADER);
@@ -86,6 +105,7 @@ class Game extends GameCore {
         gl.uniform1i(gl.getUniformLocation(prog, 'texture'), 0);
         gl.uniform2f(gl.getUniformLocation(prog, 'size'), w, h);
         const uTime = gl.getUniformLocation(prog, 'time')
+        const uPos = gl.getUniformLocation(prog, 'pos')
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -95,6 +115,9 @@ class Game extends GameCore {
 
         const redraw = (time) => {
             gl.uniform1f(uTime, time)
+            gl.uniform2f(uPos,
+                this.mouser.pos.x, this.HEIGHT - this.mouser.pos.y
+            )
             gl.bindTexture(gl.TEXTURE_2D, tex);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, off); //can just use myCanvas instead for full-screen effect!
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -103,7 +126,7 @@ class Game extends GameCore {
 
 
 
-        this.shader = { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw, uTime }
+        this.shader = { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw, uTime, uPos }
 
 
 
@@ -127,13 +150,7 @@ class Game extends GameCore {
 
     //#region draw_more
     draw_more(screen) {
-        if (!this.shader) return
-        const { off, w, h, fx, out, gl, vs, fs, prog, buf, pLoc, tex, ctxOut, redraw } = this.shader
-        // ctxOut.fillStyle = "transparent"
-        // ctxOut.fillRect(0, 0, w, h)
-        ctxOut.clearRect(0, 0, w, h)
-        redraw(this.dtTotal / 2)
-        screen.drawImage(out, 0, 0)
+
 
 
 

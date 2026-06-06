@@ -6,7 +6,17 @@
             "request": "launch",
             "name": "Open in Chrome (file://)",
             "file": "${fileDirname}/${fileBasenameNoExtension}.html",
-            "runtimeArgs": ["--allow-file-access-from-files"],
+            // "runtimeArgs": ["--allow-file-access-from-files"],
+            "runtimeArgs": [
+                "--allow-file-access-from-files",
+                "--use-angle=d3d11",
+                "--use-gl=angle",
+                "--force_high_performance_gpu",
+                "--enable-gpu-rasterization",
+                "--enable-accelerated-2d-canvas",
+                "--enable-webgl",
+                "--ignore-gpu-blocklist"
+            ],
             "webRoot": "${workspaceFolder}",
             "sourceMapPathOverrides": {
                 "file:///*": "${workspaceFolder}/*"
