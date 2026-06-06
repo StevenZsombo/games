@@ -13,7 +13,10 @@ const deets = {
         pieceSideButtonHover: "orange",
         linesColor: "black",
         linesActiveColor: "darkorange",
-        popupInfoColor: "orange"
+        popupInfoColor: "orange",
+        stageSolved: "lightgreen",
+        stageUntested: "darkred",
+        stageUntestedAndSolved: "purple",
     }
 }
 
@@ -815,7 +818,7 @@ class Level {
                 x => 1 - x, () => +(Math.random() < .5),
                 { replace: [["sum", "identity"], ["diff", "identity"]] }
                 ],
-                "sqrttwo": ["Return $\sqrt{2}$.", _ => Math.sqrt(2)],
+                "sqrttwo": ["Return $\\sqrt{2}$.", _ => Math.sqrt(2)],
                 "xsin": ["Return $\\sin(x)$.\\\\Indeed, the $\\boxed{\\sin(x)}$ module is missing.", x => Math.sin(x), () => +MM.randomInt(-TWOPI, TWOPI).toPrecision(3),
                     { modules: ["copy", "copy", "square", "sqrt", "abs", "identity", "cos", "tan", "sum", "diff", "prod", "div", "reciprocal", "pi", "neg", "halve", "perthree", "double", "add", "one", "minusone"] }
                 ],
@@ -966,7 +969,7 @@ class Level {
             positions:
                 [[1389, 65], [38, 543], [107, 678], [151, 400], [487, 142], [863, 143], [358, 851], [624, 852], [91, 847], [401, 553], [1196, 896], [1347, 769], [749, 409], [868, 576], [1043, 432], [898, 855], [36, 73], [36, 273], [386, 73], [386, 273]]
         },
-        "Programming\n(work in progress)": {
+        "Programming": {
             levels: {
                 "harmfour": [String.raw`Return the harmonic mean of a,b,c,d.\\\\Recall: the harmonig mean is $\frac{4}{\frac{1}{a}+\frac{1}{b}+\frac{1}{c}+\frac{1}{d}}$.\\Note: you can \fbox{Swap} $\boxed{x+1}$ to $\boxed{\frac{1}{x}}$.`,
                 (a, b, c, d) => 4 / (1 / a + 1 / b + 1 / c + 1 / d),

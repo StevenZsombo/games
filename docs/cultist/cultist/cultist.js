@@ -35,6 +35,7 @@ const stgs = {
     sendNewVictoriesToServer: true,
     alreadyNotifiedOfOnlineDataCollection: false,
     fullscreen: true,
+    lastPlayedBatch: "",
     read() { Object.assign(this, JSON.parse(localStorage.getItem("cultistSettings") || "{}")); },
     save() { localStorage.setItem("cultistSettings", JSON.stringify(this)); },
     erase() { localStorage.removeItem("cultistSettings") }
@@ -105,6 +106,8 @@ While the game is still under development, this feature cannot be turned off.`
                 x.move(0, -2 / 3 * height)
                 x.hover_color = deets.colors.generalHover
             })
+            const lastBatch = ns.buts.find(x => x.txt === stgs.lastPlayedBatch)
+            if (lastBatch) lastBatch.txt = lastBatch.tag + "\n(last played)"
             ns.top.transparent = true
             const [left, middle, right] = this.rect.copy
                 .leftat(20)
@@ -191,8 +194,6 @@ While the game is still under development, this feature cannot be turned off.`
                         // obj.rad = Anim.interpol(0, TWOPI, t)
                     }, ["rad", "width", "height", "cx", "cy"])
                 )
-
-
             }
             batch = await ns.promise()
         }
@@ -217,14 +218,15 @@ While the game is still under development, this feature cannot be turned off.`
             back.rightat(this.WIDTH - back.y)
             ns.fm.push(back)
             back.on_release = () => main()
+            this.keyboarder.on_keydownDict["Escape"] = () => main()
             Button.make_roundedRect(back)
             const vic = JSON.parse(localStorage.getItem("cultistVictories") || "{}")
             ns.buts.forEach(x => {
                 const hasVictory = x.tag in vic
                 const hasUntested = Level.BATCHES[batch].levels[x.tag][0].includes("UNTESTED")
-                if (hasVictory && !hasUntested) x.color = "lightgreen"
-                else if (!hasVictory && hasUntested) x.color = "red"
-                else if (hasVictory && hasUntested) x.color = "purple"
+                if (hasVictory && !hasUntested) x.color = deets.colors.stageSolved
+                else if (!hasVictory && hasUntested) x.color = deets.colors.stageUntested
+                else if (hasVictory && hasUntested) x.color = deets.colors.stageUntestedAndSolved
                 // else x.hover_color = deets.colors.generalHover
             })
             stgs.fullscreen && ns.buts.forEach(x => x.on_click = () => MM.toggleFullscreen(true))
@@ -239,6 +241,8 @@ While the game is still under development, this feature cannot be turned off.`
 
             }
             stage = await ns.promise()
+            stgs.lastPlayedBatch = batch
+            stgs.save()
         }
         const level = this.level = new Level(batch, stage)
         this.initLevel()
@@ -678,7 +682,7 @@ While the game is still under development, this feature cannot be turned off.`
                 { moreButtonSettings: { width: 300, hover_color: deets.colors.generalHover }, addCloseButton: false, autoClose: true }
             )
         }
-        const multipliers = [0, 0.2, 1, 10, 50]
+        const multipliers = [0, 0.2, 1, 4, 50]
         this.speedButtonsBGRect = new Rect(tools.right + tools.left, tools.top, 500, tools.height)
         const speedButtons = this.speedButtons =
             this.speedButtonsBGRect
@@ -718,10 +722,15 @@ While the game is still under development, this feature cannot be turned off.`
             if (stage in vic) this.loadSave(vic[stage])
         }
         { //highlight instructions anim
-            Anim.stepper(corner, 1000, "rad", 0, 0.1, {
+            /*Anim.stepper(corner, 1000, "rad", 0, 0.1, {
                 lerp: Anim.l.wave, repeat: 5,
                 add: this
-            })
+            })*/
+            const oc = corner.color
+            Anim.custom(corner, 3200, t => {
+                corner.color = [oc, "pink"][Math.floor(8 * t) % 2]
+            }, "color", { add: this })
+
         }
 
         this.masterPost()
