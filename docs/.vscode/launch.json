@@ -4,7 +4,7 @@
         {
             "type": "chrome",
             "request": "launch",
-            "name": "Open in Chrome (file://)",
+            "name": "GPU enabled in Chrome (file://)",
             "file": "${fileDirname}/${fileBasenameNoExtension}.html",
             // "runtimeArgs": ["--allow-file-access-from-files"],
             "runtimeArgs": [
@@ -21,6 +21,25 @@
             "sourceMapPathOverrides": {
                 "file:///*": "${workspaceFolder}/*"
             }
-        }
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Without GPU in Chrome (file://)",
+            "file": "${fileDirname}/${fileBasenameNoExtension}.html",
+            // "runtimeArgs": ["--allow-file-access-from-files"],
+            "runtimeArgs": [
+                "--allow-file-access-from-files",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--disable-gpu-compositing",
+                "--disable-webgl",
+                "--disable-accelerated-2d-canvas",
+            ],
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "file:///*": "${workspaceFolder}/*"
+            }
+        },
     ]
 }
