@@ -217,10 +217,12 @@ class Supabase {
 	static name = null
 	static nameID = null
 	static teacher = null
+	static school = null
+	static DEFAULT_SCHOOL = "RCF" //for now...
 
 	static getProfile() {
-		const { name, nameID, teacher } = Supabase
-		return { name, nameID, teacher }
+		const { name, nameID, teacher, school } = Supabase
+		return { name, nameID, teacher, school }
 	}
 
 	static saveProfile() {
@@ -233,9 +235,17 @@ class Supabase {
 		Object.assign(Supabase, stored)
 		return stored
 	}
+	static eraseProfile() {
+		const prof = Supabase.getProfile()
+		for (const key in prof) {
+			if (key !== "nameID")
+				Supabase[key] = null
+		}
+		Supabase.saveProfile()
+	}
 
 	static isVerifiedAlready = false
-	static initProfile(doNotVerify = false) {
+	static initProfilePROMPT(doNotVerify = false) {
 		Supabase.loadProfile()
 		Supabase.nameID ??= localStorage.getItem("nameID") || MM.randomID()
 		Supabase.name ??= localStorage.getItem("name") || MM.promptUntilGood(
@@ -253,7 +263,86 @@ class Supabase {
 			Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
 				console.error("Supabase.initProfile -> verifyProfile failed")
 			})
+		}
+	}
+	static initProfile({ doNotVerify = false, forceToAskAnyways = false } = {}) {
+		Supabase.loadProfile()
+		let needsToFillIn = false
+		Supabase.nameID ??= MM.randomID()
+		if (!Supabase.name || !Supabase.teacher || !Supabase.school) needsToFillIn = true
+		if (needsToFillIn || forceToAskAnyways) {
+			const pip = GameEffects.pipDiv("")
+			const table = document.createElement('table')
+			const rows = [
+				['Name (in English):', 'input', "name", Supabase.name || ""],
+				['Teacher:', 'input', "teacher", Supabase.teacher || ""],
+				['School:', 'input', "school", Supabase.school ||
+					(location.hash.includes("school=")
+						? location.hash.substring(location.hash.indexOf("school=") + 7)
+						: Supabase.DEFAULT_SCHOOL)
+				],
+				['ID:', 'div', "nameID", Supabase.nameID],
+			];
 
+			rows.forEach(([label, type, id, value]) => {
+				const tr = document.createElement('tr');
+				const td1 = document.createElement('td')
+				td1.textContent = label
+				const td2 = document.createElement('td')
+				const el = document.createElement(type)
+				el.id = id
+				if (type === 'input') {
+					el.type = 'text'; el.value = value;
+				}
+				else if (type == "div") el.textContent = value
+				td2.appendChild(el)
+				tr.appendChild(td1)
+				tr.appendChild(td2)
+				table.appendChild(tr)
+			})
+			const btn = document.createElement('button'); {
+				const tr = document.createElement('tr')
+				const td = document.createElement('td')
+				td.colSpan = 2
+				btn.id = 'submit'
+				btn.textContent = 'Submit and start the game.'
+				td.appendChild(btn)
+				tr.appendChild(td)
+				table.appendChild(tr)
+			}
+			table.style.width = '350px'
+			pip.appendChild(table)
+			btn.onclick = () => {
+				attempt()
+			}
+			const attempt = () => {
+				const variableNames = rows.filter(x => x[1] === "input").map(x => x[2])
+				const varArr = variableNames.map(x => [
+					x,
+					MM.lettersNumbersSpacesOnly(document.getElementById(x).value)
+				])
+				const problems = varArr.filter(x => x[1].length < 3)
+				if (problems.length) {
+					alert(
+						`Your information must only contain English letters and be at least 3 characters each. These are invalid:\n` +
+						problems.map(x => `${x[0]}: ${x[1] || "(no input)"}`).join("\n")
+					)
+					return
+				}
+				let valuesDict =
+					Object.fromEntries(varArr)
+				Object.assign(Supabase, valuesDict)
+				console.log(valuesDict)
+				pip.close()
+			}
+
+		}
+
+		Supabase.saveProfile()
+		if (!doNotVerify && !Supabase.isVerifiedAlready) {
+			Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
+				console.error("Supabase.initProfile -> verifyProfile failed")
+			})
 		}
 	}
 
@@ -266,7 +355,7 @@ class Supabase {
 				return
 			}
 			const response = await fetch(
-				`${Supabase.SUPABASE_URL}/rest/v1/poly_players?"nameID"=eq.${encodeURIComponent(nameID)}&select=name,"nameID",teacher`,
+				`${Supabase.SUPABASE_URL}/rest/v1/poly_players?"nameID"=eq.${encodeURIComponent(nameID)}&select=name,"nameID",teacher,school`,
 				{
 					headers: {
 						apikey: Supabase.SUPABASE_KEY,
@@ -278,7 +367,7 @@ class Supabase {
 			if (table.length) {
 				Object.assign(Supabase, table[0])
 				Supabase.saveProfile()
-				console.log("Received profile info:", Supabase.getProfile())
+				console.log("Received profile info:", table[0], Supabase.getProfile())
 			}
 			else {
 				await Supabase.uploadNewProfile()

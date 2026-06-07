@@ -14,9 +14,7 @@ var univ = {
     //BROKEN
     filesList: "", //space-separated
     on_each_start: null,
-    on_first_run: () => {
-        Supabase.initProfile(location.search.includes("offline"))
-    },
+    on_first_run: null,
     on_first_run_blocking: null,
     on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
@@ -37,6 +35,7 @@ const stgs = {
     fullscreen: true,
     lastPlayedBatch: "",
     animations: true,
+    animationsPeep: false,
     read() { Object.assign(this, JSON.parse(localStorage.getItem("cultistSettings") || "{}")); },
     save() { localStorage.setItem("cultistSettings", JSON.stringify(this)); },
     erase() { localStorage.removeItem("cultistSettings") }
@@ -89,6 +88,8 @@ While the game is still under development, this feature cannot be turned off.`
             stgs.alreadyNotifiedOfOnlineDataCollection = true
             stgs.save()
         }
+
+        Supabase.initProfile({ doNotVerify: location.search.includes("offline") })
 
         let batch
         let stage
@@ -153,14 +154,16 @@ While the game is still under development, this feature cannot be turned off.`
                 if (victoriesUnrecorded.length) {
                     message = `<div style="color: red";>` +
                         `Your solution of ${victoriesUnrecorded.join(",")} ${victoriesUnrecorded.length == 1 ? "is" : "are"} missing from the leaderboards.` +
-                        `<br>Open ${victoriesUnrecorded.length == 1 ? "that level" : "those levels"}, then click Menu -> Reupload to server to add ${victoriesUnrecorded.length == 1 ? "it" : "them"}.` +
+                        `<br>Open ${victoriesUnrecorded.length == 1 ? "that level" : "those levels"}, then click Menu -> Reupload to server to upload ${victoriesUnrecorded.length == 1 ? "it" : "them"}.` +
                         `</div>`
                 }
                 GameEffects.pipDiv(
                     `<div>You are: ${Supabase.name} with ${meSolved} solutions.<br>${message}</div>` +
-                    `<div style="overflow: auto;">` + MM.tableHTML(arr, ["name", "victories", "stages"], { colors }) + `</div>` +
+                    `<div ` +
+                    // `style="overflow: auto;"` +
+                    `>` + MM.tableHTML(arr, ["Name", "Victories", "Levels"], { colors }) + `</div>` +
                     `<div><br>Double-click to exit.</div>`
-                    , { removeOnDoubleClick: true }
+                    , { closeOnDoubleClick: true }
                 )
                 g.close()
                 isWaitingForLeaderboard = false
@@ -174,6 +177,13 @@ While the game is still under development, this feature cannot be turned off.`
             }
             middle.transparent = true //for now
             middle.dynamicText = () => `You are: ${Supabase.name}`
+            let middleClicks = 0
+            middle.on_click = () => {
+                if (!middleClicks) setTimeout(() => middleClicks = 0, 2000)
+                middleClicks += 1
+                if (middleClicks == 10)
+                    Supabase.initProfile({ forceToAskAnyways: true, doNotVerify: true })
+            }
             if (stgs.animations) {//zone select animation
                 const r = ns.buts[0].radius
                 // ns.buts.forEach(x => x.transparent = true)
@@ -248,7 +258,7 @@ While the game is still under development, this feature cannot be turned off.`
 
 
         /////////////////////////////////////// ******************** initLevel here
-        if (stgs.animations) {//level start animations
+        if (stgs.animationsPeep) {//level start animations
             const peep = new Peep(this)
             // peep.radius = this.WIDTH
             this.add_drawable(peep, 9)

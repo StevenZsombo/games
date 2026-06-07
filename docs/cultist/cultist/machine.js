@@ -996,10 +996,6 @@ class Level {
                     year => ((year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0)) ? year : null,
                     () => Math.random() < .3 ? MM.randomInt(1, 10) * 20 : Math.random() < .5 ? MM.randomInt(1, 5) * 100 : MM.randomInt(1, 400)
                 ],
-                "leapyear": [`${Level.UNTESTED}Return only the leap years.$$`,
-                x => (x % 4 === 0 && (x % 100 !== 0 || x % 400 === 0)) ? x : null,
-                () => Math.random() < .4 ? MM.randomInt(1, 520) * 4 : Math.random() < .7 ? MM.randomInt(1, 22) * 100 : MM.randomInt(1000, 2100),
-                ],
                 "countdown": [String.raw`Return all positive integers not greater than the input in descending order.\\Hint: you'll need to create a loop.$$`, ...(() => {
                     const a = MM.shuffle([4, 6, 7, 3, 8, 2])
                     const inp = [...a]
@@ -1010,6 +1006,10 @@ class Level {
                 "xfloor": [String.raw`Return $\lfloor x \rfloor$ given positive $x$.`, x => Math.floor(x), _ => +MM.random(1, 30).toPrecision(3)],
                 "xabs2": [String.raw`$$Take absolute value.\\Your new favourite module is missing.`, x => Math.abs(x), _ => Math.random() < .3 ? 0 : MM.randomInt(-20, 20),
                 { replace: [["Opath", "identity"]] }
+                ],
+                "leapyear": [`${Level.UNTESTED}Return only the leap years.$$`,
+                x => (x % 4 === 0 && (x % 100 !== 0 || x % 400 === 0)) ? x : null,
+                () => Math.random() < .4 ? MM.randomInt(1, 520) * 4 : Math.random() < .7 ? MM.randomInt(1, 22) * 100 : MM.randomInt(1000, 2100),
                 ],
                 "ssquaref": [String.raw`${Level.UNTESTED}Return the smallest square number ($\neq 1$) that divides the input.\\\textit{(The inputs are not square-free.)}`,
                 x => {
