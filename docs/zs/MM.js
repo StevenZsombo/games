@@ -3112,27 +3112,12 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         overflow: auto;
         padding: 20px;
         box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        touch-action: pan-x pan-y;
-        touch-action: none;
+        display: inline-block;
     `
         pip.innerHTML = htmlContent
         document.body.appendChild(pip)
 
         const close = () => {
-            /* //this is retarded
-            document.body.style.transform = 'scale(1)'
-            document.body.style.zoom = 1
-            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            document.documentElement.style.transform = 'none';
-            document.body.style.transform = 'none';
-            document.body.style.width = '100%';
-            document.body.style.overflow = 'hidden';
-            document.body.offsetHeight; // force reflow
-            document.body.style.overflow = '';
-            game.mouser.whereIsCanvas()
-            */
             on_close?.()
             pip.remove()
             game.mouser.whereIsCanvas()

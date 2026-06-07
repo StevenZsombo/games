@@ -1341,7 +1341,7 @@ Please run them again to send your data.`
                 arr
                 , ["Name", "Level completed"],
                 { colors: colorsInfo })
-            , { removeOnDoubleClick: true }
+            , { closeOnDoubleClick: true }
         )
         this._hallOfFameShowIsInProgress = false
     }
