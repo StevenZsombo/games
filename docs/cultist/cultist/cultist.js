@@ -88,8 +88,9 @@ While the game is still under development, this feature cannot be turned off.`
             stgs.alreadyNotifiedOfOnlineDataCollection = true
             stgs.save()
         }
-
-        Supabase.initProfile({ doNotVerify: location.search.includes("offline") })
+        try {
+            Supabase.initProfile({ doNotVerify: location.search.includes("offline") })
+        } catch (err) { console.log(err) }
 
         let batch
         let stage
@@ -924,14 +925,16 @@ While the game is still under development, this feature cannot be turned off.`
                 (isNewVictory && stgs.sendNewVictoriesToServer)
             ) { //replace with permissions later
                 // if (!Supabase.name) return
-                Supabase.addCultistRow("cultist", currentVictoryData)
-                    .then(() => {
-                        GameEffects.popup("Data sent to server.", {
-                            posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
-                            moreButtonSettings: { color: "pink", fontSize: 30, check: null },
+                try {
+                    Supabase.addCultistRow("cultist", currentVictoryData)
+                        .then(() => {
+                            GameEffects.popup("Data sent to server.", {
+                                posFrac: [0.1, 0.9], sizeFrac: [0.15, 0.1],
+                                moreButtonSettings: { color: "pink", fontSize: 30, check: null },
+                            })
                         })
-                    })
-                    .catch(() => GameEffects.popup("Could not connect to server", GameEffects.popupPRESETS.rightError()))
+                        .catch(() => GameEffects.popup("Could not connect to server", GameEffects.popupPRESETS.rightError()))
+                } catch (err) { console.log(err) }
             }
             this.canModifyLines = true
             this.celebrate()
