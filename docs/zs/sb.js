@@ -270,6 +270,13 @@ class Supabase {
 		let needsToFillIn = false
 		Supabase.nameID ??= MM.randomID()
 		if (!Supabase.name || !Supabase.teacher || !Supabase.school) needsToFillIn = true
+		const maybeVerify = () => {
+			if (!doNotVerify && !Supabase.isVerifiedAlready) {
+				Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
+					console.error("Supabase.initProfile -> verifyProfile failed")
+				})
+			}
+		}
 		if (needsToFillIn || forceToAskAnyways) {
 			const pip = GameEffects.pipDiv("")
 			const table = document.createElement('table')
@@ -334,14 +341,10 @@ class Supabase {
 				Object.assign(Supabase, valuesDict)
 				console.log(valuesDict)
 				Supabase.saveProfile()
-				if (!doNotVerify && !Supabase.isVerifiedAlready) {
-					Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
-						console.error("Supabase.initProfile -> verifyProfile failed")
-					})
-				}
+				maybeVerify()
 				pip.close()
 			}
-		}
+		} else maybeVerify()
 	}
 
 	static async verifyProfile() {
