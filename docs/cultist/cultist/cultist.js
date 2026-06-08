@@ -1033,7 +1033,7 @@ While the game is still under development, this feature cannot be turned off.`
         let file
         try { file = (await MM.importJSON()) }
         catch (err) { GameEffects.popup(err, GameEffects.popupPRESETS.redLinger); return; }
-        const parsed = JSON.parse(file)
+        const parsed = file //already parsed JSON.parse(file)
         parsed.forEach(x => localStorage.setItem(x[0], x[1]))
 
     }
