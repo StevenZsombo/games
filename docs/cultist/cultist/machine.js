@@ -624,7 +624,7 @@ class Level {
                 "noneg": ["$$Return the nonnegative inputs only.", x => x >= 0 ? x : null],
                 "double": ["$$Double each input.", x => 2 * x],
                 "cube": ["Return $x^3$.", x => x ** 3],
-                "fourth": ["Return $x^4.", x => x ** 4],
+                "fourth": ["Return $x^4$.", x => x ** 4],
                 "sumupto": ["Return the sum of all integers from $1$ to $n$.", x => x * (x + 1) / 2, () => MM.randomInt(1, 20)],
                 "mulfive": ["$$Multiply by 5.", x => x * 5],
                 "boolflip": [String.raw`Your inputs are either $0$ or $1$.\\Return $1$ for $0$, and $0$ for $1$.`, x => 1 - x, () => +(Math.random() < .5)],
