@@ -333,16 +333,14 @@ class Supabase {
 					Object.fromEntries(varArr)
 				Object.assign(Supabase, valuesDict)
 				console.log(valuesDict)
+				Supabase.saveProfile()
+				if (!doNotVerify && !Supabase.isVerifiedAlready) {
+					Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
+						console.error("Supabase.initProfile -> verifyProfile failed")
+					})
+				}
 				pip.close()
 			}
-
-		}
-
-		Supabase.saveProfile()
-		if (!doNotVerify && !Supabase.isVerifiedAlready) {
-			Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
-				console.error("Supabase.initProfile -> verifyProfile failed")
-			})
 		}
 	}
 
