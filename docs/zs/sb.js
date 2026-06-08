@@ -267,7 +267,6 @@ class Supabase {
 	}
 	static initProfile({ doNotVerify = false, forceToAskAnyways = false } = {}) {
 		Supabase.loadProfile()
-		let needsToFillIn = false
 		Supabase.nameID ??= MM.randomID()
 		Supabase.saveProfile()
 		const maybeVerify = () => {
@@ -277,6 +276,7 @@ class Supabase {
 				})
 			}
 		}
+		let needsToFillIn = false
 		if (!Supabase.name || !Supabase.teacher || !Supabase.school) needsToFillIn = true
 		if (needsToFillIn || forceToAskAnyways) {
 			const pip = GameEffects.pipDiv("")
