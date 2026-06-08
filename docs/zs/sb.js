@@ -269,7 +269,7 @@ class Supabase {
 		Supabase.loadProfile()
 		let needsToFillIn = false
 		Supabase.nameID ??= MM.randomID()
-		if (!Supabase.name || !Supabase.teacher || !Supabase.school) needsToFillIn = true
+		Supabase.saveProfile()
 		const maybeVerify = () => {
 			if (!doNotVerify && !Supabase.isVerifiedAlready) {
 				Supabase.verifyProfile().then(() => Supabase.isVerifiedAlready = true).catch(() => {
@@ -277,6 +277,7 @@ class Supabase {
 				})
 			}
 		}
+		if (!Supabase.name || !Supabase.teacher || !Supabase.school) needsToFillIn = true
 		if (needsToFillIn || forceToAskAnyways) {
 			const pip = GameEffects.pipDiv("")
 			const table = document.createElement('table')
@@ -365,10 +366,11 @@ class Supabase {
 				})
 			const text = await response.text()
 			const table = JSON.parse(text)
+			console.log("table:", table)
 			if (table.length) {
 				Object.assign(Supabase, table[0])
 				Supabase.saveProfile()
-				console.log("Received profile info:", table[0], Supabase.getProfile())
+				console.log("Received profile info (before/after):", table[0], Supabase.getProfile())
 			}
 			else {
 				await Supabase.uploadNewProfile()
