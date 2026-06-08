@@ -117,7 +117,7 @@ class Game extends GameCore {
                     sliders.sliders[0].setValue(num)
                 }]
             })
-            const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 600 } })
+            const ddm = GameEffects.dropDownBetter(parr, { moreButtonSettings: { width: 600 } })
         }
         controlButtons[2].txt = "Highlighting"
         controlButtons[2].on_click = () => isHighlighting ^= 1

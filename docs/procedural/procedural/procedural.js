@@ -221,7 +221,7 @@ class Game extends GameCore {
         editButton.txt = "Manage fish"
         this.add_drawable(editButton)
         editButton.on_release = () => {
-            const ddm = GameEffects.dropDrownBetter(
+            const ddm = GameEffects.dropDownBetter(
                 animals.map((x, i) => [`Fish #${i}`, () => manageFish(x)]),
                 { moreButtonSettings: { hover_color: null, width: 200 } }
             )
@@ -237,7 +237,7 @@ class Game extends GameCore {
         })
         /**@param {Fish} fish */
         const manageFish = (fish) => {
-            const ddm = GameEffects.dropDrownBetter(
+            const ddm = GameEffects.dropDownBetter(
                 [
                     ["Center on", () => {
                         centeredFish = fish

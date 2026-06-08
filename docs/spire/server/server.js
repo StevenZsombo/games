@@ -202,7 +202,7 @@ class Game extends GameShared {
         parr.push(["RELOAD everyone", RELOAD])
         parr.push(["CLEAR leftovers", () => listener.persons.clear()])
         parr.push(["EXTRACT Excel", () => this.diagnostic()])
-        const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 400 } })
+        const ddm = GameEffects.dropDownBetter(parr, { moreButtonSettings: { width: 400 } })
         ddm.menuButtons.slice(-4, -1).forEach(x => x.color = "antiquewhite")
         ddm.autoClose()
     }
@@ -224,7 +224,7 @@ class Game extends GameShared {
             }]
             // ["kick", () => listener.persons.delete(person.nameID)],
         ]
-        const ddm = GameEffects.dropDrownBetter(parr, { moreButtonSettings: { width: 400 } })
+        const ddm = GameEffects.dropDownBetter(parr, { moreButtonSettings: { width: 400 } })
         ddm.autoClose()
 
     }
