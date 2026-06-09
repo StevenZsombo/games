@@ -654,15 +654,6 @@ class Level {
                     b += MM.randomInt(1, Math.floor(b / 10))
                     return b
                 }],
-                "percentage": [
-                    String.raw`A student earned $a$ out of $b$ marks on the test. \\Return their score as a percentage.${Level.HARD}`,
-                    ...(() => {
-                        const inp = Array(30).fill().map(_ => MM.randomInt(10, 140)).map(x => [MM.randomInt(1, x), x])
-                        MM.choice(inp.map((_, i) => i), 3).forEach(i => inp[i][0] = 0)
-                        const out = inp.map(([a, b]) => 100 * a / b)
-                        return [out, inp]
-                    })()
-                ]
 
             },
             modules: [
@@ -697,6 +688,15 @@ class Level {
                     // const out = Array(15).fill().map((x, i) => inp[2 * i] / inp[2 * i + 1])
                     // return [out, inp, { consecutive: true }]
                     // })()
+                ],
+                "percentage": [
+                    String.raw`A student earned $a$ out of $b$ marks on the test. \\Return their score as a percentage.${Level.HARD}`,
+                    ...(() => {
+                        const inp = Array(30).fill().map(_ => MM.randomInt(10, 140)).map(x => [MM.randomInt(1, x), x])
+                        MM.choice(inp.map((_, i) => i), 3).forEach(i => inp[i][0] = 0)
+                        const out = inp.map(([a, b]) => 100 * a / b)
+                        return [out, inp]
+                    })()
                 ],
                 "hypot": [String.raw`\text{Find the length of vector }\binom{a}{b}`, (a, b) => Math.hypot(a, b)],
                 "geom": [String.raw`Return the difference between\\the arithmetic and the geometric mean.$$`, (a, b) => (a + b) / 2 - Math.sqrt(a * b), () => [MM.randomInt(1, 100), MM.randomInt(1, 100)]],
