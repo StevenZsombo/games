@@ -630,7 +630,7 @@ class Level {
                 "tutsgn": [String.raw`Return the sign, $\text{sgn}(x)$ for each input. \\\ \\Recall the definition: $\text{sgn}(x) = \begin{cases} 1&\text{if }x>0,\\0&\text{if }x=0,\\-1&\text{if }x<0.\end{cases}$`, x => Math.sign(x)],
                 "allones": [String.raw`Return $1$ for each input.`, (_) => 1, () => Math.random() < 0.2 ? 0 : MM.randomInt(-50, 50)],
                 "boolflip": [String.raw`Your inputs are either $0$ or $1$.\\Return $1$ for $0$, and $0$ for $1$.`, x => 1 - x, () => +(Math.random() < .5)],
-                "isone": [String.raw`Return $1$ if the input is $1$, and $0$ otherwise.`, x => +(x == 1), () => Math.random() < .4 ? 1 : MM.randomInt(-50, 50)],
+                "isone": [String.raw`Return $1$ if the input is $1$, and $0$ otherwise.${Level.HARD}`, x => +(x == 1), () => Math.random() < .4 ? 1 : MM.randomInt(-50, 50)],
                 "tutfloor": [String.raw`Return the greatest integer less than or equal to $x$ using $\boxed{\lfloor x \rfloor}.$`, x => Math.floor(x),
                 () => Math.random() < .3 ? MM.randomInt(-20, 30) : +MM.random(-20, 30).toPrecision(3)],
                 "isint": ["Return $1$ for integers, and $0$ otherwise.", x => Number.isInteger(x) ? 1 : 0, () => +(MM.random(-100, 100).toPrecision(3))],
@@ -655,7 +655,7 @@ class Level {
                     return b
                 }],
                 "percentage": [
-                    String.raw`A student earned $a$ out of $b$ marks on the test. \\Return their score as a percentage.`,
+                    String.raw`A student earned $a$ out of $b$ marks on the test. \\Return their score as a percentage.${Level.HARD}`,
                     ...(() => {
                         const inp = Array(30).fill().map(_ => MM.randomInt(10, 140)).map(x => [MM.randomInt(1, x), x])
                         MM.choice(inp.map((_, i) => i), 3).forEach(i => inp[i][0] = 0)
