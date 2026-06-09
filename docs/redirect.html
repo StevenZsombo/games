@@ -2,12 +2,27 @@
 <html>
 
 <head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* Disable scrolling */
+            width: 100%;
+            height: 100%;
+            /* display: flex; */
+            /* justify-content: center; */
+            align-items: center;
+            background: #2600ff;
+        }
+    </style>
+
     <title>Redirect page</title>
     <script>
         function ___startGame() {
             const password =
                 //must be "on" or "off" in the next line
-                "on"
+                "off"
             if (password != "on" || prompt("Enter password:") ==
                 //change the password in the next line, keep the quotation marks
                 "1234"

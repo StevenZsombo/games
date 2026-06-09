@@ -14,7 +14,7 @@ window.___heads =
 //sample format: "Alice,Bob,Jackie Chan"
 //the quotaation marks must be present, and names are separated by a comma
 window.___students =
-    "Aziz,Darren,Blake,Vamsi,Steven,Fritz,Alain,other1,other2"
+    "Alice,Chris,Cloris,Coro,Eden,Eily,Ethan Deng,Ethan Jiang,George,Gwendolyn,Harry,Howell,Kevin,Kimberly,Kyrie,Lu,Lucas,Michael,Percy,Sebastian,Selina,Seraphim,Tommy,Zoey,other1,other2,other3,other4,other5,other6"
 
 //number of minutes available for each head in order. the last one repeats infinitely
 //sample format: "7,5,3"
