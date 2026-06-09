@@ -23,6 +23,7 @@ class GameShared extends GameCore {
         this.bot.on_click = () => {
             if (botClicks == 0) setTimeout(() => botClicks = 0, 5000)
             botClicks++
+            if (botClicks == 1) MM.toggleFullscreen(true)
             if (botClicks > 3) wDiv.hide()
             if (botClicks > 10) {
                 botClicks = 0
