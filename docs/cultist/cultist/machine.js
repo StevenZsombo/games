@@ -644,7 +644,7 @@ class Level {
                     return a / 2
                 }, () => Math.random() < .5 ? MM.randomInt(1, 200) : 2 * MM.randomInt(1, 200)],
                 */
-                "rounded": ["$$Round the input to the nearest integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
+                "rounded": ["$$Round the input to the nearest positive integer.", x => +Math.round(x).toPrecision(3), () => MM.random(0, 10)],
                 "eight": ["Map each input to $8$.", _ => 8],
                 // "poweroften": ["Input is positive a, return 10^a", x => 10 ** x, () => Math.random() < .3 ? +MM.random(1, 10).toPrecision(3) : MM.randomInt(1, 10)],
                 "manynines": ["$$Input is a positive integer.\\\\Return a number with that many $9$s.", x => 10 ** x - 1, () => MM.randomInt(1, 12)],
