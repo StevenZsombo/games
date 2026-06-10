@@ -715,7 +715,7 @@ class Level {
                     }
                 ],
                 "quadratic": [
-                    String.raw`Your inputs are the coefficients of $ax^2+bx+c$,\\where $a>0$ and $\Delta >=0$.\\Return the larger of the two roots.`,
+                    String.raw`Return the larger root of $ax^2+bx+c=0$,\\where $a>0$ and $\Delta \geq 0$.`,
                     ...(() => {
                         const roots = Array(30).fill().map(() => [
                             MM.randomInt(-13, 13),
