@@ -23,8 +23,8 @@ class Person extends Participant {
         resp.state = sm.currentKey
         return resp
     }
-    absolve() {
-        this.wee("abs").then(this.pen = false).catch(bpop)
+    absolve(silent = false) {
+        this.wee("abs").then(this.pen = false).catch((err) => !silent && bpop(err))
     }
     whitelist() {
         this.wee("whitelist").then(this.pen = false).catch(bpop)
@@ -199,11 +199,14 @@ class Game extends GameShared {
 
     playersMenu() {
         const parr = listener.personsAsArray.map(x => [x.name, () => this.individualMenu(x)])
+        parr.push(["ABSOLVE all", () => {
+            listener.personsAsArray.forEach(x => x.absolve(true))
+        }])
         parr.push(["RELOAD everyone", RELOAD])
         parr.push(["CLEAR leftovers", () => listener.persons.clear()])
         parr.push(["EXTRACT Excel", () => this.diagnostic()])
         const ddm = GameEffects.dropDownBetter(parr, { moreButtonSettings: { width: 400 } })
-        ddm.menuButtons.slice(-4, -1).forEach(x => x.color = "antiquewhite")
+        ddm.menuButtons.slice(-5, -1).forEach(x => x.color = "antiquewhite")
         ddm.autoClose()
     }
 
