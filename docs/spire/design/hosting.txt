@@ -55,7 +55,7 @@ Same as Conquest.
 2.  Start game-server
 3.  Start electron
 4.  Type in console:
-location.replace("localhost/spire/server/server.html")
+Steven.spire()
 5.  Students can now join your ip adress given by game-server.
 
 
