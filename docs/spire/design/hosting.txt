@@ -1,3 +1,16 @@
+Step 0. Question-making
+You need two sets of questions, and three sets of pictures:
+Set 1:  questions for the Spire (Stage 2: Climb).
+        Must be .png format - no naming requirement.
+        Best NOT to include the solution in the filename - keep a separate record.
+        As many questions as you want, you will be free to design the layout.
+Set 2:  7* questions for the Hydra (Stage 3: Bossfight).
+Set 3:  The same 7* questions, but partially covered so students can guess the topic & difficulty,
+        but cannot solve it before making a commitment to fight the respective head.
+(*You can have a different number of heads if you 
+create a hydra boss image with a different number of heads.)
+
+
 How to make a new Spire/Hydra map.
 Step 1.
 Put all the questions you wish to use in the spire/questions folder.
