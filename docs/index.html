@@ -11,6 +11,9 @@
     <ul id="alevelslist"></ul>
     <b>Games and puzzles</b>
     <ul id="gameslist"></ul>
+    <b>Leaderboard games</b>
+    <ul id="biggameslist"></ul>
+
 
 </body>
 
@@ -21,13 +24,7 @@
             transformdraw: ["transformdraw/template.html", "Function transformations - Draw the function", "Function transformation puzzles - Draw the function"],
             pbl: ["PBL2025/index.html", "PBL 2025 Flappy bird AI",
                 `PBL 2025 Flappy bird neural network + genetic algortihm. The advanced version is <a href = "PBL2025/sketch2.html">here.</a>`],
-            eca26: ["", "ECA 2026",
-                "ECA 2026 Games will be uploaded here.<br>" +
-                `<a href="eca26/week2/index.html">Week 2 version</a> <a href="eca26/week3/index.html">Week 3 version</a>` +
-                ` <a href="dsdemos/dsdemos.html">DeepSeek demos</a>` +
-                ` <a href="eca26/week7/index.html">Week 7 version</a>`
-                + `<br>&nbsp`
-            ],
+            eca26: ["eca26/eca.html", "ECA 2026", "ECA 2026 Games will be uploaded here."],
             swiss: ["swiss/swiss.html", "Swiss tournament manager", "For facilitating Swiss tournaments on the smartboard."]
         }
         const games = {
@@ -47,6 +44,10 @@
             invaders: ["invaders/invaders.html", "Invaders", "My first attempt at javascript."]
 
         }
+        const biggames = {
+            zpoly: ["./template.html", "ZPoly", "Polynomial game"],
+            cultist: ["cultist/cultist/cultist.html", "Cultist", "Functions game"],
+        }
 
 
         const addToList = function (path, name, txt, targetlist) {
@@ -62,7 +63,9 @@
         for ([path, name, txt] of Object.values(alevels)) {
             addToList(path, name, txt, "alevelslist")
         }
-
+        for ([path, name, txt] of Object.values(biggames)) {
+            addToList(path, name, txt, "biggameslist")
+        }
 
         //document.body.insertAdjacentHTML("beforeend", "this is how lol")
 
