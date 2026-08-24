@@ -218,7 +218,7 @@ class Supabase {
 	static nameID = null
 	static teacher = null
 	static school = null
-	static DEFAULT_SCHOOL = "RCF" //for now...
+	static DEFAULT_SCHOOL = "DSI"
 
 	static getProfile() {
 		const { name, nameID, teacher, school } = Supabase
