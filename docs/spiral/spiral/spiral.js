@@ -108,13 +108,14 @@ class Game extends GameCore {
             ["sin60", Math.sin(60)],
             ["sin72", Math.sin(72)],
             ["goldenRatio", golden],
+            ["other", 0]
         ]
         let hideGolden = true
         controlButtons[1].on_click = () => {
             this.mouser.blockNextRelease()
             const parr = interesting.map(([str, num]) => {
                 return [hideGolden && str === "goldenRatio" ? "???" : `${str}, ${num}`, () => {
-                    sliders.sliders[0].setValue(num)
+                    sliders.sliders[0].setValue(num || +prompt())
                 }]
             })
             const ddm = GameEffects.dropDownBetter(parr, { moreButtonSettings: { width: 600 } })
