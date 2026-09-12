@@ -1358,6 +1358,7 @@ class Malleable {
 	reverse(...args) { return this.components.reverse(...args) }
 	append(...args) { this.components.push(...args); return this.components; }
 	get length() { return this.components.length }
+	set length(v) { this.components.length = v }
 	[Symbol.iterator]() { return this.components[Symbol.iterator](); }
 
 
