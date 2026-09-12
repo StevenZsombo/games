@@ -30,6 +30,7 @@ const GRAPHICS = {
  * @property {function(number): string} t - question text
  * @property {function(number): number[]} a - array of possible answers
  * @property {function(number, number): boolean} f - function to check correct answers
+ * @property {?number} w - weighting
  */
 
 /** @type {Object.<string, Level>} */
@@ -40,6 +41,7 @@ var levels = {
         a: x =>
             fluff(fluff([], MM.randomInt(4, 6), 2, 10).map(r => r * x), 10, 1, 100),
         f: (x, a) => a % x == 0,
+        w: 2,
     },
     factorsOf: {
         x: _ => (() => {
@@ -49,6 +51,7 @@ var levels = {
         t: x => String.raw`Select factors of $${x}$.`,
         a: x => fluff(MM.choice(MM.divisors(x), MM.randomInt(3, 6)).concat([2 * x, 3 * x]), 10, 1, 100),
         f: (x, a) => x % a == 0,
+        w: 2,
     },
     evens: {
         t: _ => String.raw`Select the even numbers:`,

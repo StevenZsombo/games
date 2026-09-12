@@ -31,11 +31,16 @@ class Game extends GameShared {
     async initialize_async() {
         this.mall = new Malleable()
         this.add_drawable(this.mall)
+        this.puzzles = Array.from(Object.values(levels))
+        this.puzzles.forEach(p => {
+            if (p.w) { for (let i = p.w - 1; i > 0; --i) this.puzzles.push(p) }
+        })
+        this.puzzles.sort(() => Math.random() - .5)
 
 
 
 
-        this.makeLevel()
+        this.nextPuzzle()
     }
     //#endregion
 
@@ -72,7 +77,12 @@ class Game extends GameShared {
 
 
     nextPuzzle() {
-        this.makeLevel()
+        const p = this.puzzles.pop()
+        if (p) this.makeLevel(p)
+        else {
+            this.mall.length = 0
+            
+        }
     }
     /**@param {Level} l  */
     makeLevel(l) {
