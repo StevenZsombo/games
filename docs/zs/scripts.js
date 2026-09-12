@@ -4,6 +4,7 @@ const PI = Math.PI
 const HALFPI = Math.PI / 2
 const NINETYDEG = Math.PI / 2
 const SIXHOURS = 6 * 60 * 60 * 1000
+const SQRT2 = Math.SQRT2
 
 
 //#region Rect
