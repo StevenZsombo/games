@@ -38,6 +38,9 @@ class Game extends GameShared {
         this.puzzles.sort(() => Math.random() - .5)
 
 
+        this.puzzles = Array(3).fill().map(_ => levels["simplified"])
+
+
 
 
         this.nextPuzzle()
@@ -81,7 +84,7 @@ class Game extends GameShared {
         if (p) this.makeLevel(p)
         else {
             this.mall.length = 0
-            
+
         }
     }
     /**@param {Level} l  */
