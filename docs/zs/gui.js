@@ -560,6 +560,20 @@ class Cropper {
 		return ret
 	}
 
+	async copyToClipboard(img, scaleFactor = 1, addWhiteBackground = true) {
+		this.secondCanvas.width = (img.naturalWidth || img.width) * scaleFactor
+		this.secondCanvas.height = (img.naturalHeight || img.height) * scaleFactor
+		this.ctx.clearRect(0, 0, this.secondCanvas.width, this.secondCanvas.height)
+		if (addWhiteBackground) {
+			this.ctx.fillStyle = "white"//for mspaint
+			this.ctx.fillRect(0, 0, this.secondCanvas.width, this.secondCanvas.height)
+		}
+		this.ctx.drawImage(img, 0, 0, this.secondCanvas.width, this.secondCanvas.height)
+		const pngBlob = await new Promise(r => this.secondCanvas.toBlob(r, 'image/png'))
+		await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
+		console.log("Copied image to clipboard", img)
+	}
+
 	async resizePromise(img, width, height) {
 		this.secondCanvas.width = width
 		this.secondCanvas.height = height
