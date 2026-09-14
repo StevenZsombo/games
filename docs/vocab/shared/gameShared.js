@@ -24,6 +24,43 @@ const GRAPHICS = {
 }
 
 
+
+class Rat {
+    numer = 1
+    denom = 0
+    constructor(a, b) {
+        if (a instanceof Rat) { this.numer = a.numer; this.denom = a.denom }
+        if (Number.isInteger(a)) { this.numer = a; this.denom = b || 1 }
+        else throw new Error(`Rat(${a},${b}) invalid in constructor.`)
+    }
+
+    static random(numerMin, numerMax, denomMin = 1, denomMax = 1) {
+        return new Rat(MM.randomInt(numerMin, numerMax), MM.randomInt(denomMin, denomMax))
+    }
+
+    simplify() {
+        const gcd = MM.gcd(this.numer, this.denom)
+        this.numer /= gcd
+        this.denom /= gcd
+        return this
+    }
+    static randomProperSimplified(maxDenom = 100) {
+        const d = MM.randomInt(2, maxDenom)
+        const n = MM.randomInt(1, d - 1)
+        return new Rat(n, d).simplify()
+    }
+    toString() {
+        if (this.denom == 1) return `${this.numer}`
+        return `\\frac{${this.numer}}{${this.denom}}`
+    }
+}
+
+
+
+
+
+
+
 /**
  * @typedef {Object} Level
  * @property {function(*): number} x - key variable (int or Rat)
@@ -77,28 +114,21 @@ var levels = {
         f: (_, a) => Number.isInteger(Math.sqrt(a)),
         a: _ => fluff(fluff([], MM.randomInt(3, 6), 2, 10).map(x => x * x), 10, 2, 99),
     },
+    mixed:
+        (() => {
+            console.log("asd")
+            const lvl = {}
+            lvl.t = String.raw`Select the mixed numbers:`
+            const indices = fluff([], MM.randomInt(4, 6), 0, 9)
+            lvl.solutions = Array(10).fill(false)
+            indices.forEach(x => lvl.solutions[x] = true)
+            lvl.answers = lvl.solutions.map(x =>
+                x ? String.raw`${MM.randomInt(1, 20)}${Rat.randomProperSimplified()}`
+                    : Rat.randomProperSimplified()
+            )
+            console.log(lvl)
+            return lvl
+        })(),
 
 
-
-}
-
-
-
-class Rat {
-    numer = 1
-    denom = 0
-    constructor(a, b) {
-        if (a instanceof Rat) { this.numer = a.numer; this.denom = a.denom }
-        if (Number.isInteger(a)) { this.numer = a; this.denom = b || 1 }
-        else throw new Error(`Rat(${a},${b}) invalid in constructor.`)
-    }
-
-    static random(numerMin, numerMax, denomMin = 1, denomMax = 1) {
-        return new Rat(MM.randomInt(numerMin, numerMax), MM.randomInt(denomMin, denomMax))
-    }
-
-    toString() {
-        if (this.denom == 1) return `${this.numer}`
-        return `\\frac{${this.numer}}{${this.denom}}`
-    }
 }

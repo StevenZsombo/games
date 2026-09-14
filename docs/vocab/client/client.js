@@ -29,16 +29,23 @@ class Game extends GameShared {
     //#region initialize_more
     initialize_more() { }
     async initialize_async() {
-        this.mall = new Malleable()
-        this.add_drawable(this.mall)
+        if (!this.mall) {
+            this.mall = new Malleable()
+            this.add_drawable(this.mall)
+        }
+        this.mall.length = 0
+        this.mall.activate()
         this.puzzles = Array.from(Object.values(levels))
         this.puzzles.forEach(p => {
             if (p.w) { for (let i = p.w - 1; i > 0; --i) this.puzzles.push(p) }
         })
         this.puzzles.sort(() => Math.random() - .5)
+        this.accuracy = []
 
 
-        this.puzzles = Array(3).fill().map(_ => levels["simplified"])
+
+        // this.puzzles.length = 3
+        // this.puzzles = Array(3).fill().map(_ => levels["mixed"])
 
 
 
@@ -84,7 +91,26 @@ class Game extends GameShared {
         if (p) this.makeLevel(p)
         else {
             this.mall.length = 0
-
+            const stats =
+                Button.fromRect(this.rect.copy.stretch(.9, .8).topat(0),
+                    { transparent: true, fontSize: 48, font_font: "myMonospace" })
+            const perlevel = this.accuracy.map(x => x[0] / x[1])
+            stats.txt = MM.tableStr(
+                this.accuracy.map(([corr, tot], i) =>
+                    [`Puzzle #${i + 1}`, `${corr}/${tot}`.padStart(5, " "), `${Math.round(corr / tot * 100)}%`.padStart(4, " ")]
+                )
+            ) + `\nTotal accuracy: ${Math.round(100 * MM.sum(perlevel) / perlevel.length)}%`
+            this.mall.push(stats)
+            const refresh = Button.fromRect(stats.copyRect)
+                .topat(stats.bottom + 30)
+                .bottomstretchat(this.HEIGHT - 30)
+            refresh.fontSize = 48
+            refresh.txt = "Play again."
+            refresh.on_click = () => GameEffects.confirmBox("Are you sure?").promise()
+                .then(() => this.initialize_async())
+                .catch(() => { })
+            this.mall.push(refresh)
+            this.mall.activate()
         }
     }
     /**@param {Level} l  */
@@ -98,7 +124,10 @@ class Game extends GameShared {
         const [top, mid, bot] =
             this.rect.copy.deflate(200, 200).splitRow(2, 7, 1).map(Button.fromRect)
         const x = l.x?.() ?? 0
-        const a = l.a?.(x) ?? fluff([], 10, 1, 100) //array or none for default
+        const a =
+            l.answers ??
+            l.a?.(x) ??
+            fluff([], 10, 1, 100) //array or none for default
         console.log({ a, x })
         let t = typeof l.t === "string" ? l.t : l.t(x) //string or function
         t = LatexManager.dollarToPure(t + "$$")
@@ -128,10 +157,12 @@ class Game extends GameShared {
         const reveal = () => {
             // answerButtons.forEach(x => x.interactable = false)
             /**@type {Button[]} */
-            const solutions = a.map(k => l.f(x, k))
+            const solutions =
+                l.solutions ??
+                a.map(k => l.f(x, k))
 
             const wrongButtons = answerButtons.filter((b, i) => b.selected != solutions[i])
-
+            this.accuracy.push([solutions.length - wrongButtons.length, solutions.length])
             if (wrongButtons.length) { //something wrong
                 // alert("Wrong\n" + wrongButtons.map(x => x.latex.tex))
                 let t = 0
