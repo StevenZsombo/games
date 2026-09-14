@@ -2895,6 +2895,23 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             window.TEX = str => a.latex.tex = str
             window.TEXTINPUTBOX = inp
         }
+
+        a.on_click = async () => {
+            const img = a.img
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth * 4
+            canvas.height = img.naturalHeight * 4
+            const ctx = canvas.getContext('2d')
+            ctx.fillStyle = 'white'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+            canvas.width = 0
+            canvas.height = 0
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
+            console.log("copied")
+        }
+
         return a
     }
 
