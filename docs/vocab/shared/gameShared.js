@@ -20,7 +20,7 @@ const primesFifty = MM.primes(50)
 const primesHundred = MM.primes(100)
 
 const GRAPHICS = {
-    imgScale: 6,
+    imgScale: 4,
 }
 
 
@@ -34,7 +34,7 @@ class Rat {
         else throw new Error(`Rat(${a},${b}) invalid in constructor.`)
     }
 
-    static random(numerMin, numerMax, denomMin = 1, denomMax = 1) {
+    static random(numerMin = 1, numerMax = 20, denomMin = 1, denomMax = 1) {
         return new Rat(MM.randomInt(numerMin, numerMax), MM.randomInt(denomMin, denomMax))
     }
 
@@ -104,6 +104,12 @@ var levels = {
         f: (_, a) => a.numer < a.denom,
         a: _ => Array(10).fill().map(_ => Rat.random(1, 20, 2, 20)),
     },
+    improper: {
+        t: String.raw`Select the proper fractions:`,
+        f: (_, a) => a.numer >= a.denom,
+        a: _ => Array(10).fill().map(_ => Rat.random(1, 20, 2, 20)),
+
+    },
     simplified: {
         t: String.raw`Select the simplified fractions:`,
         f: (_, a) => MM.gcd(a.numer, a.denom) == 1,
@@ -114,8 +120,13 @@ var levels = {
         f: (_, a) => Number.isInteger(Math.sqrt(a)),
         a: _ => fluff(fluff([], MM.randomInt(3, 6), 2, 10).map(x => x * x), 10, 2, 99),
     },
-    mixed:
-        (() => {
+    cube: {
+        t: String.raw`Select the cube numbers:`,
+        f: (_, a) => Number.isInteger(Math.cbrt(a)),
+        a: _ => fluff(MM.choice([2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 100], MM.randomInt(3, 6)).map(x => x ** 3), 10, 2, 200),
+    },
+    mixed: {
+        gen: () => {
             console.log("asd")
             const lvl = {}
             lvl.t = String.raw`Select the mixed numbers:`
@@ -126,9 +137,57 @@ var levels = {
                 x ? String.raw`${MM.randomInt(1, 20)}${Rat.randomProperSimplified()}`
                     : Rat.randomProperSimplified()
             )
-            console.log(lvl)
             return lvl
-        })(),
+        }
+    },
+    single: {
+        gen: () => {
+            console.log("asd")
+            const lvl = {}
+            lvl.t = String.raw`Select the single fractions:`
+            const indices = fluff([], MM.randomInt(4, 6), 0, 9)
+            lvl.solutions = Array(10).fill(false)
+            indices.forEach(x => lvl.solutions[x] = true)
+            lvl.answers = lvl.solutions.map(x => //copied from mixed
+                !x ? String.raw`${MM.randomInt(1, 20)}${Rat.randomProperSimplified()}`
+                    : Rat.randomProperSimplified()
+            )
+            return lvl
+        },
+    },
+    reciprocal: {
+        t: x => String.raw`Select the reciprocal of $${x}$:`,
+        x: _ => Rat.random(1, 20, 1, 20).simplify(),
+        a: x => {
+            const a = Array(10).fill().map(x => Rat.randomProperSimplified())
+            a[MM.randomIndex(10)] = new Rat(x.denom, x.numer)
+            return a
+        },
+        f: (x, a) => a.numer / a.denom == x.denom / x.numer,
+        w: 3,
+    },
+    toSingle: {
+        gen: () => {
+            const lvl = {}
+            const intpart = MM.randomInt(1, 10)
+            const fracpart = Rat.randomProperSimplified(20)
+            const x = String.raw`${intpart}${fracpart}`
+            lvl.t = String.raw`Write $${x}$ as a single fraction:`
+            const correctNumer = intpart * fracpart.denom + fracpart.numer
+            lvl.answers = Array(10).fill().map(_ => Math.random() < .65 ?
+                new Rat(MM.randomInt(fracpart.denom, correctNumer * 2), fracpart.denom).simplify()
+                : Rat.random(Math.ceil(correctNumer / 3), correctNumer * 5, 2, correctNumer * 2).simplify())
+            lvl.answers[MM.randomIndex(lvl.answers.length)] = new Rat(correctNumer, fracpart.denom).simplify()
+            lvl.solutions = lvl.answers.map(x => x.numer / x.denom == correctNumer / fracpart.denom)
+            return lvl
+        },
+        w: 2,
+    },
+    toMixed: {
+        gen: () => {
+            const lvl = {}
+        }
+    },
 
 
 }

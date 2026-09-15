@@ -45,7 +45,7 @@ class Game extends GameShared {
 
 
         // this.puzzles.length = 3
-        // this.puzzles = Array(3).fill().map(_ => levels["mixed"])
+        // this.puzzles = Array(3).fill().map(_ => levels["single"])
 
 
 
@@ -118,6 +118,7 @@ class Game extends GameShared {
         if (typeof l === "string") { l = levels[l] }
         else if (!l) { l = MM.choice(Array.from(Object.values(levels))) }
         if (!l) throw new Error("invalid level code")
+        if (l.gen) l = { ...l, ...l.gen() } //gen overwrites
         this.l = l
         this.mall.length = 0
         this.mall.activate()
