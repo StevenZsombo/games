@@ -2895,6 +2895,7 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
             window.TEX = str => a.latex.tex = str
             window.TEXTINPUTBOX = inp
         }
+        game.keyboarder.denyCopyPaste = false //IMPORTANT
 
         a.on_click = async () => {
             const img = a.img
