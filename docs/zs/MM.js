@@ -2898,14 +2898,16 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         game.keyboarder.denyCopyPaste = false //IMPORTANT
 
         a.on_click = async () => {
+            const padding = 20
+            const scaleFactor = 4
             const img = a.img
             const canvas = document.createElement('canvas')
-            canvas.width = img.naturalWidth * 4
-            canvas.height = img.naturalHeight * 4
+            canvas.width = img.naturalWidth * scaleFactor + 2 * padding
+            canvas.height = img.naturalHeight * scaleFactor + 2 * padding
             const ctx = canvas.getContext('2d')
             ctx.fillStyle = 'white'
             ctx.fillRect(0, 0, canvas.width, canvas.height)
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            ctx.drawImage(img, padding, padding, img.naturalWidth * scaleFactor, img.naturalHeight * scaleFactor)
             const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png'))
             canvas.width = 0
             canvas.height = 0

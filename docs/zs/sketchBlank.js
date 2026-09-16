@@ -56,11 +56,14 @@ class Game extends GameCore {
 
     //#region initialize_more
     initialize_more() {
-        const b = new Button()
+        window.b = GameEffects.latexButton(true)
 
+        /**
+        const b = new Button()
+        
         window.b = b
         this.add_drawable(b)
-
+        
         b.img = cropper.secondCanvas
         const img = cropper.load_img("conquest/test.bmp", (img) => {
             cropper.secondCanvas.width = img.width
@@ -71,7 +74,7 @@ class Game extends GameCore {
             b.y = 0
             after()
         })
-
+        
         b.on_click = function ({ x, y }) {
             x -= b.x
             console.log(b.x)
@@ -84,8 +87,8 @@ class Game extends GameCore {
             y *= sf;
             cropper.floodFill(x, y, [MM.randomInt(0, 255), MM.randomInt(0, 255), MM.randomInt(0, 255)]); console.log("ok")
         }
-
-
+        
+        
         const sc = new GameCanvas(this.rect)
         let sb = new Button({ x: 1700, y: 900 })
         this.add_drawable(sc)
@@ -93,11 +96,11 @@ class Game extends GameCore {
         // Button.make_draggable(sb)
         sb.img = this.canvas
         this.add_drawable(sb, 8)
-
-
-
+        
+        
+        
         Object.assign(this, { sc, sb })
-
+        
         const j = {
             "province_count": 61,
             "image_file": "fictional_provinces_bw.bmp",
@@ -592,9 +595,9 @@ class Game extends GameCore {
                 }
             ]
         }
-
+        
         window.j = j
-
+        
         const after = () => {
             Object.values(j.provinces).forEach(p => {
                 const lab = new Button({
@@ -609,7 +612,9 @@ class Game extends GameCore {
                 )
                 this.add_drawable(lab)
             })
-        }
+        
+    }
+            */
     }
 
     //#endregion
