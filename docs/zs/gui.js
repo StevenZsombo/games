@@ -574,6 +574,54 @@ class Cropper {
 		console.log("Copied image to clipboard", img)
 	}
 
+	asNewCanvas() {
+		const out = document.createElement('canvas')
+		out.width = this.secondCanvas.width
+		out.height = this.secondCanvas.height
+		out.getContext('2d').drawImage(this.secondCanvas, 0, 0)
+		return out
+	}
+
+	removeWhiteRows(img, padding = 20) {
+		const src = document.createElement('canvas')
+		src.width = img.naturalWidth
+		src.height = img.naturalHeight
+		const sctx = src.getContext('2d')
+		sctx.drawImage(img, 0, 0)
+		const { data, width, height } = sctx.getImageData(0, 0, src.width, src.height)
+
+		const rowIsWhite = y => {
+			for (let x = 0; x < width; x++) {
+				const i = (y * width + x) * 4
+				if (data[i] !== 255 || data[i + 1] !== 255 || data[i + 2] !== 255 || data[i + 3] !== 255) return false
+			}
+			return true
+		}
+		const white = []
+		for (let y = 0; y < height; y++) white.push(rowIsWhite(y))
+		const remove = new Array(height).fill(false)
+		let y = 0
+		while (y < height) {
+			if (!white[y]) { y++; continue }
+			const start = y
+			while (y < height && white[y]) y++
+			if (y - start > padding * 2)
+				for (let i = start + padding; i < y - padding; i++) remove[i] = true
+		}
+
+		const keep = []
+		for (let y = 0; y < height; y++) if (!remove[y]) keep.push(y)
+
+		this.secondCanvas.width = width
+		this.secondCanvas.height = keep.length
+		const ctx = this.secondCanvas.getContext('2d')
+		keep.forEach((y, i) => ctx.drawImage(src, 0, y, width, 1, 0, i, width, 1))
+
+		src.width = 0
+		src.height = 0
+		return this.secondCanvas
+	}
+
 	async resizePromise(img, width, height) {
 		this.secondCanvas.width = width
 		this.secondCanvas.height = height
@@ -711,7 +759,7 @@ class Cropper {
 	}
 
 
-
+	//#region Cropper floodFill and recolor
 	static getFloodFillIndices(imageDataObj, x, y) {
 		x = Math.round(x)
 		y = Math.round(y)
@@ -855,7 +903,7 @@ class Cropper {
 		})
 		ctx.putImageData(imageData, 0, 0)
 	}
-
+	//#endregion Cropper floodFill and recolor
 
 	static defaultColors = Object.freeze([
 		"cyan", "pink", "orange", "gold",
