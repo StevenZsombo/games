@@ -18,6 +18,7 @@ const fluff = (array, targetLength, min, max) => {
 const primesTwenty = MM.primes(20)
 const primesFifty = MM.primes(50)
 const primesHundred = MM.primes(100)
+const triangleNumbersHundredTwenty = Array.from({ length: 15 }, (_, i) => (i + 1) * (i + 2) / 2)
 
 const GRAPHICS = {
     imgScale: 4,
@@ -88,7 +89,7 @@ var levels = {
         t: x => String.raw`Select factors of $${x}$.`,
         a: x => fluff(MM.choice(MM.divisors(x), MM.randomInt(3, 6)).concat([2 * x, 3 * x]), 10, 1, 100),
         f: (x, a) => x % a == 0,
-        w: 2,
+        w: 4,
     },
     evens: {
         t: String.raw`Select the even numbers:`,
@@ -114,6 +115,7 @@ var levels = {
         t: String.raw`Select the simplified fractions:`,
         f: (_, a) => MM.gcd(a.numer, a.denom) == 1,
         a: _ => Array(10).fill().map(_ => Rat.random(1, 20, 2, 20)),
+        w: 3,
     },
     square: {
         t: String.raw`Select the square numbers:`,
@@ -164,7 +166,7 @@ var levels = {
             return a
         },
         f: (x, a) => a.numer / a.denom == x.denom / x.numer,
-        w: 3,
+        w: 2,
     },
     toSingle: {
         gen: () => {
@@ -183,11 +185,27 @@ var levels = {
         },
         w: 2,
     },
-    toMixed: {
-        gen: () => {
-            const lvl = {}
-        }
+    // toMixed: {
+    //     gen: () => {
+    //         const lvl = {}
+    //     }
+    // },
+    primes: {
+        t: String.raw`Select the primes:`,
+        a: _ => fluff(MM.choice(primesHundred, MM.randomInt(3, 7)), 10, 2, 100),
+        f: (_, a) => MM.isPrime(a),
+        w: 2,
     },
+    triangular: {
+        t: String.raw`Select the triangular numbers:`,
+        a: _ => fluff(MM.choice(triangleNumbersHundredTwenty, MM.randomInt(4, 6)), 10, 2, 104),
+        f: (_, a) => triangleNumbersHundredTwenty.includes(a),
 
+    },
+    negative: {
+        t: String.raw`Select the negative numbers:`,
+        a: _ => fluff([], 10, -100, 100),
+        f: (_, a) => a < 0,
+    },
 
 }

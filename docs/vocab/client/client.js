@@ -35,7 +35,7 @@ class Game extends GameShared {
         }
         this.mall.length = 0
         this.mall.activate()
-        this.puzzles = Array.from(Object.values(levels))
+        this.puzzles = Array.from(Object.values(levels)).filter(l => l.w !== 0)
         this.puzzles.forEach(p => {
             if (p.w) { for (let i = p.w - 1; i > 0; --i) this.puzzles.push(p) }
         })
@@ -45,11 +45,16 @@ class Game extends GameShared {
 
 
         // this.puzzles.length = 3
-        // this.puzzles = Array(3).fill().map(_ => levels["single"])
+        if (location.search.includes("debug")) {
+            const which = prompt(Object.keys(levels).join(","))
+            if (levels[which])
+                this.puzzles = Array(3).fill().map(_ => levels[which])
+            else console.log("not found, starting normally")
+        }
 
 
 
-
+        console.log("puzzles:", this.puzzles)
         this.nextPuzzle()
     }
     //#endregion
@@ -130,7 +135,7 @@ class Game extends GameShared {
             l.a?.(x) ??
             fluff([], 10, 1, 100) //array or none for default
         console.log({ a, x })
-        let t = typeof l.t === "string" ? l.t : l.t(x) //string or function
+        let t = typeof l.t === "function" ? l.t(x) : l.t //string or function
         t = LatexManager.dollarToPure(t + "$$")
         Button.make_latex(top, t)
         top.transparent = true
