@@ -29,6 +29,21 @@ class Game extends GameShared {
     //#region initialize_more
     initialize_more() { }
     async initialize_async() {
+        if (location.search.includes("flush")) {
+            localStorage.clear()
+            location.search = "?none"
+            // chat?.silentReload() || location.reload()
+        }
+        if (chat)
+            this.initOnline()
+        else
+            this.initPuzzles()
+
+    }
+    //#endregion
+
+    async initPuzzles() {
+
         if (!this.mall) {
             this.mall = new Malleable()
             this.add_drawable(this.mall)
@@ -56,8 +71,20 @@ class Game extends GameShared {
 
         console.log("puzzles:", this.puzzles)
         this.nextPuzzle()
+
     }
-    //#endregion
+    async initOnline() {
+        if (!localStorage.getItem("name")) {
+            const name = GameEffects.nameSelect(
+                ['Alan', 'Betty', 'Gia', 'Ivan', 'Jeremy', 'Jones', 'Kishun', 'Lydia', 'Marvin', 'Ocean', 'Season', 'Suewin', 'Tony', 'Yoyo', 'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius', 'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia']
+            )
+            chat.forceName(await name.promise(), true)
+        }
+        await chat.asapPromise()
+        await chat.wee("enter")
+        chat.eggs("eval", x => eval(x))
+        this.initPuzzles()
+    }
 
     //#region update_more
     update_more(dt) {
@@ -100,19 +127,27 @@ class Game extends GameShared {
                 Button.fromRect(this.rect.copy.stretch(.9, .8).topat(0),
                     { transparent: true, fontSize: 48, font_font: "myMonospace" })
             const perlevel = this.accuracy.map(x => x[0] / x[1])
+            const totacc = Math.round(1000 * MM.sum(perlevel) / perlevel.length) / 10
+            let allowMovingOn = !chat //if no chat, allow
+            chat?.wee("totacc", totacc)
+                .then(() => { GameEffects.popup("Result sent to server."); allowMovingOn = true })
+                .catch(() => {
+                    GameEffects.popup("Failed to contact server, ask the teacher for help.",
+                        { floatTime: Infinity }, GameEffects.popupPRESETS.bigRed)
+                })
             stats.txt = MM.tableStr(
                 this.accuracy.map(([corr, tot], i) =>
                     [`Puzzle #${i + 1}`, `${corr}/${tot}`.padStart(5, " "), `${Math.round(corr / tot * 100)}%`.padStart(4, " ")]
                 )
-            ) + `\nTotal accuracy: ${Math.round(100 * MM.sum(perlevel) / perlevel.length)}%`
+            ) + `\nTotal accuracy: ${totacc}%`
             this.mall.push(stats)
             const refresh = Button.fromRect(stats.copyRect)
                 .topat(stats.bottom + 30)
                 .bottomstretchat(this.HEIGHT - 30)
             refresh.fontSize = 48
-            refresh.txt = "Play again."
-            refresh.on_click = () => GameEffects.confirmBox("Are you sure?").promise()
-                .then(() => this.initialize_async())
+            refresh.dynamicText = () => allowMovingOn ? "Play again." : "Waiting for server to respond..."
+            refresh.on_click = () => allowMovingOn && GameEffects.confirmBox("Are you sure?").promise()
+                .then(() => this.initPuzzles())
                 .catch(() => { })
             this.mall.push(refresh)
             this.mall.activate()

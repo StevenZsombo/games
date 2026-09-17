@@ -1080,7 +1080,10 @@ class Button extends Clickable {
 		return button
 	}
 	/**@param {Button} button @param {Game|GameCoreLayerCore} addToGame   */
-	static make_stretchable(button, addToGame) {
+	static make_stretchable(button,
+		{ make_draggable = true,
+			addToGame, layer } = {}
+	) {
 		addToGame ??= game
 		const four = button.cornerRectsOnVertex().map(x => new Button(x))
 
@@ -1135,8 +1138,10 @@ class Button extends Clickable {
 			x._drag_force_within = true
 			x.isBlocking = true
 		})
-		if (addToGame) addToGame.add_drawable(four, 7)
-
+		if (addToGame) addToGame.add_drawable(four, layer ?? 7)
+		button.four = four
+		if (make_draggable)
+			Button.make_drag_others(button, four)
 
 	}
 
