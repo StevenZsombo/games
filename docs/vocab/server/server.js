@@ -55,7 +55,7 @@ class Game extends GameShared {
         const table = new Table(bg, () => {
             const players = listener.personsAsArray
             // .filter(p => p.name !== p.nameID)
-            const headers = "name nameID conn #r latest best".split(" ")
+            const headers = "name nameID conn #rounds latest best".split(" ")
             const data = players.map(p => [
                 p.name, p.nameID, p.isConnected ? "" : "DISCONNECTED",
                 p.records.length, p.latest, p.best,
@@ -76,10 +76,14 @@ class Game extends GameShared {
         serverButton.on_release =
             () => listener.personsAsArray.length && GameEffects.dropDownBetter(
                 listener.personsAsArray.map(p => [
-                    p.name, () => p.kick()
+                    p.name, async () => {
+                        const e = await GameEffects.inputBoxFromRectPromise()
+                        if (!e) p.kick()
+                        else (p.eval(e))
+                    }
                 ])
             )
-
+        Object.assign(this, { table, serverButton, bg })
 
     }
     //#endregion

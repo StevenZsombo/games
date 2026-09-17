@@ -24,7 +24,7 @@ var univ = {
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 //#endregion
-
+var pop = str => GameEffects.popup(str)
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() { }
@@ -51,9 +51,10 @@ class Game extends GameShared {
         this.mall.length = 0
         this.mall.activate()
         this.puzzles = Array.from(Object.values(levels)).filter(l => l.w !== 0)
-        this.puzzles.forEach(p => {
-            if (p.w) { for (let i = p.w - 1; i > 0; --i) this.puzzles.push(p) }
-        })
+        if (RULES.allowRepeatedPuzzles)
+            this.puzzles.forEach(p => {
+                if (p.w) { for (let i = p.w - 1; i > 0; --i) this.puzzles.push(p) }
+            })
         this.puzzles.sort(() => Math.random() - .5)
         this.accuracy = []
 
@@ -74,7 +75,7 @@ class Game extends GameShared {
 
     }
     async initOnline() {
-        if (!localStorage.getItem("name")) {
+        if (chat.name == chat.nameID) {
             const name = GameEffects.nameSelect(
                 ['Alan', 'Betty', 'Gia', 'Ivan', 'Jeremy', 'Jones', 'Kishun', 'Lydia', 'Marvin', 'Ocean', 'Season', 'Suewin', 'Tony', 'Yoyo', 'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius', 'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia']
             )

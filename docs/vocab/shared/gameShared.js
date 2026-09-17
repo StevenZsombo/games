@@ -20,6 +20,9 @@ const primesFifty = MM.primes(50)
 const primesHundred = MM.primes(100)
 const triangleNumbersHundredTwenty = Array.from({ length: 15 }, (_, i) => (i + 1) * (i + 2) / 2)
 
+const RULES = {
+    allowRepeatedPuzzles: true,
+}
 const GRAPHICS = {
     imgScale: 4,
 }
@@ -54,6 +57,7 @@ class Rat {
         if (this.denom == 1) return `${this.numer}`
         return `\\frac{${this.numer}}{${this.denom}}`
     }
+    get asFloat() { return this.numer / this.denom }
 }
 
 
@@ -207,5 +211,55 @@ var levels = {
         a: _ => fluff([], 10, -100, 100),
         f: (_, a) => a < 0,
     },
+    hcflcm: {
+        gen: () => {
+
+            let a = MM.randomInt(2, 20)
+            let b = MM.randomInt(2, 50)
+            if (a != 2 && MM.isPrime(a)) a++
+            const hcf = MM.gcd(a, b)
+            const lcm = MM.lcm(a, b)
+            const lvl = {}
+            lvl.t = String.raw`Select the HCF and LCM of $${a}$ and $${b}$:`
+            lvl.answers = fluff([lcm, hcf, hcf * 2, hcf * 3, lcm / a, lcm / b, lcm * 2, lcm * 3], 10, 1, lcm - 1)
+            lvl.solutions = lvl.answers.map(x => x == lcm || x == hcf)
+            return lvl
+        },
+        w: 2,
+    },
+    coprimesWith: {
+        gen: () => {
+            const x = MM.choice([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 22, 24, 28, 30, 60, 100])
+            const answers = fluff([], 10, 2, Math.max(50, x))
+            const solutions = answers.map(a => MM.gcd(x, a) == 1)
+            const t = String.raw`Select numbers that are coprime with $${x}$:`
+            return { t, solutions, answers }
+        },
+        w: 2,
+    },
+    /*greaterThan: {
+        gen: () => {
+            const intpart = MM.randomInt(1, 3)
+            const fracpart = Rat.randomProperSimplified(10)
+            const targetnumer = intpart * fracpart.denom + fracpart.numer
+            let answers =
+                Array(7).fill()
+                    .map(x => Rat.randomProperSimplified(10))
+                    .map(x => (x.numer += x.denom * MM.randomInt(intpart - 1, intpart + 1), x))
+            answers.push(+(intpart + fracpart.numer / fracpart.denom).toPrecision(2))
+            answers.push(+(intpart + fracpart.numer / fracpart.denom).toPrecision(2) - .1)
+            answers.push(+(intpart + fracpart.numer / fracpart.denom).toPrecision(2) + .1)
+            answers.sort(_ => Math.random < .5)
+            const solutions = answers.map(x => x.numer / x.denom > intpart + fracpart.numer / fracpart.denom)
+            const t = String.raw`Select the numbers greater than $${intpart}${fracpart}$:`
+            return { t, answers, solutions }
+        }
+    }*/
+    greaterThan: {
+        x: _ => Rat.randomProperSimplified(15),
+        a: _ => Array(10).fill().map(_ => Rat.randomProperSimplified(15)),
+        f: (x, a) => x.asFloat < a.asFloat,
+        t: x => String.raw`Select all fractions that are greater than $${x}$:`,
+    }
 
 }
