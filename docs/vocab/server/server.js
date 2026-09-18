@@ -50,7 +50,7 @@ class Game extends GameShared {
 
         chat.eggs("totacc", (v, person) => person.addRecord(v))
 
-        const bg = Button.fromRect(this.rect.copy.stretch(.8, .8))
+        const bg = Button.fromRect(this.rect.copy.stretch(.8, .8).leftat(100))
         bg.color = "white"
         const table = new Table(bg, () => {
             const players = listener.personsAsArray
@@ -63,6 +63,7 @@ class Game extends GameShared {
             return MM.transposeArray([headers, ...data])
         })
         table.bottomAutoAdjust = true
+        table.fontSize = 36 //from 24
 
         this.add_drawable(bg)
         this.add_drawable(table)

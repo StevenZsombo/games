@@ -22,6 +22,12 @@ const triangleNumbersHundredTwenty = Array.from({ length: 15 }, (_, i) => (i + 1
 
 const RULES = {
     allowRepeatedPuzzles: true,
+    students:
+        [
+            'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius',
+            'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia',
+            'Alan', 'Betty', 'Gia', 'Ivan', 'Jeremy', 'Jones', 'Kishun', 'Lydia', 'Marvin', 'Ocean', 'Season', 'Suewin', 'Tony', 'Yoyo',
+        ]
 }
 const GRAPHICS = {
     imgScale: 4,

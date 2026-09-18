@@ -77,13 +77,27 @@ class Game extends GameShared {
     async initOnline() {
         if (chat.name == chat.nameID) {
             const name = GameEffects.nameSelect(
-                ['Alan', 'Betty', 'Gia', 'Ivan', 'Jeremy', 'Jones', 'Kishun', 'Lydia', 'Marvin', 'Ocean', 'Season', 'Suewin', 'Tony', 'Yoyo', 'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius', 'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia']
+                RULES.students
             )
             chat.forceName(await name.promise(), true)
         }
+        await GameEffects.clickMeFourTimes()
         await chat.asapPromise()
         await chat.wee("enter")
         chat.eggs("eval", x => eval(x))
+        chat.eggs("pop", x => { pop(x) })
+        const you = this.you = new Button({
+            width: 400, height: 30,
+            fontSize: 20, transparent: true,
+            x: 0
+        })
+        you.rightat(this.rect.right)
+        you.textSettings.textAlign = "right"
+        you.textSettings.textBaseline = "top"
+        you.dynamicText = () =>
+            `You: ${chat.name}\n` +
+            `(${chat.nameID}, ${chat.pingRecord.at(-1)}ms${chat.isConnected ? "" : "  DISCONNECTED"})`
+        this.add_drawable(you, 7)
         this.initPuzzles()
     }
 

@@ -367,6 +367,9 @@ class Chat {
         localStorage.setItem("name", name)
         if (!doNotReload) this.delayedReload()
     }
+    forceNameSilent(name) {
+        this.forceName(name, true)
+    }
 
     resetName(reason) {
         if (reason) alert(reason)
