@@ -6,6 +6,7 @@
     "include": [
         "./*.js",
         "../../zs/*.js",
+        "../zs/*.js",
         "../shared/*.js"
     ],
     "exclude": [

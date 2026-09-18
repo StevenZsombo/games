@@ -81,7 +81,8 @@ class Game extends GameShared {
             )
             chat.forceName(await name.promise(), true)
         }
-        await GameEffects.clickMeFourTimes()
+        if (!location.search.includes("skip"))
+            await GameEffects.clickMeFourTimes()
         await chat.asapPromise()
         await chat.wee("enter")
         chat.eggs("eval", x => eval(x))
@@ -98,6 +99,14 @@ class Game extends GameShared {
             `You: ${chat.name}\n` +
             `(${chat.nameID}, ${chat.pingRecord.at(-1)}ms${chat.isConnected ? "" : "  DISCONNECTED"})`
         this.add_drawable(you, 7)
+
+
+        const ac = this.ac = Anticheat.getAnticheat()
+        ac.setupClient(false)
+        ac.timeTotal = 15
+        ac.immuneTime = 2000 //from 0
+        ac.activate()
+
         this.initPuzzles()
     }
 

@@ -135,7 +135,22 @@ class Anticheat {
                 onEndPunish = () => { b.deactivate(); game.isAcceptingInputs = true }
                 b.activeState = punished
                 return b
-            }
+            },
+        }
+
+        const setupClient = async function (punish = false) {
+            const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
+            if (!chat) { throw new Error("init anticheat but there is no chat?") }
+            await chat.asapPromise()
+            punish ? DEFAULTS.message() : DEFAULTS.overlay()
+            onPunish_more = () => { chat.wee("pen").catch(bpop) }
+            onEndPunish_more = () => { chat.wee("penEnd").catch(bpop) }
+            /*chat.eggs("accd", (seconds) => {
+                countdown(seconds || 6)
+                localStorage.removeItem(ac.LOCALSTORAGE_KEY)
+            })*/ //do it manually instead!
+            chat.eggs("abs", () => { absolve() })
+            chat.eggs("whitelist", () => { whitelist() })
         }
 
         return {
@@ -187,7 +202,39 @@ class Anticheat {
             },
             LOCALSTORAGE_KEY,
             //DEFAULTS
-            DEFAULTS
+            DEFAULTS,
+            setupClient,
         };
+    }
+
+    static async setupServer() {
+        if (!chat) { throw new Error("init anticheat but there is no chat?") }
+        await chat.asapPromise()
+        const sideFeed =
+            game.sideFeed =
+            new Feed(Button.fromRect(new Rect(10, 10, 200, this.HEIGHT - 20)),
+                {
+                    width: 200, color: "red", height: 60, isBlocking: true,
+                    on_release: function () {
+                        console.log(this)
+                        this._person?.wee("abs")
+                            .catch(() =>
+                                GameEffects.popup("Failed to absolve " + this._person?.name, GameEffects.popupPRESETS.sideError))
+                        this.close()
+                    }
+                })
+        listener.on_participant_disconnect = p => sideFeed.delete(p.name)
+        game.add_drawable(sideFeed, 8)
+        chat.eggs("pen",/**@param {Person} person */
+            (_, person) => {
+                person.pen = true
+                const b = sideFeed.add(person.name)
+                b._person = person
+            })
+        chat.eggs("penEnd",/**@param {Person} person */
+            (_, person) => {
+                person.pen = false
+                sideFeed.delete(person.name)
+            })
     }
 }

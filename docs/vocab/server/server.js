@@ -55,9 +55,9 @@ class Game extends GameShared {
         const table = new Table(bg, () => {
             const players = listener.personsAsArray
             // .filter(p => p.name !== p.nameID)
-            const headers = "name nameID conn #rounds latest best".split(" ")
+            const headers = "name nameID conn/pen #rounds latest best".split(" ")
             const data = players.map(p => [
-                p.name, p.nameID, p.isConnected ? "" : "DISCONNECTED",
+                p.name, p.nameID, p.isConnected ? (p.pen ? "TRIGGERED" : "") : "DISCONNECTED",
                 p.records.length, p.latest, p.best,
             ])
             return MM.transposeArray([headers, ...data])
@@ -85,6 +85,8 @@ class Game extends GameShared {
                 ])
             )
         Object.assign(this, { table, serverButton, bg })
+
+        Anticheat.setupServer()
 
     }
     //#endregion
