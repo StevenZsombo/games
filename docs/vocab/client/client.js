@@ -81,33 +81,60 @@ class Game extends GameShared {
             )
             chat.forceName(await name.promise(), true)
         }
+        /*
         if (!location.search.includes("skip"))
             await GameEffects.clickMeFourTimes()
+            */
         await chat.asapPromise()
         await chat.wee("enter")
         chat.eggs("eval", x => eval(x))
         chat.eggs("pop", x => { pop(x) })
         const you = this.you = new Button({
             width: 400, height: 30,
-            fontSize: 20, transparent: true,
-            x: 0
+            fontSize: 32, transparent: true,
+            y: 0
         })
         you.rightat(this.rect.right)
         you.textSettings.textAlign = "right"
         you.textSettings.textBaseline = "top"
         you.dynamicText = () =>
-            `You: ${chat.name}\n` +
-            `(${chat.nameID}, ${chat.pingRecord.at(-1)}ms${chat.isConnected ? "" : "  DISCONNECTED"})`
+            `You: ${chat.name}`
+        //+
+        //`\n(${chat.nameID}, ${chat.pingRecord.at(-1)}ms${chat.isConnected ? "" : "  DISCONNECTED"})`
         this.add_drawable(you, 7)
 
 
         const ac = this.ac = Anticheat.getAnticheat()
         ac.setupClient(false)
-        ac.timeTotal = 15
+        ac.timeTotal = 20
         ac.immuneTime = 2000 //from 0
         ac.activate()
 
-        this.initPuzzles()
+
+
+
+        let nopeButton = Button.fromRectShallow(game.rect.copy)
+        nopeButton.resize(500, 300)
+        nopeButton.fontSize = 48
+        nopeButton.txt = "Click here to start."
+        this.add_drawable(nopeButton)
+        nopeButton.on_release = async () => {
+            try {
+                if (await chat.wee("hq", "canStartYet")) {
+                    this.remove_drawable(nopeButton)
+                    this.initPuzzles()
+                } else {
+                    GameEffects.popup("Game cannot be started yet.\nWait for the teacher to start the game!")
+                }
+            } catch {
+                GameEffects.popup("Failed to contact server, ask teacher for help!", GameEffects.popupPRESETS.bigRed)
+            }
+            MM.toggleFullscreen(true)
+        }
+        Anim.stepper(nopeButton, 2000, "rad", 0, 0.3, { lerp: Anim.l.wave, repeat: 100, add: this })
+
+
+        // this.initPuzzles()
     }
 
     //#region update_more
@@ -149,7 +176,7 @@ class Game extends GameShared {
             this.mall.length = 0
             const stats =
                 Button.fromRect(this.rect.copy.stretch(.9, .8).topat(0),
-                    { transparent: true, fontSize: 48, font_font: "myMonospace" })
+                    { transparent: true, fontSize: 30, font_font: "myMonospace" })
             const perlevel = this.accuracy.map(x => x[0] / x[1])
             const totacc = Math.round(1000 * MM.sum(perlevel) / perlevel.length) / 10
             let allowMovingOn = !chat //if no chat, allow

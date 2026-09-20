@@ -12,7 +12,11 @@ const EM = {}
 const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
 const gpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.topleftGreen)
 const sessionID = MM.randomID() + MM.randomID()
-
+var hq = {
+    sessionID: sessionID,
+    canStartYet: false,
+}
+chat.eggs("hq", v => hq[v])
 
 class Person extends Participant {
     initialize() {
@@ -37,8 +41,8 @@ class Person extends Participant {
     }
     eval(code) {
         this.wee("eval", code)
-            .then(() => gpop(`${this.name} eval success!`))
-            .catch(() => bpop(`Failed to reach ${this.name} with eval`))
+            .then(() => gpop(`${this.name} eval success!\n${code}`))
+            .catch(() => bpop(`Failed to reach ${this.name} with eval\n${code}`))
     }
 }
 
@@ -77,10 +81,22 @@ class Game extends GameShared {
         serverButton.on_release =
             () => listener.personsAsArray.length && GameEffects.dropDownBetter(
                 listener.personsAsArray.map(p => [
-                    p.name, async () => {
-                        const e = await GameEffects.inputBoxFromRectPromise()
-                        if (!e) p.kick()
-                        else (p.eval(e))
+                    p.name,
+                    () => {
+                        GameEffects.dropDownBetter([
+                            ["kick", () => p.kick()],
+                            ["rename", () =>
+                                GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
+                            ],
+                            ["fullscreen", () => p.eval(`game.mouser.on_click_once = () => MM.toggleFullscreen(true)`)],
+                            ["message", () =>
+                                GameEffects.inputBoxFromRectPromise().then(x =>
+                                    p.eval(`GameEffects.popup("${x}")`))
+                            ],
+                            ["eval", () =>
+                                GameEffects.inputBoxFromRectPromise().then(x => p.eval(x))
+                            ]
+                        ])
                     }
                 ])
             )

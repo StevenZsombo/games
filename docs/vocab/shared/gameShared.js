@@ -21,7 +21,7 @@ const primesHundred = MM.primes(100)
 const triangleNumbersHundredTwenty = Array.from({ length: 15 }, (_, i) => (i + 1) * (i + 2) / 2)
 
 const RULES = {
-    allowRepeatedPuzzles: true,
+    allowRepeatedPuzzles: false, //this went poorly, idiot!
     students:
         [
             'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius',
@@ -116,7 +116,7 @@ var levels = {
         a: _ => Array(10).fill().map(_ => Rat.random(1, 20, 2, 20)),
     },
     improper: {
-        t: String.raw`Select the proper fractions:`,
+        t: String.raw`Select the improper fractions:`,
         f: (_, a) => a.numer >= a.denom,
         a: _ => Array(10).fill().map(_ => Rat.random(1, 20, 2, 20)),
 
@@ -175,10 +175,10 @@ var levels = {
             a[MM.randomIndex(10)] = new Rat(x.denom, x.numer)
             return a
         },
-        f: (x, a) => a.numer / a.denom == x.denom / x.numer,
+        f: (x, a) => (a.numer * x.numer) == (a.denom * x.denom),
         w: 2,
     },
-    toSingle: {
+    /*toSingle: {
         gen: () => {
             const lvl = {}
             const intpart = MM.randomInt(1, 10)
@@ -190,11 +190,12 @@ var levels = {
                 new Rat(MM.randomInt(fracpart.denom, correctNumer * 2), fracpart.denom).simplify()
                 : Rat.random(Math.ceil(correctNumer / 3), correctNumer * 5, 2, correctNumer * 2).simplify())
             lvl.answers[MM.randomIndex(lvl.answers.length)] = new Rat(correctNumer, fracpart.denom).simplify()
-            lvl.solutions = lvl.answers.map(x => x.numer / x.denom == correctNumer / fracpart.denom)
+            lvl.solutions = lvl.answers.map(x => (x.numer * fracpart.denom) == (correctNumer * x.denom))
             return lvl
         },
         w: 2,
-    },
+    },*/
+
     // toMixed: {
     //     gen: () => {
     //         const lvl = {}
@@ -206,12 +207,12 @@ var levels = {
         f: (_, a) => MM.isPrime(a),
         w: 2,
     },
-    triangular: {
+    /*triangular: {
         t: String.raw`Select the triangular numbers:`,
         a: _ => fluff(MM.choice(triangleNumbersHundredTwenty, MM.randomInt(4, 6)), 10, 2, 104),
         f: (_, a) => triangleNumbersHundredTwenty.includes(a),
 
-    },
+    },*/
     negative: {
         t: String.raw`Select the negative numbers:`,
         a: _ => fluff([], 10, -100, 100),
@@ -233,7 +234,7 @@ var levels = {
         },
         w: 2,
     },
-    coprimesWith: {
+    /*coprimesWith: {
         gen: () => {
             const x = MM.choice([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 22, 24, 28, 30, 60, 100])
             const answers = fluff([], 10, 2, Math.max(50, x))
@@ -242,7 +243,7 @@ var levels = {
             return { t, solutions, answers }
         },
         w: 2,
-    },
+    },*/
     /*greaterThan: {
         gen: () => {
             const intpart = MM.randomInt(1, 3)
@@ -261,11 +262,16 @@ var levels = {
             return { t, answers, solutions }
         }
     }*/
-    greaterThan: {
+    /*greaterThan: {
         x: _ => Rat.randomProperSimplified(15),
         a: _ => Array(10).fill().map(_ => Rat.randomProperSimplified(15)),
         f: (x, a) => x.asFloat < a.asFloat,
         t: x => String.raw`Select all fractions that are greater than $${x}$:`,
-    }
+    },*/
+    /*greaterThanOneHalf: {
+        a: _ => Array(10).fill().map(_ => Rat.randomProperSimplified(15)),
+        f: (_, a) => 0.5 < a.asFloat,
+        t: _ => String.raw`Select all fractions that are greater than $0.5$:`,
+    },*/
 
 }
