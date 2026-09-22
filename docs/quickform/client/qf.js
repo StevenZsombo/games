@@ -1,13 +1,23 @@
 const students = {
-    G9C2: ["Bob", "Ann", "Clara"],
-    G10PP: ["David", "Eve", "Frank"],
-    G10S1: ["Grace", "Henry", "Ivy"]
+    G9C2: [
+        'Alan', 'Betty', 'Gia', 'Ivan', 'Jeremy', 'Jones', 'Kishun', 'Lydia', 'Marvin', 'Ocean', 'Season', 'Suewin', 'Tony', 'Yoyo',
+    ],
+    G10PP: [
+        'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius',
+    ],
+    G10S1: [
+        'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia',
+    ]
 }
 
 const questions = [
-    "What is the color of the sky?",
-    "Which animal meows?",
-    "What is 2 + 2?"
+    "Consider points A(-1,2) and B(3,5).\nWhat is the x-coordinate of B?",
+    "Find the distance AB:",
+    "Find the coordinates of the midpoint of AB:",
+    "Find the gradient of line AB:",
+    "Find the equation of line AB in the form y=mx+c:",
+    "Find the equation of the perpendicular bisector of AB in the form y=mx+c:",
+    "Find the point where line AB cuts the y-axis:"
 ]
 window.univ = {
     isOnline: true,
@@ -91,6 +101,7 @@ container.appendChild(header)
 textboxes = []
 questions.forEach((q, index) => {
     const label = document.createElement('label')
+    label.style.whiteSpace = 'pre-line'
     label.textContent = `Question ${index + 1}: ${q}`
     const input = document.createElement('input')
     input.type = 'text'
@@ -132,7 +143,13 @@ outDiv.id = 'output'
 outDiv.style.whiteSpace = "pre-line"
 document.body.appendChild(outDiv)
 
-const setBGcolor = color => document.body.style.backgroundColor = color
+let _last = "white"
+let _punishColor = "hsl(0, 50%, 50%)"
+const setBGcolor = color => {
+    document.body.style.backgroundColor = color
+    if (color != _punishColor) _last = color
+
+}
 const outAdd = txt => {
     outDiv.textContent += txt + "\n"
 }
@@ -165,3 +182,10 @@ const sendAnswers = () => {
 
 
 chat.eggs("eval", x => eval(x))
+
+const ac = Anticheat.getAnticheat()
+ac.timeTotal = 15
+ac.setupClient(0, false)
+ac.activate()
+ac.onPunish = () => setBGcolor(_punishColor)
+ac.onEndPunish = () => setBGcolor(_last)

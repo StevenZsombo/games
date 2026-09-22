@@ -68,7 +68,7 @@ class Anticheat {
             punished ? endPunishment() : save()
         }
         const whitelist = () => {
-            immuneTime = SIXHOURS
+            immuneTime = 6 * 60 * 60 * 1000 //SIX HOURS
             absolve()
         }
 
@@ -138,11 +138,11 @@ class Anticheat {
             },
         }
 
-        const setupClient = async function (punish = false) {
+        const setupClient = async function (punish = false, addDefaults = true) {
             const bpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.sideError)
             if (!chat) { throw new Error("init anticheat but there is no chat?") }
             await chat.asapPromise()
-            punish ? DEFAULTS.message() : DEFAULTS.overlay()
+            if (addDefaults) punish ? DEFAULTS.message() : DEFAULTS.overlay()
             onPunish_more = () => { chat.wee("pen").catch(bpop) }
             onEndPunish_more = () => { chat.wee("penEnd").catch(bpop) }
             /*chat.eggs("accd", (seconds) => {
