@@ -11,7 +11,7 @@ const students = {
 }
 
 const questions = [
-    "Consider points A(-1,2) and B(3,5).\nWhat is the x-coordinate of B?",
+    "Scientific calculator only. (No GCD).\n\nConsider points A(-1,3) and B(2,7).\nWhat is the x-coordinate of B?",
     "Find the distance AB:",
     "Find the coordinates of the midpoint of AB:",
     "Find the gradient of line AB:",
@@ -172,7 +172,7 @@ const sendAnswers = () => {
         })
         .catch(() => {
             outAdd("Failure to send! Try again, or ask the teacher for help.")
-            setBGcolor("hsl(0, 100%, 40%)")
+            setBGcolor("purple")
         })
         .finally(() => inCommunication = false)
 

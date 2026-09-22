@@ -114,7 +114,7 @@ class Game extends GameCore {
             const data = players.map(p => [
                 p.name, p.nameID, p.isConnected ? (p.pen ? "TRIG👿" : "") : "LOST",
                 p.anwersLastTime || "",
-                this.hidden ? "" : p.answers
+                p.anwersLastTime ? (this.hidden ? `(hidden ${p.answers.filter(x => x).length})` : p.answers) : ""
             ])
             return MM.transposeArray([headers, ...data])
         })
