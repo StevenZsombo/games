@@ -187,6 +187,6 @@ var ac = Anticheat.getAnticheat()
 ac.immuneTime = 2000
 ac.timeTotal = 15
 ac.setupClient(0, false)
-ac.activate()
 ac.onPunish = () => setBGcolor(_punishColor)
 ac.onEndPunish = () => setBGcolor(_last)
+ac.activate()

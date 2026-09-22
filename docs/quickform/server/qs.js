@@ -138,10 +138,11 @@ class Game extends GameCore {
                         p.name,
                         () => {
                             GameEffects.dropDownBetter([
-                                ["kick", () => p.kick()],
+                                // ["kick", () => p.kick()],
                                 ["reset", () => {
                                     p.eval("localStorage.clear(),chat.silentReload()")
                                     p.kick(true)
+                                    this.sideFeed?.delete(p.name)
                                 }],
                                 ["rename", () =>
                                     GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
