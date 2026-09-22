@@ -112,7 +112,7 @@ class Game extends GameCore {
             // .filter(p => p.name !== p.nameID)
             const headers = "name nameID conn/pen submitted? answers".split(" ")
             const data = players.map(p => [
-                p.name, p.nameID, p.isConnected ? (p.pen ? "TRIG" : "") : "LOST",
+                p.name, p.nameID, p.isConnected ? (p.pen ? "TRIG👿" : "") : "LOST",
                 p.anwersLastTime || "",
                 this.hidden ? "" : p.answers
             ])
@@ -132,32 +132,39 @@ class Game extends GameCore {
         this.add_drawable(serverButton)
         serverButton.txt = "SERVER"
         serverButton.on_release =
-            () => listener.personsAsArray.length && GameEffects.dropDownBetter(
-                listener.personsAsArray.map(p => [
-                    p.name,
-                    () => {
-                        GameEffects.dropDownBetter([
-                            ["kick", () => p.kick()],
-                            ["reset", () => {
-                                p.eval("localStorage.clear(),chat.silentReload()")
-                                p.kick(true)
-                            }],
-                            ["rename", () =>
-                                GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
-                            ],
-                            ["fullscreen", () => p.eval(`game.mouser.on_click_once = () => MM.toggleFullscreen(true)`)],
-                            ["whitelist", () => p.eval("(window.game?.ac?.whitelist(),window.ac?.whitelist())")],
-                            ["message", () =>
-                                GameEffects.inputBoxFromRectPromise().then(x =>
-                                    p.eval(`GameEffects.popup("${x}")`))
-                            ],
-                            ["eval", () =>
-                                GameEffects.inputBoxFromRectPromise().then(x => p.eval(x))
-                            ]
-                        ])
-                    }
+            () => GameEffects.dropDownBetter(
+                [
+                    ...listener.personsAsArray.map(p => [
+                        p.name,
+                        () => {
+                            GameEffects.dropDownBetter([
+                                ["kick", () => p.kick()],
+                                ["reset", () => {
+                                    p.eval("localStorage.clear(),chat.silentReload()")
+                                    p.kick(true)
+                                }],
+                                ["rename", () =>
+                                    GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
+                                ],
+                                ["fullscreen", () => p.eval(`game.mouser.on_click_once = () => MM.toggleFullscreen(true)`)],
+                                ["whitelist", () => p.eval("(window.game?.ac?.whitelist(),window.ac?.whitelist())")],
+                                ["message", () =>
+                                    GameEffects.inputBoxFromRectPromise().then(x =>
+                                        p.eval(`GameEffects.popup("${x}")`))
+                                ],
+                                ["eval", () =>
+                                    GameEffects.inputBoxFromRectPromise().then(x => p.eval(x))
+                                ]
+                            ])
+                        }
+                    ]),
+                    ["EXCEL", () =>
+                        MM.exportExcel(
+                            listener.personsAsArray.map(p =>
+                                [p.name, p.nameID, p.anwersLastTime, ...p.answers, "record:", ...p.answersHistory.flat()]
+                            ),
+                            "Quickform" + MM.time())]
                 ])
-            )
         Object.assign(this, { table, serverButton, bg })
 
 

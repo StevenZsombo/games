@@ -183,7 +183,8 @@ const sendAnswers = () => {
 
 chat.eggs("eval", x => eval(x))
 
-const ac = Anticheat.getAnticheat()
+var ac = Anticheat.getAnticheat()
+ac.immuneTime = 2000
 ac.timeTotal = 15
 ac.setupClient(0, false)
 ac.activate()
