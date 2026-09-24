@@ -11,20 +11,26 @@ const students = {
 }
 
 const questions = [
-    "Scientific calculator only. (No GCD).\n\nConsider points A(-1,3) and B(2,7).\nWhat is the x-coordinate of B?",
+    "Scientific calculator only. (No GCD).\n\nFind |-3|:",
+    "Find all integers x with -3<x<2:",
+    "Solve 4x+3=15:",
+    "Write in words: 412",
+    "Write in words: 65827",
+    "\n\nConsider points A(-1, 3) and B(2, 7).\nWhat is the x-coordinate of B ?",
     "Find the distance AB:",
     "Find the coordinates of the midpoint of AB:",
     "Find the gradient of line AB:",
     "Find the equation of line AB in the form y=mx+c:",
     "Find the equation of the perpendicular bisector of AB in the form y=mx+c:",
-    "Find the point where line AB cuts the y-axis:"
+    "Find the point where line AB cuts the y-axis:",
+    "Find an equation of the line parallel to 6x+3y=5 that goes through A(-1,3):",
 ]
 window.univ = {
     isOnline: true,
     PORT: 80,
     allowQuietReload: false,
 }
-const LOCALSTORAGE_KEY = "quickformData"
+const LOCALSTORAGE_KEY = "quickformDataIM16"
 if (location.search !== "") {
     localStorage.removeItem(LOCALSTORAGE_KEY)
     history.replaceState(null, '', location.pathname)
@@ -32,6 +38,11 @@ if (location.search !== "") {
 
 let savedData = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY)) || {};
 let textboxes = [];
+
+
+/**@type {Chat} */
+var chat = window.chat = new Chat(null, savedData.studentName, false)
+await chat.asapPromise()
 
 
 //#region registerName
@@ -72,6 +83,7 @@ async function registerName() {
         savedData.studentName = studentName
         savedData.answers = savedData.answers || []
         localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(savedData))
+        chat.forceNameSilent(studentName)
     })
     container.append(
         classLabel, classSelect, document.createElement('br'),
@@ -92,6 +104,21 @@ function getAnswers() {
 if (!savedData.className || !savedData.studentName) {
     await registerName()
 }
+
+const waitToStart = async () => {
+    const waitDiv = document.createElement('div')
+    waitDiv.style.whiteSpace = "pre-line"
+    waitDiv.textContent =
+        "Waiting to start... do not refresh or close the page.\nYou are not be allowed to use other apps or visit other pages during the test."
+    document.body.appendChild(waitDiv)
+    while (true) {
+        if (await chat.wee("hq", "started").catch(() => false)) break
+        await new Promise(r => setTimeout(r, 1000))
+    }
+    document.body.removeChild(waitDiv)
+}
+
+await waitToStart()
 
 document.body.innerHTML = ''
 const container = document.createElement('div')
@@ -128,10 +155,8 @@ submitBtn.addEventListener('click', () => {
     sendAnswers()
     // localStorage.removeItem(LOCALSTORAGE_KEY) //stinks
 })
+chat.eggs("snap", () => sendAnswers(true))
 
-/**@type {Chat} */
-var chat = window.chat = new Chat(null, savedData.studentName, false)
-await chat.asapPromise()
 chat.wee("ping", "", { retries: 3, interval: 500 })
     .then(() => outAdd("Connected to server, ready to submit when you are."))
     .catch(() => outAdd("Failed to connect to server. Will reconnect when submitting."))
@@ -157,8 +182,8 @@ const outClear = () => {
     outDiv.textContent = ''
 }
 let inCommunication = false
-const sendAnswers = () => {
-    if (inCommunication) return
+const sendAnswers = (forced = false) => {
+    if (!forced && inCommunication) return
     inCommunication = true
     setBGcolor("yellow")
 

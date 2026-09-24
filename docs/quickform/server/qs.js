@@ -38,6 +38,12 @@ let disconnectedIndicator = null
 chat.on_disconnect = () => disconnectedIndicator ??= GameEffects.popup("LOST CONNECTION...", { floatTime: Infinity, posFrac: [.5, .2], moreButtonSettings: { color: "red" } })
 chat.on_join = () => { disconnectedIndicator?.close(); disconnectedIndicator = null }
 
+
+var hq = {
+    started: false
+}
+chat.eggs("hq", x => hq[x])
+
 class Person extends Participant {
     answers = null
     answersHistory = []
@@ -133,39 +139,67 @@ class Game extends GameCore {
         serverButton.txt = "SERVER"
         serverButton.on_release =
             () => GameEffects.dropDownBetter(
-                [
-                    ...listener.personsAsArray.map(p => [
-                        p.name,
-                        () => {
-                            GameEffects.dropDownBetter([
-                                // ["kick", () => p.kick()],
-                                ["reset", () => {
-                                    p.eval("localStorage.clear(),chat.silentReload()")
-                                    p.kick(true)
-                                    this.sideFeed?.delete(p.name)
-                                }],
-                                ["rename", () =>
-                                    GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
-                                ],
-                                ["fullscreen", () => p.eval(`game.mouser.on_click_once = () => MM.toggleFullscreen(true)`)],
-                                ["whitelist", () => p.eval("(window.game?.ac?.whitelist(),window.ac?.whitelist())")],
-                                ["message", () =>
-                                    GameEffects.inputBoxFromRectPromise().then(x =>
-                                        p.eval(`GameEffects.popup("${x}")`))
-                                ],
-                                ["eval", () =>
-                                    GameEffects.inputBoxFromRectPromise().then(x => p.eval(x))
-                                ]
-                            ])
-                        }
-                    ]),
-                    ["EXCEL", () =>
-                        MM.exportExcel(
-                            listener.personsAsArray.map(p =>
-                                [p.name, p.nameID, p.anwersLastTime, ...p.answers, "record:", ...p.answersHistory.flat()]
-                            ),
-                            "Quickform" + MM.time())]
-                ])
+                (hq.started ? [] : [["START", () => hq.started = true]]).concat(
+                    [
+                        ...listener.personsAsArray.map(p => [
+                            p.name,
+                            () => {
+                                GameEffects.dropDownBetter([
+                                    // ["kick", () => p.kick()],
+                                    ["reset", () => {
+                                        p.eval("localStorage.clear();chat.silentReload();")
+                                        p.kick(true)
+                                        this.sideFeed?.delete(p.name)
+                                    }],
+                                    ["rename", () =>
+                                        GameEffects.inputBoxFromRectPromise().then(x => p.eval(`chat.forceNameSilent("${x}")`))
+                                    ],
+                                    ["fullscreen", () => p.eval(`game.mouser.on_click_once = () => MM.toggleFullscreen(true)`)],
+                                    ["whitelist", () => p.eval("(window.game?.ac?.whitelist(),window.ac?.whitelist())")],
+                                    ["message", () =>
+                                        GameEffects.inputBoxFromRectPromise().then(x =>
+                                            // p.eval(`GameEffects.popup("${x}")`)
+                                            p.eval(`alert("${x}")`)
+                                        )
+                                    ],
+                                    ["ask", () =>
+                                        GameEffects.inputBoxFromRectPromise().then(async x =>
+                                            GameEffects.popup(p.name + ":\n" + await
+                                                p.wee("eval", `prompt("${x}")`, {
+                                                    retries: 0, interval: 30000,
+                                                    resolveToDefaultInstead: "no answer"
+                                                }
+                                                ), { moreButtonSettings: { color: "orange" } }
+                                            ))
+                                    ],
+                                    ["eval", () =>
+                                        GameEffects.inputBoxFromRectPromise().then(x => p.eval(x))
+                                    ],
+                                    ["snap", () => p.wee("snap").then(() => gpop(`Answers received from ${p.name}`)).catch(() => bpop(`failed to snap ${p.name}`))]
+                                ])
+                            }
+                        ]),
+                        ["SNAP ALL", () => {
+                            listener.personsAsArray.forEach(p => {
+                                if (!p.answers?.length && p.isConnected) p.wee("snap").catch(() => { })
+                            })
+                        }],
+                        ["HARDSNAP ALL", () => {
+                            listener.personsAsArray.forEach(p => {
+                                p.wee("snap").catch(() => { })
+                            })
+                        }],
+                        ["MASSEVAL", () => {
+                            GameEffects.inputBoxFromRectPromise().then(code =>
+                                listener.personsAsArray.forEach(p => p.wee("eval", code).catch(() => { })))
+                        }],
+                        ["EXCEL", () =>
+                            MM.exportExcel(
+                                listener.personsAsArray.map(p =>
+                                    [p.name, p.nameID, p.anwersLastTime, ...p.answers, "record:", ...p.answersHistory.flat()]
+                                ),
+                                "Quickform" + MM.time())],
+                    ]))
         Object.assign(this, { table, serverButton, bg })
 
 
