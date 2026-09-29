@@ -6,7 +6,7 @@ const students = {
         'Fiona', 'Suzie', 'Ricky', 'Freya', 'Karis', 'Naomi', 'Melius',
     ],
     G10S1: [
-        'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby', 'Yolia',
+        'Chloe', 'Jayden', 'Paco', 'Max', 'Catherine', 'Roby',
     ]
 }
 
