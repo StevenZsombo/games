@@ -35,32 +35,46 @@ class Game extends GameShared {
         const rightpanel = this.rect.copy
             .splitCell(-1, -1, 2, 3)
             .stretch(.9, .9)
-        const buttons = rightpanel.copy
+        const buts = rightpanel.copy
             .shrinkToSquare()
             .splitGrid(4, 4)
             .flat()
             .map(Button.fromRect)
-        buttons.forEach(b => {
+        buts.forEach(b => {
             b.color = "lightblue"
             b.fontSize = 40
             b.stretch(.9, .9)
         })
             ;
-        `1 2 3 Frac 4 5 6 Sqrt 7 8 9 +/- Last 0 Next Del`.split(" ").forEach((x, i) => buttons[i].txt = x)
+        `1 2 3 Frac 4 5 6 Sqrt 7 8 9 +/- Last 0 Next Del`.split(" ").forEach((x, i) => buts[i].txt = x)
 
         const mall = new Malleable()
         this.add_drawable(mall)
-        mall.push(...buttons)
+        mall.push(...buts)
 
 
         const lat = Button.make_latex(new Button())
         lat.resize(600, 300)
         lat.centeratX(rightpanel.cx)
-        lat.centeratY(buttons[0].top / 2)
+        lat.centeratY(buts[0].top / 2)
         lat.color = "white"
         mall.push(lat)
-        lat.latex.tex = "hi"
+        lat.latex.tex =
+            String.raw`$y=\bbox[lightblue,border:1px black]{\phantom*}x+\bbox[border:1px black]{\phantom*}$`
 
+
+        const bg =
+            Button.fromRect(
+                game.rect.copy.stretch(.6, .9).leftat(20))
+        bg.color = "white"
+        const plt = new Plot(MM.brokenLineFunction(-2, 3, 6, 5), bg)
+        plt.addControls(this.mouser, bg)
+        plt.highlightedPoints.push([-2, 3])
+
+        mall.push(bg)
+        mall.push(plt)
+
+        Object.assign(this, { plt, bg, lat, mall, buts })
     }
     //#endregion
 
