@@ -31,7 +31,7 @@ class Game extends GameCore {
     initialize_more() {
 
 
-        const bg = Button.fromRect(this.rect.copy.stretch(.9, .9), { color: "white" })
+        const bg = Button.fromRect(this.rect.copy.deflate(20, 20), { color: "white" })
         const plt = new Plot(null, bg)
         this.add_drawable(bg)
         this.add_drawable(plt)
