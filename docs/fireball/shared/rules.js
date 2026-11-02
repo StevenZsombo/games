@@ -10,6 +10,7 @@ var RULES = {
     MAX_TIER: 9, //for 10 total. no progress afterwards
     TIER_STRINGS: "I II III IV V VI VII VIII IX X".split(" "),
     DAMAGE_FROM_TIER: tier => 30 + tier * 5, //for 30 to 75
+    TIME_FROM_TIER: tier => 60 * 1000 * (10 - tier),
     HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION:
         (numberOfTiersUpgraded) => //10,20,30. final tier only 10?
             numberOfTiersUpgraded <= 1 ? 10 :
@@ -22,6 +23,10 @@ var RULES = {
         //non-integers must be accurate to 3sf
         return (attempt == solution) || (+attempt.toPrecision(3) == solution)
     },
+
+    MAX_ACTIVES: 2,
+    MAX_PASSIVES: 2,
+
 
     PICTURES_FOLDER_PATH: "./pictures/"
 

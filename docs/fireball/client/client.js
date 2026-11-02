@@ -30,7 +30,26 @@ class Game extends GameShared {
     //#region initialize_more
     initialize_more() { }
     async initialize_async() {
+        wDiv.addLine("Establishing connection.")
+        await chat.asapPromise()
+        const enter = await chat.wee("enter", undefined, {
+            retries: 10, interval: 1000, on_retry: (i) => wDiv.addLine(`Attempting to join... (${i})`)
+        })
+        wDiv.addLine("Rules received.")
+        Object.assign(RULES, enter.RULES)
 
+
+
+        const nameSelected = GameEffects.nameSelect(
+            enter.AVAILABLE_NAMES
+        )
+        chat.forceNameSilent(nameSelected)
+        chat.wee("bounce") //empty call, automatic name adjust!
+
+
+        chat.eggs("globalpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigYellow))
+        chat.eggs("localpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigBlue))
+        chat.eggs("warningpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed))
 
 
     }
