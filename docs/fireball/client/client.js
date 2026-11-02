@@ -51,7 +51,7 @@ class Game extends GameShared {
         chat.eggs("localpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigBlue))
         chat.eggs("warningpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed))
 
-        chat.eggs("targeting", this.enterTargeting)
+        chat.eggs("targeting", this.enterTargeting())
 
     }
 
@@ -94,7 +94,7 @@ class Game extends GameShared {
 
 
     enterTargeting() {
-
+        GameEffects.popup("Correct!\nSelect a valid target to attack with your spell!")
 
     }
 

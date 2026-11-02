@@ -17,12 +17,18 @@ class Player {
     /**@static @type {Player[]} */
     static ALL = []
     targetable = true
+    targetingTimeLeft = 0 //determines state!
+    /**@type {Spell} */
+    wielding = null
     actives = []
     passives = []
     //contains objects
     owned = []
     seen = []
+    /**@type {[][Spell,number]} */
+    accolades = []
     hp = RULES.START_HP
+    canPullFromGrimoire = true
 }
 
 class Spell {
@@ -33,6 +39,8 @@ class Spell {
     ownerHistory = []
     /**@type {Player[]} */
     seenHistory = []
+    /**@type {?Player} */
+    isBeingSolvedBy = null
     timeLeft = 10 * 60 * 1000
     isInGrimoire = true
     isActive = false
