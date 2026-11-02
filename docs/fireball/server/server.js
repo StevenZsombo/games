@@ -15,6 +15,9 @@ const gpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.leftGreen)
 const bigbadpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed)
 const sessionID = MM.randomID() + MM.randomID()
 
+//array of objects
+const eventLog = []
+
 
 class Person extends Participant {
     initialize() {
@@ -109,6 +112,13 @@ class Game extends GameShared {
         chosenSpell.isInGrimoire = false
         this.assignSpellToPlayer(chosenSpell, player)
 
+        eventLog.push({
+            str: `${player.person.name} pulled a Tier ${RULES.TIER_STRINGS[chosenSpell.tier]} spell from the Grimoire.`,
+            type: "pullFromGrimoire",
+            player,
+            spell
+        })
+
     }
 
     /**@param {Player} player @param {Spell} spell  */
@@ -117,22 +127,36 @@ class Game extends GameShared {
         player.actives.push(spell)
         spell.isActive = true
         spell.seenHistory.push(player)
+        player.seen.push(spell)
 
     }
 
     /**@param {Spell} spell @param {Player} player */
     spellFizzlesOn(spell, player) {
         spell.isActive = false
+        player.actives = player.actives.filter(x => x !== spell)
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
         if (player.hp <= 0) return this.playerDowned(player)
-        chat.spam("globalpop", `${player.person.name} took ${dmg} from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
+        const str = `${player.person.name} took ${dmg} from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
             + (spell.ownerHistory.at(-1) ?
                 ` of ${spell.ownerHistory.at(-1).person.name}`
                 : ` from the Grimoire`)
             + `.`
+        chat.spam("globalpop", str)
 
-        )
+        eventLog.push({
+            str: `${player.person.name} took ${dmg} from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
+                + (spell.ownerHistory.at(-1) ?
+                    ` of ${spell.ownerHistory.at(-1).person.name}`
+                    : ` from the Grimoire`)
+                + `.`,
+            attacker: spell.ownerHistory.at(-1),
+            type: "spellFizzlesOn",
+            victim: player,
+            spell: spell,
+            dmg: dmg,
+        })
     }
 
     /**@param {Player} player */
@@ -142,6 +166,47 @@ class Game extends GameShared {
 
     /**@param {Spell} spell @param {Player} player */
     spellUpgradedByPlayer(spell, player) {
+        spell.isActive = false
+        const timeLeftMinutes = spell.timeLeft / 60 / 1000
+        const tiersUpgraded =
+            MM.clamp(Math.floor(timeLeftMinutes),
+                1, RULES.MAX_TIERS_UPGRADED_AT_ONCE)
+        spell.tier += tiersUpgraded
+        if (spell.tier > RULES.MAX_TIER) spell.tier = RULES.MAX_TIER
+        const heal = RULES.HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION(tiersUpgraded)
+        player.hp += heal
+        if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
+        player.owned.push(spell)
+        player.person.spam("localpop", `You upgraded the spell by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
+        const str = `${player.person.name} upgraded a spell to Tier ${RULES.TIER_STRINGS[spell.tier]}!`
+        chat.targetSpam(
+            listener.personsAsArray.filter(x => x != player),
+            "globalpop", str
+        )
+        eventLog.push({
+            str,
+            player,
+            type: "spellUpgradedByPlayer",
+            heal
+        })
+
+        player.person.wee("targeting")
+            .then(_ => gpop(`${player.person.name} began targeting.`))
+            .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
+
+
+    }
+
+    tickSpellSeconds(dt = 1000) {  //called every second?
+        for (const spell of Spell.GRIMOIRE) {
+            if (!spell.isActive) continue
+            spell.timeLeft -= dt
+            if (spell.timeLeft < 0) this.spellFizzlesOn(spell, spell.seenHistory.at(-1))
+        }
+    }
+    /**@param {Spell} spell @param {Player} player  @param {number} guess  */
+    attempt(spell, player, guess) {
+        if (!player) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
 
     }
 

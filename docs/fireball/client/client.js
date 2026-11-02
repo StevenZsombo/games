@@ -51,8 +51,12 @@ class Game extends GameShared {
         chat.eggs("localpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigBlue))
         chat.eggs("warningpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed))
 
+        chat.eggs("targeting", this.enterTargeting)
 
     }
+
+
+
     //#endregion
 
     //#region update_more
@@ -87,6 +91,12 @@ class Game extends GameShared {
     }//#endregion
 
 
+
+
+    enterTargeting() {
+
+
+    }
 
     //
 } //this is the last closing brace for class Game

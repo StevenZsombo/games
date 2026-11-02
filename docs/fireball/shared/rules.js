@@ -5,12 +5,12 @@ var RULES = {
     REVITALIZE_TIMEOUT_SECONDS: 20, //short enough not to be punitive
     TARGETING_WINDOW_IMMUNITY_SECONDS: 30,
     FIZZLE_AUTO_RETURN_WITHOUT_SERVER: false, //let teacher handle it!
-    MAX_SHIELD: 100,
+    MAX_HP: 100,
     START_TIER: 0, //beware of internal discrepancy: tiers I-X are actually 0-9
     MAX_TIER: 9, //for 10 total. no progress afterwards
     TIER_STRINGS: "I II III IV V VI VII VIII IX X".split(" "),
     DAMAGE_FROM_TIER: tier => 30 + tier * 5, //for 30 to 75
-    TIME_FROM_TIER: tier => 60 * 1000 * (10 - tier),
+    TIME_FROM_TIER: tier => 60 * 1000 * (10 - tier), //for 10 to 1
     HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION:
         (numberOfTiersUpgraded) => //10,20,30. final tier only 10?
             numberOfTiersUpgraded <= 1 ? 10 :
