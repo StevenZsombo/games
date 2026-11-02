@@ -44,10 +44,19 @@ class Spell {
             const spell = new Spell()
             spell.id = Spell.GRIMOIRE.length // start with 0
             Spell.GRIMOIRE.push(spell)
-            spell.solution = solution //client won't receive? shouldn't? whatever
+            spell.solution = solution
+            //client won't receive? shouldn't? whatever. anticheat will take of it!
             spell.img = img
+            spell.isInGrimoire = true //redundant for now, keep it for safety!
         })
 
     }
 }
+
+//why not lol
+Spell.FILL_GRIMOIRE(
+    [
+        [1, 5.83], [2, 8.5], [3, 2.5], [4, 17.5], [5, 6.5], [6, -0.5], [7, 2.5], [8, 1.67], [9, 2.5], [10, 20.3], [11, 1.6], [12, 11.5], [13, 6.16], [14, 7.4], [15, 7.5], [16, 11.4], [17, -0.5], [18, 4.1], [19, 2.63], [20, 6.86], [21, 8.33], [22, 2.39], [23, 4.83], [24, 0.414], [25, 2.47]
+    ]
+)
 
