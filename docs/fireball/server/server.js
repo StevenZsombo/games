@@ -24,6 +24,9 @@ class Person extends Participant {
 
     }
 
+    /**@type {?Player} */
+    player = null
+
 }
 
 class Game extends GameShared {
@@ -43,6 +46,25 @@ class Game extends GameShared {
             }
         })
 
+        chat.eggs("attempt", (person, [id, guess]) => {
+            this.attempt(Spell.GRIMOIRE[id], person.player, guess)
+        })
+
+        chat.eggs("pull", person => {
+            if (!this.allowPullingFromGrimoire) return
+            if (person.player.canPullFromGrimoire) {
+                this.pullFromGrimoire(person.player)
+                person.player.canPullFromGrimoire = false
+            }
+        })
+
+
+        this.allowPullingFromGrimoire = true
+        this.tickSpellSecondsInterval = setInterval(
+            () => this.tickSpellSeconds(1000),
+            1000
+        )
+
 
 
 
@@ -59,10 +81,6 @@ class Game extends GameShared {
     //#region update_more
 
     update_more(dt) {
-
-
-
-
     }
 
     //#endregion
@@ -74,12 +92,6 @@ class Game extends GameShared {
     //#region draw_more
 
     draw_more(screen) {
-
-
-
-
-
-
     }
     //#endregion
     ///end draw_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -89,10 +101,6 @@ class Game extends GameShared {
     ///start next_loop_more:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     //#region next_loop_more
     next_loop_more() {
-
-
-
-
     }//#endregion
     ///end next_loop_more^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ///                                          ^^^^NEXT_LOOP^^^^                                                   ///
@@ -126,6 +134,7 @@ class Game extends GameShared {
         spell.timeLeft = RULES.TIME_FROM_TIER(spell.tier)
         player.actives.push(spell)
         spell.isActive = true
+        spell.isBeingSolvedBy = player
         spell.seenHistory.push(player)
         player.seen.push(spell)
 
@@ -134,6 +143,7 @@ class Game extends GameShared {
     /**@param {Spell} spell @param {Player} player */
     spellFizzlesOn(spell, player) {
         spell.isActive = false
+        spell.isBeingSolvedBy = null
         player.actives = player.actives.filter(x => x !== spell)
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
@@ -161,12 +171,27 @@ class Game extends GameShared {
 
     /**@param {Player} player */
     playerDowned(player) {
+        player.targetable = false
+        player.actives.length = 0
+        player.passives.length = 0
+        player.hp = 0
+        player.canPullFromGrimoire = false
+        Anim.delay(RULES.REVITALIZE_TIMEOUT_SECONDS * 1000, //finnicky but whatevs
+            {
+                on_end: () => {
+                    player.targetable = true
+                    player.canPullFromGrimoire = true
+                    player.hp = RULES.REVITALIZE_HP
+                }
+            }
+        )
 
     }
 
     /**@param {Spell} spell @param {Player} player */
     spellUpgradedByPlayer(spell, player) {
         spell.isActive = false
+        spell.isBeingSolvedBy = null
         const timeLeftMinutes = spell.timeLeft / 60 / 1000
         const tiersUpgraded =
             MM.clamp(Math.floor(timeLeftMinutes),
@@ -177,10 +202,11 @@ class Game extends GameShared {
         player.hp += heal
         if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
         player.owned.push(spell)
+        player.accolades.push([spell, spell.tier])
         player.person.spam("localpop", `You upgraded the spell by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
         const str = `${player.person.name} upgraded a spell to Tier ${RULES.TIER_STRINGS[spell.tier]}!`
         chat.targetSpam(
-            listener.personsAsArray.filter(x => x != player),
+            Player.ALL.filter(x => x != player),
             "globalpop", str
         )
         eventLog.push({
@@ -194,19 +220,70 @@ class Game extends GameShared {
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
 
+        player.targetingTimeLeft = RULES.TARGETING_WINDOW_IMMUNITY_SECONDS * 1000
+        player.wielding = spell
+
 
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?
         for (const spell of Spell.GRIMOIRE) {
             if (!spell.isActive) continue
+            if (!spell.isBeingSolvedBy) continue
+            if (spell.isBeingSolvedBy.targetingTimeLeft > 0) continue
             spell.timeLeft -= dt
             if (spell.timeLeft < 0) this.spellFizzlesOn(spell, spell.seenHistory.at(-1))
+        }
+        for (const pla of Player.ALL) {
+            if (pla.targetingTimeLeft)
+                pla.targetingTimeLeft -= dt
         }
     }
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */
     attempt(spell, player, guess) {
         if (!player) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
+        if (RULES.ACCURACY_FUNCTION(guess, spell.solution)) {
+            this.spellUpgradedByPlayer(spell, player)
+        } else {
+            player.person.spam("localpop", `Your answer of ${guess} is incorrect.`)
+        }
+    }
+    /**@param {Player} attacker  @param {Player} defender*/
+    target(attacker, defender) {
+        const spell = attacker.wielding
+        if (!spell) return bpop(`BADNESS: target command from ${attacker.person.name} but not wielding any spell.`)
+        if (!defender.targetable) return (
+            attacker.person.spam("localpop", `Selected player cannot be attacked right now.`),
+            false
+        )
+        if (defender.seen.includes(spell)) return (
+            attacker.person.spam("localpop", `Selected player already seen that spell.`),
+            false
+        )
+        if (defender.actives.length == RULES.MAX_ACTIVES) {
+            if (defender.passives.length == RULES.MAX_PASSIVES
+                &&
+                !Player.ALL.filter(x => x != attacker).every(x =>
+                    x.actives.length == RULES.MAX_ACTIVES && x.passives.length == RULES.MAX_PASSIVES
+                )
+            ) return (
+                attacker.person.spam("localpop", `Selected player is not a valid target. They already have too many passive spells.`),
+                false
+            )
+            //passive slot is easy to fill
+            defender.passives.push(spell)
+            spell.timeLeft = spell.timeLeft = RULES.TIME_FROM_TIER(spell.tier)
+        } else this.assignSpellToPlayer(spell, defender)
+        attacker.wielding = null
+        attacker.targetingTimeLeft = 0
+        attacker.person.spam("localpop", `Succesfully attacked ${defender.person.name}.\nThey have ${RULES.TIME_FROM_TIER(spell.tier) / 60 / 1000} minutes to solve, or else they take ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage.`)
+        eventLog.push({
+            str: `${attacker.person.name} attacks ${defender.person.name} with a Tier ${RULES.TIER_STRINGS[spell.tier]} spell.`,
+            attacker,
+            defender,
+            spell
+        })
+        return true //successful attack!
 
     }
 
