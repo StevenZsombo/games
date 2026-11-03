@@ -27,6 +27,8 @@ var RULES = {
     MAX_ACTIVES: 2,
     MAX_PASSIVES: 2,
 
+    ALLOW_PULLING_FROM_GRIMOIRE_WHENEVER_EMPTY: true,
+
 
     PICTURES_FOLDER_PATH: "./pictures/"
 

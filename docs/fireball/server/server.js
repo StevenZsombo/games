@@ -52,7 +52,11 @@ class Game extends GameShared {
 
         chat.eggs("pull", person => {
             if (!this.allowPullingFromGrimoire) return
-            if (person.player.canPullFromGrimoire) {
+            if (
+                person.player.canPullFromGrimoire
+                ||
+                (RULES.ALLOW_PULLING_FROM_GRIMOIRE_WHENEVER_EMPTY && person.player.actives.length == 0 && person.player.passives.length == 0)
+            ) {
                 this.pullFromGrimoire(person.player)
                 person.player.canPullFromGrimoire = false
             }
@@ -167,6 +171,7 @@ class Game extends GameShared {
             spell: spell,
             dmg: dmg,
         })
+        setTimeout(() => this.advanceQueue(player), 1000)
     }
 
     /**@param {Player} player */
@@ -176,14 +181,13 @@ class Game extends GameShared {
         player.passives.length = 0
         player.hp = 0
         player.canPullFromGrimoire = false
-        Anim.delay(RULES.REVITALIZE_TIMEOUT_SECONDS * 1000, //finnicky but whatevs
-            {
-                on_end: () => {
-                    player.targetable = true
-                    player.canPullFromGrimoire = true
-                    player.hp = RULES.REVITALIZE_HP
-                }
-            }
+        setTimeout(
+            () => {
+                player.targetable = true
+                player.canPullFromGrimoire = true
+                player.hp = RULES.REVITALIZE_HP
+            },
+            RULES.REVITALIZE_TIMEOUT_SECONDS * 1000 //finnicky but whatevs
         )
 
     }
@@ -263,9 +267,12 @@ class Game extends GameShared {
         if (defender.actives.length == RULES.MAX_ACTIVES) {
             if (defender.passives.length == RULES.MAX_PASSIVES
                 &&
-                !Player.ALL.filter(x => x != attacker).every(x =>
-                    x.actives.length == RULES.MAX_ACTIVES && x.passives.length == RULES.MAX_PASSIVES
-                )
+                !Player.ALL
+                    .filter(x => x != attacker)
+                    .filter(x => x.targetable)
+                    .every(x =>
+                        x.actives.length == RULES.MAX_ACTIVES && x.passives.length == RULES.MAX_PASSIVES
+                    )
             ) return (
                 attacker.person.spam("localpop", `Selected player is not a valid target. They already have too many passive spells.`),
                 false
@@ -283,8 +290,17 @@ class Game extends GameShared {
             defender,
             spell
         })
+
+        setTimeout(() => this.advanceQueue(player), 1000)
         return true //successful attack!
 
+    }
+    /**@param {Player} player */
+    advanceQueue(player) {
+        if (player.actives.length == RULES.MAX_ACTIVES) return
+        if (player.passives.length == 0) return
+        const firstPassive = player.passives.shift()
+        this.assignSpellToPlayer(firstPassive, player)
     }
 
 
