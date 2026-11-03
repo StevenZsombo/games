@@ -3,14 +3,16 @@
 //the quotation marks must be present
 window.___spire =
     // "spiream13.json"
-    "spirecoordgeoquad.json"
+    // "spirecoordgeoquad.json"
+    "spirearea.json"
 
 //name of the hydra bossfight map file, must be in spire/questions
 //sample format: "heads.json"
 //the quotation marks must be present
 window.___heads =
     // "headsam13.json"
-    "headscoordgeoquad.json"
+    // "headscoordgeoquad.json"
+    "headsarea.json"
 
 //list of students names
 //sample format: "Alice,Bob,Jackie Chan"
