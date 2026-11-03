@@ -18,14 +18,17 @@ window.___heads =
 window.___students =
     // "Alice,Chris,Cloris,Coro,Eden,Eily,Ethan Deng,Ethan Jiang,George,Gwendolyn,Harry,Howell,Kevin,Kimberly,Kyrie,Lu,Lucas,Michael,Percy,Sebastian,Selina,Seraphim,Tommy,Zoey,other1,other2,other3,other4,other5,other6"
     // 'Jaycee,Camila,Cherry,Whitney,Manda,Kami,Chloe L,TJ,Sophia,Steven,Chloe H,Issawen,Laura,Edward,Hardy,Jason,Dora,Winson,Yorick,Yolia,Kiki,Nick,Sofia,Serena,Lee,Vivi,Justin L,Justin Z,Noya,Cici,Evelyn,Jasper,Chloe G,Jayden,Paco,Max,Catherine,Roby'
-    "Karis,Suzie,Naomi,Freya,Fiona,Melius,Jay,Ricky"
+    // "Karis,Suzie,Naomi,Freya,Fiona,Melius,Jay,Ricky"
+    "Chloe,Catherine,Jayden,Roby,Max,Paco" +
+    "BLUE,RED,PINK,GREEN,GRAY,CYAN,YELLOW,MARBLE,ORANGE,BROWN"
 
 //number of minutes available for each head in order. the last one repeats infinitely
 //sample format: "7,5,3"
 //the quotation marks must be present, and numbers are separated by a comma
 //decimals are okay too, e.g. "7,4.5,3" has four and a half minutes for the second head
 window.___minutes =
-    "10,8,7,6,5,4,3"
+    // "10,8,7,6,5,4,3"
+    "8,7,6,5,4" //only 5 heads!
 
 //anticheat to be used. must be either "off", "warn" or "punish"
 //sample format: "punish"
