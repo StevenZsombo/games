@@ -239,8 +239,23 @@ class Game extends GameShared {
             if (spell.timeLeft < 0) this.spellFizzlesOn(spell, spell.seenHistory.at(-1))
         }
         for (const pla of Player.ALL) {
-            if (pla.targetingTimeLeft)
+            if (pla.targetingTimeLeft) {
                 pla.targetingTimeLeft -= dt
+                if (pla.targetingTimeLeft < 0) {
+                    //let it fizzle lol!
+                    eventLog.push({
+                        type: "failedTargeting",
+                        player: pla,
+                        spell: pla.wielding,
+                        str: `${pla.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`
+                    })
+                    const spell = pla.wielding
+                    pla.targetingTimeLeft = 0
+                    pla.wielding = null
+                    this.spellFizzlesOn(spell, pla)
+
+                }
+            }
         }
     }
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */

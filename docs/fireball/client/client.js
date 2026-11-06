@@ -25,6 +25,8 @@ var univ = {
 }
 //#endregion
 
+const smallpop = (str) => GameEffects.popup(str,
+    { posFrac: [.1, .9], sizeFrac: [.1, .1], moreButtonSettings: { color: "pink" } })
 
 class Game extends GameShared {
     //#region initialize_more
@@ -61,33 +63,17 @@ class Game extends GameShared {
 
     //#region update_more
     update_more(dt) {
-
-
-
-
-
-
     }
     //#endregion
 
 
     //#region draw_more
     draw_more(screen) {
-
-
-
-
-
-
     }
     //#endregion
 
     //#region next_loop_more
     next_loop_more() {
-
-
-
-
     }//#endregion
 
 
