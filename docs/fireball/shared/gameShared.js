@@ -26,7 +26,9 @@ class Player {
     /**@type {Spell[]} */
     passives = []
     //contains objects
+    /**@type {Spell[]} */
     owned = []
+    /**@type {Spell[]} */
     seen = []
     /**@type {[Spell,number][]} */
     accolades = []

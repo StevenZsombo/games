@@ -24,9 +24,20 @@ var univ = {
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
 //#endregion
+const pop =
+{
+    "local": (str) => GameEffects.popup(str,
+        { moreButtonSettings: { color: "lightblue" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .725] }),
+    "global": (str) => GameEffects.popup(str,
+        { moreButtonSettings: { color: "pink" }, travelTime: 300, floatTime: 3000, sizeFrac: [.6, .125], posFrac: [.5, .825] }),
+    "server": (str) => GameEffects.popup(str,
+        { moreButtonSettings: { color: "yellow" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .925] }),
+    "info": (str) => GameEffects.popup(str,
+        { moreButtonSettings: { color: "lightgray" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], }),
+    "error": (str) => GameEffects.popup(str,
+        { moreButtonSettings: { color: "red" }, travelTime: 300, floatTime: 3000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
+}
 
-const smallpop = (str) => GameEffects.popup(str,
-    { posFrac: [.1, .9], sizeFrac: [.1, .1], moreButtonSettings: { color: "pink" } })
 
 class Game extends GameShared {
     //#region initialize_more
@@ -59,9 +70,11 @@ class Game extends GameShared {
         chat.wee("bounce") //empty call, automatic name adjust!
 
 
-        chat.eggs("globalpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigYellow))
-        chat.eggs("localpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigBlue))
-        chat.eggs("warningpop", str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed))
+        chat.eggs("localpop", pop.local)
+        chat.eggs("globalpop", pop.global)
+        chat.eggs("infopop", pop.info)
+        chat.eggs("serverpop", pop.server)
+        chat.eggs("errorpop", pop.error)
 
         chat.eggs("targeting", () => this.enterTargeting())
 
@@ -128,18 +141,23 @@ class Game extends GameShared {
         this.add_drawable(this.questionModeMall, 6)
 
 
-        const cBG = new Button({ width: 400, height: 800 }) //what?
+        const cBG = new Button({ width: 50, height: 100 }) //what?
+            .stretch(GRAPHICS.CALCULA_SCALEFACTOR, GRAPHICS.CALCULA_SCALEFACTOR)
             .rightat(this.WIDTH - GRAPHICS.CALCULA_RIGHT)
             .bottomat(this.HEIGHT - GRAPHICS.CALCULA_BOTTOM)
 
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
+        calcula.ans.color = "white"
         this.questionModeMall.push(calcula)
         calcula.verifyAnswerAsync = async (guess) => {
             const resp = await chat.wee("attempt",
                 [this.spellCurrentlyBeingSolved, guess])
-            return { correct: !!resp }
+            console.log(resp)
+            if (!resp?.correct) pop.server(`You answer of ${guess} is incorrect.`)
+            return resp //built-in correct and all that!
         }
+
 
 
     }
@@ -204,6 +222,21 @@ class Game extends GameShared {
             x.textSettings.textAlign = "left"
             x.textSettings.textBaseline = "top"
             x.fontSize = GRAPHICS.CARD_FONTSIZE
+            x.info = {
+                playerID: i, name: data[i].n, nameID: data[i].i
+            }
+            let clickCount = 0
+            x.on_click = () => {
+                if (!this.ownData?.f) return //f - targeting mode in BC
+                clickCount++
+                setTimeout(() => clickCount = 0, 5000)
+                if (clickCount > 3) {
+                    chat.wee("attack", x.info.nameID)
+                        .then(pop.server)
+                        .catch(() => pop.error("Failed to reach the server.\nASK TEACHER FOR HELP"))
+                    clickCount = 0
+                }
+            }
         })
         this.buts.push(...cards)
         this.cards.push(...cards)
@@ -222,12 +255,15 @@ class Game extends GameShared {
                     `Actives: ${k.a.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]} (${MM.toMMSS(u[2])})`)}`,
                     `Passives: ${k.p.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]}  (${MM.toMMSS(u[2])})`)}`,
                     `${k.d ? `KNOCKED OUT for ${MM.toMMSS(k.d)}` : !k.t ? "UNTARGETABLE" : ""}`,
-                    `${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`
+                    `${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`,
+                    k.s.length ? `Seen:\n` + k.s.map(x => RULES.SPELL_NAMES[x]).join(",") : ""
                 ].join("\n")
         })
         if (!ownData) return
         this.grim.activeState =
-            ownData.a.length == 0 && ownData.p.length == 0 && ownData.f == 0 && ownData.d == 0 && ownData.t != 0
+            ownData.c
+        // ownData.a.length == 0 && ownData.p.length == 0 && ownData.f == 0 && ownData.d == 0 && ownData.t != 0
+        //lol i suck
         if (!ownData.a.map(u => u[0]).some(x => x == this.spellCurrentlyBeingSolved))
             this.questionModeMall.deactivate() //the spell being solved is no longer active (or yours)
         this.activeButs.forEach((x, i) => {
@@ -235,7 +271,7 @@ class Game extends GameShared {
                 const u = ownData.a[i]
                 x.color = "yellow"
                 const str =
-                    `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]}\nTime left:\n${MM.toMMSS(u[2])}`
+                    `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]} \nTime left: \n${MM.toMMSS(u[2])} `
                 x.txt = str + "\n\n(Click here to solve.)"
                 this.activeGhostButs[i].txt = str
                 x.isBlocking = true
