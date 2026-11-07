@@ -1,3 +1,33 @@
+//#region univ
+var univ = {
+    isOnline: false, //server is offline!
+    PORT: 80,
+    framerateUnlocked: false,
+    dtUpperLimit: 1000 / 15,//1000 / 30,
+    denybuttons: false,
+    showFramerate: false,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high", // options: "low", "medium", "high"
+    canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
+    //BROKEN
+    fontFile: null, // "resources/victoriabold.png" //set to null otherwise
+    //BROKEN
+    filesList: "", //space-separated
+    on_each_start: null,
+    on_first_run: null,
+    on_first_run_blocking: null,
+    on_first_run_async: null,
+    //async function. overrides on_first_run_blocking
+    on_next_game_once: null,
+    on_beforeunload: null,
+    allowQuietReload: true,
+    acquireNameStr: "Your English name (at least 4 letters):", //for chat
+    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
+}
+//#endregion
+
+
+
 const listener = new Listener()
 chat = listener.chat
 let disconnectedIndicator = null
@@ -27,6 +57,13 @@ class Person extends Participant {
     /**@type {?Player} */
     player = null
 
+    kick() {
+        const i = Player.ALL.indexOf(this.player)
+        if (i != -1) Player.ALL.splice(i, 1)
+        this.player.targetable = false
+        this.player = null
+    }
+
 }
 
 class Game extends GameShared {
@@ -35,22 +72,22 @@ class Game extends GameShared {
     async initialize_async() {
 
         await chat.asapPromise()
-        chat.eggs("enter", (person) => {
+        chat.eggs("enter", (_, person) => {
             if (!Player.ALL.find(x => x.person === person)) {
                 Player.ALL.push(new Player(person))
             }
             return {
                 RULES,
                 AVAILABLE_NAMES:
-                    RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name != k))
+                    RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name == k))
             }
         })
 
-        chat.eggs("attempt", (person, [id, guess]) => {
+        chat.eggs("attempt", ([id, guess], person) => {
             this.attempt(Spell.GRIMOIRE[id], person.player, guess)
         })
 
-        chat.eggs("pull", person => {
+        chat.eggs("pull", (_, person) => {
             if (!this.allowPullingFromGrimoire) return
             if (
                 person.player.canPullFromGrimoire
@@ -67,6 +104,10 @@ class Game extends GameShared {
         this.tickSpellSecondsInterval = setInterval(
             () => this.tickSpellSeconds(1000),
             1000
+        )
+        this.tickBroadcastInterval = setInterval(
+            () => this.sendBC(),
+            MASTER.BROADCAST_INTERVAL
         )
 
 
@@ -128,7 +169,7 @@ class Game extends GameShared {
             str: `${player.person.name} pulled a Tier ${RULES.TIER_STRINGS[chosenSpell.tier]} spell from the Grimoire.`,
             type: "pullFromGrimoire",
             player,
-            spell
+            spell: chosenSpell
         })
 
     }
@@ -181,19 +222,17 @@ class Game extends GameShared {
         player.passives.length = 0
         player.hp = 0
         player.canPullFromGrimoire = false
-        setTimeout(
-            () => {
-                player.targetable = true
-                player.canPullFromGrimoire = true
-                player.hp = RULES.REVITALIZE_HP
-            },
-            RULES.REVITALIZE_TIMEOUT_SECONDS * 1000 //finnicky but whatevs
-        )
+        player.untargetableTimeLeft = RULES.REVITALIZE_TIMEOUT_SECONDS * 1000
+        eventLog.push({
+            str: `${player.person.name} downed for ${RULES.REVITALIZE_TIMEOUT_SECONDS} seconds.`,
+            player: player
+        })
 
     }
 
     /**@param {Spell} spell @param {Player} player */
     spellUpgradedByPlayer(spell, player) {
+        if (!spell.isActive) return //kind of dodgy, but it will do
         spell.isActive = false
         spell.isBeingSolvedBy = null
         const timeLeftMinutes = spell.timeLeft / 60 / 1000
@@ -205,6 +244,9 @@ class Game extends GameShared {
         const heal = RULES.HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION(tiersUpgraded)
         player.hp += heal
         if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
+        const ind = player.actives.indexOf(spell)
+        if (ind != -1) { player.actives.splice(ind, 1) }
+        else { console.error("BADNESS upgraded spell isn't active", { player, spell }) }
         player.owned.push(spell)
         player.accolades.push([spell, spell.tier])
         player.person.spam("localpop", `You upgraded the spell by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
@@ -253,6 +295,21 @@ class Game extends GameShared {
                     pla.targetingTimeLeft = 0
                     pla.wielding = null
                     this.spellFizzlesOn(spell, pla)
+
+                }
+            }
+            if (pla.untargetableTimeLeft) {
+                pla.untargetableTimeLeft -= dt
+                if (pla.untargetableTimeLeft < 0) {
+                    pla.untargetableTimeLeft = 0
+                    pla.targetable = true
+                    pla.canPullFromGrimoire = true
+                    pla.hp = RULES.REVITALIZE_HP
+                    eventLog.push({
+                        str: `${pla.person.name} is back in the game with ${pla.hp} HP!`,
+                        type: "revitalize",
+                        player: pla
+                    })
 
                 }
             }
@@ -319,44 +376,32 @@ class Game extends GameShared {
     }
 
 
+    sendBC() {
+        // const playersData = Player.ALL.map(x => x.person.name)
+        const playersData = Player.ALL.map(p => {
+            return {
+                n: p.person.name,
+                h: p.hp,
+                i: p.person.nameID,
+                a: p.actives.map(x => [x.id, x.timeLeft]),
+                p: p.passives.map(x => [x.id, x.timeLeft]),
+                t: p.targetable,
+                d: p.untargetableTimeLeft,
+                f: p.targetingTimeLeft,
+            }
+        })
+
+        chat.spam("bc", playersData)
+    }
+
+
 } //this is the last closing brace for class Game
 
 
-
-
-
-
-
-//#region univ
-var univ = {
-    isOnline: false, //server is offline!
-    PORT: 80,
-    framerateUnlocked: false,
-    dtUpperLimit: 1000 / 15,//1000 / 30,
-    denybuttons: false,
-    showFramerate: false,
-    imageSmoothingEnabled: true,
-    imageSmoothingQuality: "high", // options: "low", "medium", "high"
-    canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
-    //BROKEN
-    fontFile: null, // "resources/victoriabold.png" //set to null otherwise
-    //BROKEN
-    filesList: "", //space-separated
-    on_each_start: null,
-    on_first_run: null,
-    on_first_run_blocking: null,
-    on_first_run_async: null,
-    //async function. overrides on_first_run_blocking
-    on_next_game_once: null,
-    on_beforeunload: null,
-    allowQuietReload: true,
-    acquireNameStr: "Your English name (at least 4 letters):", //for chat
-    acquireNameMoreStr: "(English name + homeroom)" //for Supabase
-}
-//#endregion
 
 
 //#region dev options
 /// dev options dev.dev.dev.
 const dev = {
 }/// end of dev
+

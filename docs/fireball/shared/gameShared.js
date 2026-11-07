@@ -17,18 +17,22 @@ class Player {
     /**@static @type {Player[]} */
     static ALL = []
     targetable = true
+    untargetableTimeLeft = 0
     targetingTimeLeft = 0 //determines state!
     /**@type {Spell} */
     wielding = null
+    /**@type {Spell[]} */
     actives = []
+    /**@type {Spell[]} */
     passives = []
     //contains objects
     owned = []
     seen = []
-    /**@type {[][Spell,number]} */
+    /**@type {[Spell,number][]} */
     accolades = []
     hp = RULES.START_HP
     canPullFromGrimoire = true
+
 }
 
 class Spell {
