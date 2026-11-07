@@ -2125,7 +2125,7 @@ class CalculatorButtons extends Malleable {
 	 * @param {Rect} bg 
 	 * @param {function(number): Promise<{correct:boolean,reason:?string}>} verifyAnswer
 	*/
-	constructor(backgroundRect, verifyAnswer = null, { scaleFactor = .95, backgroundButton = null }) {
+	constructor(backgroundRect, verifyAnswer = null, { scaleFactor = .95, backgroundButton = null } = {}) {
 		super()
 		const bg = this.bg = backgroundButton ?? (Button.fromRectShallow(backgroundRect || game.rect))
 		this.push(bg)

@@ -69,6 +69,32 @@ class Person extends Participant {
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() { }
+    initServerUI() {
+        const logWindow = this.logWindow =
+            Button.fromRectShallow(this.rect.copy.stretch(.8, .8))
+        let startIndex = 0
+        logWindow.dynamicText = () =>
+            `(${startIndex}/${eventLog.length})\n` +
+            eventLog.map(x => x.str).slice(startIndex).join("\n")
+        logWindow.on_wheel = (delta) => {
+            startIndex += (delta > 0 ? 1 : -1)
+            if (startIndex < 0) startIndex = 0
+        }
+        logWindow.color = "white"
+        logWindow.outline = 3
+        Button.make_draggable(logWindow)
+        this.add_drawable(logWindow)
+        logWindow.font_font = "myMonospace"
+        logWindow.fontSize = 28
+        logWindow.textSettings.textAlign = "left"
+        logWindow.textSettings.textBaseline = "top"
+
+        eventLog.push({
+            str: "Game has been initialized.",
+            type: "init",
+        })
+
+    }
     async initialize_async() {
 
         await chat.asapPromise()
@@ -99,6 +125,7 @@ class Game extends GameShared {
             }
         })
 
+        this.initServerUI()
 
         this.allowPullingFromGrimoire = true
         this.tickSpellSecondsInterval = setInterval(
@@ -109,6 +136,7 @@ class Game extends GameShared {
             () => this.sendBC(),
             MASTER.BROADCAST_INTERVAL
         )
+
 
 
 
@@ -166,7 +194,7 @@ class Game extends GameShared {
         this.assignSpellToPlayer(chosenSpell, player)
 
         eventLog.push({
-            str: `${player.person.name} pulled a Tier ${RULES.TIER_STRINGS[chosenSpell.tier]} spell from the Grimoire.`,
+            str: `${player.person.name} pulled ${RULES.SPELL_NAMES[chosenSpell.id]} ${RULES.TIER_STRINGS[chosenSpell.tier]} spell from the Grimoire.`,
             type: "pullFromGrimoire",
             player,
             spell: chosenSpell
@@ -193,7 +221,7 @@ class Game extends GameShared {
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
         if (player.hp <= 0) return this.playerDowned(player)
-        const str = `${player.person.name} took ${dmg} from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
+        const str = `${player.person.name} took ${dmg} damage from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
             + (spell.ownerHistory.at(-1) ?
                 ` of ${spell.ownerHistory.at(-1).person.name}`
                 : ` from the Grimoire`)
@@ -201,18 +229,14 @@ class Game extends GameShared {
         chat.spam("globalpop", str)
 
         eventLog.push({
-            str: `${player.person.name} took ${dmg} from the tier ${RULES.TIER_STRINGS[spell.tier]} spell`
-                + (spell.ownerHistory.at(-1) ?
-                    ` of ${spell.ownerHistory.at(-1).person.name}`
-                    : ` from the Grimoire`)
-                + `.`,
+            str: str,
             attacker: spell.ownerHistory.at(-1),
             type: "spellFizzlesOn",
             victim: player,
             spell: spell,
             dmg: dmg,
         })
-        setTimeout(() => this.advanceQueue(player), 1000)
+        setTimeout(() => this.advanceQueue(player), 500)
     }
 
     /**@param {Player} player */
@@ -232,7 +256,7 @@ class Game extends GameShared {
 
     /**@param {Spell} spell @param {Player} player */
     spellUpgradedByPlayer(spell, player) {
-        if (!spell.isActive) return //kind of dodgy, but it will do
+        if (spell.isBeingSolvedBy != player) return console.error("BADNESS spell upgraded by player it is not being solved by", { player, spell }) //weird stuff?
         spell.isActive = false
         spell.isBeingSolvedBy = null
         const timeLeftMinutes = spell.timeLeft / 60 / 1000
@@ -249,8 +273,8 @@ class Game extends GameShared {
         else { console.error("BADNESS upgraded spell isn't active", { player, spell }) }
         player.owned.push(spell)
         player.accolades.push([spell, spell.tier])
-        player.person.spam("localpop", `You upgraded the spell by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
-        const str = `${player.person.name} upgraded a spell to Tier ${RULES.TIER_STRINGS[spell.tier]}!`
+        player.person.spam("localpop", `You upgraded the spell ${RULES.SPELL_NAMES[spell.id]} by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
+        const str = `${player.person.name} upgraded ${RULES.SPELL_NAMES[spell.id]} to Tier ${RULES.TIER_STRINGS[spell.tier]}, and healed for ${heal}HP.`
         chat.targetSpam(
             Player.ALL.filter(x => x != player),
             "globalpop", str
@@ -283,7 +307,7 @@ class Game extends GameShared {
         for (const pla of Player.ALL) {
             if (pla.targetingTimeLeft) {
                 pla.targetingTimeLeft -= dt
-                if (pla.targetingTimeLeft < 0) {
+                if (pla.targetingTimeLeft <= 0) {
                     //let it fizzle lol!
                     eventLog.push({
                         type: "failedTargeting",
@@ -300,7 +324,7 @@ class Game extends GameShared {
             }
             if (pla.untargetableTimeLeft) {
                 pla.untargetableTimeLeft -= dt
-                if (pla.untargetableTimeLeft < 0) {
+                if (pla.untargetableTimeLeft <= 0) {
                     pla.untargetableTimeLeft = 0
                     pla.targetable = true
                     pla.canPullFromGrimoire = true
@@ -317,7 +341,7 @@ class Game extends GameShared {
     }
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */
     attempt(spell, player, guess) {
-        if (!player) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
+        if (!player || (spell.isBeingSolvedBy != player)) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
         if (RULES.ACCURACY_FUNCTION(guess, spell.solution)) {
             this.spellUpgradedByPlayer(spell, player)
         } else {
@@ -383,8 +407,8 @@ class Game extends GameShared {
                 n: p.person.name,
                 h: p.hp,
                 i: p.person.nameID,
-                a: p.actives.map(x => [x.id, x.timeLeft]),
-                p: p.passives.map(x => [x.id, x.timeLeft]),
+                a: p.actives.map(x => [x.id, x.tier, x.timeLeft]),
+                p: p.passives.map(x => [x.id, x.tier, x.timeLeft]),
                 t: p.targetable,
                 d: p.untargetableTimeLeft,
                 f: p.targetingTimeLeft,
@@ -403,5 +427,8 @@ class Game extends GameShared {
 //#region dev options
 /// dev options dev.dev.dev.
 const dev = {
+    cheat: () => {
+        console.table(Spell.GRIMOIRE.map(x => [x.id, RULES.SPELL_NAMES[x.id], x.solution]))
+    },
 }/// end of dev
 

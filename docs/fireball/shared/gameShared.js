@@ -33,6 +33,10 @@ class Player {
     hp = RULES.START_HP
     canPullFromGrimoire = true
 
+
+    static byName(findStr) {
+        return Player.ALL.find(x => x.person.name.toLowerCase().startsWith(findStr.toLowerCase()))
+    }
 }
 
 class Spell {
@@ -57,9 +61,9 @@ class Spell {
             spell.id = Spell.GRIMOIRE.length // start with 0
             Spell.GRIMOIRE.push(spell)
             spell.solution = solution
-            //client won't receive? shouldn't? whatever. anticheat will take of it!
+            //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
-            spell.isInGrimoire = true //redundant for now, keep it for safety!
+            // spell.isInGrimoire = true //initialzied this way anyways
         })
 
     }
