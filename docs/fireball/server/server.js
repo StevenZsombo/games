@@ -102,6 +102,7 @@ class Game extends GameShared {
         logWindow.fontSize = 28
         logWindow.textSettings.textAlign = "left"
         logWindow.textSettings.textBaseline = "top"
+        logWindow.leftat(this.rect.left); logWindow.centeratY(this.rect.centerY);
 
 
         const serverButton = this.serverButton = new Button({
@@ -129,15 +130,47 @@ class Game extends GameShared {
         this.add_drawable(serverButton)
 
 
+        const table = this.table = new Button({
+            color: "white",
+            width: this.WIDTH * .6,
+            height: this.HEIGHT * .6,
+            textSettings: { textAlign: "left", textBaseline: "top" },
+            isBlocking: true,
+            font_font: "myMonospace"
+        })
+        table.bottomat(this.rect.bottom); table.rightat(this.rect.right)
+        Button.make_draggable(table)
+        table.dynamicText = () => MM.tableStr(
+            Player.ALL.map(p => [
+                p.person.name, p.person.nameID,
+                p.hp, p.canPullFromGrimoire,
+                p.actives.length,
+                p.passives.length,
+                p.seen.length,
+                p.totalDamageDealt,
+                p.totalDamageTaken,
+                p.totalHeal,
+                p.totalUpgrades,
+                p.totalKnockedDown,
+
+            ]),
+            "name nameID hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
+        )
+        this.add_drawable(table)
+
+
+
         eventLog.push({
             str: "Game has been initialized.",
             type: "init",
+            time: Date.now(),
         })
 
     }
     async initialize_async() {
 
         await chat.asapPromise()
+        chat.spam("eval", "chat.silentReload()")
         chat.eggs("enter", (_, person) => {
             if (!Player.ALL.find(x => x.person === person)) {
                 Player.ALL.push(new Player(person))
@@ -243,7 +276,8 @@ class Game extends GameShared {
             str: `${player.person.name} pulled ${RULES.SPELL_NAMES[chosenSpell.id]} ${RULES.TIER_STRINGS[chosenSpell.tier]} from the Grimoire.`,
             type: "pullFromGrimoire",
             player,
-            spell: chosenSpell
+            spell: chosenSpell,
+            time: Date.now(),
         })
 
     }
@@ -267,6 +301,8 @@ class Game extends GameShared {
         player.accolades.push([spell, -1]) //tier -1 means failure!
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
+        player.totalDamageTaken += dmg
+        if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
         if (player.hp <= 0) return this.playerDowned(player)
         const str = `${player.person.name} took ${dmg} damage from ${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} spell`
             + (spell.ownerHistory.at(-1) ?
@@ -282,6 +318,7 @@ class Game extends GameShared {
             victim: player,
             spell: spell,
             dmg: dmg,
+            time: Date.now(),
         })
         setTimeout(() => this.advanceQueue(player), 500)
     }
@@ -294,9 +331,11 @@ class Game extends GameShared {
         player.hp = 0
         player.canPullFromGrimoire = false
         player.untargetableTimeLeft = RULES.REVITALIZE_TIMEOUT_SECONDS * 1000
+        player.totalKnockedDown += 1
         eventLog.push({
             str: `${player.person.name} downed for ${RULES.REVITALIZE_TIMEOUT_SECONDS} seconds.`,
-            player: player
+            player: player,
+            time: Date.now(),
         })
 
     }
@@ -314,6 +353,8 @@ class Game extends GameShared {
         if (spell.tier > RULES.MAX_TIER) spell.tier = RULES.MAX_TIER
         const heal = RULES.HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION(tiersUpgraded)
         player.hp += heal
+        player.totalHeal += heal
+        player.totalUpgrades += tiersUpgraded
         if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
         const ind = player.actives.indexOf(spell)
         if (ind != -1) { player.actives.splice(ind, 1) }
@@ -331,9 +372,17 @@ class Game extends GameShared {
             str,
             player,
             type: "spellUpgradedByPlayer",
-            heal
+            heal,
+            time: Date.now(),
         })
 
+        //if no valid target is left:
+        if (Player.ALL.every(x => x.seen.includes(spell))) {
+            player.person.wee("serverpop", `Everyone has already seen that spell, so you cannot attack anyone with it.`)
+                .then(_ => gpop(`${player.person.name} ran out of targets.`))
+                .catch(_ => bpop(`BADNESS: ${player.person.name} could not be notified about running out of targets.`))
+            return
+        }
         player.person.wee("targeting")
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
@@ -361,7 +410,8 @@ class Game extends GameShared {
                         type: "failedTargeting",
                         player: pla,
                         spell: pla.wielding,
-                        str: `${pla.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`
+                        str: `${pla.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`,
+                        time: Date.now(),
                     })
                     const spell = pla.wielding
                     pla.targetingTimeLeft = 0
@@ -380,7 +430,8 @@ class Game extends GameShared {
                     eventLog.push({
                         str: `${pla.person.name} is back in the game with ${pla.hp} HP!`,
                         type: "revitalize",
-                        player: pla
+                        player: pla,
+                        time: Date.now(),
                     })
 
                 }
@@ -401,7 +452,7 @@ class Game extends GameShared {
     /**@param {Player} attacker  @param {Player} defender*/
     target(attacker, defender) {
         const spell = attacker.wielding
-        if (!spell) return (bpop(`BADNESS: target command from ${attacker.person.name} but not wielding any spell.`), msg = "ERROR: INVALID REQUEST")
+        if (!spell) return (bpop(`BADNESS: target command from ${attacker.person.name} but not wielding any spell.`), "ERROR: INVALID REQUEST")
         if (attacker == defender) return `Can't target yourself, dummy.`
         if (!defender) return `ERROR: Selected player somehow doesn't exist??`
         if (!defender.targetable) return `Selected player cannot be attacked right now.`
@@ -427,7 +478,8 @@ class Game extends GameShared {
             str: `${attacker.person.name} attacks ${defender.person.name} with a Tier ${RULES.TIER_STRINGS[spell.tier]} spell.`,
             attacker,
             defender,
-            spell
+            spell,
+            time: Date.now(),
         })
 
         setTimeout(() => this.advanceQueue(attacker), 100) //why?
@@ -460,7 +512,8 @@ class Game extends GameShared {
                 d: p.untargetableTimeLeft,
                 f: p.targetingTimeLeft,
                 s: p.seen.filter(x => !p.actives.includes(x) && !p.passives.includes(x)).map(x => x.id), //targeting aid really, not accolades
-                c: p.canPullFromGrimoire
+                c: p.canPullFromGrimoire,
+                w: p.wielding?.id,
             }
         })
 

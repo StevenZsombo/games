@@ -34,7 +34,11 @@ class Player {
     accolades = []
     hp = RULES.START_HP
     canPullFromGrimoire = true
-
+    totalKnockedDown = 0
+    totalDamageDealt = 0
+    totalDamageTaken = 0
+    totalHeal = 0
+    totalUpgrades = 0
 
     static byName(findStr) {
         return Player.ALL.find(x => x.person.name.toLowerCase().startsWith(findStr.toLowerCase()))
