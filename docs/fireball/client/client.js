@@ -27,15 +27,15 @@ var univ = {
 const pop =
 {
     "local": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { color: "lightblue" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .725] }),
+        { moreButtonSettings: { isBlocking: false, color: "lightblue" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .725] }),
     "global": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { color: "pink" }, travelTime: 300, floatTime: 3000, sizeFrac: [.6, .125], posFrac: [.5, .825] }),
+        { moreButtonSettings: { isBlocking: false, color: "pink" }, travelTime: 300, floatTime: 3000, sizeFrac: [.6, .125], posFrac: [.5, .825] }),
     "server": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { color: "yellow" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .925] }),
+        { moreButtonSettings: { isBlocking: false, color: "yellow" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .925] }),
     "info": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { color: "lightgray" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], }),
+        { moreButtonSettings: { isBlocking: false, color: "lightgray" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], }),
     "error": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { color: "red" }, travelTime: 300, floatTime: 3000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
+        { moreButtonSettings: { isBlocking: false, color: "red" }, travelTime: 300, floatTime: 3000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
 }
 
 
@@ -68,7 +68,7 @@ class Game extends GameShared {
         } else console.log("name retrieved:", chat.name)
 
         chat.wee("bounce") //empty call, automatic name adjust!
-
+        chat.eggs("eval", eval)
 
         chat.eggs("localpop", pop.local)
         chat.eggs("globalpop", pop.global)
@@ -149,7 +149,20 @@ class Game extends GameShared {
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
         calcula.ans.color = "white"
+        calcula.ans.on_release = () => {
+            calcula.calculatorButtons.forEach(x => {
+                if (x != calcula.ans) x.toggleActive()
+            })
+        }
+        const ansOver = Button.fromRectShallow(calcula.ans.copyRect,
+            {
+                interactable: false, transparent: true,
+                fontSize: 28
+            }
+        )
+        ansOver.dynamicText = () => calcula.ans.txt ? "" : "Click to hide/show buttons"
         this.questionModeMall.push(calcula)
+        this.questionModeMall.push(ansOver)
         calcula.verifyAnswerAsync = async (guess) => {
             const resp = await chat.wee("attempt",
                 [this.spellCurrentlyBeingSolved, guess])

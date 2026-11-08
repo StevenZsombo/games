@@ -58,10 +58,24 @@ class Person extends Participant {
     player = null
 
     kick() {
-        const i = Player.ALL.indexOf(this.player)
-        if (i != -1) Player.ALL.splice(i, 1)
-        this.player.targetable = false
-        this.player = null
+        this.wee("eval",
+            "setTimeout(()=>{localStorage.clear();chat.silentReload();},100)"
+        )
+            .then(() => gpop("Kicked " + this.name))
+            .catch(() => bpop("Failed to kick " + this.name))
+            .finally(() => {
+                const i = Player.ALL.indexOf(this.player)
+                if (i != -1) Player.ALL.splice(i, 1)
+                this.player.targetable = false
+                this.player = null
+                listener.persons.delete(this.nameID)
+            })
+    }
+
+    rename(newName) {
+        this.wee("eval", `chat.forceNameSilent("${newName}")`)
+            .then(() => gpop("Renamed to " + this.name))
+            .catch(() => bpop("Failed to rename " + this.name))
     }
 
 }
@@ -88,6 +102,32 @@ class Game extends GameShared {
         logWindow.fontSize = 28
         logWindow.textSettings.textAlign = "left"
         logWindow.textSettings.textBaseline = "top"
+
+
+        const serverButton = this.serverButton = new Button({
+            width: 200, height: 100, txt: "SERVER",
+            y: 0, x: this.WIDTH - 200
+        })
+        /**@param {Player} p */
+        const playerDDM = p => {
+            GameEffects.dropDownBetter(
+                [
+                    ["Rename", () => GameEffects.inputBoxFromRectPromise().then(
+                        x => { if (x && x.length > 2) p.person.rename(x) }
+                    )],
+                    ["Kick", () => p.person.kick()]
+                ]
+            )
+        }
+        serverButton.on_release = () => {
+            if (!Player.ALL.length) return
+            const d = GameEffects.dropDownBetter(
+                Player.ALL.map(x => [x.person.name, () => playerDDM(x)])
+            )
+
+        }
+        this.add_drawable(serverButton)
+
 
         eventLog.push({
             str: "Game has been initialized.",
