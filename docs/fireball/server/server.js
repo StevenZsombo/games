@@ -381,6 +381,12 @@ class Game extends GameShared {
             player.person.wee("serverpop", `Everyone has already seen that spell, so you cannot attack anyone with it.`)
                 .then(_ => gpop(`${player.person.name} ran out of targets.`))
                 .catch(_ => bpop(`BADNESS: ${player.person.name} could not be notified about running out of targets.`))
+            eventLog.push({
+                type: "outOfTargets",
+                player: player,
+                spell: spell,
+                time: Date.now(),
+            })
             return
         }
         player.person.wee("targeting")
