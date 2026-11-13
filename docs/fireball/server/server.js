@@ -97,7 +97,7 @@ class Game extends GameShared {
         logWindow.color = "white"
         logWindow.outline = 3
         Button.make_draggable(logWindow)
-        this.add_drawable(logWindow)
+        this.add_drawable(logWindow, 3)
         logWindow.font_font = "myMonospace"
         logWindow.fontSize = 28
         logWindow.textSettings.textAlign = "left"
@@ -127,7 +127,7 @@ class Game extends GameShared {
             )
 
         }
-        this.add_drawable(serverButton)
+        this.add_drawable(serverButton, 6)
 
 
         const table = this.table = new Button({
@@ -156,7 +156,37 @@ class Game extends GameShared {
             ]),
             "name nameID hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
-        this.add_drawable(table)
+        this.add_drawable(table, 5)
+
+        const grimTable = table.copy
+        grimTable.dynamicText = () => MM.tableStr(
+            Spell.GRIMOIRE.map(x => [
+                x.id,
+                RULES.SPELL_NAMES[x.id],
+                x.isActive,
+                x.isBeingSolvedBy?.person?.name ?? "",
+                x.isInGrimoire,
+                RULES.TIER_STRINGS[x.tier],
+                x.isActive ? MM.toMMSS(x.timeLeft) : ""
+            ]),
+            "id _ isActive solvedBy isInGrim Tier MMSS".split(" ")
+        )
+        grimTable.move(-200, -200)
+        this.add_drawable(grimTable, 5)
+
+        const grimButton = serverButton.copy
+        grimButton.move(-grimButton.width, 0)
+        grimButton.txt = "Grimoire"
+        grimButton.on_release = () => GameEffects.dropDownBetter(
+            // Spell.GRIMOIRE.map(x=>)
+            [
+                ["Put all inactive back", () =>
+                    Spell.GRIMOIRE.forEach(x => {
+                        if (!x.isActive) x.isInGrimoire = true
+                    })]
+            ], { moreButtonSettings: { width: 300 } }
+        )
+        this.add_drawable(grimButton, 6)
 
 
 
@@ -263,7 +293,8 @@ class Game extends GameShared {
     /**@param {Player} player  */
     pullFromGrimoire(player) {
         const availableSpells = Spell.GRIMOIRE.filter(x => x.isInGrimoire)
-            .filter(x => !x.ownerHistory.includes(player))
+            // .filter(x => !x.ownerHistory.includes(player))
+            .filter(x => !player.seen.includes(x)) //better band by player!
         if (!availableSpells.length) {
             bigbadpop(`${player.person.name} cannot pull any spells from the Grimoire.`)
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
@@ -518,6 +549,7 @@ class Game extends GameShared {
                 d: p.untargetableTimeLeft,
                 f: p.targetingTimeLeft,
                 s: p.seen.filter(x => !p.actives.includes(x) && !p.passives.includes(x)).map(x => x.id), //targeting aid really, not accolades
+                v: p.seen.map(x => x.id),
                 c: p.canPullFromGrimoire,
                 w: p.wielding?.id,
             }

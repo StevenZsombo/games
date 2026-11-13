@@ -133,9 +133,10 @@ class Game extends GameShared {
         this.add_drawable(this.defaultModeMall)
 
         this.underFullView = Button.fromRectShallow(this.rect.copy, { isBlocking: true })
-        this.underFullView.color = "antiquewhite"
+        this.underFullView.color = GRAPHICS.FULLVIEWER_COLOR
         this.underFullView.on_release = () => this.questionModeMall.deactivate()
-        this.questionModeMall = new Malleable(this.underFullView, fullViewer, ...activeGhostButs)
+        const questionModeMall = this.questionModeMall
+            = new Malleable(this.underFullView, fullViewer, ...activeGhostButs)
         this.questionModeMall.isBlocking = true
         this.questionModeMall.deactivate()
         this.add_drawable(this.questionModeMall, 6)
@@ -171,6 +172,27 @@ class Game extends GameShared {
             return resp //built-in correct and all that!
         }
 
+        const targetingDrawable = {
+            draw: (ctx) => {
+                if (this.questionModeMall.visible) return //only when invis
+                if (!this.ownData) return
+                if (!this.ownData.f) return
+                const w = this.ownData.w
+                if (w == null) return
+                this.cards.forEach(c => {
+                    if (c.info.nameID == chat.nameID) return //myself
+                    if (c.info.data.v.includes(w)) return //has seen the spell
+                    MM.drawEllipse(ctx,
+                        c.cx,
+                        c.cy,
+                        c.width * this.gentleAmp * .6,
+                        c.height * this.gentleAmp * .6,
+                        { color: null, outline: 5, outline_color: "red" }
+                    )
+                })
+            }
+        }
+        this.add_drawable(targetingDrawable, 4)
 
 
     }
@@ -181,6 +203,8 @@ class Game extends GameShared {
 
     //#region update_more
     update_more(dt) {
+        this.gentleSin = Math.sin(this.dtTotal / 500)
+        this.gentleAmp = 1 + 0.12 * this.gentleSin
     }
     //#endregion
 
@@ -236,7 +260,10 @@ class Game extends GameShared {
             x.textSettings.textBaseline = "top"
             x.fontSize = GRAPHICS.CARD_FONTSIZE
             x.info = {
-                playerID: i, name: data[i].n, nameID: data[i].i
+                playerID: i,
+                name: data[i].n,
+                nameID: data[i].i,
+                data: data[i]
             }
             let clickCount = 0
             x.on_click = () => {
@@ -261,7 +288,9 @@ class Game extends GameShared {
             const isOwnData = k.n == chat.name
             if (isOwnData)
                 ownData = this.ownData = k
-            x.color = isOwnData ? "lightblue" : "white"
+            x.color =
+                GRAPHICS.HIGHLIGHT_SELF_CARD && isOwnData
+                    ? "lightblue" : "white"
             x.txt =
                 [
                     `${k.n} - ${k.h}HP`,
@@ -279,6 +308,7 @@ class Game extends GameShared {
         //lol i suck
         if (!ownData.a.map(u => u[0]).some(x => x == this.spellCurrentlyBeingSolved))
             this.questionModeMall.deactivate() //the spell being solved is no longer active (or yours)
+        if (ownData.w != null) this.questionModeMall.deactivate() //force targeting mode?
         this.activeButs.forEach((x, i) => {
             if (i < ownData.a.length) {
                 const u = ownData.a[i]
@@ -290,12 +320,14 @@ class Game extends GameShared {
                 x.isBlocking = true
                 x.on_release =
                     () => {
+                        if (ownData.w != null) return
                         this.setFullViewerOn(Spell.GRIMOIRE[u[0]].img)
                         this.spellCurrentlyBeingSolved = u[0]
                     }
             } else {
                 x.color = "lightgray"
                 x.txt = ""
+                this.activeGhostButs[i].txt = "" //consistency!
                 x.isBlocking = false
                 x.on_release = null
             }
@@ -303,7 +335,7 @@ class Game extends GameShared {
         })
     }
     spellCurrentlyBeingSolved = null
-    imgBANK = new Map()
+    imgBANK = new Map() // could be a weak map? probably not? doesn't matter.
     imgCache(img) {
         if (!this.imgBANK.has(img)) {
             console.log("loading img", RULES.PICTURES_FOLDER_PATH + img + ".png")
