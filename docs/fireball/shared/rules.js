@@ -5,6 +5,7 @@ var RULES = {
     REVITALIZE_TIMEOUT_SECONDS: 10, //short enough not to be punitive
     TARGETING_WINDOW_IMMUNITY_SECONDS: 30,
     FIZZLE_AUTO_RETURN_WITHOUT_SERVER: false, //let teacher handle it!
+    CLICK_COUNT_TO_ATTACK: 3,
     MAX_HP: 200,
     START_TIER: 0, //beware of internal discrepancy: tiers I-X are actually 0-9
     MAX_TIER: 9, //for 10 total. no progress afterwards
@@ -36,7 +37,7 @@ var RULES = {
     SPELL_NAMES:
         `BOLT SPARK NOVA STONE FROST SCORCH GUST WARP TEAR ZAP PULSE VEIL THWART CRUSH SHEAR CHILL`.split(" "),
     //no shield decay
-    CARD_ROWS: 2,
+    CARD_ROWS: 3,
     CARD_COLUMNS: 3,
 
 

@@ -95,13 +95,25 @@ class Game extends GameShared {
         // fullViewer.isBlocking = true //underFullView takes care of this!
 
 
-        const botBG = Button.fromRectShallow(
+        const botBG = this.botBG = Button.fromRectShallow(
             this.rect.copy
                 .leftat(GRAPHICS.LEFT)
                 .rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
                 .topat(this.HEIGHT - GRAPHICS.GRIMOIREHEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
                 .bottomstretchat(this.HEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
-        ) //need not be a button but whatevs
+        )
+        botBG.update = () => {
+            const targeting = this.ownData?.w != null
+            if (targeting) {
+                botBG.txt = `Click on a player ${RULES.CLICK_COUNT_TO_ATTACK} times to attack them!`
+                botBG.fontSize = 80 * this.gentleAmp
+            } else {
+                botBG.txt = ""
+            }
+
+        }
+        botBG.font_color = "red"
+        botBG.transparent = true
         const botButs = this.botButs =
             botBG.splitCol(...Array(RULES.MAX_ACTIVES).fill(1), 1)
                 .map(x => Button.fromRectShallow(x))
@@ -129,7 +141,7 @@ class Game extends GameShared {
             chat.spam("pull")
         }
         grim.txt = `PULL A NEW \nSPELL\nFROM THE\nGRIMOIRE`
-        this.defaultModeMall = new Malleable(grim, ...activeButs)
+        this.defaultModeMall = new Malleable(grim, ...activeButs, botBG)
         this.add_drawable(this.defaultModeMall)
 
         this.underFullView = Button.fromRectShallow(this.rect.copy, { isBlocking: true })
@@ -270,7 +282,7 @@ class Game extends GameShared {
                 if (!this.ownData?.f) return //f - targeting mode in BC
                 clickCount++
                 setTimeout(() => clickCount = 0, 5000)
-                if (clickCount > 3) {
+                if (clickCount >= RULES.CLICK_COUNT_TO_ATTACK) {
                     chat.wee("attack", x.info.nameID)
                         .then(pop.server)
                         .catch(() => pop.error("Failed to reach the server.\nASK TEACHER FOR HELP"))
@@ -296,8 +308,8 @@ class Game extends GameShared {
                     `${k.n} - ${k.h}HP`,
                     `Actives: ${k.a.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]} (${MM.toMMSS(u[2])})`)}`,
                     `Passives: ${k.p.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]}  (${MM.toMMSS(u[2])})`)}`,
-                    `${k.d ? `KNOCKED OUT for ${MM.toMMSS(k.d)}` : !k.t ? "UNTARGETABLE" : ""}`,
-                    `${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`,
+                    (`${k.d ? `KNOCKED OUT for ${MM.toMMSS(k.d)}` : !k.t ? "UNTARGETABLE" : ""}`) +
+                    (`${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`),
                     k.s.length ? `Seen:\n` + k.s.map(x => RULES.SPELL_NAMES[x]).join(",") : ""
                 ].join("\n")
         })
