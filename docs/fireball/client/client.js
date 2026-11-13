@@ -207,6 +207,28 @@ class Game extends GameShared {
         this.add_drawable(targetingDrawable, 4)
 
 
+        if (RULES.SHOW_LAST_BC_TIME) {
+            const lastBCtimeIndicator = new Button({ width: 300, height: 300, y: 0 })
+            lastBCtimeIndicator.rightat(this.WIDTH - 10)
+            lastBCtimeIndicator.transparent = true
+            lastBCtimeIndicator.textSettings.textAlign = "right"
+            lastBCtimeIndicator.textSettings.textBaseline = "top"
+            lastBCtimeIndicator.fontSize = 16
+            lastBCtimeIndicator.update = () => {
+                const diff = Date.now() - this.lastBCtime
+                lastBCtimeIndicator.txt =
+                    diff + " ms"
+                    + `\n${chat.name}\n${chat.nameID}`
+                    + `\n${chat.isConnected ? "" : "DISCONNECTED!!!"}`
+                lastBCtimeIndicator.font_color =
+                    diff < 1500 ? "black" :
+                        diff < 2000 ? "yellow" :
+                            diff < 3000 ? "orange" :
+                                "red"
+            }
+            this.add_drawable(lastBCtimeIndicator, 9)
+            lastBCtimeIndicator.on_release = () => lastBCtimeIndicator.visible ^= 1
+        }
     }
 
 
@@ -239,7 +261,9 @@ class Game extends GameShared {
     }
 
     shared = null
+    lastBCtime = null
     receiveBC(data) {
+        this.lastBCtime = Date.now()
         const shared = this.shared
         if (!shared ||
             shared.length != data.length

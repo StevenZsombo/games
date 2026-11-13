@@ -180,11 +180,26 @@ class Game extends GameShared {
         grimButton.on_release = () => GameEffects.dropDownBetter(
             // Spell.GRIMOIRE.map(x=>)
             [
+                [
+                    `allowPullingFromGrimoire = ${this.allowPullingFromGrimoire}`,
+                    () => this.allowPullingFromGrimoire = !this.allowPullingFromGrimoire
+                ],
+                ["Reset all inactive tiers", () => Spell.GRIMOIRE.forEach(x => {
+                    if (!x.isActive) x.tier = 0
+                })],
                 ["Put all inactive back", () =>
                     Spell.GRIMOIRE.forEach(x => {
                         if (!x.isActive) x.isInGrimoire = true
-                    })]
-            ], { moreButtonSettings: { width: 300 } }
+                    })],
+                ["EXPORT all", () => MM.downloadFile(
+                    MM.safeStringify({
+                        BC: this.getBCdata(),
+                        grim: Spell.GRIMOIRE,
+                        players: Player.ALL,
+                        chat: chat,
+                    }), "fireball" + MM.dateAndTimeShort() + ".json"
+                )]
+            ], { moreButtonSettings: { width: 500 } }
         )
         this.add_drawable(grimButton, 6)
 
@@ -236,7 +251,7 @@ class Game extends GameShared {
 
         this.initServerUI()
 
-        this.allowPullingFromGrimoire = true
+        this.allowPullingFromGrimoire = false //manual activation by grimButton
         this.tickSpellSecondsInterval = setInterval(
             () => this.tickSpellSeconds(1000),
             1000
@@ -536,9 +551,8 @@ class Game extends GameShared {
     }
 
 
-    sendBC() {
-        // const playersData = Player.ALL.map(x => x.person.name)
-        const playersData = Player.ALL.map(p => {
+    getBCdata() {
+        return Player.ALL.map(p => {
             return {
                 n: p.person.name,
                 h: p.hp,
@@ -550,10 +564,14 @@ class Game extends GameShared {
                 f: p.targetingTimeLeft,
                 s: p.seen.filter(x => !p.actives.includes(x) && !p.passives.includes(x)).map(x => x.id), //targeting aid really, not accolades
                 v: p.seen.map(x => x.id),
-                c: p.canPullFromGrimoire,
+                c: p.canPullFromGrimoire && this.allowPullingFromGrimoire,
                 w: p.wielding?.id,
             }
         })
+    }
+    sendBC() {
+        // const playersData = Player.ALL.map(x => x.person.name)
+        const playersData = this.getBCdata()
 
         chat.spam("bc", playersData)
     }

@@ -40,6 +40,7 @@ var RULES = {
     CARD_ROWS: 3,
     CARD_COLUMNS: 3,
 
+    SHOW_LAST_BC_TIME: true,
 
 
 }
