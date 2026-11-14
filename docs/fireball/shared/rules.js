@@ -12,8 +12,8 @@ var RULES = {
     TIER_STRINGS: "I II III IV V VI VII VIII IX X".split(" "),
     DAMAGE_FROM_TIER: tier => 30 + tier * 5, //for 30 to 75
     TIME_FROM_TIER: tier =>
-        // 60 * 1000 * (10 - tier), //for 10 to 1
-        60 * (50) * (10 - tier),
+        60 * 1000 * (10 - tier), //for 10 to 1
+    // 60 * (50) * (10 - tier), //for testing
     HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION:
         (numberOfTiersUpgraded) => //10,20,30. final tier only 10?
             numberOfTiersUpgraded <= 1 ? 10 :
@@ -47,6 +47,8 @@ var RULES = {
 
 var MASTER = {
     BROADCAST_INTERVAL: 1000,
+    SESSION_ID_CHECK: false,
+    ALLOW_PULLING_ON_START: true,
 }
 
 var GRAPHICS = {

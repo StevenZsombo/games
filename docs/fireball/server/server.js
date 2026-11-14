@@ -5,7 +5,7 @@ var univ = {
     framerateUnlocked: false,
     dtUpperLimit: 1000 / 15,//1000 / 30,
     denybuttons: false,
-    showFramerate: false,
+    showFramerate: true,
     imageSmoothingEnabled: true,
     imageSmoothingQuality: "high", // options: "low", "medium", "high"
     canvasStyleImageRendering: "auto", //options: "auto", "smooth", "crisp-edges", "pixelated"
@@ -132,7 +132,7 @@ class Game extends GameShared {
 
         const table = this.table = new Button({
             color: "white",
-            width: this.WIDTH * .6,
+            width: this.WIDTH * .7,
             height: this.HEIGHT * .6,
             textSettings: { textAlign: "left", textBaseline: "top" },
             isBlocking: true,
@@ -164,12 +164,13 @@ class Game extends GameShared {
                 x.id,
                 RULES.SPELL_NAMES[x.id],
                 x.isActive,
+                x.seenHistory.map(x => x.person.name ?? "?").join(","),
                 x.isBeingSolvedBy?.person?.name ?? "",
                 x.isInGrimoire,
                 RULES.TIER_STRINGS[x.tier],
                 x.isActive ? MM.toMMSS(x.timeLeft) : ""
             ]),
-            "id _ isActive solvedBy isInGrim Tier MMSS".split(" ")
+            "id _ isActive seenBy solvedBy isInGrim Tier MMSS".split(" ")
         )
         grimTable.move(-200, -200)
         this.add_drawable(grimTable, 5)
@@ -191,6 +192,10 @@ class Game extends GameShared {
                     Spell.GRIMOIRE.forEach(x => {
                         if (!x.isActive) x.isInGrimoire = true
                     })],
+                [grimTable.visible ? "Hide spells" : "Show spells", () => grimTable.toggleActive()],
+                [table.visible ? "Hide players" : "Show players", () => table.toggleActive()],
+                [logWindow.visible ? "Hide logs" : "Show logs", () => logWindow.toggleActive()],
+                ["advanceQueue ALL", () => Player.ALL.map(p => this.advanceQueue(p))],
                 ["EXPORT all", () => MM.downloadFile(
                     MM.safeStringify({
                         BC: this.getBCdata(),
@@ -222,6 +227,7 @@ class Game extends GameShared {
             }
             return {
                 RULES,
+                sessionID,
                 AVAILABLE_NAMES:
                     RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name == k))
             }
@@ -251,7 +257,7 @@ class Game extends GameShared {
 
         this.initServerUI()
 
-        this.allowPullingFromGrimoire = false //manual activation by grimButton
+        this.allowPullingFromGrimoire = MASTER.ALLOW_PULLING_ON_START
         this.tickSpellSecondsInterval = setInterval(
             () => this.tickSpellSeconds(1000),
             1000
@@ -340,15 +346,17 @@ class Game extends GameShared {
     }
 
     /**@param {Spell} spell @param {Player} player */
-    spellFizzlesOn(spell, player) {
+    spellFizzlesOn(spell, player, { notAddedToStats = false } = {}) {
         spell.isActive = false
         spell.isBeingSolvedBy = null
         player.actives = player.actives.filter(x => x !== spell)
         player.accolades.push([spell, -1]) //tier -1 means failure!
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
-        player.totalDamageTaken += dmg
-        if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
+        if (!notAddedToStats) {
+            player.totalDamageTaken += dmg
+            if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
+        }
         if (player.hp <= 0) return this.playerDowned(player)
         const str = `${player.person.name} took ${dmg} damage from ${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} spell`
             + (spell.ownerHistory.at(-1) ?
@@ -366,7 +374,7 @@ class Game extends GameShared {
             dmg: dmg,
             time: Date.now(),
         })
-        setTimeout(() => this.advanceQueue(player), 500)
+        // this.advanceQueue(player)
     }
 
     /**@param {Player} player */
@@ -433,6 +441,7 @@ class Game extends GameShared {
                 spell: spell,
                 time: Date.now(),
             })
+            this.advanceQueue(player)
             return
         }
         player.person.wee("targeting")
@@ -450,6 +459,7 @@ class Game extends GameShared {
             if (!spell.isActive) continue
             if (!spell.isBeingSolvedBy) continue
             if (spell.isBeingSolvedBy.targetingTimeLeft > 0) continue
+            if (spell.isBeingSolvedBy.untargetableTimeLeft > 0) continue //failsafe
             spell.timeLeft -= dt
             if (spell.timeLeft < 0) this.spellFizzlesOn(spell, spell.seenHistory.at(-1))
         }
@@ -468,11 +478,10 @@ class Game extends GameShared {
                     const spell = pla.wielding
                     pla.targetingTimeLeft = 0
                     pla.wielding = null
-                    this.spellFizzlesOn(spell, pla)
-
+                    this.spellFizzlesOn(spell, pla, { notAddedToStats: true })
                 }
             }
-            if (pla.untargetableTimeLeft) {
+            else if (pla.untargetableTimeLeft) {
                 pla.untargetableTimeLeft -= dt
                 if (pla.untargetableTimeLeft <= 0) {
                     pla.untargetableTimeLeft = 0
@@ -487,6 +496,9 @@ class Game extends GameShared {
                     })
 
                 }
+            }
+            else {
+                this.advanceQueue(pla) //no-op unless applicable
             }
         }
     }
@@ -533,8 +545,7 @@ class Game extends GameShared {
             spell,
             time: Date.now(),
         })
-
-        setTimeout(() => this.advanceQueue(attacker), 100) //why?
+        // this.advanceQueue(attacker)
         return `Succesfully attacked ${defender.person.name}.\nThey have ${MM.toMMSS(RULES.TIME_FROM_TIER(spell.tier))} to solve, or else they take ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage.` //successful attack!
 
     }

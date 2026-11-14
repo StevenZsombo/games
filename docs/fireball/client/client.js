@@ -27,15 +27,15 @@ var univ = {
 const pop =
 {
     "local": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "lightblue" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .725] }),
+        { moreButtonSettings: { isBlocking: false, color: "lightblue" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .725] }),
     "global": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "pink" }, travelTime: 300, floatTime: 3000, sizeFrac: [.6, .125], posFrac: [.5, .825] }),
+        { moreButtonSettings: { isBlocking: false, color: "pink" }, travelTime: 300, floatTime: 5000, sizeFrac: [.65, .125], posFrac: [.5, .825] }),
     "server": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "yellow" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], posFrac: [.5, .925] }),
+        { moreButtonSettings: { isBlocking: false, color: "yellow" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .925] }),
     "info": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "lightgray" }, travelTime: 300, floatTime: 3000, sizeFrac: [.4, .125], }),
+        { moreButtonSettings: { isBlocking: false, color: "lightgray" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], }),
     "error": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "red" }, travelTime: 300, floatTime: 3000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
+        { moreButtonSettings: { isBlocking: false, color: "red" }, travelTime: 300, floatTime: 5000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
 }
 
 
@@ -52,6 +52,17 @@ class Game extends GameShared {
             retries: 10, interval: 1000, on_retry: (i) => wDiv.addLine(`Attempting to join... (${i})`)
         })
         wDiv.addLine("Rules received.")
+        const sessionID = enter.sessionID
+        const existingSessionID = localStorage.getItem("sessionID")
+        if (
+            MASTER.SESSION_ID_CHECK &&
+            existingSessionID != null &&
+            existingSessionID != sessionID) {
+            localStorage.clear()
+            await new Promise.resolve()
+            chat.silentReload()
+        }
+        localStorage.setItem("sessionID", sessionID)
         console.log("enter.RULES", enter.RULES)
         Object.assign(RULES, enter.RULES)
 
@@ -178,7 +189,7 @@ class Game extends GameShared {
         this.questionModeMall.push(ansOver)
         calcula.verifyAnswerAsync = async (guess) => {
             const resp = await chat.wee("attempt",
-                [this.spellCurrentlyBeingSolved, guess])
+                [this.spellIDCurrentlyBeingSolved, guess])
             console.log(resp)
             if (!resp?.correct) pop.server(`You answer of ${guess} is incorrect.`)
             return resp //built-in correct and all that!
@@ -342,7 +353,7 @@ class Game extends GameShared {
             ownData.c
         // ownData.a.length == 0 && ownData.p.length == 0 && ownData.f == 0 && ownData.d == 0 && ownData.t != 0
         //lol i suck
-        if (!ownData.a.map(u => u[0]).some(x => x == this.spellCurrentlyBeingSolved))
+        if (!ownData.a.map(u => u[0]).some(x => x == this.spellIDCurrentlyBeingSolved))
             this.questionModeMall.deactivate() //the spell being solved is no longer active (or yours)
         if (ownData.w != null) this.questionModeMall.deactivate() //force targeting mode?
         this.activeButs.forEach((x, i) => {
@@ -358,7 +369,7 @@ class Game extends GameShared {
                     () => {
                         if (ownData.w != null) return
                         this.setFullViewerOn(Spell.GRIMOIRE[u[0]].img)
-                        this.spellCurrentlyBeingSolved = u[0]
+                        this.spellIDCurrentlyBeingSolved = u[0]
                     }
             } else {
                 x.color = "lightgray"
@@ -370,7 +381,7 @@ class Game extends GameShared {
 
         })
     }
-    spellCurrentlyBeingSolved = null
+    spellIDCurrentlyBeingSolved = null
     imgBANK = new Map() // could be a weak map? probably not? doesn't matter.
     imgCache(img) {
         if (!this.imgBANK.has(img)) {
