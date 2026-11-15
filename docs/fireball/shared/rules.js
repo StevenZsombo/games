@@ -48,7 +48,7 @@ var RULES = {
 var MASTER = {
     BROADCAST_INTERVAL: 1000,
     SESSION_ID_CHECK: false,
-    ALLOW_PULLING_ON_START: true,
+    ALLOW_PULLING_ON_START: false,
 }
 
 var GRAPHICS = {

@@ -441,7 +441,7 @@ class Game extends GameShared {
                 spell: spell,
                 time: Date.now(),
             })
-            this.advanceQueue(player)
+            // this.advanceQueue(player)
             return
         }
         player.person.wee("targeting")
