@@ -328,7 +328,14 @@ class Game extends GameShared {
             bigbadpop(`${player.person.name} cannot pull any spells from the Grimoire.`)
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
         }
-        const chosenSpell = availableSpells[MM.randomIndex(availableSpells.length)]
+        const lowestBucket = Math.min(...availableSpells.map(x => x.bucket))
+        const availableInLowestBucket = availableSpells.filter(x => x.bucket == lowestBucket)
+        const chosenSpell =
+            availableInLowestBucket.length
+                ?
+                availableInLowestBucket[MM.randomIndex(availableInLowestBucket.length)]
+                : //clumsy fallback for god knows what
+                availableSpells[MM.randomIndex(availableSpells.length)]
         chosenSpell.isInGrimoire = false
         this.assignSpellToPlayer(chosenSpell, player)
 
