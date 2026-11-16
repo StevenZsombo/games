@@ -152,6 +152,10 @@ class Game extends GameShared {
             chat.spam("pull")
         }
         grim.txt = `PULL A NEW \nSPELL\nFROM THE\nGRIMOIRE`
+        grim.update = () => {
+            grim.rad = this.gentleSin * 0.05
+        }
+        grim.deactivate() //let server activate it!
         this.defaultModeMall = new Malleable(grim, ...activeButs, botBG)
         this.add_drawable(this.defaultModeMall)
 

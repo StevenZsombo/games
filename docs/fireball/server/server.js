@@ -116,7 +116,13 @@ class Game extends GameShared {
                     ["Rename", () => GameEffects.inputBoxFromRectPromise().then(
                         x => { if (x && x.length > 2) p.person.rename(x) }
                     )],
-                    ["Kick", () => p.person.kick()]
+                    ["Kick", () => p.person.kick()],
+                    ["eval", () => GameEffects.inputBoxFromRectPromise().then(
+                        x => p.person.wee("eval", x)
+                            .then(() => gpop("Eval sent to " + p.person.name))
+                            .catch(() => bpop("Failed to send eval to " + p.person.name))
+                    )
+                    ]
                 ]
             )
         }
@@ -196,6 +202,8 @@ class Game extends GameShared {
                 [table.visible ? "Hide players" : "Show players", () => table.toggleActive()],
                 [logWindow.visible ? "Hide logs" : "Show logs", () => logWindow.toggleActive()],
                 ["advanceQueue ALL", () => Player.ALL.map(p => this.advanceQueue(p))],
+                ["MASS EVAL", () => GameEffects.inputBoxFromRectPromise().then(
+                    x => chat.spam("eval", x))],
                 ["EXPORT all", () => MM.downloadFile(
                     MM.safeStringify({
                         BC: this.getBCdata(),
@@ -353,8 +361,8 @@ class Game extends GameShared {
         player.accolades.push([spell, -1]) //tier -1 means failure!
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
+        player.totalDamageTaken += dmg //taken is always added to stats...
         if (!notAddedToStats) {
-            player.totalDamageTaken += dmg
             if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
         }
         if (player.hp <= 0) return this.playerDowned(player)
