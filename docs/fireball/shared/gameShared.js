@@ -13,6 +13,7 @@ class Player {
         this.person = person
         this.id = person.nameID
         person.player = this
+        this.stampHP()
     }
     /**@static @type {Player[]} */
     static ALL = []
@@ -33,6 +34,7 @@ class Player {
     /**@type {[Spell,number][]} */
     accolades = []
     hp = RULES.START_HP
+    hpLog = []
     canPullFromGrimoire = true
     totalKnockedDown = 0
     totalDamageDealt = 0
@@ -42,6 +44,10 @@ class Player {
 
     static byName(findStr) {
         return Player.ALL.find(x => x.person.name.toLowerCase().startsWith(findStr.toLowerCase()))
+    }
+
+    stampHP() {
+        this.hpLog.push([Date.now(), this.hp])
     }
 }
 

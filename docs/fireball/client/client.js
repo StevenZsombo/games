@@ -300,7 +300,7 @@ class Game extends GameShared {
         console.log(bg)
         const cards =
             bg.splitGrid(
-                RULES.CARD_ROWS,
+                Math.ceil(data.length / RULES.CARD_COLUMNS),
                 RULES.CARD_COLUMNS
             ).flat().map(x => Button.fromRectShallow(x))
                 .slice(0, data.length)

@@ -45,7 +45,7 @@ const gpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.leftGreen)
 const bigbadpop = str => GameEffects.popup(str, GameEffects.popupPRESETS.bigRed)
 const sessionID = MM.randomID() + MM.randomID()
 
-//array of objects
+/**@type {{str:str,time:number,type:str}[]} - and other details*/
 const eventLog = []
 
 
@@ -102,7 +102,8 @@ class Game extends GameShared {
         logWindow.fontSize = 28
         logWindow.textSettings.textAlign = "left"
         logWindow.textSettings.textBaseline = "top"
-        logWindow.leftat(this.rect.left); logWindow.centeratY(this.rect.centerY);
+        logWindow.leftat(this.rect.left)
+        logWindow.centeratY(this.rect.centerY)
 
 
         const serverButton = this.serverButton = new Button({
@@ -201,9 +202,11 @@ class Game extends GameShared {
                     Spell.GRIMOIRE.forEach(x => {
                         if (!x.isActive) x.isInGrimoire = true
                     })],
-                [grimTable.visible ? "Hide spells" : "Show spells", () => grimTable.toggleActive()],
-                [table.visible ? "Hide players" : "Show players", () => table.toggleActive()],
-                [logWindow.visible ? "Hide logs" : "Show logs", () => logWindow.toggleActive()],
+                ["Spells/Players/Logs", () => GameEffects.dropDownBetter([
+                    [grimTable.visible ? "Hide spells" : "Show spells", () => grimTable.toggleActive()],
+                    [table.visible ? "Hide players" : "Show players", () => table.toggleActive()],
+                    [logWindow.visible ? "Hide logs" : "Show logs", () => logWindow.toggleActive()],
+                ])],
                 ["advanceQueue ALL", () => Player.ALL.map(p => this.advanceQueue(p))],
                 ["MASS EVAL", () => GameEffects.inputBoxFromRectPromise().then(
                     x => chat.spam("eval", x))],
@@ -213,6 +216,11 @@ class Game extends GameShared {
                         grim: Spell.GRIMOIRE,
                         players: Player.ALL,
                         chat: chat,
+                        hpLog: Player.ALL.map(p =>
+                            [p.person.name, p.person.nameID, p.hpLog]),
+                        eventLog,
+                        eventLogStr: eventLog.map(x => x.str),
+                        eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
                     }), "fireball" + MM.dateAndTimeShort() + ".json"
                 )]
             ], { moreButtonSettings: { width: 500 } }
@@ -395,6 +403,7 @@ class Game extends GameShared {
             dmg: dmg,
             time: Date.now(),
         })
+        player.stampHP()
         // this.advanceQueue(player)
     }
 
@@ -404,12 +413,14 @@ class Game extends GameShared {
         player.actives.length = 0
         player.passives.length = 0
         player.hp = 0
+        player.stampHP()
         player.canPullFromGrimoire = false
         player.untargetableTimeLeft = RULES.REVITALIZE_TIMEOUT_SECONDS * 1000
         player.totalKnockedDown += 1
         eventLog.push({
             str: `${player.person.name} downed for ${RULES.REVITALIZE_TIMEOUT_SECONDS} seconds.`,
             player: player,
+            type: "playerDowned",
             time: Date.now(),
         })
 
@@ -431,6 +442,7 @@ class Game extends GameShared {
         player.totalHeal += heal
         player.totalUpgrades += tiersUpgraded
         if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
+        player.stampHP()
         const ind = player.actives.indexOf(spell)
         if (ind != -1) { player.actives.splice(ind, 1) }
         else { console.error("BADNESS upgraded spell isn't active", { player, spell }) }
@@ -510,6 +522,7 @@ class Game extends GameShared {
                     pla.targetable = true
                     pla.canPullFromGrimoire = true
                     pla.hp = RULES.REVITALIZE_HP
+                    pla.stampHP()
                     eventLog.push({
                         str: `${pla.person.name} is back in the game with ${pla.hp} HP!`,
                         type: "revitalize",
@@ -565,6 +578,7 @@ class Game extends GameShared {
             attacker,
             defender,
             spell,
+            type: "target",
             time: Date.now(),
         })
         // this.advanceQueue(attacker)

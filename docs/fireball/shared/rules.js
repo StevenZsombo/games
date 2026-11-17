@@ -35,9 +35,9 @@ var RULES = {
 
     PICTURES_FOLDER_PATH: "./../pictures/", //finnicky
     SPELL_NAMES:
-        `BOLT SPARK NOVA STONE FROST SCORCH GUST WARP TEAR ZAP PULSE VEIL CRUSH THWART SHEAR CHILL`.split(" "),
+        `BOLT SPARK NOVA SHEAR FROST SCORCH GUST WARP TEAR ZAP CHILL VEIL CRUSH THWART STONE PULSE`.split(" "),
     //no shield decay
-    CARD_ROWS: 3,
+    // CARD_ROWS: 3, //is now dynamic, this was stupid to begin with
     CARD_COLUMNS: 3,
 
     SHOW_LAST_BC_TIME: true,
