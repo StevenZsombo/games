@@ -191,6 +191,9 @@ class Game extends GameShared {
                     `allowPullingFromGrimoire = ${this.allowPullingFromGrimoire}`,
                     () => this.allowPullingFromGrimoire = !this.allowPullingFromGrimoire
                 ],
+                [
+                    `masterPause = ${this.masterPause}`, () => this.masterPause = !this.masterPause
+                ],
                 ["Reset all inactive tiers", () => Spell.GRIMOIRE.forEach(x => {
                     if (!x.isActive) x.tier = 0
                 })],
@@ -264,6 +267,9 @@ class Game extends GameShared {
         })
 
         this.initServerUI()
+
+        this.masterPause = false
+        this.masterPauseBC = false
 
         this.allowPullingFromGrimoire = MASTER.ALLOW_PULLING_ON_START
         this.tickSpellSecondsInterval = setInterval(
@@ -470,6 +476,7 @@ class Game extends GameShared {
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?
+        if (this.masterPause) return
         for (const spell of Spell.GRIMOIRE) {
             if (!spell.isActive) continue
             if (!spell.isBeingSolvedBy) continue
@@ -596,6 +603,7 @@ class Game extends GameShared {
         })
     }
     sendBC() {
+        if (this.masterPauseBC) return
         // const playersData = Player.ALL.map(x => x.person.name)
         const playersData = this.getBCdata()
 
