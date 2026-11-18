@@ -150,6 +150,7 @@ class Game extends GameShared {
         table.dynamicText = () => MM.tableStr(
             Player.ALL.map(p => [
                 p.person.name, p.person.nameID,
+                p.person.isConnected ? "OK" : "DISCONNECTED",
                 p.hp, p.canPullFromGrimoire,
                 p.actives.length,
                 p.passives.length,
@@ -161,7 +162,7 @@ class Game extends GameShared {
                 p.totalKnockedDown,
 
             ]),
-            "name nameID hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
+            "name nameID conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
         this.add_drawable(table, 5)
 
