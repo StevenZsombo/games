@@ -96,7 +96,6 @@ class Game extends GameShared {
         }
         logWindow.color = "white"
         logWindow.outline = 3
-        Button.make_draggable(logWindow)
         this.add_drawable(logWindow, 3)
         logWindow.font_font = "myMonospace"
         logWindow.fontSize = 28
@@ -104,6 +103,8 @@ class Game extends GameShared {
         logWindow.textSettings.textBaseline = "top"
         logWindow.leftat(this.rect.left)
         logWindow.centeratY(this.rect.centerY)
+        // Button.make_stretchable(logWindow, { layer: 3 })
+        Button.make_draggable(logWindow)
 
 
         const serverButton = this.serverButton = new Button({
@@ -146,7 +147,6 @@ class Game extends GameShared {
             font_font: "myMonospace"
         })
         table.bottomat(this.rect.bottom); table.rightat(this.rect.right)
-        Button.make_draggable(table)
         table.dynamicText = () => MM.tableStr(
             Player.ALL.map(p => [
                 p.person.name, p.person.nameID,
@@ -164,9 +164,18 @@ class Game extends GameShared {
             ]),
             "name nameID conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
+        // Button.make_stretchable(table, { layer: 5 })
+        Button.make_draggable(table)
         this.add_drawable(table, 5)
 
-        const grimTable = table.copy
+        const grimTable = new Button({
+            color: "white",
+            width: this.WIDTH * .7,
+            height: this.HEIGHT * .6,
+            textSettings: { textAlign: "left", textBaseline: "top" },
+            isBlocking: true,
+            font_font: "myMonospace"
+        })
         grimTable.dynamicText = () => MM.tableStr(
             Spell.GRIMOIRE.map(x => [
                 x.id,
@@ -181,6 +190,8 @@ class Game extends GameShared {
             "id _ isActive seenBy solvedBy isInGrim Tier MMSS".split(" ")
         )
         grimTable.move(-200, -200)
+        // Button.make_stretchable(grimTable, { layer: 5 })
+        Button.make_draggable(grimTable)
         this.add_drawable(grimTable, 5)
 
         const grimButton = serverButton.copy
