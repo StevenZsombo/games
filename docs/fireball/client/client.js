@@ -242,7 +242,14 @@ class Game extends GameShared {
                                 "red"
             }
             this.add_drawable(lastBCtimeIndicator, 9)
-            lastBCtimeIndicator.on_release = () => lastBCtimeIndicator.visible ^= 1
+            lastBCtimeIndicator.on_release = () => {
+                // lastBCtimeIndicator.visible ^= 1
+                MM.toggleFullscreen(true)
+            }
+        }
+
+        if (GRAPHICS.FOUR_FULLSCREEN_START && !localStorage.getItem("nameID")) {
+            await GameEffects.clickMeFourTimes()
         }
     }
 

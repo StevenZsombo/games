@@ -1,5 +1,5 @@
 var RULES = {
-    STUDENTS: "Alice Bob Clark Dan Eve Frank".split(" "),
+    STUDENTS: "Chloe Catherine Roby Max Jayden Paco".split(" "),
     START_HP: 100,
     REVITALIZE_HP: 70, //can be oneshot by IX and X for the funnies (too mean-spirited?)
     REVITALIZE_TIMEOUT_SECONDS: 10, //short enough not to be punitive
@@ -67,4 +67,5 @@ var GRAPHICS = {
     CALCULA_BOTTOM: 10,
     CALCULA_SCALEFACTOR: 8,
     HIGHLIGHT_SELF_CARD: false,
+    FOUR_FULLSCREEN_START: true,
 }
