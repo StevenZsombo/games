@@ -49,6 +49,8 @@ var MASTER = {
     BROADCAST_INTERVAL: 1000,
     SESSION_ID_CHECK: false,
     ALLOW_PULLING_ON_START: false,
+    LOCALSTORAGE_KEY: "fireballSaves",
+    LOCALSTORAGE_KEY_MINIMAL: "fireballMinimal",
 }
 
 var GRAPHICS = {

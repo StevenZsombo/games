@@ -168,7 +168,7 @@ class Game extends GameShared {
         Button.make_draggable(table)
         this.add_drawable(table, 5)
 
-        const grimTable = new Button({
+        const grimTable = this.grimTable = new Button({
             color: "white",
             width: this.WIDTH * .7,
             height: this.HEIGHT * .6,
@@ -342,6 +342,7 @@ class Game extends GameShared {
         if (!availableSpells.length) {
             bigbadpop(`${player.person.name} cannot pull any spells from the Grimoire.`)
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
+            return //missed the early return, oops!
         }
         const lowestBucket = Math.min(...availableSpells.map(x => x.bucket))
         const availableInLowestBucket = availableSpells.filter(x => x.bucket == lowestBucket)
@@ -625,8 +626,20 @@ class Game extends GameShared {
         chat.spam("bc", playersData)
     }
 
-    exportALL() {
-        MM.downloadFile(
+    exportALL({ minimalOnly = false } = {}) {
+        console.log("Attempting to save...")
+        const minimalBackup =
+            JSON.stringify({
+                eventLogStr: eventLog.map(x => x.str),
+                eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
+                table: this.table.txt,
+                grimTable: this.grimTable.txt,
+            })
+        MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY_MINIMAL, 5)
+        localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
+        console.log("created minimal backup")
+        if (minimalOnly) return
+        const str =
             MM.safeStringify({
                 BC: this.getBCdata(),
                 grim: Spell.GRIMOIRE,
@@ -635,10 +648,17 @@ class Game extends GameShared {
                 hpLog: Player.ALL.map(p =>
                     [p.person.name, p.person.nameID, p.hpLog]),
                 eventLog,
-                eventLogStr: eventLog.map(x => x.str),
-                eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
-            }), "fireball" + MM.dateAndTimeShort() + ".json"
+            })
+        console.log("Successful safeStringify!")
+        MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY, 5)
+        console.log("Made backups")
+        localStorage.setItem(MASTER.LOCALSTORAGE_KEY, str)
+        console.log("Save to local successful!")
+        MM.downloadFile(
+            str, "fireball" + MM.dateAndTimeShort() + ".json"
         )
+        console.log("Save to file successful!")
+        return str
     }
 
 

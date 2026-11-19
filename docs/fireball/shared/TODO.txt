@@ -1,0 +1,19 @@
+1. Autosave & load
+
+2. Clearer "you are knocked down" info
+
+3. Should be generally easier questions
+   Quickfire problem-solving is preferable!
+
+4. UI: buttons should not cover the text at first?
+
+5. Rebalance HP system?
+
+
+Fixed:
+Missed the early return in "pull" causing server-side error
+Missed storing card.info.data causing false positives during targeting
+
+Known issues:
+Clients who do not select name will be stuck with the nameID - not a concern. Can kick server-side
+exportALL crashed the browser. Not sure why. Preventative: store in localstorage first. Preventative: save minimal backup, just in case.
