@@ -1,8 +1,8 @@
 var RULES = {
-    STUDENTS: "Chloe Catherine Roby Max Jayden Paco".split(" "),
+    STUDENTS: "Chloe Catherine Roby Max Jayden Paco Steven".split(" "),
     START_HP: 100,
     REVITALIZE_HP: 70, //can be oneshot by IX and X for the funnies (too mean-spirited?)
-    REVITALIZE_TIMEOUT_SECONDS: 10, //short enough not to be punitive
+    REVITALIZE_TIMEOUT_SECONDS: 12, //short enough not to be punitive
     TARGETING_WINDOW_IMMUNITY_SECONDS: 30,
     FIZZLE_AUTO_RETURN_WITHOUT_SERVER: false, //let teacher handle it!
     CLICK_COUNT_TO_ATTACK: 3,

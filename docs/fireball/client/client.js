@@ -149,7 +149,7 @@ class Game extends GameShared {
         grim.on_release = () => {
             if (timeOutTillNextPullInput > Date.now()) return
             timeOutTillNextPullInput = Date.now() + 3000 //cooldown
-            chat.spam("pull")
+            chat.wee("pull").then(() => { }).catch(() => pop.error("Could not contact server, ask the teacher for help."))
         }
         grim.txt = `PULL A NEW \nSPELL\nFROM THE\nGRIMOIRE`
         grim.update = () => {
@@ -362,8 +362,6 @@ class Game extends GameShared {
         if (!ownData) return
         this.grim.activeState =
             ownData.c
-        // ownData.a.length == 0 && ownData.p.length == 0 && ownData.f == 0 && ownData.d == 0 && ownData.t != 0
-        //lol i suck
         if (!ownData.a.map(u => u[0]).some(x => x == this.spellIDCurrentlyBeingSolved))
             this.questionModeMall.deactivate() //the spell being solved is no longer active (or yours)
         if (ownData.w != null) this.questionModeMall.deactivate() //force targeting mode?

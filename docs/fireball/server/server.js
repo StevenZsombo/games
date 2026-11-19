@@ -189,7 +189,7 @@ class Game extends GameShared {
             ]),
             "id _ isActive seenBy solvedBy isInGrim Tier MMSS".split(" ")
         )
-        grimTable.move(-200, -200)
+        grimTable.topleftat(70, 170)
         // Button.make_stretchable(grimTable, { layer: 5 })
         Button.make_draggable(grimTable)
         this.add_drawable(grimTable, 5)
@@ -220,6 +220,7 @@ class Game extends GameShared {
                     [logWindow.visible ? "Hide logs" : "Show logs", () => logWindow.toggleActive()],
                 ])],
                 ["advanceQueue ALL", () => Player.ALL.map(p => this.advanceQueue(p))],
+                ["let pull all", () => Player.ALL.forEach(x => x.canPullFromGrimoire = true)],
                 ["MASS EVAL", () => GameEffects.inputBoxFromRectPromise().then(
                     x => chat.spam("eval", x))],
                 ["EXPORT all", () => MM.downloadFile(
@@ -272,7 +273,6 @@ class Game extends GameShared {
             if (!this.allowPullingFromGrimoire) return
             if (
                 person.player.canPullFromGrimoire
-                // || (RULES.ALLOW_PULLING_FROM_GRIMOIRE_WHENEVER_EMPTY && person.player.actives.length == 0 && person.player.passives.length == 0)
             ) {
                 this.pullFromGrimoire(person.player)
                 person.player.canPullFromGrimoire = false
@@ -347,6 +347,7 @@ class Game extends GameShared {
 
     /**@param {Player} player  */
     pullFromGrimoire(player) {
+        if (player.actives.length >= RULES.MAX_ACTIVES) return //will reset canPullState externally
         const availableSpells = Spell.GRIMOIRE.filter(x => x.isInGrimoire)
             // .filter(x => !x.ownerHistory.includes(player))
             .filter(x => !player.seen.includes(x)) //better band by player!
