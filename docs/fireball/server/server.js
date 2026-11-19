@@ -233,7 +233,7 @@ class Game extends GameShared {
                             [p.person.name, p.person.nameID, p.hpLog]),
                         eventLog,
                         eventLogStr: eventLog.map(x => x.str),
-                        eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
+                        // eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
                     }), "fireball" + MM.dateAndTimeShort() + ".json"
                 )]
             ], { moreButtonSettings: { width: 500 } }
