@@ -396,6 +396,8 @@ class Game extends GameShared {
             + `.`
         chat.spam("globalpop", str)
 
+
+
         eventLog.push({
             str: str,
             attacker: spell.ownerHistory.at(-1),
@@ -407,6 +409,12 @@ class Game extends GameShared {
         })
         player.stampHP()
         // this.advanceQueue(player)
+
+        if (RULES.FIZZLE_AUTO_RETURN_WITHOUT_SERVER) {
+            spell.tier =
+                RULES.FIZZLE_AUTO_RETURN_WITHOUT_SERVER_TIER_FUNCTION(spell.tier)
+            spell.isInGrimoire = true
+        }
     }
 
     /**@param {Player} player */

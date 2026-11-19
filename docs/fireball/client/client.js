@@ -114,10 +114,18 @@ class Game extends GameShared {
                 .bottomstretchat(this.HEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
         )
         botBG.update = () => {
+            const downedTime = this.ownData?.d
+            if (downedTime) {
+                botBG.font_color = "blue"
+                botBG.txt = `You are knocked out for ${MM.toMMSS(downedTime)}\nand unable to do anything.`
+                botBG.fontSize = 60
+                return
+            }
             const targeting = this.ownData?.w != null
             if (targeting) {
-                botBG.txt = `Click on a player ${RULES.CLICK_COUNT_TO_ATTACK} times to attack them!`
+                botBG.font_color = "red"
                 botBG.fontSize = 80 * this.gentleAmp
+                botBG.txt = `Click on a player ${RULES.CLICK_COUNT_TO_ATTACK} times to attack them!`
             } else {
                 botBG.txt = ""
             }

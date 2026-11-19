@@ -1,13 +1,30 @@
-1. Autosave & load
+To improve:
 
-2. Clearer "you are knocked down" info
 
-3. Should be generally easier questions
+1. Clearer "you are knocked down" info
+
+2. Should be generally easier questions
    Quickfire problem-solving is preferable!
 
-4. UI: buttons should not cover the text at first?
+3. UI: answer buttons should not cover the text at first?
 
-5. Rebalance HP system?
+4. Rebalance HP system?
+
+5. Spell icons, wizard icons, animations showing who targets who. 
+Wizards sitting in a semicircle in front of the grimoire with arrows
+showing who attacked who would be nice and intuitive
+(and visually distinct from my other games).
+Could add some pretty spell effects too.
+
+6. Client-side clockworks (so LAG is less noticeable).
+
+7. Full autosave and load system.
+
+8. Valid design concern: why would you ever pull from the grimoire 
+instead of sticking to defense? More powerful spells always come
+from your peers. So the grimoire should be geared towards
+players on the catch-up. 
+Maybe T1 spells come with a hint? That would be awesome!
 
 
 Fixed:
@@ -15,5 +32,5 @@ Missed the early return in "pull" causing server-side error
 Missed storing card.info.data causing false positives during targeting
 
 Known issues:
-Clients who do not select name will be stuck with the nameID - not a concern. Can kick server-side
+Clients who do not select name will be stuck with the nameID - not a concern. Can kick server-side. Consider: initiate players only after they declare their name.
 exportALL crashed the browser. Not sure why. Preventative: store in localstorage first. Preventative: save minimal backup, just in case.

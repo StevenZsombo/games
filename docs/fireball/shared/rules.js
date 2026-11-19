@@ -5,6 +5,8 @@ var RULES = {
     REVITALIZE_TIMEOUT_SECONDS: 12, //short enough not to be punitive
     TARGETING_WINDOW_IMMUNITY_SECONDS: 30,
     FIZZLE_AUTO_RETURN_WITHOUT_SERVER: false, //let teacher handle it!
+    FIZZLE_AUTO_RETURN_WITHOUT_SERVER_TIER_FUNCTION:
+        (_) => 0, //for sake of simplicity?
     CLICK_COUNT_TO_ATTACK: 3,
     MAX_HP: 200,
     START_TIER: 0, //beware of internal discrepancy: tiers I-X are actually 0-9
