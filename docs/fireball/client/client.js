@@ -317,7 +317,7 @@ class Game extends GameShared {
             x.textSettings.textAlign = "left"
             x.textSettings.textBaseline = "top"
             x.fontSize = GRAPHICS.CARD_FONTSIZE
-            x.info = {
+            x.info = { //kinda redundant but whatevs
                 playerID: i,
                 name: data[i].n,
                 nameID: data[i].i,
@@ -358,6 +358,12 @@ class Game extends GameShared {
                     (`${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`),
                     k.s.length ? `Seen:\n` + k.s.map(x => RULES.SPELL_NAMES[x]).join(",") : ""
                 ].join("\n")
+
+            x.info.playerID = i
+            x.info.name = data[i].n
+            x.info.nameID = data[i].i
+            x.info.data = data[i]
+
         })
         if (!ownData) return
         this.grim.activeState =

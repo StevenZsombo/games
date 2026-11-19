@@ -223,19 +223,7 @@ class Game extends GameShared {
                 ["let pull all", () => Player.ALL.forEach(x => x.canPullFromGrimoire = true)],
                 ["MASS EVAL", () => GameEffects.inputBoxFromRectPromise().then(
                     x => chat.spam("eval", x))],
-                ["EXPORT all", () => MM.downloadFile(
-                    MM.safeStringify({
-                        BC: this.getBCdata(),
-                        grim: Spell.GRIMOIRE,
-                        players: Player.ALL,
-                        chat: chat,
-                        hpLog: Player.ALL.map(p =>
-                            [p.person.name, p.person.nameID, p.hpLog]),
-                        eventLog,
-                        eventLogStr: eventLog.map(x => x.str),
-                        // eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
-                    }), "fireball" + MM.dateAndTimeShort() + ".json"
-                )]
+                ["EXPORT all", () => this.exportALL()]
             ], { moreButtonSettings: { width: 500 } }
         )
         this.add_drawable(grimButton, 6)
@@ -635,6 +623,22 @@ class Game extends GameShared {
         const playersData = this.getBCdata()
 
         chat.spam("bc", playersData)
+    }
+
+    exportALL() {
+        MM.downloadFile(
+            MM.safeStringify({
+                BC: this.getBCdata(),
+                grim: Spell.GRIMOIRE,
+                players: Player.ALL,
+                // chat: chat, //DONT EVER, IDIOT
+                hpLog: Player.ALL.map(p =>
+                    [p.person.name, p.person.nameID, p.hpLog]),
+                eventLog,
+                eventLogStr: eventLog.map(x => x.str),
+                eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
+            }), "fireball" + MM.dateAndTimeShort() + ".json"
+        )
     }
 
 
