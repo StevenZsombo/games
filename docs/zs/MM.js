@@ -3061,6 +3061,13 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
         })
     }
 
+    static insistOnFullscreen(howmanytimes = 5) {
+        game.mouser.on_click_once = () => {
+            MM.toggleFullscreen(true)
+            if (--howmanytimes > 0) this.insistOnFullscreen(howmanytimes)
+        }
+    }
+
     /**
      * @param {string[]} options
      * @param {Object} [optional={}] 

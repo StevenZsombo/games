@@ -97,6 +97,15 @@ class Player {
         this.hpLog.push([Date.now(), this.hp])
     }
     getStateID() { return this.machine.current.id }
+    createGraphics() {
+        const button = new Button({
+            width: GRAPHICS.WIZARD_WIDTH,
+            height: GRAPHICS.WIZARD_HEIGHT,
+            transparent: true,
+            img: IMAGES.wizardTest,
+        })
+        this.mall = new Malleable(button)
+    }
 }
 
 class Spell {
@@ -127,12 +136,42 @@ class Spell {
             spell.bucket = bucket ?? 0
             //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
+            spell.pic = IMAGES.spellTest
             // spell.isInGrimoire = true //initialzied this way anyways
         })
     }
     unbind() {
         this.isActive = false
         this.isBeingSolvedBy = null
+    }
+    createGraphics() {
+        const button = new Button(
+            {
+                width: GRAPHICS.SPELL_BUTTON_WIDTH,
+                height: GRAPHICS.SPELL_BUTTON_HEIGHT,
+                img: this.pic,
+                transparent: true,
+            }
+        )
+        button.draw_more = (ctx) => {
+            MM.drawText(ctx,
+                RULES.TIER_STRINGS[this.tier]
+                + "\n"
+                + MM.toMMSS(this.timeLeft),
+                {
+                    width: button.width, height: button.height * .5,
+                    y: button.y + button.height * .5,
+                    x: button.x
+                }, {
+                fontSize: GRAPHICS.SPELL_BUTTON_ROMAN_FONTSIZE,
+                color: "black",
+                font: "mySerif"
+                // textAlign: "middle",
+                // textBaseline: "center"
+            }
+            )
+        }
+        this.mall = new Malleable(button)
     }
 }
 

@@ -42,9 +42,20 @@ const pop =
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() {
-        this.biginit()
+        this.initWithStatesFullProcess()
     }
-    async biginit() {
+    async initWithStatesFullProcess() {
+        wDiv.show()
+        await this.initWithStatesConnection()
+        await this.initWithStates()
+        await this.initWithStatesGrimButton()
+        await this.initWithStatesDiagnostic()
+        wDiv.hide()
+    }
+
+
+
+    async initWithStatesConnection() {
         wDiv.addLine("Establishing connection.")
         await chat.asapPromise()
 
@@ -87,118 +98,57 @@ class Game extends GameShared {
         chat.eggs("serverpop", pop.server)
         chat.eggs("errorpop", pop.error)
 
-        chat.eggs("targeting", () => this.enterTargeting())
+        chat.eggs("targeting", () => this.ui.targeting.setAsCurrent())
 
         chat.eggs("bc", data => this.receiveBC(data))
 
-        this.buts = new Malleable()
-        this.add_drawable(this.buts, 4)
-        this.cards = []
-
-        const fullViewer = this.fullViewer = Button.fromRectShallow(this.rect.copy.deflate(
-            GRAPHICS.FULLVIEWER_PADDING,
-            GRAPHICS.FULLVIEWER_PADDING
-        ))
-        fullViewer.bottomstretchat(this.HEIGHT - GRAPHICS.FULLVIEWER_PADDING
-            - GRAPHICS.BENEATH_FULLVIEWER_SPACE)
-        // fullViewer.color = "antiquewhite"
-        fullViewer.color = null
-        // fullViewer.isBlocking = true //underFullView takes care of this!
-
-
-        const botBG = this.botBG = Button.fromRectShallow(
-            this.rect.copy
-                .leftat(GRAPHICS.LEFT)
-                .rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
-                .topat(this.HEIGHT - GRAPHICS.GRIMOIREHEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
-                .bottomstretchat(this.HEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
-        )
-        botBG.update = () => {
-            const downedTime = this.ownData?.d
-            if (downedTime) {
-                botBG.font_color = "blue"
-                botBG.txt = `You are knocked out for ${MM.toMMSS(downedTime)}\nand unable to do anything.`
-                botBG.fontSize = 60
-                return
-            }
-            const targeting = this.ownData?.w != null
-            if (targeting) {
-                botBG.font_color = "red"
-                botBG.fontSize = 80 * this.gentleAmp
-                botBG.txt = `Click on a player ${RULES.CLICK_COUNT_TO_ATTACK} times to attack them!`
-            } else {
-                botBG.txt = ""
-            }
-
-        }
-        botBG.font_color = "red"
-        botBG.transparent = true
-        const botButs = this.botButs =
-            botBG.splitCol(...Array(RULES.MAX_ACTIVES).fill(1), 1)
-                .map(x => Button.fromRectShallow(x))
-        botButs.forEach(x => x.deflate(10, 10))
-        const activeButs = this.activeButs = botButs.slice(0, -1)
-        botButs.forEach(x => {
-            x.fontSize = 40
-        })
-        const activeGhostButs = this.activeGhostButs =
-            activeButs.map(x => x.copy) //might be good?
-        activeGhostButs.forEach((x, i) => {
-            x.height = GRAPHICS.BENEATH_FULLVIEWER_SPACE - 2 * GRAPHICS.BENEATH_FULLVIEWER_PADDING
-            x.bottomat(this.HEIGHT - GRAPHICS.BENEATH_FULLVIEWER_PADDING)
-            //some beautiful spaghetti here!
-            Object.defineProperty(x, "color", { get() { return activeButs[i].color } })
-            Object.defineProperty(x, "on_release", { get() { return activeButs[i].on_release } })
-            Object.defineProperty(x, "isBlocking", { get() { return activeButs[i].isBlocking } })
-        })
-        const grim = this.grim = botButs[botButs.length - 1]
-        grim.color = "pink"
-        let timeOutTillNextPullInput = 0
-        grim.on_release = () => {
-            if (timeOutTillNextPullInput > Date.now()) return
-            timeOutTillNextPullInput = Date.now() + 3000 //cooldown
-            chat.wee("pull").then(() => { }).catch(() => pop.error("Could not contact server, ask the teacher for help."))
-        }
-        grim.txt = `PULL A NEW \nSPELL\nFROM THE\nGRIMOIRE`
-        grim.update = () => {
-            grim.rad = this.gentleSin * 0.05
-        }
-        grim.deactivate() //let server activate it!
-        this.defaultModeMall = new Malleable(grim, ...activeButs, botBG)
-        this.add_drawable(this.defaultModeMall)
-
-        this.underFullView = Button.fromRectShallow(this.rect.copy, { isBlocking: true })
-        this.underFullView.color = GRAPHICS.FULLVIEWER_COLOR
-        this.underFullView.on_release = () => this.questionModeMall.deactivate()
-        const questionModeMall = this.questionModeMall
-            = new Malleable(this.underFullView, fullViewer, ...activeGhostButs)
-        this.questionModeMall.isBlocking = true
-        this.questionModeMall.deactivate()
-        this.add_drawable(this.questionModeMall, 6)
-
-
+    }
+    async initWithStates() {
+        const w = this.w = new GameWorld(this.rect.copy)
+        this.add_drawable(w, 4)
+        const playground = this.playground = new GameWorld(this.rect.copy)
+        this.add_drawable(playground, 4)
+        const fullViewer = this.fullViewer = Button.fromRect(this.rect.copy)
+        fullViewer.deflate(
+            GRAPHICS.FULLVIEWER_PADDING * 2,
+            GRAPHICS.FULLVIEWER_PADDING * 2)
+        fullViewer.color = GRAPHICS.FULLVIEWER_COLOR
+        w.add_drawable(fullViewer, 7) //way above other stuff
         const cBG = new Button({ width: 50, height: 100 }) //what?
-            .stretch(GRAPHICS.CALCULA_SCALEFACTOR, GRAPHICS.CALCULA_SCALEFACTOR)
+            .stretch(
+                GRAPHICS.CALCULA_SCALEFACTOR,
+                GRAPHICS.CALCULA_SCALEFACTOR)
             .rightat(this.WIDTH - GRAPHICS.CALCULA_RIGHT)
             .bottomat(this.HEIGHT - GRAPHICS.CALCULA_BOTTOM)
-
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
-        calcula.ans.color = "white"
-        calcula.ans.on_release = () => {
-            calcula.calculatorButtons.forEach(x => {
-                if (x != calcula.ans) x.toggleActive()
-            })
-        }
-        const ansOver = Button.fromRectShallow(calcula.ans.copyRect,
-            {
-                interactable: false, transparent: true,
-                fontSize: 28
+        calcula.animToggle = () => {
+            if (!calcula.visible) {
+                calcula.activate()
+                ansOver.transparent = true
+                calcula.calculatorButtons.forEach(b =>
+                    this.animator.add_anim(new Anim(
+                        b, 500, Anim.f.moveFrom,
+                        {
+                            x: b.x, y: calcula.ans.y,
+                            ditch: true
+                        }
+                    )))
+            } else {
+                calcula.deactivate()
+                calcula.ans.txt = "" //also clears!
+                ansOver.transparent = false
             }
-        )
+
+        }
+        const ansOver = calcula.ans.copy
+        ansOver.eraseClickables()
+        ansOver.fontSize = 28
+        ansOver.color = calcula.ans.color = "white"
+        ansOver.on_release = () => calcula.animToggle()
         ansOver.dynamicText = () => calcula.ans.txt ? "" : "Click to hide/show buttons"
-        this.questionModeMall.push(calcula)
-        this.questionModeMall.push(ansOver)
+        w.add_drawable(calcula, 5)
+        w.add_drawable(ansOver, 5) //just on top of it
         calcula.verifyAnswerAsync = async (guess) => {
             const resp = await chat.wee("attempt",
                 [this.spellIDCurrentlyBeingSolved, guess])
@@ -207,29 +157,66 @@ class Game extends GameShared {
             return resp //built-in correct and all that!
         }
 
+
+        this.uiMachine = new SimpleStateMachine()
+        this.ui = { //must coincide with Player .s
+            spectating: this.uiMachine.createState(),
+            targeting: this.uiMachine.createState(),
+            downed: this.uiMachine.createState(),
+            figting: this.uiMachine.createState(),
+            solving: this.uiMachine.createState()
+        }
+        this.ui.spectating.setAsCurrent()
+
         const targetingDrawable = {
             draw: (ctx) => {
-                if (this.questionModeMall.visible) return //only when invis
-                if (!this.ownData) return
-                if (!this.ownData.f) return
-                const w = this.ownData.w
-                if (w == null) return
-                this.cards.forEach(c => {
-                    if (c.info.nameID == chat.nameID) return //myself
-                    if (c.info.data.v.includes(w)) return //has seen the spell
-                    MM.drawEllipse(ctx,
-                        c.cx,
-                        c.cy,
-                        c.width * this.gentleAmp * .6,
-                        c.height * this.gentleAmp * .6,
-                        { color: null, outline: 5, outline_color: "red" }
-                    )
-                })
-            }
+                if (!targetingDrawable.visible) return
+
+            },
+            visible: false
         }
-        this.add_drawable(targetingDrawable, 4)
+        this.add_drawable(targetingDrawable, 7)
+        const downedButton = Button.fromRect(this.rect.copy)
+            .stretch(.95, .2)
+            .bottomat(this.rect.bottom - 20)
+        downedButton.txt = `Downed for ${RULES.REVITALIZE_TIMEOUT_SECONDS} seconds\nCan't do anything in the meantime.`
+        downedButton.fontSize = 72
+        downedButton.font_color = "blue"
+        downedButton.transparent = true
+        downedButton.deactivate()
+        this.add_drawable(downedButton, 7)
+        this.ui.targeting.on_enter.push(() => {
+            targetingDrawable.visible = true
+        })
+        this.ui.targeting.on_leave.push(() => {
+            targetingDrawable.visible = false
+        })
+        this.ui.spectating.on_enter.push(() => {
+            playground.visible = true
+            playground.interactable = true //why not? not sure. TODO
+        })
+        this.ui.figting.on_enter.push(() => {
+            playground.visible = true
+            playground.interactable = true
+        })
+        this.ui.figting.on_leave.push(() => {
+            playground.visible = false
+            playground.interactable = false
+        })
+        this.ui.downed.on_enter.push(() => downedButton.activate())
+        this.ui.downed.on_leave.push(() => downedButton.deactivate())
+        this.ui.solving.on_enter.push(() => {
+            w.visible = true
+            w.interactable = true
+            //TODO: animate from origin!
+        })
+        this.ui.solving.on_leave.push(() => {
+            w.visible = false
+            w.interactable = false
+        })
+    }
 
-
+    async initWithStatesDiagnostic() {
         if (RULES.SHOW_LAST_BC_TIME) {
             const lastBCtimeIndicator = new Button({ width: 300, height: 300, y: 0 })
             lastBCtimeIndicator.rightat(this.WIDTH - 10)
@@ -256,9 +243,28 @@ class Game extends GameShared {
             }
         }
 
-        if (GRAPHICS.FOUR_FULLSCREEN_START && !localStorage.getItem("nameID")) {
-            await GameEffects.clickMeFourTimes()
+        if (GRAPHICS.INSIST_ON_FULLSCREEN_COUNT) {
+            GameEffects.insistOnFullscreen(GRAPHICS.INSIST_ON_FULLSCREEN_COUNT)
         }
+    }
+
+    async initWithStatesGrimButton() {
+        const playground = this.playground
+        const grim = this.grim = new Button({ width: 300, height: 300 })
+        playground.add_drawable(grim, 5)
+        grim.color = "pink"
+        let timeOutTillNextPullInput = 0
+        grim.on_release = () => {
+            if (timeOutTillNextPullInput > Date.now()) return
+            timeOutTillNextPullInput = Date.now() + 3000 //cooldown
+            chat.wee("pull").then(() => { }).catch(() => pop.error("Could not contact server, ask the teacher for help."))
+        }
+        grim.txt = `PULL A NEW \nSPELL\nFROM THE\nGRIMOIRE`
+        grim.update = () => {
+            grim.rad = this.gentleSin * 0.05
+        }
+        grim.deactivate() //let server activate it!
+
     }
 
 
@@ -417,8 +423,9 @@ class Game extends GameShared {
 
     }
     setFullViewerOn(img) {
-        this.questionModeMall.activate()
         this.fullViewer.img = this.imgCache(img)
+        this.ui.solving.setAsCurrent()
+
     }
 
     //
