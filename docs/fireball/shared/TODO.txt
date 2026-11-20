@@ -1,7 +1,7 @@
 To improve:
 
 
-1. Clearer "you are knocked down" info
+1. State machine for easier player/ui management
 
 2. Should be generally easier questions
    Quickfire problem-solving is preferable!
@@ -14,7 +14,7 @@ To improve:
 Wizards sitting in a semicircle in front of the grimoire with arrows
 showing who attacked who would be nice and intuitive
 (and visually distinct from my other games).
-Could add some pretty spell effects too.
+Spells could be cards with clearly visible timers.
 
 6. Client-side clockworks (so LAG is less noticeable).
 
@@ -27,9 +27,15 @@ players on the catch-up.
 Maybe T1 spells come with a hint? That would be awesome!
 
 
+Improved:
+FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
+Clearer "you are knocked down" info
+
+
 Fixed:
 Missed the early return in "pull" causing server-side error
 Missed storing card.info.data causing false positives during targeting
+
 
 Known issues:
 Clients who do not select name will be stuck with the nameID - not a concern. Can kick server-side. Consider: initiate players only after they declare their name.

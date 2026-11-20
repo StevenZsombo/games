@@ -53,6 +53,7 @@ var MASTER = {
     ALLOW_PULLING_ON_START: false,
     LOCALSTORAGE_KEY: "fireballSaves",
     LOCALSTORAGE_KEY_MINIMAL: "fireballMinimal",
+    HIDE_SPECTATORS: false,
 }
 
 var GRAPHICS = {

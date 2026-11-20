@@ -378,10 +378,9 @@ class Game extends GameShared {
 
     /**@param {Spell} spell @param {Player} player */
     spellFizzlesOn(spell, player, { notAddedToStats = false } = {}) {
-        spell.isActive = false
-        spell.isBeingSolvedBy = null
+        spell.unbind()
         player.actives = player.actives.filter(x => x !== spell)
-        player.accolades.push([spell, -1]) //tier -1 means failure!
+        player.accolades.push([spell.id, -1]) //tier -1 means failure!
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
         player.totalDamageTaken += dmg //taken is always added to stats...
@@ -419,14 +418,8 @@ class Game extends GameShared {
 
     /**@param {Player} player */
     playerDowned(player) {
-        player.targetable = false
-        player.actives.length = 0
-        player.passives.length = 0
-        player.hp = 0
-        player.stampHP()
-        player.canPullFromGrimoire = false
-        player.untargetableTimeLeft = RULES.REVITALIZE_TIMEOUT_SECONDS * 1000
-        player.totalKnockedDown += 1
+        player.s.downed.setAsCurrent()
+        player.totalKnockedDown += 1 //stats should not be part of state change.
         eventLog.push({
             str: `${player.person.name} downed for ${RULES.REVITALIZE_TIMEOUT_SECONDS} seconds.`,
             player: player,
@@ -439,12 +432,12 @@ class Game extends GameShared {
     /**@param {Spell} spell @param {Player} player */
     spellUpgradedByPlayer(spell, player) {
         if (spell.isBeingSolvedBy != player) return console.error("BADNESS spell upgraded by player it is not being solved by", { player, spell }) //weird stuff?
-        spell.isActive = false
-        spell.isBeingSolvedBy = null
+        spell.unbind()
         const timeLeftMinutes = spell.timeLeft / 60 / 1000
         const tiersUpgraded =
             MM.clamp(Math.floor(timeLeftMinutes),
-                1, RULES.MAX_TIERS_UPGRADED_AT_ONCE)
+                RULES.MIN_TIERS_UPGRADED_AT_ONCE,
+                RULES.MAX_TIERS_UPGRADED_AT_ONCE)
         spell.tier += tiersUpgraded
         if (spell.tier > RULES.MAX_TIER) spell.tier = RULES.MAX_TIER
         const heal = RULES.HEAL_FROM_NUMBER_OF_TIERS_UPGRADED_FUNCTION(tiersUpgraded)
@@ -458,7 +451,7 @@ class Game extends GameShared {
         else { console.error("BADNESS upgraded spell isn't active", { player, spell }) }
         player.owned.push(spell)
         spell.ownerHistory.push(player)
-        player.accolades.push([spell, spell.tier])
+        player.accolades.push([spell.id, spell.tier])
         player.person.spam("localpop", `You upgraded ${RULES.SPELL_NAMES[spell.id]} by ${tiersUpgraded} tiers!\nYou healed ${heal} hp, and can now target someone to possibly deal ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage!`)
         const str = `${player.person.name} upgraded ${RULES.SPELL_NAMES[spell.id]} to Tier ${RULES.TIER_STRINGS[spell.tier]}, and healed for ${heal}HP.`
         chat.targetSpam(
@@ -487,66 +480,54 @@ class Game extends GameShared {
             // this.advanceQueue(player)
             return
         }
-        player.person.wee("targeting")
+
+        player.wielding = spell
+        player.s.targeting.setAsCurrent()
+
+        player.person.wee("targeting") //notify last!
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
-
-        player.targetingTimeLeft = RULES.TARGETING_WINDOW_IMMUNITY_SECONDS * 1000
-        player.wielding = spell
-
 
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?
         if (this.masterPause) return
-        for (const spell of Spell.GRIMOIRE) {
-            if (!spell.isActive) continue
-            if (!spell.isBeingSolvedBy) continue
-            if (spell.isBeingSolvedBy.targetingTimeLeft > 0) continue
-            if (spell.isBeingSolvedBy.untargetableTimeLeft > 0) continue //failsafe
-            spell.timeLeft -= dt
-            if (spell.timeLeft < 0) this.spellFizzlesOn(spell, spell.seenHistory.at(-1))
-        }
-        for (const pla of Player.ALL) {
-            if (pla.targetingTimeLeft) {
-                pla.targetingTimeLeft -= dt
-                if (pla.targetingTimeLeft <= 0) {
+        for (const player of Player.ALL) {
+            if (player.ticking) { //instead of a managed state?
+                player.actives.forEach(spell => {
+                    spell.timeLeft -= dt
+                    if (spell.timeLeft < 0) this.spellFizzlesOn(spell, player)
+                })
+            }
+            if (player.s.targeting.isCurrent) {
+                player.targetingTimeLeft = - dt
+                if (player.targetingTimeLeft <= 0) {
                     //let it fizzle lol!
                     eventLog.push({
                         type: "failedTargeting",
-                        player: pla,
-                        spell: pla.wielding,
-                        str: `${pla.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`,
+                        player: player,
+                        spell: player.wielding,
+                        str: `${player.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`,
                         time: Date.now(),
                     })
-                    const spell = pla.wielding
-                    pla.targetingTimeLeft = 0
-                    pla.wielding = null
-                    this.spellFizzlesOn(spell, pla, { notAddedToStats: true })
+                    this.spellFizzlesOn(spell, player, { notAddedToStats: true })
+                    player.s.figting.setAsCurrent()
                 }
-            }
-            else if (pla.untargetableTimeLeft) {
-                pla.untargetableTimeLeft -= dt
-                if (pla.untargetableTimeLeft <= 0) {
-                    pla.untargetableTimeLeft = 0
-                    pla.targetable = true
-                    pla.canPullFromGrimoire = true
-                    pla.hp = RULES.REVITALIZE_HP
-                    pla.stampHP()
+            } else if (player.s.downed.isCurrent) {
+                player.downedTimeLeft -= dt
+                if (player.downedTimeLeft <= 0) {
                     eventLog.push({
-                        str: `${pla.person.name} is back in the game with ${pla.hp} HP!`,
+                        str: `${player.person.name} is back in the game with ${player.hp} HP!`,
                         type: "revitalize",
-                        player: pla,
+                        player: player,
                         time: Date.now(),
                     })
-
+                    player.s.figting.setAsCurrent()
                 }
-            }
-            else {
-                this.advanceQueue(pla) //no-op unless applicable
-            }
+            } else this.advanceQueue(player)
         }
     }
+
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */
     attempt(spell, player, guess) {
         if (!player || (spell.isBeingSolvedBy != player)) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
@@ -617,7 +598,7 @@ class Game extends GameShared {
                 a: p.actives.map(x => [x.id, x.tier, x.timeLeft]),
                 p: p.passives.map(x => [x.id, x.tier, x.timeLeft]),
                 t: p.targetable,
-                d: p.untargetableTimeLeft,
+                d: p.downedTimeLeft,
                 f: p.targetingTimeLeft,
                 s: p.seen.filter(x => !p.actives.includes(x) && !p.passives.includes(x)).map(x => x.id), //targeting aid really, not accolades
                 v: p.seen.map(x => x.id),

@@ -242,3 +242,47 @@ class EventManager {
     }
     flushAndEraseAll() { this.eventCallbacks.clear(); this.singleCallbacks.clear(); }
 }
+
+
+//#region SimpleState
+class SimpleState {
+    constructor(id, machine) {
+        this.id = id
+        this.machine = machine
+    }
+    on_enter = []
+    on_leave = []
+    on_refresh = []
+    get isCurrent() { return this.machine.current === this }
+    setAsCurrent(kwargs) { return this.machine.switch(this, kwargs) }
+}
+
+class SimpleStateMachine {
+    /**@type {SimpleState[]} */
+    states = []
+    _nextID = 0
+    /**@type {?SimpleState} */
+    current = null
+    createState() {
+        const state = new SimpleState(this._nextID++, this)
+        this.states.push(state)
+        return state
+    }
+    stateHistory = []
+    /**@param {SimpleState} state  */
+    switch(state, kwargs) {
+        // if (typeof state === "number") state = this.states[state] //way too loose
+        if (!this.states.includes(state)) throw new Error("Given state does not belong to the machine!")
+        const current = this.current
+        if (current === state) {
+            current.on_refresh.forEach(fn => fn(kwargs))
+        } else {
+            current?.on_leave.forEach(fn => fn(kwargs))
+            state.on_enter.forEach(fn => fn(kwargs))
+            this.current = state
+        }
+        this.stateHistory.push(state) //for debugging
+        return this
+    }
+}
+//#endregion

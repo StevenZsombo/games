@@ -8,17 +8,64 @@ class GameShared extends GameCore {
 
 
 class Player {
+    /**@static @type {Player[]} */
+    static ALL = []
+    static _nextID = 1
     /**@param {Person} person  */
     constructor(person) {
         this.person = person
-        this.id = person.nameID
+        this.nameID = person.nameID
+        this.id = Player._nextID++
         person.player = this
         this.stampHP()
+
+        const m = this.machine = new SimpleStateMachine()
+        this.s = {
+            spectating: m.createState(),
+            targeting: m.createState(),
+            downed: m.createState(),
+            figting: m.createState(),
+        }
+        this.s.spectating.on_enter.push(() => {
+            this.canPullFromGrimoire = false
+            this.targetable = false
+            this.ticking = false
+        })
+        this.s.figting.on_enter.push(() => {
+            this.targetable = true
+            this.canPullFromGrimoire = true
+            this.ticking = true
+        })
+        this.s.targeting.on_enter.push(() => {
+            this.ticking = false
+            this.targetingTimeLeft = RULES.TARGETING_WINDOW_IMMUNITY_SECONDS * 1000
+        })
+        this.s.targeting.on_leave.push(() => {
+            this.wielding = null
+            this.targetingTimeLeft = 0
+        })
+        this.s.downed.on_enter.push(() => {
+            this.downedTimeLeft = RULES.REVITALIZE_TIMEOUT_SECONDS * 1000
+            this.hp = 0
+            this.stampHP()
+            this.targetable = false
+            this.ticking = false
+            this.canPullFromGrimoire = false
+            this.actives.forEach(x => x.unbind())
+            this.passives.forEach(x => x.unbind())
+            this.actives.length = 0
+            this.passives.length = 0
+        })
+        this.s.downed.on_leave.push(() => {
+            this.downedTimeLeft = 0
+            this.hp = RULES.REVITALIZE_HP
+            this.stampHP()
+            this.canPullFromGrimoire = true
+        })
+        m.switch(this.s.spectating)
     }
-    /**@static @type {Player[]} */
-    static ALL = []
     targetable = true
-    untargetableTimeLeft = 0
+    downedTimeLeft = 0
     targetingTimeLeft = 0 //determines state!
     /**@type {Spell} */
     wielding = null
@@ -31,7 +78,7 @@ class Player {
     owned = []
     /**@type {Spell[]} */
     seen = []
-    /**@type {[Spell,number][]} */
+    /**@type {[number,number][]} - [id,tier or -1 for failure]*/
     accolades = []
     hp = RULES.START_HP
     hpLog = []
@@ -79,6 +126,10 @@ class Spell {
             spell.img = img
             // spell.isInGrimoire = true //initialzied this way anyways
         })
+    }
+    unbind() {
+        this.isActive = false
+        this.isBeingSolvedBy = null
 
     }
 }
