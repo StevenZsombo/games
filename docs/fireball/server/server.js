@@ -207,6 +207,7 @@ class Game extends GameShared {
                 [
                     `masterPause = ${this.masterPause}`, () => this.masterPause = !this.masterPause
                 ],
+                /*
                 ["Reset all inactive tiers", () => Spell.GRIMOIRE.forEach(x => {
                     if (!x.isActive) x.tier = 0
                 })],
@@ -214,6 +215,7 @@ class Game extends GameShared {
                     Spell.GRIMOIRE.forEach(x => {
                         if (!x.isActive) x.isInGrimoire = true
                     })],
+                */
                 ["Spells/Players/Logs", () => GameEffects.dropDownBetter([
                     [grimTable.visible ? "Hide spells" : "Show spells", () => grimTable.toggleActive()],
                     [table.visible ? "Hide players" : "Show players", () => table.toggleActive()],
@@ -353,6 +355,11 @@ class Game extends GameShared {
                 : //clumsy fallback for god knows what
                 availableSpells[MM.randomIndex(availableSpells.length)]
         chosenSpell.isInGrimoire = false
+        if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
+            player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
+            if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
+            player.stampHP()
+        }
         this.assignSpellToPlayer(chosenSpell, player)
 
         eventLog.push({
@@ -372,6 +379,7 @@ class Game extends GameShared {
         spell.isActive = true
         spell.isBeingSolvedBy = player
         spell.seenHistory.push(player)
+        spell.placeHistory.push(player.id)
         player.seen.push(spell)
 
     }
@@ -381,11 +389,14 @@ class Game extends GameShared {
         spell.unbind()
         player.actives = player.actives.filter(x => x !== spell)
         player.accolades.push([spell.id, -1]) //tier -1 means failure!
+        spell.placeHistory.push(-1) //-1 means back to grimoire
         const dmg = RULES.DAMAGE_FROM_TIER(spell.tier)
         player.hp -= dmg
         player.totalDamageTaken += dmg //taken is always added to stats...
-        if (!notAddedToStats) {
-            if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
+        if (!notAddedToStats) { //should exclude grimoire somehow
+            // if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
+            if (spell.placeHistory.at(-1) != -1) //find by id. ownerhistory is practically useless
+                Player.ALL.find(x => x.id == spell.placeHistory.at(-1))?.totalDamageDealt += dmg
         }
         if (player.hp <= 0) return this.playerDowned(player)
         const str = `${player.person.name} took ${dmg} damage from ${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} spell`

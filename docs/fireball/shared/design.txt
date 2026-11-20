@@ -16,7 +16,7 @@ showing who attacked who would be nice and intuitive
 (and visually distinct from my other games).
 Spells could be cards with clearly visible timers.
 
-6. Client-side clockworks (so LAG is less noticeable).
+6. Client-side clockworks (so LAG is less noticeable). Maybe?
 
 7. Full autosave and load system.
 
@@ -30,6 +30,7 @@ Maybe T1 spells come with a hint? That would be awesome!
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
 Clearer "you are knocked down" info
+Pulling from the grimoire now gives HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
 
 
 Fixed:

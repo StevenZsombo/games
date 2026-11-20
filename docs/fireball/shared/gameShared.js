@@ -96,6 +96,7 @@ class Player {
     stampHP() {
         this.hpLog.push([Date.now(), this.hp])
     }
+    getStateID() { return this.machine.current.id }
 }
 
 class Spell {
@@ -108,6 +109,8 @@ class Spell {
     seenHistory = []
     /**@type {?Player} */
     isBeingSolvedBy = null
+    /**@type {number[]} */ //start from -1 beacuse why not
+    placeHistory = [-1]
     timeLeft = 10 * 60 * 1000
     isInGrimoire = true
     isActive = false
@@ -130,7 +133,6 @@ class Spell {
     unbind() {
         this.isActive = false
         this.isBeingSolvedBy = null
-
     }
 }
 
