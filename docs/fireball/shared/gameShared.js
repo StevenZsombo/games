@@ -11,8 +11,24 @@ class Player {
     /**@static @type {Player[]} */
     static ALL = []
     static _nextID = 1
+    /**@type {Map<string,Player>} */
+    static poolBANK = new Map()
+    static pool(id) {
+        const p = this.poolBANK.get(id)
+        if (p) return p
+        let found = this.ALL.find(x => x.id == id)
+        if (!found) {
+            const created = new Player()
+            created.id = id
+            this.poolBANK.set(id, created)
+            return created
+        }
+        this.poolBANK.set(id, found)
+        return found
+    }
     /**@param {Person} person  */
     constructor(person) {
+        if (!chat.isServer) return this.createGhost()
         this.person = person
         this.nameID = person.nameID
         this.id = Player._nextID++
@@ -64,6 +80,9 @@ class Player {
         })
         m.switch(this.s.spectating)
     }
+    createGhost() {
+
+    }
     targetable = true
     downedTimeLeft = 0
     targetingTimeLeft = 0 //determines state!
@@ -98,12 +117,22 @@ class Player {
     }
     getStateID() { return this.machine.current.id }
     createGraphics() {
-        const button = new Button({
+        const button = this.button = new Button({
             width: GRAPHICS.WIZARD_WIDTH,
             height: GRAPHICS.WIZARD_HEIGHT,
             transparent: true,
             img: IMAGES.wizardTest,
         })
+        button.draw_more = (ctx) => {
+            MM.drawText(ctx,
+                `${this.nameID} ${this.hp} HP`,
+                { ...button, height: 50 },
+                {
+                    fontSize: GRAPHICS.WIZARD_NAME_FONTSIZE,
+                    color: "black"
+                }
+            )
+        }
         this.mall = new Malleable(button)
     }
 }
@@ -145,7 +174,7 @@ class Spell {
         this.isBeingSolvedBy = null
     }
     createGraphics() {
-        const button = new Button(
+        const button = this.button = new Button(
             {
                 width: GRAPHICS.SPELL_BUTTON_WIDTH,
                 height: GRAPHICS.SPELL_BUTTON_HEIGHT,

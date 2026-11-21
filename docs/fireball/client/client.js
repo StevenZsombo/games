@@ -122,10 +122,13 @@ class Game extends GameShared {
             .bottomat(this.HEIGHT - GRAPHICS.CALCULA_BOTTOM)
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
+        const waveWhenApplicable = () => ansOver.rad = this.fasterAmp
         calcula.animToggle = () => {
             if (!calcula.visible) {
                 calcula.activate()
                 ansOver.transparent = true
+                ansOver.update = null
+                ansOver.rad = 0
                 calcula.calculatorButtons.forEach(b =>
                     this.animator.add_anim(new Anim(
                         b, 500, Anim.f.moveFrom,
@@ -138,6 +141,7 @@ class Game extends GameShared {
                 calcula.deactivate()
                 calcula.ans.txt = "" //also clears!
                 ansOver.transparent = false
+                ansOver.update = waveWhenApplicable
             }
 
         }
@@ -275,6 +279,8 @@ class Game extends GameShared {
     update_more(dt) {
         this.gentleSin = Math.sin(this.dtTotal / 500)
         this.gentleAmp = 1 + 0.12 * this.gentleSin
+        this.fasterSin = Math.sin(this.dtTotal / 200)
+        this.fasterAmp = 1 + 0.12 * this.fasterSin
     }
     //#endregion
 
