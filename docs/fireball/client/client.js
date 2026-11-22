@@ -297,11 +297,6 @@ class Game extends GameShared {
 
 
 
-    enterTargeting() {
-        GameEffects.popup("Correct!\nSelect a valid target to attack with your spell!")
-        this.questionModeMall.deactivate()
-    }
-
     shared = null
     lastBCtime = null
     receiveBC(data) {

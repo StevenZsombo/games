@@ -621,9 +621,9 @@ class Game extends GameShared {
     sendBC() {
         if (this.masterPauseBC) return
         // const playersData = Player.ALL.map(x => x.person.name)
-        const playersData = this.getBCdata()
+        const BCdata = this.getBCdata()
 
-        chat.spam("bc", playersData)
+        chat.spam("bc", BCdata)
     }
 
     exportALL({ minimalOnly = false } = {}) {

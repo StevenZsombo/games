@@ -40,14 +40,14 @@ class Player {
             spectating: m.createState(),
             targeting: m.createState(),
             downed: m.createState(),
-            figting: m.createState(),
+            fighting: m.createState(),
         }
         this.s.spectating.on_enter.push(() => {
             this.canPullFromGrimoire = false
             this.targetable = false
             this.ticking = false
         })
-        this.s.figting.on_enter.push(() => {
+        this.s.fighting.on_enter.push(() => {
             this.targetable = true
             this.canPullFromGrimoire = true
             this.ticking = true
@@ -156,6 +156,8 @@ class Spell {
     bucket = 0 //by default
     solution = 8774 //by default.
     img = "blankByDefault"
+    pic = "iconRune"
+    color = "hsl(0 50 50)"
     static FILL_GRIMOIRE(arr) {
         arr.forEach(({ img, solution, bucket }) => {
             const spell = new Spell()
@@ -166,6 +168,7 @@ class Spell {
             //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
             spell.pic = IMAGES.spellTest
+            spell.color = `hsl(${spell.id / arr.length * 360} 50% 50%)`
             // spell.isInGrimoire = true //initialzied this way anyways
         })
     }
@@ -174,14 +177,18 @@ class Spell {
         this.isBeingSolvedBy = null
     }
     createGraphics() {
-        const button = this.button = new Button(
-            {
-                width: GRAPHICS.SPELL_BUTTON_WIDTH,
-                height: GRAPHICS.SPELL_BUTTON_HEIGHT,
-                img: this.pic,
-                transparent: true,
-            }
-        )
+        const button = this.button =
+            Button.make_roundedRect(new Button(
+                {
+                    width: GRAPHICS.SPELL_BUTTON_WIDTH,
+                    height: GRAPHICS.SPELL_BUTTON_HEIGHT,
+                    img: this.pic,
+                    color: this.color,
+                    outline: 3,
+                    outline_color: "black",
+                }
+            ))
+
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
                 RULES.TIER_STRINGS[this.tier]
