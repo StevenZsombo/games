@@ -1,5 +1,12 @@
+var IMAGES = {}
 class GameShared extends GameCore {
 
+
+    init_shared() {
+        IMAGES.spellTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
+        IMAGES.wizardTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "wizardTest.png")
+
+    }
 
     getBCdata() {
         const pd = Player.ALL.map(p => {
@@ -100,6 +107,9 @@ class Player {
             this.canPullFromGrimoire = true
         })
         m.switch(this.s.spectating)
+        if (MASTER.AUTO_JOIN_INSTEAD_OF_SPECTATE) {
+            m.switch(this.s.fighting)
+        }
     }
     makeGhost() {
 
@@ -172,18 +182,26 @@ class Player {
             height: GRAPHICS.WIZARD_HEIGHT,
             transparent: true,
             img: IMAGES.wizardTest,
+            tag: "wizardButton",
         })
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
-                `${this.nameID} ${this.hp} HP`,
-                { ...button, height: 50 },
+                `${this.name ?? this.nameID}\n${this.hp} HP`,
+                {
+                    ...button,
+                    height:
+                        -2.4 * GRAPHICS.WIZARD_NAME_FONTSIZE
+                },
                 {
                     fontSize: GRAPHICS.WIZARD_NAME_FONTSIZE,
                     color: "black"
                 }
             )
         }
+        if (RULES.WIZARDS_ARE_DRAGGABLE)
+            Button.make_draggable(button)
         this.mall = new Malleable(button)
+        this.mall.tag = "wizard"
         return this.mall
     }
 }
@@ -237,6 +255,7 @@ class Spell {
                     color: this.color,
                     outline: 3,
                     outline_color: "black",
+                    tag: "runeButton",
                 }
             ))
 
@@ -246,8 +265,8 @@ class Spell {
                 + "\n"
                 + MM.toMMSS(this.timeLeft),
                 {
-                    width: button.width, height: button.height * .5,
-                    y: button.y + button.height * .5,
+                    width: button.width, height: button.height * .4,
+                    y: button.y + button.height * .6,
                     x: button.x
                 }, {
                 fontSize: GRAPHICS.SPELL_BUTTON_ROMAN_FONTSIZE,
@@ -259,6 +278,8 @@ class Spell {
             )
         }
         this.mall = new Malleable(button)
+        this.mall.tag = "rune"
+        return this.mall
     }
 }
 

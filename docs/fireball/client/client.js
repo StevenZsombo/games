@@ -42,6 +42,7 @@ const pop =
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() {
+        this.init_shared()
         this.initWithStatesFullProcess()
     }
     async initWithStatesFullProcess() {
@@ -90,6 +91,7 @@ class Game extends GameShared {
             console.log("nameChosen", nameChosen)
         } else console.log("name retrieved:", chat.name)
         this.me = await chat.wee("whatsmyid") // no need to ever really update?
+
         //why not use this as nameID to begin with? sigh. whatever.
 
         chat.eggs("eval", eval)
@@ -106,16 +108,20 @@ class Game extends GameShared {
 
     }
     async initWithStates() {
-        const w = this.w = new GameWorld(this.rect.copy)
-        this.add_drawable(w, 4)
-        const playground = this.playground = new GameWorld(this.rect.copy)
-        this.add_drawable(playground, 4)
+        this.solverMall = new Malleable()
+        this.fighterMall = new Malleable()
+        this.add_drawable(this.solverMall, 4)
+        this.add_drawable(this.fighterMall, 4)
         const fullViewer = this.fullViewer = Button.fromRect(this.rect.copy)
+        fullViewer.isBlocking = true
+        fullViewer.on_release = () => {
+            this.ui.fighting.setAsCurrent()
+        }
+        this.solverMall.push(fullViewer)
         fullViewer.deflate(
             GRAPHICS.FULLVIEWER_PADDING * 2,
             GRAPHICS.FULLVIEWER_PADDING * 2)
         fullViewer.color = GRAPHICS.FULLVIEWER_COLOR
-        w.add_drawable(fullViewer, 7) //way above other stuff
         const cBG = new Button({ width: 50, height: 100 }) //what?
             .stretch(
                 GRAPHICS.CALCULA_SCALEFACTOR,
@@ -124,9 +130,9 @@ class Game extends GameShared {
             .bottomat(this.HEIGHT - GRAPHICS.CALCULA_BOTTOM)
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
-        const waveWhenApplicable = () => ansOver.rad = this.fasterAmp
-        calcula.animToggle = () => {
-            if (!calcula.visible) {
+        const waveWhenApplicable = () => ansOver.rad = this.fasterSin * .2
+        calcula.animToggle = (forceOff = false) => {
+            if (!forceOff && !calcula.visible) {
                 calcula.activate()
                 ansOver.transparent = true
                 ansOver.update = null
@@ -147,14 +153,16 @@ class Game extends GameShared {
             }
 
         }
+        // calcula.deactivate() //default state is off? - yes, in setFullViewer
         const ansOver = calcula.ans.copy
         ansOver.eraseClickables()
         ansOver.fontSize = 28
         ansOver.color = calcula.ans.color = "white"
         ansOver.on_release = () => calcula.animToggle()
         ansOver.dynamicText = () => calcula.ans.txt ? "" : "Click to hide/show buttons"
-        w.add_drawable(calcula, 5)
-        w.add_drawable(ansOver, 5) //just on top of it
+        ansOver.isBlocking = true
+        this.solverMall.push(calcula)
+        this.solverMall.push(ansOver)
         calcula.verifyAnswerAsync = async (guess) => {
             const resp = await chat.wee("attempt",
                 [this.spellIDCurrentlyBeingSolved, guess])
@@ -169,17 +177,16 @@ class Game extends GameShared {
             spectating: this.uiMachine.createState(),
             targeting: this.uiMachine.createState(),
             downed: this.uiMachine.createState(),
-            figting: this.uiMachine.createState(),
+            fighting: this.uiMachine.createState(),
             solving: this.uiMachine.createState()
         }
-        this.ui.spectating.setAsCurrent()
 
+        let targetingDrawableIsVisible = false
         const targetingDrawable = {
             draw: (ctx) => {
-                if (!targetingDrawable.visible) return
+                if (targetingDrawableIsVisible) return
 
-            },
-            visible: false
+            }
         }
         this.add_drawable(targetingDrawable, 7)
         const downedButton = Button.fromRect(this.rect.copy)
@@ -192,34 +199,28 @@ class Game extends GameShared {
         downedButton.deactivate()
         this.add_drawable(downedButton, 7)
         this.ui.targeting.on_enter.push(() => {
-            targetingDrawable.visible = true
+            targetingDrawableIsVisible = true
         })
         this.ui.targeting.on_leave.push(() => {
-            targetingDrawable.visible = false
+            targetingDrawableIsVisible = this.fasterAmp
         })
         this.ui.spectating.on_enter.push(() => {
-            playground.visible = true
-            playground.interactable = true //why not? not sure. TODO
+            this.fighterMall.activate()
+            this.solverMall.deactivate()
         })
-        this.ui.figting.on_enter.push(() => {
-            playground.visible = true
-            playground.interactable = true
-        })
-        this.ui.figting.on_leave.push(() => {
-            playground.visible = false
-            playground.interactable = false
+        this.ui.fighting.on_enter.push(() => this.fighterMall.activate())
+        this.ui.fighting.on_leave.push(() => {
+            this.fighterMall.deactivate()
+            console.log("huh?")
         })
         this.ui.downed.on_enter.push(() => downedButton.activate())
         this.ui.downed.on_leave.push(() => downedButton.deactivate())
-        this.ui.solving.on_enter.push(() => {
-            w.visible = true
-            w.interactable = true
-            //TODO: animate from origin!
-        })
-        this.ui.solving.on_leave.push(() => {
-            w.visible = false
-            w.interactable = false
-        })
+        this.ui.solving.on_enter.push(() => this.solverMall.activate())
+        this.ui.solving.on_leave.push(() => this.solverMall.deactivate())
+
+        this.ui.spectating.setAsCurrent()
+        this.ui.solving.setAsCurrent()
+        this.ui.fighting.setAsCurrent() //do a full cycle
     }
 
     async initWithStatesDiagnostic() {
@@ -255,9 +256,7 @@ class Game extends GameShared {
     }
 
     async initWithStatesGrimButton() {
-        const playground = this.playground
         const grim = this.grim = new Button({ width: 300, height: 300 })
-        playground.add_drawable(grim, 5)
         grim.color = "pink"
         let timeOutTillNextPullInput = 0
         grim.on_release = () => {
@@ -269,11 +268,32 @@ class Game extends GameShared {
         grim.update = () => {
             grim.rad = this.gentleSin * 0.05
         }
+        grim.isBlocking = true
+        grim.bottomat(this.HEIGHT - 100)
+        grim.rightat(this.WIDTH - 100)
         grim.deactivate() //let server activate it!
-
+        this.fighterMall.push(grim)
     }
 
     async initWithStatesSpellRunes() {
+        const runes = this.runes = []
+        for (const spell of Spell.GRIMOIRE) {
+            const mall = spell.createGraphics()
+            runes.push(mall)
+            this.fighterMall.push(mall)
+            mall.deactivate() //let server activate!
+            spell.button.on_release = () => {// i am retarded lol
+                // console.log(mall, spell)
+                if (this.myself?.actives.includes(spell)) {
+                    game.once(() => this.setFullViewerOn(spell.id))
+
+                }
+            }
+            mall.update = (dt) => {
+                // if (!mall.visible) return //why not always?
+                spell.timeLeft -= dt
+            }
+        }
 
     }
 
@@ -287,9 +307,34 @@ class Game extends GameShared {
         this.gentleAmp = 1 + 0.12 * this.gentleSin
         this.fasterSin = Math.sin(this.dtTotal / 200)
         this.fasterAmp = 1 + 0.12 * this.fasterSin
+
+        if (this.myself) this.update_animations(dt)
     }
     //#endregion
 
+    update_animations(dt) {
+        //sid is same as ui ID
+        // this.uiMachine.states[this.myself.sid].setAsCurrent()//why not
+
+        //each player drags THEIR spells
+        for (const player of Player.poolBANK.values()) {
+            player.actives.forEach((spell, i) => {
+                const tx = player.button.cx + GRAPHICS.SPELL_SLOT_LOCATIONS[i][0]
+                const ty = player.button.cy + GRAPHICS.SPELL_SLOT_LOCATIONS[i][1]
+                const dx = tx - spell.button.cx
+                const dy = ty - spell.button.cy
+                if (Math.abs(dx) + Math.abs(dy) < GRAPHICS.SNAP_EPSILON) {
+                    spell.button.centerat(tx, ty)
+                }
+                spell.button.move(
+                    dx * dt * GRAPHICS.CRAWL_COEFFICIENT,
+                    dy * dt * GRAPHICS.CRAWL_COEFFICIENT
+                )
+            })
+
+        }
+
+    }
 
     //#region draw_more
     draw_more(screen) {
@@ -309,11 +354,11 @@ class Game extends GameShared {
     receiveBC(data) {
         this.lastBCtime = Date.now()
         this.refreshUI(data) //refresh first!
-        this.shared = data
+        this.shared = data //just for safekeeping, really
     }
     /**@param {Player} player  */
     on_creationOfPlayerInPool(player) {
-        this.playground.add_drawable(player.createGraphics()) //returns player.mall
+        this.fighterMall.push(player.createGraphics())
         Button.make_draggable(player.button)
         player.button.move(MM.random(0, 400), MM.random(0, 400))
     }
@@ -371,10 +416,33 @@ class Game extends GameShared {
                     spell.placeHistory = placeHistory
             }
         }
-
+        this.refreshAnimations()
 
 
     }
+    /**@type {?Player} */
+    myself = null
+    refreshAnimations() {
+        this.myself ??= Player.pool(this.me,
+            x => this.on_creationOfPlayerInPool(x)) //just in case //just once
+        //grim button
+        this.grim.activeState = this.myself.canPullFromGrimoire
+        //activate the appropriate spells
+        const activeSpells = []
+        const passiveSpells = []
+        for (const player of Player.poolBANK.values()) {
+            activeSpells.push(...player.actives)
+            passiveSpells.push(...player.passives)
+        }
+
+        Spell.GRIMOIRE.forEach(x => x.mall.deactivate())
+        activeSpells.forEach(x => x.mall.activate())
+        passiveSpells.forEach(x => x.mall.activate()) //not sure about this, we'll see
+
+    }
+
+
+
     spellIDCurrentlyBeingSolved = null
     imgBANK = new Map() // could be a weak map? probably not? doesn't matter.
     imgCache(img) {
@@ -389,6 +457,9 @@ class Game extends GameShared {
     }
     setFullViewerOn(spellID) {
         const spell = Spell.GRIMOIRE[spellID]
+        // this.calcula.deactivate()
+        this.calcula.animToggle(true)
+        this.spellIDCurrentlyBeingSolved = spellID
         this.fullViewer.img = this.imgCache(spell.img)
         this.fullViewer.color = spell.color
         this.ui.solving.setAsCurrent()

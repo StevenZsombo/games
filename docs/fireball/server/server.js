@@ -82,7 +82,9 @@ class Person extends Participant {
 
 class Game extends GameShared {
     //#region initialize_more
-    initialize_more() { }
+    initialize_more() {
+        this.init_shared()
+    }
     initServerUI() {
         const logWindow = this.logWindow =
             Button.fromRectShallow(this.rect.copy.stretch(.8, .8))
@@ -150,6 +152,7 @@ class Game extends GameShared {
         table.dynamicText = () => MM.tableStr(
             Player.ALL.map(p => [
                 p.person.name, p.person.nameID,
+                p.id,
                 p.person.isConnected ? "OK" : "DISCONNECTED",
                 p.hp, p.canPullFromGrimoire,
                 p.actives.length,
@@ -162,7 +165,7 @@ class Game extends GameShared {
                 p.totalKnockedDown,
 
             ]),
-            "name nameID conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
+            "name nameID ID conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
         // Button.make_stretchable(table, { layer: 5 })
         Button.make_draggable(table)
@@ -256,7 +259,7 @@ class Game extends GameShared {
         })
 
         chat.eggs("whatsmyid", /**@param {Person} person */(_, person) => {
-            person.player.id
+            return person.player.id
         })
 
         chat.eggs("attempt", ([id, guess], person) => {
@@ -366,6 +369,13 @@ class Game extends GameShared {
         chosenSpell.isInGrimoire = false
         if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
             player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
+            player.totalHeal += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
+            eventLog.push({
+                str: `${player.person.name} healed for ${RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE} by pulling a spell from the Grimoire.`,
+                type: "healFromGrimoire",
+                time: Date.now(),
+                player: player
+            })
             if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
             player.stampHP()
         }
@@ -403,9 +413,16 @@ class Game extends GameShared {
         player.hp -= dmg
         player.totalDamageTaken += dmg //taken is always added to stats...
         if (!notAddedToStats) { //should exclude grimoire somehow
-            // if (spell.ownerHistory.at(-1)) spell.ownerHistory.at(-1).totalDamageDealt += dmg
             if (spell.placeHistory.at(-1) != -1) //find by id. ownerhistory is practically useless
-                Player.ALL.find(x => x.id == spell.placeHistory.at(-1))?.totalDamageDealt += dmg
+            {
+                const lastOwner = Player.ALL.find(x => x.id == spell.placeHistory.at(-1))
+                if (!lastOwner) {
+                    console.error("ERROR: last owner somehow does not exist")
+                    bpop(`Last owner of spell ${spell.id}:${spell.placeHistory} somehow does not exist`)
+                }
+                else { lastOwner.totalDamageDealt += dmg }
+
+            }
         }
         if (player.hp <= 0) return this.playerDowned(player)
         const str = `${player.person.name} took ${dmg} damage from ${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} spell`
@@ -550,6 +567,7 @@ class Game extends GameShared {
 
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */
     attempt(spell, player, guess) {
+        if (!spell) return bpop("Attempt to solve but no spell?")
         if (!player || (spell.isBeingSolvedBy != player)) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
         if (RULES.ACCURACY_FUNCTION(guess, spell.solution)) {
             this.spellUpgradedByPlayer(spell, player)
