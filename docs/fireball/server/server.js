@@ -255,6 +255,10 @@ class Game extends GameShared {
             }
         })
 
+        chat.eggs("whatsmyid", /**@param {Person} person */(_, person) => {
+            person.player.id
+        })
+
         chat.eggs("attempt", ([id, guess], person) => {
             return this.attempt(Spell.GRIMOIRE[id], person.player, guess)
         })
@@ -290,7 +294,12 @@ class Game extends GameShared {
             () => this.sendBC(),
             MASTER.BROADCAST_INTERVAL
         )
-
+        if (MASTER.AUTOSAVE_INTERVAL_FULL)
+            this.autoSaveIntervalFull = setInterval(
+                () => this.exportALL(), MASTER.AUTOSAVE_INTERVAL_FULL)
+        if (MASTER.AUTOSAVE_INTERVAL_MINIMAL)
+            this.autoSaveIntervalMinimal = setInterval(
+                () => this.exportALL({ minimalOnly: true }), MASTER.AUTOSAVE_INTERVAL_MINIMAL)
 
 
 
@@ -600,24 +609,7 @@ class Game extends GameShared {
     }
 
 
-    getBCdata() {
-        return Player.ALL.map(p => {
-            return {
-                n: p.person.name,
-                h: p.hp,
-                i: p.person.nameID,
-                a: p.actives.map(x => [x.id, x.tier, x.timeLeft]),
-                p: p.passives.map(x => [x.id, x.tier, x.timeLeft]),
-                t: p.targetable,
-                d: p.downedTimeLeft,
-                f: p.targetingTimeLeft,
-                s: p.seen.filter(x => !p.actives.includes(x) && !p.passives.includes(x)).map(x => x.id), //targeting aid really, not accolades
-                v: p.seen.map(x => x.id),
-                c: p.canPullFromGrimoire && this.allowPullingFromGrimoire,
-                w: p.wielding?.id,
-            }
-        })
-    }
+
     sendBC() {
         if (this.masterPauseBC) return
         // const playersData = Player.ALL.map(x => x.person.name)

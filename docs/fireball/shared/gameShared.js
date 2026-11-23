@@ -1,6 +1,26 @@
 class GameShared extends GameCore {
 
 
+    getBCdata() {
+        const pd = Player.ALL.map(p => {
+            return {
+                n: p.person.name,
+                h: p.hp,
+                i: p.person.nameID,
+                x: p.id, //pool id
+                a: p.actives.map(x => x.id),
+                p: p.passives.map(x => x.id),
+                v: p.seen.map(x => x.id), //just all seen
+                c: p.canPullFromGrimoire && this.allowPullingFromGrimoire,
+                s: p.getStateInfo()
+            }
+        })
+        /**@type {[number,number,number,number[]]} */
+        const sd = Spell.GRIMOIRE.map(s => {
+            return [s.id, s.tier, s.timeLeft, s.placeHistory]
+        })
+        return { pd, sd }
+    }
 
 
 
@@ -13,7 +33,7 @@ class Player {
     static _nextID = 1
     /**@type {Map<string,Player>} */
     static poolBANK = new Map()
-    static pool(id) {
+    static pool(id, on_creation = null) {
         const p = this.poolBANK.get(id)
         if (p) return p
         let found = this.ALL.find(x => x.id == id)
@@ -21,6 +41,7 @@ class Player {
             const created = new Player()
             created.id = id
             this.poolBANK.set(id, created)
+            on_creation?.(created)
             return created
         }
         this.poolBANK.set(id, found)
@@ -28,7 +49,7 @@ class Player {
     }
     /**@param {Person} person  */
     constructor(person) {
-        if (!chat.isServer) return this.createGhost()
+        if (!chat.isServer) return this.makeGhost()
         this.person = person
         this.nameID = person.nameID
         this.id = Player._nextID++
@@ -80,7 +101,7 @@ class Player {
         })
         m.switch(this.s.spectating)
     }
-    createGhost() {
+    makeGhost() {
 
     }
     targetable = true
@@ -116,6 +137,35 @@ class Player {
         this.hpLog.push([Date.now(), this.hp])
     }
     getStateID() { return this.machine.current.id }
+    getStateInfo() {
+        switch (this.machine.current.id) {
+            case 0: //spectating
+                return [0]
+            case 1: //targeting
+                return [1, this.targetingTimeLeft]
+            case 2: //downed
+                return [2, this.downedTimeLeft]
+            case 3: //fighting
+                return [3]
+        }
+    }
+    sid = -1 //invalid at the start
+    updateStateInfo(stateInfo) {
+        const sid = this.sid = stateInfo[0]
+        if (sid == 0) {
+            this.targetable = false
+            this.hp = 0
+        } else if (sid == 1) {
+            this.targetingTimeLeft = stateInfo[1]
+            this.targetable = true
+        } else if (sid == 2) {
+            this.targetable = false
+            this.downedTimeLeft = stateInfo[1]
+        } else if (sid == 3) {
+            this.targetable = true
+        }
+
+    }
     createGraphics() {
         const button = this.button = new Button({
             width: GRAPHICS.WIZARD_WIDTH,
@@ -134,6 +184,7 @@ class Player {
             )
         }
         this.mall = new Malleable(button)
+        return this.mall
     }
 }
 

@@ -49,6 +49,7 @@ class Game extends GameShared {
         await this.initWithStatesConnection()
         await this.initWithStates()
         await this.initWithStatesGrimButton()
+        await this.initWithStatesSpellRunes()
         await this.initWithStatesDiagnostic()
         wDiv.hide()
     }
@@ -88,8 +89,9 @@ class Game extends GameShared {
             chat.forceNameSilent(nameChosen)
             console.log("nameChosen", nameChosen)
         } else console.log("name retrieved:", chat.name)
+        this.me = await chat.wee("whatsmyid") // no need to ever really update?
+        //why not use this as nameID to begin with? sigh. whatever.
 
-        chat.wee("bounce") //empty call, automatic name adjust!
         chat.eggs("eval", eval)
 
         chat.eggs("localpop", pop.local)
@@ -271,6 +273,10 @@ class Game extends GameShared {
 
     }
 
+    async initWithStatesSpellRunes() {
+
+    }
+
 
 
     //#endregion
@@ -299,117 +305,75 @@ class Game extends GameShared {
 
     shared = null
     lastBCtime = null
+    /**@param {ReturnType<typeof this.getBCdata>} data  */
     receiveBC(data) {
         this.lastBCtime = Date.now()
-        const shared = this.shared
-        if (!shared ||
-            shared.length != data.length
-        ) this.initUI(data)
-        this.refreshUI(data)
+        this.refreshUI(data) //refresh first!
         this.shared = data
     }
+    /**@param {Player} player  */
+    on_creationOfPlayerInPool(player) {
+        this.playground.add_drawable(player.createGraphics()) //returns player.mall
+        Button.make_draggable(player.button)
+        player.button.move(MM.random(0, 400), MM.random(0, 400))
+    }
 
-
-    initUI(data) {
-        this.buts.components.length = 0
-        this.cards.length = 0
-        const bg = this.rect.copy
-        bg.topat(GRAPHICS.TOP)
-        bg.leftat(GRAPHICS.LEFT)
-        bg.bottomstretchat(
-            this.HEIGHT - GRAPHICS.GRIMOIREHEIGHT - GRAPHICS.GRIMOIREPADDINGBOTTOM)
-        bg.rightstretchat(this.WIDTH - GRAPHICS.RIGHT)
-        console.log(bg)
-        const cards =
-            bg.splitGrid(
-                Math.ceil(data.length / RULES.CARD_COLUMNS),
-                RULES.CARD_COLUMNS
-            ).flat().map(x => Button.fromRectShallow(x))
-                .slice(0, data.length)
-        cards.forEach((x, i) => {
-            x.deflate(20, 20)
-            x.color = "white"
-            x.textSettings.textAlign = "left"
-            x.textSettings.textBaseline = "top"
-            x.fontSize = GRAPHICS.CARD_FONTSIZE
-            x.info = { //kinda redundant but whatevs
-                playerID: i,
-                name: data[i].n,
-                nameID: data[i].i,
-                data: data[i]
-            }
-            let clickCount = 0
-            x.on_click = () => {
-                if (!this.ownData?.f) return //f - targeting mode in BC
-                clickCount++
-                setTimeout(() => clickCount = 0, 5000)
-                if (clickCount >= RULES.CLICK_COUNT_TO_ATTACK) {
-                    chat.wee("attack", x.info.nameID)
-                        .then(pop.server)
-                        .catch(() => pop.error("Failed to reach the server.\nASK TEACHER FOR HELP"))
-                    clickCount = 0
+    /**@param {ReturnType<typeof this.getBCdata>} data  */
+    refreshUI(data) {
+        //Player handling
+        if (data.pd) {
+            const copies = new Set(Player.poolBANK.values())
+            for (const p of data.pd) { // HARD requires p.x
+                if (p.x == null) throw new Error("Invalid p.x")
+                const player = Player.pool(
+                    p.x, //keyed by incremental id instead of nameID - not great?
+                    u => this.on_creationOfPlayerInPool(u))
+                copies.delete(player)
+                if (p.n)
+                    player.name = p.n
+                if (p.a)
+                    player.actives = p.a.map(x => Spell.GRIMOIRE[x])
+                if (p.p)
+                    player.passives = p.p.map(x => Spell.GRIMOIRE[x])
+                if (p.i)
+                    player.nameID = p.i
+                if (p.v)
+                    player.seen = p.v.map(x => Spell.GRIMOIRE[x])
+                if (p.c != null)
+                    player.canPullFromGrimoire = p.c
+                if (p.h != null)
+                    player.hp = p.h
+                if (p.s != null) {
+                    player.updateStateInfo(p.s)
                 }
             }
-        })
-        this.buts.push(...cards)
-        this.cards.push(...cards)
-    }
-    refreshUI(data) {
-        let ownData
-        this.cards.forEach((x, i) => {
-            const k = data[i]
-            const isOwnData = k.n == chat.name
-            if (isOwnData)
-                ownData = this.ownData = k
-            x.color =
-                GRAPHICS.HIGHLIGHT_SELF_CARD && isOwnData
-                    ? "lightblue" : "white"
-            x.txt =
-                [
-                    `${k.n} - ${k.h}HP`,
-                    `Actives: ${k.a.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]} (${MM.toMMSS(u[2])})`)}`,
-                    `Passives: ${k.p.map(u => `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]}  (${MM.toMMSS(u[2])})`)}`,
-                    (`${k.d ? `KNOCKED OUT for ${MM.toMMSS(k.d)}` : !k.t ? "UNTARGETABLE" : ""}`) +
-                    (`${k.f ? `TARGETING A SPELL FOR ${MM.toMMSS(k.f)}` : ""}`),
-                    k.s.length ? `Seen:\n` + k.s.map(x => RULES.SPELL_NAMES[x]).join(",") : ""
-                ].join("\n")
-
-            x.info.playerID = i
-            x.info.name = data[i].n
-            x.info.nameID = data[i].i
-            x.info.data = data[i]
-
-        })
-        if (!ownData) return
-        this.grim.activeState =
-            ownData.c
-        if (!ownData.a.map(u => u[0]).some(x => x == this.spellIDCurrentlyBeingSolved))
-            this.questionModeMall.deactivate() //the spell being solved is no longer active (or yours)
-        if (ownData.w != null) this.questionModeMall.deactivate() //force targeting mode?
-        this.activeButs.forEach((x, i) => {
-            if (i < ownData.a.length) {
-                const u = ownData.a[i]
-                x.color = "yellow"
-                const str =
-                    `${RULES.SPELL_NAMES[u[0]]} ${RULES.TIER_STRINGS[u[1]]} \nTime left: \n${MM.toMMSS(u[2])} `
-                x.txt = str + "\n\n(Click here to solve.)"
-                this.activeGhostButs[i].txt = str
-                x.isBlocking = true
-                x.on_release =
-                    () => {
-                        if (ownData.w != null) return
-                        this.setFullViewerOn(Spell.GRIMOIRE[u[0]].img)
-                        this.spellIDCurrentlyBeingSolved = u[0]
-                    }
-            } else {
-                x.color = "lightgray"
-                x.txt = ""
-                this.activeGhostButs[i].txt = "" //consistency!
-                x.isBlocking = false
-                x.on_release = null
+            //Remove redundant players
+            for (const redundant of copies) {
+                this.remove_drawable(redundant.mall)
+                Player.poolBANK.delete(redundant.id)
+                if (redundant.id == this.me) { //only happens if kicked, or message missing
+                    GameEffects.popup("You have been kicked?\nAsk teacher for help",
+                        {
+                            posFrac: [.5, .5], sizeFrac: [.99, .99],
+                            moreButtonSettings: { color: "purple", fontSize: 240 },
+                            floatTime: Infinity,
+                        })
+                }
             }
+        }
+        //Spell handling
+        if (data.sd) {
+            for (const [id, tier, timeLeft, placeHistory] of data.sd) { // can skip
+                const spell = Spell.GRIMOIRE[id]
+                spell.tier = tier
+                spell.timeLeft = timeLeft
+                if (placeHistory)
+                    spell.placeHistory = placeHistory
+            }
+        }
 
-        })
+
+
     }
     spellIDCurrentlyBeingSolved = null
     imgBANK = new Map() // could be a weak map? probably not? doesn't matter.
@@ -423,9 +387,12 @@ class Game extends GameShared {
         return this.imgBANK.get(img)
 
     }
-    setFullViewerOn(img) {
-        this.fullViewer.img = this.imgCache(img)
+    setFullViewerOn(spellID) {
+        const spell = Spell.GRIMOIRE[spellID]
+        this.fullViewer.img = this.imgCache(spell.img)
+        this.fullViewer.color = spell.color
         this.ui.solving.setAsCurrent()
+
 
     }
 

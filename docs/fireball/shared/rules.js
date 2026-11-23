@@ -55,6 +55,8 @@ var MASTER = {
     LOCALSTORAGE_KEY: "fireballSaves",
     LOCALSTORAGE_KEY_MINIMAL: "fireballMinimal",
     HIDE_SPECTATORS: false,
+    AUTOSAVE_INTERVAL_FULL: 0,
+    AUTOSAVE_INTERVAL_MINIMAL: 55 * 1000,
 }
 
 var GRAPHICS = {
