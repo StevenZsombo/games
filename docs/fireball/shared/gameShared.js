@@ -152,7 +152,7 @@ class Player {
             case 0: //spectating
                 return [0]
             case 1: //targeting
-                return [1, this.targetingTimeLeft]
+                return [1, this.targetingTimeLeft, this.wielding.id]
             case 2: //downed
                 return [2, this.downedTimeLeft]
             case 3: //fighting
@@ -162,16 +162,17 @@ class Player {
     sid = -1 //invalid at the start
     updateStateInfo(stateInfo) {
         const sid = this.sid = stateInfo[0]
-        if (sid == 0) {
+        if (sid == 0) {//spectating
             this.targetable = false
             this.hp = 0
-        } else if (sid == 1) {
+        } else if (sid == 1) {//targeting
             this.targetingTimeLeft = stateInfo[1]
             this.targetable = true
-        } else if (sid == 2) {
+            this.wielding = Spell.GRIMOIRE[stateInfo[2]]
+        } else if (sid == 2) {//downed
             this.targetable = false
             this.downedTimeLeft = stateInfo[1]
-        } else if (sid == 3) {
+        } else if (sid == 3) {//fighting
             this.targetable = true
         }
 
@@ -183,6 +184,7 @@ class Player {
             transparent: true,
             img: IMAGES.wizardTest,
             tag: "wizardButton",
+            // isBlocking: true
         })
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
@@ -236,7 +238,9 @@ class Spell {
             spell.bucket = bucket ?? 0
             //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
-            spell.pic = IMAGES.spellTest
+            spell.pic = IMAGES.spellTest ?? (() => {
+                return IMAGES.spellTest = cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
+            })()
             spell.color = `hsl(${spell.id / arr.length * 360} 50% 50%)`
             // spell.isInGrimoire = true //initialzied this way anyways
         })
@@ -246,6 +250,7 @@ class Spell {
         this.isBeingSolvedBy = null
     }
     createGraphics() {
+        this.isInActiveSize = true
         const button = this.button =
             Button.make_roundedRect(new Button(
                 {
@@ -265,11 +270,14 @@ class Spell {
                 + "\n"
                 + MM.toMMSS(this.timeLeft),
                 {
-                    width: button.width, height: button.height * .4,
-                    y: button.y + button.height * .6,
+                    width: button.width, height: button.height * .5,
+                    y: button.y + button.height * .5,
                     x: button.x
                 }, {
-                fontSize: GRAPHICS.SPELL_BUTTON_ROMAN_FONTSIZE,
+                fontSize:
+                    this.isInActiveSize ?
+                        GRAPHICS.SPELL_BUTTON_ROMAN_FONTSIZE
+                        : GRAPHICS.SPELL_BUTTON_ROMAN_FONTSIZE_PASSIVE,
                 color: "black",
                 font: "mySerif"
                 // textAlign: "middle",

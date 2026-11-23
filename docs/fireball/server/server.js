@@ -98,7 +98,7 @@ class Game extends GameShared {
         }
         logWindow.color = "white"
         logWindow.outline = 3
-        this.add_drawable(logWindow, 3)
+        // this.add_drawable(logWindow, 3)
         logWindow.font_font = "myMonospace"
         logWindow.fontSize = 28
         logWindow.textSettings.textAlign = "left"
@@ -111,7 +111,8 @@ class Game extends GameShared {
 
         const serverButton = this.serverButton = new Button({
             width: 200, height: 100, txt: "SERVER",
-            y: 0, x: this.WIDTH - 200
+            y: 0, x: this.WIDTH - 200,
+            isBlocking: true,
         })
         /**@param {Player} p */
         const playerDDM = p => {
@@ -153,6 +154,7 @@ class Game extends GameShared {
             Player.ALL.map(p => [
                 p.person.name, p.person.nameID,
                 p.id,
+                p.machine.current.id,
                 p.person.isConnected ? "OK" : "DISCONNECTED",
                 p.hp, p.canPullFromGrimoire,
                 p.actives.length,
@@ -165,11 +167,11 @@ class Game extends GameShared {
                 p.totalKnockedDown,
 
             ]),
-            "name nameID ID conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
+            "name nameID ID s conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
         // Button.make_stretchable(table, { layer: 5 })
         Button.make_draggable(table)
-        this.add_drawable(table, 5)
+        // this.add_drawable(table, 5)
 
         const grimTable = this.grimTable = new Button({
             color: "white",
@@ -195,8 +197,16 @@ class Game extends GameShared {
         grimTable.topleftat(70, 170)
         // Button.make_stretchable(grimTable, { layer: 5 })
         Button.make_draggable(grimTable)
-        this.add_drawable(grimTable, 5)
-
+        // this.add_drawable(grimTable, 5)
+        this.tableMall = new Malleable(grimTable, table, logWindow)
+        this.tableMall.components.forEach(x => {
+            x.isBlocking = true
+            x.on_click = () => {
+                this.tableMall.components =
+                    MM.putAsLast(x, this.tableMall.components)
+            }
+        })
+        this.add_drawable(this.tableMall, 5)
         const grimButton = serverButton.copy
         grimButton.move(-grimButton.width, 0)
         grimButton.txt = "Grimoire"
@@ -537,7 +547,7 @@ class Game extends GameShared {
                 })
             }
             if (player.s.targeting.isCurrent) {
-                player.targetingTimeLeft = - dt
+                player.targetingTimeLeft -= dt
                 if (player.targetingTimeLeft <= 0) {
                     //let it fizzle lol!
                     eventLog.push({
@@ -547,8 +557,8 @@ class Game extends GameShared {
                         str: `${player.person.name} failed targeting their newly upgraded spell, so it blew up in their own face.`,
                         time: Date.now(),
                     })
-                    this.spellFizzlesOn(spell, player, { notAddedToStats: true })
-                    player.s.figting.setAsCurrent()
+                    this.spellFizzlesOn(player.wielding, player, { notAddedToStats: true })
+                    player.s.fighting.setAsCurrent()
                 }
             } else if (player.s.downed.isCurrent) {
                 player.downedTimeLeft -= dt
@@ -559,7 +569,7 @@ class Game extends GameShared {
                         player: player,
                         time: Date.now(),
                     })
-                    player.s.figting.setAsCurrent()
+                    player.s.fighting.setAsCurrent()
                 }
             } else this.advanceQueue(player)
         }
@@ -567,14 +577,16 @@ class Game extends GameShared {
 
     /**@param {Spell} spell @param {Player} player  @param {number} guess  */
     attempt(spell, player, guess) {
-        if (!spell) return bpop("Attempt to solve but no spell?")
-        if (!player || (spell.isBeingSolvedBy != player)) return bpop(`BIG BADNESS: player ${player.person.name} made an attempt without being initialized`)
+        if (!spell || !player || (spell.isBeingSolvedBy != player)) {
+            console.error("invalid attempt", spell, player, guess)
+            bpop("BADNESS: see console")
+            return { correct: false, reason: "Error. Server failure." }
+        }
         if (RULES.ACCURACY_FUNCTION(guess, spell.solution)) {
             this.spellUpgradedByPlayer(spell, player)
             return { correct: true }
         } else {
-            // player.person.spam("localpop", `Your answer of ${guess} is incorrect.`)
-            return { correct: false }
+            return { correct: false, reason: `Your answer of ${guess} is incorrect.` }
         }
     }
     /**@param {Player} attacker  @param {Player} defender*/
@@ -610,7 +622,8 @@ class Game extends GameShared {
             type: "target",
             time: Date.now(),
         })
-        // this.advanceQueue(attacker)
+        attacker.s.fighting.setAsCurrent()
+        this.advanceQueue(attacker)
         return `Succesfully attacked ${defender.person.name}.\nThey have ${MM.toMMSS(RULES.TIME_FROM_TIER(spell.tier))} to solve, or else they take ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage.` //successful attack!
 
     }
