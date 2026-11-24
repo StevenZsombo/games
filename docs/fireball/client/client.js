@@ -83,12 +83,20 @@ class Game extends GameShared {
 
         chat.acquireName()
         if (chat.name == chat.nameID) {
-            const nameSelected = GameEffects.nameSelect(
-                enter.AVAILABLE_NAMES
-            )
-            const nameChosen = await nameSelected.promise()
-            chat.forceNameSilent(nameChosen)
-            console.log("nameChosen", nameChosen)
+            while (true) {
+                const nameSelected = GameEffects.nameSelect(
+                    enter.AVAILABLE_NAMES
+                )
+                const nameChosen = await nameSelected.promise()
+                if (!chat.wee("isnamecool")) continue
+                chat.forceNameSilent(nameChosen)
+                console.log("nameChosen", nameChosen)
+                break
+            }
+            while (true) { 
+                const playerIDSelected = GameEffects.nameSelect(
+                )
+            }
         } else console.log("name retrieved:", chat.name)
         this.me = await chat.wee("whatsmyid") // no need to ever really update?
 

@@ -267,7 +267,8 @@ class Game extends GameShared {
                     RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name == k))
             }
         })
-
+        chat.eggs("isnamecool", val => Player.ALL.map(x => x.person.name).indexOf(val) == -1)
+        
         chat.eggs("whatsmyid", /**@param {Person} person */(_, person) => {
             return person.player.id
         })
