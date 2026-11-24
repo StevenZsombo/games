@@ -143,7 +143,7 @@ class Game extends GameShared {
 
         const table = this.table = new Button({
             color: "white",
-            width: this.WIDTH * .7,
+            width: this.WIDTH * .8,
             height: this.HEIGHT * .6,
             textSettings: { textAlign: "left", textBaseline: "top" },
             isBlocking: true,
@@ -154,6 +154,7 @@ class Game extends GameShared {
             Player.ALL.map(p => [
                 p.person.name, p.person.nameID,
                 p.id,
+                p.picID,
                 p.machine.current.id,
                 p.person.isConnected ? "OK" : "DISCONNECTED",
                 p.hp, p.canPullFromGrimoire,
@@ -167,7 +168,7 @@ class Game extends GameShared {
                 p.totalKnockedDown,
 
             ]),
-            "name nameID ID s conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
+            "name nameID ID picID s conn hp pull? #act #pas #seen DEALT TAKEN HEAL UP KNOCK".split(" ")
         )
         // Button.make_stretchable(table, { layer: 5 })
         Button.make_draggable(table)
@@ -264,11 +265,11 @@ class Game extends GameShared {
                 RULES,
                 sessionID,
                 AVAILABLE_NAMES:
-                    RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name == k))
+                    RULES.STUDENTS.filter(k => !Player.ALL.find(x => x.person.name == k)),
             }
         })
         chat.eggs("isnamecool", val => Player.ALL.map(x => x.person.name).indexOf(val) == -1)
-        
+        chat.eggs("setmypic", (val, person) => person.player.picID = val)
         chat.eggs("whatsmyid", /**@param {Person} person */(_, person) => {
             return person.player.id
         })

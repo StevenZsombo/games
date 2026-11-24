@@ -80,7 +80,7 @@ class Game extends GameShared {
             existingSessionID != null &&
             existingSessionID != sessionID) {
             localStorage.clear()
-            await new Promise.resolve()
+            await Promise.resolve()
             chat.silentReload()
         }
         localStorage.setItem("sessionID", sessionID)
@@ -91,20 +91,30 @@ class Game extends GameShared {
 
         chat.acquireName()
         if (chat.name == chat.nameID) {
+            wDiv.hide()
             while (true) {
                 const nameSelected = GameEffects.nameSelect(
                     enter.AVAILABLE_NAMES
                 )
                 const nameChosen = await nameSelected.promise()
-                if (!chat.wee("isnamecool")) continue
+                if (!chat.wee("isnamecool", nameChosen)) {
+                    pop.server(`${nameChosen} is taken already, pick different.`)
+                }
                 chat.forceNameSilent(nameChosen)
                 console.log("nameChosen", nameChosen)
                 break
             }
-            while (true) { 
-                const playerIDSelected = GameEffects.nameSelect(
-                )
-            }
+            const playerPicID = GameEffects.nameSelect(
+                IMAGES.wizards.map((_, i) => i), { topText: "Your mighty warrior:" }
+            )
+            playerPicID.buts.forEach((x, i) => {
+                x.shrinkToSquare()
+                x.img = IMAGES.wizards[i]
+                x.txt = ""
+            })
+            const picID = await playerPicID.promise()
+            chat.wee("setmypic", picID)
+            wDiv.show()
         } else console.log("name retrieved:", chat.name)
         this.me = await chat.wee("whatsmyid") // no need to ever really update?
 
@@ -345,10 +355,17 @@ class Game extends GameShared {
         if (RULES.WIZARDS_ARE_DRAGGABLE) Button.make_draggable(grim)
         grim.color = "pink"
         let canRequestGrim = true
-        grim.on_click = () => this.prioritize(grim)
+        let grimClickCount = 0
+        grim.on_click = () => {
+            this.prioritize(grim)
+            grimClickCount++
+            setTimeout(() => grimClickCount = 0, 1500)
+        }
         grim.on_release = () => {
+            if (grimClickCount < RULES.CLICK_COUNT_TO_ATTACK) return
             if (!this.myself?.canPullFromGrimoire) return
             if (!canRequestGrim) return
+            grimClickCount = 0
             canRequestGrim = false
             setTimeout(() => canRequestGrim = true, 1000)
             chat.wee("pull").then(() => { }).catch(() => pop.error("Could not contact server, ask the teacher for help."))
@@ -363,9 +380,10 @@ class Game extends GameShared {
                     : 0
             grim.txt =
                 this.myself?.canPullFromGrimoire ?
-                    "Click me to pull a spell!"
+                    `\nClick me ${RULES.CLICK_COUNT_TO_ATTACK - grimClickCount} times\n\n\nto pull a spell!\n`
                     : ""
         }
+        grim.font_color = "blue"
         grim.isBlocking = true
         grim.bottomat(this.HEIGHT - 100)
         grim.rightat(this.WIDTH - 100)
@@ -534,8 +552,11 @@ class Game extends GameShared {
                     player.canPullFromGrimoire = p.c
                 if (p.h != null)
                     player.hp = p.h
-                if (p.s != null) {
+                if (p.s != null)
                     player.updateStateInfo(p.s)
+                if (p.w != null && player.picID != p.w) {
+                    player.picID = p.w
+                    player.button.img = IMAGES.wizards[p.w]
                 }
             }
             //Remove redundant players

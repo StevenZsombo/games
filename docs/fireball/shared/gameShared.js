@@ -30,7 +30,8 @@ class GameShared extends GameCore {
                 p: p.passives.map(x => x.id),
                 v: p.seen.map(x => x.id), //just all seen
                 c: p.canPullFromGrimoire && this.allowPullingFromGrimoire,
-                s: p.getStateInfo()
+                s: p.getStateInfo(),
+                w: p.picID,
             }
         })
         /**@type {[number,number,number,number[]]} */
@@ -71,6 +72,7 @@ class Player {
         this.person = person
         this.nameID = person.nameID
         this.id = Player._nextID++
+        this.picID = 0 //must be set
         person.player = this
         this.stampHP()
 
@@ -193,7 +195,7 @@ class Player {
             width: GRAPHICS.WIZARD_WIDTH,
             height: GRAPHICS.WIZARD_HEIGHT,
             transparent: true,
-            img: IMAGES.wizards[this.id % 12],
+            img: IMAGES.wizards[this.picID],
             tag: "wizardButton",
             // isBlocking: true
         })
