@@ -360,9 +360,9 @@ class Game extends GameShared {
     /**@param {Player} player  */
     pullFromGrimoire(player) {
         if (player.actives.length >= RULES.MAX_ACTIVES) return //will reset canPullState externally
-        const availableSpells = Spell.GRIMOIRE.filter(x => x.isInGrimoire)
-            // .filter(x => !x.ownerHistory.includes(player))
-            .filter(x => !player.seen.includes(x)) //better band by player!
+        const availableSpells = Spell.GRIMOIRE
+            .filter(x => x.isInGrimoire)
+            .filter(x => !player.seen.includes(x))
         if (!availableSpells.length) {
             bigbadpop(`${player.person.name} cannot pull any spells from the Grimoire.`)
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
