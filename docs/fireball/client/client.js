@@ -99,6 +99,7 @@ class Game extends GameShared {
                 const nameChosen = await nameSelected.promise()
                 if (!chat.wee("isnamecool", nameChosen)) {
                     pop.server(`${nameChosen} is taken already, pick different.`)
+                    continue
                 }
                 chat.forceNameSilent(nameChosen)
                 console.log("nameChosen", nameChosen)
