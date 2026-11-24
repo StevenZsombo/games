@@ -370,12 +370,14 @@ class Game extends GameShared {
         }
         const lowestBucket = Math.min(...availableSpells.map(x => x.bucket))
         const availableInLowestBucket = availableSpells.filter(x => x.bucket == lowestBucket)
+        const fallbackLowestBucket = availableInLowestBucket.length
+            ? availableInLowestBucket : availableSpells
+        const leastSeenNumber = Math.min(...fallbackLowestBucket.map(x => x.seenHistory.length))
+        const availableLeastSeen = fallbackLowestBucket.filter(x => x.seenHistory.length == leastSeenNumber)
+        const fallbackLeastSeen = availableLeastSeen.length
+            ? availableLeastSeen : fallbackLowestBucket
         const chosenSpell =
-            availableInLowestBucket.length
-                ?
-                availableInLowestBucket[MM.randomIndex(availableInLowestBucket.length)]
-                : //clumsy fallback for god knows what
-                availableSpells[MM.randomIndex(availableSpells.length)]
+            fallbackLeastSeen[MM.randomIndex(fallbackLeastSeen.length)]
         chosenSpell.isInGrimoire = false
         if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
             player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
