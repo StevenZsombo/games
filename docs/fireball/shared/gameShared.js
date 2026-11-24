@@ -10,6 +10,7 @@ class GameShared extends GameCore {
             ))
         console.log("IMAGES", IMAGES)
         Spell.GRIMOIRE.forEach(x => x.pic = IMAGES.spellTest)
+        
     }
 
     getBCdata() {
