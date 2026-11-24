@@ -1,10 +1,21 @@
-var IMAGES = {}
+var IMAGES = { grimpic: null, wizards: [], runes: [] }
 class GameShared extends GameCore {
 
 
-    init_shared() {
-        IMAGES.spellTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
-        IMAGES.wizardTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "wizardTest.png")
+    async init_shared() {
+        /*await Promise.all(
+            Object.keys(IMAGES).map(async key =>
+                IMAGES[key] = await Cropper.loadImagePromise(
+                    RULES.PICTURES_FOLDER_PATH + key + ".png")
+            ))*/
+        const grab = str => Cropper.loadImagePromise(RULES.PICTURES_FOLDER_PATH + str + ".png")
+        IMAGES.grimpic = await grab("grimpic")
+        IMAGES.wizards = this.cropper.cropGrid(
+            await grab("wizards12"), 1, 12).flat()
+        IMAGES.runes = this.cropper.cropGrid(
+            await grab("runes6x4"), 4, 6).flat()
+        console.log("IMAGES", IMAGES)
+        Spell.GRIMOIRE.forEach((x, i) => x.pic = IMAGES.runes[i])
 
     }
 
@@ -182,7 +193,7 @@ class Player {
             width: GRAPHICS.WIZARD_WIDTH,
             height: GRAPHICS.WIZARD_HEIGHT,
             transparent: true,
-            img: IMAGES.wizardTest,
+            img: IMAGES.wizards[this.id % 12],
             tag: "wizardButton",
             // isBlocking: true
         })
@@ -238,9 +249,7 @@ class Spell {
             spell.bucket = bucket ?? 0
             //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
-            spell.pic = IMAGES.spellTest ?? (() => {
-                return IMAGES.spellTest = cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
-            })()
+            spell.pic = null //let init_shared take care of it
             spell.color = `hsl(${spell.id / arr.length * 360} 50% 50%)`
             // spell.isInGrimoire = true //initialzied this way anyways
         })
@@ -266,7 +275,7 @@ class Spell {
 
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
-                RULES.TIER_STRINGS[this.tier]
+                `${RULES.SPELL_NAMES[this.id]} ${RULES.TIER_STRINGS[this.tier]}`
                 + "\n"
                 + MM.toMMSS(this.timeLeft),
                 {

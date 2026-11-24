@@ -83,7 +83,7 @@ class Person extends Participant {
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() {
-        this.init_shared()
+
     }
     initServerUI() {
         const logWindow = this.logWindow =
@@ -192,7 +192,7 @@ class Game extends GameShared {
                 RULES.TIER_STRINGS[x.tier],
                 x.isActive ? MM.toMMSS(x.timeLeft) : ""
             ]),
-            "id _ isActive seenBy solvedBy isInGrim Tier MMSS".split(" ")
+            "id _ isActive seenBy isSolvedBy isInGrim Tier MMSS".split(" ")
         )
         grimTable.topleftat(70, 170)
         // Button.make_stretchable(grimTable, { layer: 5 })
@@ -361,22 +361,22 @@ class Game extends GameShared {
     /**@param {Player} player  */
     pullFromGrimoire(player) {
         if (player.actives.length >= RULES.MAX_ACTIVES) return //will reset canPullState externally
-        const availableSpells = Spell.GRIMOIRE.filter(x => x.isInGrimoire)
-            // .filter(x => !x.ownerHistory.includes(player))
-            .filter(x => !player.seen.includes(x)) //better band by player!
+        const availableSpells = Spell.GRIMOIRE
+            .filter(x => x.isInGrimoire)
+            .filter(x => !player.seen.includes(x))
         if (!availableSpells.length) {
             bigbadpop(`${player.person.name} cannot pull any spells from the Grimoire.`)
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
             return //missed the early return, oops!
         }
-        const lowestBucket = Math.min(...availableSpells.map(x => x.bucket))
-        const availableInLowestBucket = availableSpells.filter(x => x.bucket == lowestBucket)
+        const leastSeenNumber = Math.min(...availableSpells.map(x => x.seenHistory.length))
+        let leastSeenFiltered = availableSpells.filter(x => x.seenHistory.length == leastSeenNumber)
+        if (!leastSeenFiltered.length) leastSeenFiltered = availableSpells
+        const lowestBucket = Math.min(...leastSeenFiltered.map(x => x.bucket))
+        let lowestFiltered = leastSeenFiltered.filter(x => x.bucket == lowestBucket)
+        if (!lowestFiltered.length) lowestFiltered = leastSeenFiltered
         const chosenSpell =
-            availableInLowestBucket.length
-                ?
-                availableInLowestBucket[MM.randomIndex(availableInLowestBucket.length)]
-                : //clumsy fallback for god knows what
-                availableSpells[MM.randomIndex(availableSpells.length)]
+            lowestFiltered[MM.randomIndex(lowestFiltered.length)]
         chosenSpell.isInGrimoire = false
         if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
             player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
@@ -462,6 +462,8 @@ class Game extends GameShared {
                 RULES.FIZZLE_AUTO_RETURN_WITHOUT_SERVER_TIER_FUNCTION(spell.tier)
             spell.isInGrimoire = true
         }
+        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_FIZZLE)
+            player.canPullFromGrimoire = true
     }
 
     /**@param {Player} player */
@@ -536,6 +538,8 @@ class Game extends GameShared {
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
 
+        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_SOLVE)
+            player.canPullFromGrimoire = true
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?
