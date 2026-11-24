@@ -42,17 +42,25 @@ const pop =
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() {
-        this.init_shared()
         this.initWithStatesFullProcess()
     }
     async initWithStatesFullProcess() {
         wDiv.show()
+        await this.init_shared()
+        wDiv.addLine("init_shared")
         await this.initWithStatesConnection()
+        wDiv.addLine("initWithStatesConnection()")
         await this.initWithStates()
+        wDiv.addLine("initWithStates()")
         await this.initWithStatesGrimButton()
+        wDiv.addLine("initWithStatesGrimButton")
         await this.initWithStatesSpellRunes()
+        wDiv.addLine("initWithStatesSpellRunes")
         await this.initWithStatesDiagnostic()
-        wDiv.hide()
+        wDiv.addLine("initWithStatesDiagnostic")
+        wDiv.addLine("\nREADY!")
+        setTimeout(wDiv.hide, 500)
+
     }
 
 
@@ -83,12 +91,14 @@ class Game extends GameShared {
 
         chat.acquireName()
         if (chat.name == chat.nameID) {
+            wDiv.hide()
             const nameSelected = GameEffects.nameSelect(
                 enter.AVAILABLE_NAMES
             )
             const nameChosen = await nameSelected.promise()
             chat.forceNameSilent(nameChosen)
             console.log("nameChosen", nameChosen)
+            wDiv.show()
         } else console.log("name retrieved:", chat.name)
         this.me = await chat.wee("whatsmyid") // no need to ever really update?
 
@@ -193,17 +203,25 @@ class Game extends GameShared {
                 if (!targetingDrawableIsVisible) return
                 if (!this.myself) return
                 const wielding = this.myself.wielding
+                if (!wielding) return
+                wielding.mall.activate()
+                wielding.button.centerinRect(this.myself.button)
                 for (const player of Player.poolBANK.values()) {
+
                     const [txt, color] =
                         player === this.myself
-                            ? ["Can't target\n(yourself)", "red"]
-                            : player.seen.includes(wielding)
+                            ? [`Must fire within ${MM.toMMSS(this.myself.targetingTimeLeft)}`, `black`]
+                            :
+                            player.seen.includes(wielding)
                                 ? [`Can't target\n(seen spell already)`, "red"]
                                 : !player.targetable
                                     ? ["Can't target\n(temporarily untargetable)", "orange"]
                                     : [`Click ${RULES.CLICK_COUNT_TO_ATTACK -
                                         player.button.___clickCount
                                         } times to attack!`, "green"]
+                    const bg = player.button.copyRect
+                    bg.resize(player.button.width * 2, GRAPHICS.WIZARD_NAME_FONTSIZE * 1.5)
+                    MM.fillRect(ctx, ...bg.XYWHarray, { color: "lightgray" })
                     MM.drawText(ctx, txt,
                         player.button,
                         {
@@ -227,6 +245,7 @@ class Game extends GameShared {
         this.add_drawable(downedButton, 7)
         this.ui.targeting.on_enter.push(() => {
             targetingDrawableIsVisible = true
+            this.fighterMall.activate()
         })
         this.ui.targeting.on_leave.push(() => {
             targetingDrawableIsVisible = false
@@ -310,31 +329,40 @@ class Game extends GameShared {
     }
 
     async initWithStatesGrimButton() {
-        const grim = this.grim = new Button({ width: 180, height: 300 })
+        const grim = this.grim = new Button({
+            width: GRAPHICS.GRIM_PIC_WIDHT,
+            height: GRAPHICS.GRIM_PIC_HEIGHT,
+            transparent: true,
+            img: IMAGES.grimTest,
+            fontSize: GRAPHICS.GRIM_PIC_FONTSIZE
+        })
         if (RULES.WIZARDS_ARE_DRAGGABLE) Button.make_draggable(grim)
         grim.color = "pink"
         let canRequestGrim = true
+        grim.on_click = () => this.prioritize(grim)
         grim.on_release = () => {
             if (!this.myself?.canPullFromGrimoire) return
             if (!canRequestGrim) return
             canRequestGrim = false
             setTimeout(() => canRequestGrim = true, 1000)
             chat.wee("pull").then(() => { }).catch(() => pop.error("Could not contact server, ask the teacher for help."))
+            Spell.GRIMOIRE.forEach(x => {
+                if (!x.mall.visible) x.button.centerinRect(grim)
+            })
         }
         grim.update = () => {
             grim.rad =
                 this.myself?.canPullFromGrimoire ?
-                    this.fasterSin * 0.09
+                    this.fasterSin * 0.1
                     : 0
             grim.txt =
                 this.myself?.canPullFromGrimoire ?
-                    `PULL A NEW\nSPELL \nFROM THE\nGRIMOIRE`
-                    : `GRIMOIRE`
+                    "Click me to pull a spell!"
+                    : ""
         }
         grim.isBlocking = true
         grim.bottomat(this.HEIGHT - 100)
         grim.rightat(this.WIDTH - 100)
-        // grim.deactivate() //let server activate it!
         this.fighterMall.push(grim)
     }
 
@@ -354,7 +382,8 @@ class Game extends GameShared {
             }
             mall.update = (dt) => {
                 // if (!mall.visible) return //why not always?
-                spell.timeLeft -= dt
+                if (spell.isActive)
+                    spell.timeLeft -= dt
             }
         }
 
@@ -448,7 +477,8 @@ class Game extends GameShared {
     on_creationOfPlayerInPool(player) {
         this.fighterMall.push(player.createGraphics())
         Button.make_draggable(player.button)
-        player.button.move(MM.random(0, 400), MM.random(0, 400))
+        player.button.topleftat(MM.random(0, this.WIDTH), MM.random(0, this.HEIGHT))
+        player.button.fitWithinAnother(this.rect.copy.stretch(.8, .8))
         player.button.isBlocking = true
         player.button.___clickCount = 0
         let hasResetAlready = 0

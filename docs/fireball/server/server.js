@@ -83,7 +83,7 @@ class Person extends Participant {
 class Game extends GameShared {
     //#region initialize_more
     initialize_more() {
-        this.init_shared()
+
     }
     initServerUI() {
         const logWindow = this.logWindow =
@@ -192,7 +192,7 @@ class Game extends GameShared {
                 RULES.TIER_STRINGS[x.tier],
                 x.isActive ? MM.toMMSS(x.timeLeft) : ""
             ]),
-            "id _ isActive seenBy solvedBy isInGrim Tier MMSS".split(" ")
+            "id _ isActive seenBy isSolvedBy isInGrim Tier MMSS".split(" ")
         )
         grimTable.topleftat(70, 170)
         // Button.make_stretchable(grimTable, { layer: 5 })
@@ -461,6 +461,8 @@ class Game extends GameShared {
                 RULES.FIZZLE_AUTO_RETURN_WITHOUT_SERVER_TIER_FUNCTION(spell.tier)
             spell.isInGrimoire = true
         }
+        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_FIZZLE)
+            player.canPullFromGrimoire = true
     }
 
     /**@param {Player} player */
@@ -535,6 +537,8 @@ class Game extends GameShared {
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
 
+        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_SOLVE)
+            player.canPullFromGrimoire = true
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?

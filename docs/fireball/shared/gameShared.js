@@ -1,11 +1,15 @@
-var IMAGES = {}
+var IMAGES = { spellTest: null, wizardTest: null, grimTest: null }
 class GameShared extends GameCore {
 
 
-    init_shared() {
-        IMAGES.spellTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
-        IMAGES.wizardTest = this.cropper.load_img(RULES.PICTURES_FOLDER_PATH + "wizardTest.png")
-
+    async init_shared() {
+        await Promise.all(
+            Object.keys(IMAGES).map(async key =>
+                IMAGES[key] = await Cropper.loadImagePromise(
+                    RULES.PICTURES_FOLDER_PATH + key + ".png")
+            ))
+        console.log("IMAGES", IMAGES)
+        Spell.GRIMOIRE.forEach(x => x.pic = IMAGES.spellTest)
     }
 
     getBCdata() {
@@ -238,9 +242,7 @@ class Spell {
             spell.bucket = bucket ?? 0
             //client won't receive? shouldn't? whatever. anticheat will take care of it!
             spell.img = img
-            spell.pic = IMAGES.spellTest ?? (() => {
-                return IMAGES.spellTest = cropper.load_img(RULES.PICTURES_FOLDER_PATH + "spellTest.png")
-            })()
+            spell.pic = IMAGES.spellTest
             spell.color = `hsl(${spell.id / arr.length * 360} 50% 50%)`
             // spell.isInGrimoire = true //initialzied this way anyways
         })
@@ -266,7 +268,7 @@ class Spell {
 
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
-                RULES.TIER_STRINGS[this.tier]
+                `${RULES.SPELL_NAMES[this.id]} ${RULES.TIER_STRINGS[this.tier]}`
                 + "\n"
                 + MM.toMMSS(this.timeLeft),
                 {
