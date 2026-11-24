@@ -368,16 +368,14 @@ class Game extends GameShared {
             player.person.spam("infopop", "There are no spell left in the Grimoire.")
             return //missed the early return, oops!
         }
-        const lowestBucket = Math.min(...availableSpells.map(x => x.bucket))
-        const availableInLowestBucket = availableSpells.filter(x => x.bucket == lowestBucket)
-        const fallbackLowestBucket = availableInLowestBucket.length
-            ? availableInLowestBucket : availableSpells
-        const leastSeenNumber = Math.min(...fallbackLowestBucket.map(x => x.seenHistory.length))
-        const availableLeastSeen = fallbackLowestBucket.filter(x => x.seenHistory.length == leastSeenNumber)
-        const fallbackLeastSeen = availableLeastSeen.length
-            ? availableLeastSeen : fallbackLowestBucket
+        const leastSeenNumber = Math.min(...availableSpells.map(x => x.seenHistory.length))
+        let leastSeenFiltered = availableSpells.filter(x => x.seenHistory.length == leastSeenNumber)
+        if (!leastSeenFiltered.length) leastSeenFiltered = availableSpells
+        const lowestBucket = Math.min(...leastSeenFiltered.map(x => x.bucket))
+        let lowestFiltered = leastSeenFiltered.filter(x => x.bucket == lowestBucket)
+        if (!lowestFiltered.length) lowestFiltered = leastSeenFiltered
         const chosenSpell =
-            fallbackLeastSeen[MM.randomIndex(fallbackLeastSeen.length)]
+            lowestFiltered[MM.randomIndex(lowestFiltered.length)]
         chosenSpell.isInGrimoire = false
         if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
             player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
