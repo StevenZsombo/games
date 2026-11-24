@@ -333,7 +333,7 @@ class Game extends GameShared {
             width: GRAPHICS.GRIM_PIC_WIDHT,
             height: GRAPHICS.GRIM_PIC_HEIGHT,
             transparent: true,
-            img: IMAGES.grimTest,
+            img: IMAGES.grimpic,
             fontSize: GRAPHICS.GRIM_PIC_FONTSIZE
         })
         if (RULES.WIZARDS_ARE_DRAGGABLE) Button.make_draggable(grim)
