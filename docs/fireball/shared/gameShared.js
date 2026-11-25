@@ -304,6 +304,8 @@ class Spell {
 
 //why not lol
 Spell.FILL_GRIMOIRE(
+    [{ "img": "vec1", "solution": -6, "bucket": 1 }, { "img": "vec2", "solution": 2.67, "bucket": 1 }, { "img": "vec3", "solution": 0.636, "bucket": 1 }, { "img": "vec4", "solution": 80.5, "bucket": 1 }, { "img": "vec5", "solution": 25, "bucket": 1 }, { "img": "vec6", "solution": -5, "bucket": 1 }, { "img": "vec7", "solution": 0.2, "bucket": 1 }, { "img": "vec8", "solution": 11.2, "bucket": 1 }, { "img": "vec9", "solution": 3.5, "bucket": 1 }, { "img": "vec10", "solution": 3, "bucket": 1 }, { "img": "vec11", "solution": 0.714, "bucket": 1 }, { "img": "vec12", "solution": -14, "bucket": 1 }, { "img": "vec13", "solution": 0.2, "bucket": 1 }]
+    /*
     [
         { img: "circletangents", solution: 29, bucket: 1 },
         { img: "improperintegral", solution: 0.667, bucket: 1 },
@@ -318,6 +320,7 @@ Spell.FILL_GRIMOIRE(
         { img: "trigsolve", solution: -75, bucket: 1 },
         { img: "trigsolvesec", solution: 98.9, bucket: 1 },
     ]
+        */
     //[[1, 5.83], [2, 8.5], [3, 2.5], [4, 17.5], [5, 6.5], [6, -0.5], [7, 2.5], [8, 1.67], [9, 2.5], [10, 20.3], [11, 1.6], [12, 11.5], [13, 6.16], [14, 7.4], [15, 7.5],
     // [16, 11.4], [17, -0.5], [18, 4.1], [19, 2.63], [20, 6.86], [21, 8.33], [22, 2.39], [23, 4.83], [24, 0.414], [25, 2.47]
     //]
