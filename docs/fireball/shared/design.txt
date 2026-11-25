@@ -1,37 +1,31 @@
 To improve:
 
+1. Rebalance HP system?
 
-1. State machine for easier player/ui management
-
-2. Should be generally easier questions
-   Quickfire problem-solving is preferable!
-
-3. UI: answer buttons should not cover the text at first?
-
-4. Rebalance HP system?
-
-5. Spell icons, wizard icons, animations showing who targets who. 
+2. Spell icons, wizard icons, animations showing who targets who. 
 Wizards sitting in a semicircle in front of the grimoire with arrows
 showing who attacked who would be nice and intuitive
 (and visually distinct from my other games).
-Spells could be cards with clearly visible timers.
+Spells could be cards with clearly visible timers. DONE
+   -Partially done
 
-6. Client-side clockworks (so LAG is less noticeable). Maybe?
+3. Full autosave and load system. - Partially done
 
-7. Full autosave and load system.
-
-8. Valid design concern: why would you ever pull from the grimoire 
-instead of sticking to defense? More powerful spells always come
-from your peers. So the grimoire should be geared towards
-players on the catch-up. 
-Maybe T1 spells come with a hint? That would be awesome!
 
 
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
 Clearer "you are knocked down" info
 Pulling from the grimoire now gives HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
-
+State machine for easier player/ui management DONE
+Should be generally easier questions Quickfire problem-solving is preferable! DONE
+UI: answer buttons should not cover the text at first? DONE
+Client-side clockworks (so LAG is less noticeable). DONE
+Valid design concern: why would you ever pull from the grimoire 
+   instead of sticking to defense? More powerful spells always come
+   from your peers. So the grimoire should be geared towards
+   players on the catch-up. - DONE
+ 
 
 Fixed:
 Missed the early return in "pull" causing server-side error

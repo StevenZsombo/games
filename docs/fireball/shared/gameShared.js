@@ -16,6 +16,7 @@ class GameShared extends GameCore {
             await grab("runes6x4"), 4, 6).flat()
         console.log("IMAGES", IMAGES)
         Spell.GRIMOIRE.forEach((x, i) => x.pic = IMAGES.runes[i])
+        wDiv.addLine("IMAGES loaded!")
 
     }
 
@@ -241,7 +242,8 @@ class Spell {
     solution = 8774 //by default.
     img = "blankByDefault"
     pic = "iconRune"
-    color = "hsl(0 50 50)"
+    color = "black"
+    transColor = "black"
     static FILL_GRIMOIRE(arr) {
         arr.forEach(({ img, solution, bucket }) => {
             const spell = new Spell()
@@ -253,6 +255,7 @@ class Spell {
             spell.img = img
             spell.pic = null //let init_shared take care of it
             spell.color = `hsl(${spell.id / arr.length * 360} 50% 50%)`
+            spell.transColor = `hsl(${spell.id / arr.length * 360} 50% 50% / 0.75)`
             // spell.isInGrimoire = true //initialzied this way anyways
         })
     }

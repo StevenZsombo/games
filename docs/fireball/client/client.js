@@ -58,6 +58,9 @@ class Game extends GameShared {
         wDiv.addLine("initWithStatesSpellRunes")
         await this.initWithStatesDiagnostic()
         wDiv.addLine("initWithStatesDiagnostic")
+        await this.initTrail()
+        wDiv.addLine("initTrail")
+
         wDiv.addLine("\nREADY!")
         setTimeout(wDiv.hide, 500)
 
@@ -135,6 +138,41 @@ class Game extends GameShared {
         })
 
         chat.eggs("bc", data => this.receiveBC(data))
+
+    }
+    async initTrail() {
+        if (!RULES.SHOW_TRAIL) return
+        // const r = Math.sqrt(t), a = 2 * Math.PI * t
+        //runs after init anyways?
+        const offsets = Spell.GRIMOIRE.map((_, i) => {
+            const t = i / Spell.GRIMOIRE.length
+            const r = Math.sqrt(t) * GRAPHICS.WIZARD_HEIGHT * .25
+            const a = TWOPI * t
+            const x = Math.cos(a) * r
+            const y = Math.sin(a) * r
+            return [x, y]
+        })
+        this.show_trail_visible = true
+        const draw = ctx => {
+            if (!this.show_trail_visible) return
+            // this.activeSpells.concat(this.passiveSpells)
+            Spell.GRIMOIRE
+                .filter(x => x.placeHistory.length > 1)
+                .forEach(spell => {
+                    // if (spell.placeHistory.length <= 1) return
+                    const trail =
+                        spell.placeHistory.map(x => x == -1 ? this.grim : this.pool(x).button)
+
+                    MM.drawPolyLine(ctx,
+                        trail.map(b => b.cx + offsets[spell.id][0]),
+                        trail.map(b => b.cy + offsets[spell.id][1]),
+                        { color: spell.transColor, width: 5 }
+                    )
+                })
+        }
+        this.trailDrawable = { draw }
+        this.fighterMall.components.unshift(this.trailDrawable)
+
 
     }
     async initWithStates() {
@@ -360,7 +398,7 @@ class Game extends GameShared {
 
     async initWithStatesDiagnostic() {
         if (RULES.SHOW_LAST_BC_TIME) {
-            const lastBCtimeIndicator = new Button({ width: 300, height: 300, y: 0 })
+            const lastBCtimeIndicator = this.lastBCtimeIndicator = new Button({ width: 300, height: 300, y: 0 })
             lastBCtimeIndicator.rightat(this.WIDTH - 10)
             lastBCtimeIndicator.transparent = true
             lastBCtimeIndicator.textSettings.textAlign = "right"
@@ -388,6 +426,31 @@ class Game extends GameShared {
         if (GRAPHICS.INSIST_ON_FULLSCREEN_COUNT) {
             GameEffects.insistOnFullscreen(GRAPHICS.INSIST_ON_FULLSCREEN_COUNT)
         }
+
+        // dynamicText: () => this.show_trail_visible ? "Show trails: ON" : "Show trails: OFF",
+        // on_release: () => this.show_trail_visible = !this.show_trail_visible
+        if (RULES.SETTINGS_SHOWN) {
+            this.lastBCtimeIndicator?.deactivate()
+            this.framerate.button.deactivate()
+            const settingsButton = this.settingsButton = new Button({
+                width: 100, height: 50,
+                color: "pink",
+                txt: "Settings"
+            })
+            settingsButton.rightat(this.rect.right)
+            settingsButton.topat(0)
+            this.fighterMall.components.push(settingsButton)
+            settingsButton.on_release = () => {
+                GameEffects.dropDownBetter([
+                    ["Attempt fullscreen", () => MM.toggleFullscreen(true)],
+                    ["Toggle diagnostic", () => this.lastBCtimeIndicator?.toggleActive()],
+                    ["Toggle framerate", () => this.framerate.button.toggleActive()],
+                    ["Show trails: " + (this.show_trail_visible ? "ON" : "OFF"),
+                    () => this.show_trail_visible = !this.show_trail_visible],
+
+                ], { moreButtonSettings: { width: 350 } })
+            }
+        }
     }
 
     async initWithStatesGrimButton() {
@@ -410,6 +473,7 @@ class Game extends GameShared {
         grim.on_release = () => {
             if (grimClickCount < RULES.CLICK_COUNT_TO_ATTACK) return
             if (!this.myself?.canPullFromGrimoire) return
+            if (this.myself.actives.length == RULES.MAX_ACTIVES) return //don't wait for server
             if (!canRequestGrim) return
             grimClickCount = 0
             canRequestGrim = false
@@ -420,12 +484,13 @@ class Game extends GameShared {
             })
         }
         grim.update = () => {
+            const canPull = this.myself?.canPullFromGrimoire && this.myself.actives.length < RULES.MAX_ACTIVES
             grim.rad =
-                this.myself?.canPullFromGrimoire ?
+                canPull ?
                     this.fasterSin * 0.1
                     : 0
             grim.txt =
-                this.myself?.canPullFromGrimoire ?
+                canPull ?
                     `\nClick me ${RULES.CLICK_COUNT_TO_ATTACK - grimClickCount} times\n\n\nto pull a spell!\n`
                     : ""
         }
@@ -543,6 +608,9 @@ class Game extends GameShared {
         this.fighterMall.components =
             MM.putAsLast(fighterMallDrawable, this.fighterMall.components)
     }
+    pool(id) {
+        return Player.pool(id, (x) => this.on_creationOfPlayerInPool(x))
+    }
     /**@param {Player} player  */
     on_creationOfPlayerInPool(player) {
         this.fighterMall.push(player.createGraphics())
@@ -580,9 +648,7 @@ class Game extends GameShared {
             const copies = new Set(Player.poolBANK.values())
             for (const p of data.pd) { // HARD requires p.x
                 if (p.x == null) throw new Error("Invalid p.x")
-                const player = Player.pool(
-                    p.x, //keyed by incremental id instead of nameID - not great?
-                    u => this.on_creationOfPlayerInPool(u))
+                const player = this.pool(p.x)
                 copies.delete(player)
                 if (p.n)
                     player.name = p.n
@@ -636,9 +702,12 @@ class Game extends GameShared {
     }
     /**@type {?Player} */
     myself = null
+    /**@type {Spell[]}*/
+    activeSpells = []
+    /**@type {Spell[]}*/
+    passiveSpells = []
     refreshAnimations() {
-        this.myself ??= Player.pool(this.me,
-            x => this.on_creationOfPlayerInPool(x)) //just in case
+        this.myself ??= this.pool(this.me)
         //grim button - handled by .update()
         // this.grim.txt =
         // this.myself.canPullFromGrimoire
@@ -687,6 +756,10 @@ class Game extends GameShared {
                 x.isInActiveSize = false
             }
         }) //not sure about this, we'll see
+
+        this.activeSpells = activeSpells
+        this.passiveSpells = passiveSpells
+
 
     }
 
@@ -740,3 +813,4 @@ const dev = {
 
 
 }/// end of dev
+
