@@ -26,6 +26,8 @@ Valid design concern: why would you ever pull from the grimoire
    instead of sticking to defense? More powerful spells always come
    from your peers. So the grimoire should be geared towards
    players on the catch-up. - DONE
+   EVEN BETTER - allowed pulling from the Grimoire more freely,
+   so pulling easier spells is now a defensive strategy.
 Spell icons, wizard icons, animations showing who targets who. 
    Wizards sitting in a semicircle in front of the grimoire with arrows
    showing who attacked who would be nice and intuitive
