@@ -2,16 +2,11 @@ To improve:
 
 1. Rebalance HP system?
 
-2. Spell icons, wizard icons, animations showing who targets who. 
-Wizards sitting in a semicircle in front of the grimoire with arrows
-showing who attacked who would be nice and intuitive
-(and visually distinct from my other games).
-Spells could be cards with clearly visible timers. DONE
-   -Partially done
+2. Full autosave and load system. - Partially done
 
-3. Full autosave and load system. - Partially done
+3. Trails could wander, cards could float.
 
-
+4. Allow players to move themselves only? Then sync the shared space?
 
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
@@ -25,6 +20,11 @@ Valid design concern: why would you ever pull from the grimoire
    instead of sticking to defense? More powerful spells always come
    from your peers. So the grimoire should be geared towards
    players on the catch-up. - DONE
+Spell icons, wizard icons, animations showing who targets who. 
+   Wizards sitting in a semicircle in front of the grimoire with arrows
+   showing who attacked who would be nice and intuitive
+   (and visually distinct from my other games).
+   Spells could be cards with clearly visible timers. DONE
  
 
 Fixed:
