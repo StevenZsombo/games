@@ -655,6 +655,15 @@ class Game extends GameShared {
         chat.spam("bc", BCdata)
     }
 
+    localStorageReadLatestSave() {
+        localStorage.getItem(MASTER.LOCALSTORAGE_KEY_MINIMAL) //only minimal is saved to local now
+        /*
+        return {
+            full: localStorage.getItem(MASTER.LOCALSTORAGE_KEY),
+            minimal: localStorage.getItem(MASTER.LOCALSTORAGE_KEY_MINIMAL),
+        }
+        */
+    }
     exportALL({ minimalOnly = false } = {}) {
         console.log("Attempting to save...")
         const minimalBackup =
@@ -678,15 +687,21 @@ class Game extends GameShared {
                     [p.person.name, p.person.nameID, p.hpLog]),
                 eventLog,
             })
-        console.log("Successful safeStringify!")
-        MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY, 5)
-        console.log("Made backups")
-        localStorage.setItem(MASTER.LOCALSTORAGE_KEY, str)
-        console.log("Save to local successful!")
-        MM.downloadFile(
-            str, "fireball" + MM.dateAndTimeShort() + ".json"
-        )
-        console.log("Save to file successful!")
+        /*
+        try {
+            console.log("Successful safeStringify!")
+            MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY, 5)
+            console.log("Made backups")
+            localStorage.setItem(MASTER.LOCALSTORAGE_KEY, str)
+            console.log("Save to local successful!")
+        } catch { }
+        */
+        try {
+            MM.downloadFile(
+                str, "fireball" + MM.dateAndTimeShort() + ".json"
+            )
+            console.log("Save to file successful!")
+        } catch { }
         return str
     }
 

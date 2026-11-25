@@ -150,10 +150,55 @@ class Game extends GameShared {
         this.solverMall.push(fullViewer)
         fullViewer.deflate(
             GRAPHICS.FULLVIEWER_PADDING * 2,
-            GRAPHICS.FULLVIEWER_PADDING * 2)
+            GRAPHICS.FULLVIEWER_PADDING * 2
+        )
+        fullViewer.height -= GRAPHICS.HELPER_HEIGHT * 1.2
         fullViewer.color = GRAPHICS.FULLVIEWER_COLOR
 
         this.fullViewerRectCopy = fullViewer.copyRect
+
+        //helper buttons
+        const helpers = this.helpers = new Rect(
+            0, 0,
+            this.WIDTH - 50 * GRAPHICS.CALCULA_SCALEFACTOR,
+            GRAPHICS.HELPER_HEIGHT)
+            .centeratY((fullViewer.bottom + this.HEIGHT) * .5)
+            .splitCol(...Array(RULES.MAX_ACTIVES).fill().map(x => 1), 3)
+            // .splitGrid(1, RULES.MAX_ACTIVES + 1).flat()
+            .map(u => Button.make_roundedRect(Button.fromRect(u)))
+        console.log({ helpers })
+        helpers.slice(0, -1).forEach((x, i) => {
+            x.fontSize = GRAPHICS.CARD_FONTSIZE
+            x.stretch(0.85, 1)
+            // x.radius *= 0.5
+            x.update = () => {
+                if (!this.myself) return
+                const spell = this.myself.actives[i]
+                if (!spell) return x.deactivate()
+                x.activate()
+                x.color = spell.color
+                x.txt = `${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} (${MM.toMMSS(spell.timeLeft)})`
+                x.tag = "helper_" + i
+            }
+            x.on_release = () => {
+                const spell = this.myself?.actives[i]
+                if (!spell) return
+                if (spell.id == this.spellIDCurrentlyBeingSolved) return
+                this.setFullViewerOn(spell.id) //kind of lame? whatever
+            }
+        })
+        const passiveHelper = helpers[helpers.length - 1]
+        passiveHelper.transparent = true
+        passiveHelper.fontSize = GRAPHICS.CARD_FONTSIZE
+        passiveHelper.dynamicText = () => {
+            if (!this.myself || !this.myself.passives.length) return ""
+            return "Passives: " + this.myself.passives.map(x =>
+                `${RULES.SPELL_NAMES[x.id]} ${RULES.TIER_STRINGS[x.id]} (${MM.toMMSS(x.timeLeft)})`
+            ).join(" ")
+
+        }
+
+        this.solverMall.push(...helpers)
 
         const cBG = new Button({ width: 50, height: 100 }) //what?
             .stretch(
