@@ -8,6 +8,12 @@ To improve:
 
 4. Allow players to move themselves only? Then sync the shared space?
 
+5. Recreate the conflict sync system from Conquest?
+
+5+. Immediate async callback case by case? Or rather allow for immediate bc request
+
+6. Allow zooming in/out
+
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
 Clearer "you are knocked down" info
