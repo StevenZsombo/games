@@ -304,7 +304,21 @@ class Spell {
 
 //why not lol
 Spell.FILL_GRIMOIRE(
-    [{ "img": "vec1", "solution": -6, "bucket": 1 }, { "img": "vec2", "solution": 2.67, "bucket": 1 }, { "img": "vec3", "solution": 0.636, "bucket": 1 }, { "img": "vec4", "solution": 80.5, "bucket": 1 }, { "img": "vec5", "solution": 25, "bucket": 1 }, { "img": "vec6", "solution": -5, "bucket": 1 }, { "img": "vec7", "solution": 0.2, "bucket": 1 }, { "img": "vec8", "solution": 11.2, "bucket": 1 }, { "img": "vec9", "solution": 3.5, "bucket": 1 }, { "img": "vec10", "solution": 3, "bucket": 1 }, { "img": "vec11", "solution": 0.714, "bucket": 1 }, { "img": "vec12", "solution": -14, "bucket": 1 }, { "img": "vec13", "solution": 0.2, "bucket": 1 }]
+    [
+        { "img": "vec1", "solution": -6, "bucket": 1 },
+        { "img": "vec2", "solution": 2.67, "bucket": 1 },
+        { "img": "vec3", "solution": 0.636, "bucket": 2 },
+        { "img": "vec4", "solution": 80.5, "bucket": 1 },
+        { "img": "vec5", "solution": 25, "bucket": 1 },
+        { "img": "vec6", "solution": -5, "bucket": 1 },
+        { "img": "vec7", "solution": 0.2, "bucket": 1 },
+        { "img": "vec8", "solution": 11.2, "bucket": 1 },
+        { "img": "vec9", "solution": 3.5, "bucket": 1 },
+        { "img": "vec10", "solution": 3, "bucket": 2 },
+        { "img": "vec11", "solution": 0.714, "bucket": 2 },
+        { "img": "vec12", "solution": -14, "bucket": 2 },
+        { "img": "vec13", "solution": 0.2, "bucket": 2 }
+    ]
     /*
     [
         { img: "circletangents", solution: 29, bucket: 1 },
