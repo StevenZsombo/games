@@ -315,7 +315,7 @@ class Game extends GameShared {
                 console.log("STOPPED BROADCASTING. SAFE TO RESTART")
                 return
             }
-            this.sendBC()
+            this.sendBC({ checkForPermission: false })
             setTimeout(() => this.broadcastAction(), this.broadcastIntervalDelay)
         }
         this.broadcastAction()
@@ -401,6 +401,7 @@ class Game extends GameShared {
             })
             if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
             player.stampHP()
+            //this.sendBC() //not needed: done below anyways
         }
         this.assignSpellToPlayer(chosenSpell, player)
 
@@ -411,6 +412,7 @@ class Game extends GameShared {
             spell: chosenSpell,
             time: Date.now(),
         })
+        this.sendBC()
 
     }
 
@@ -423,7 +425,6 @@ class Game extends GameShared {
         spell.seenHistory.push(player)
         spell.placeHistory.push(player.id)
         player.seen.push(spell)
-
     }
 
     /**@param {Spell} spell @param {Player} player */
@@ -476,6 +477,8 @@ class Game extends GameShared {
         }
         if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_FIZZLE)
             player.canPullFromGrimoire = true
+
+        this.sendBC()
     }
 
     /**@param {Player} player */
@@ -488,7 +491,7 @@ class Game extends GameShared {
             type: "playerDowned",
             time: Date.now(),
         })
-
+        this.sendBC()
     }
 
     /**@param {Spell} spell @param {Player} player */
@@ -557,8 +560,11 @@ class Game extends GameShared {
             .then(_ => gpop(`${player.person.name} began targeting.`))
             .catch(_ => bpop(`BADNESS: ${player.person.name} cannot target!`))
 
-        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_SOLVE)
+        if (RULES.ALLOW_PULLING_FROM_GRIMOIRE_AFTER_ANY_SOLVE) {
             player.canPullFromGrimoire = true
+        }
+
+        this.sendBC()
     }
 
     tickSpellSeconds(dt = 1000) {  //called every second?
@@ -594,6 +600,7 @@ class Game extends GameShared {
                         time: Date.now(),
                     })
                     player.s.fighting.setAsCurrent()
+                    this.sendBC()
                 }
             } else this.advanceQueue(player)
         }
@@ -648,6 +655,7 @@ class Game extends GameShared {
         })
         attacker.s.fighting.setAsCurrent()
         this.advanceQueue(attacker)
+        this.sendBC()//why not?
         return `Succesfully attacked ${defender.person.name}.\nThey have ${MM.toMMSS(RULES.TIME_FROM_TIER(spell.tier))} to solve, or else they take ${RULES.DAMAGE_FROM_TIER(spell.tier)} damage.` //successful attack!
 
     }
@@ -665,13 +673,15 @@ class Game extends GameShared {
 
 
 
-    sendBC() {
+    sendBC({ checkForPermission = true } = {}) {
+        if (checkForPermission && !MASTER.PERMISSION_TO_SEND_BROADCAST_ON_EVENT) return
         if (this.masterPauseBC) return
         // const playersData = Player.ALL.map(x => x.person.name)
         const BCdata = this.getBCdata()
 
         chat.spam("bc", BCdata)
     }
+
 
     localStorageReadLatestSave() {
         localStorage.getItem(MASTER.LOCALSTORAGE_KEY_MINIMAL) //only minimal is saved to local now
