@@ -133,6 +133,7 @@ class Game extends GameShared {
         chat.eggs("errorpop", pop.error)
 
         chat.eggs("targeting", () => {
+            if (this.myself) this.myself.targetingTimeLeft = RULES.TARGETING_WINDOW_IMMUNITY_SECONDS
             this.ui.targeting.setAsCurrent()
             return null //explicitly...
         })
