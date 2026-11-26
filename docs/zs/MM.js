@@ -3232,5 +3232,22 @@ For complex output, best to avoid $ entirely and use \\text{} for text.`
 
         return { circles, circlesDrawable, rects }
     }
+
+
+
+    static disconnectedIndicator() {
+        const dc = new Button()
+        dc.height = 50
+        dc.width = 1200
+        dc.topat(0)
+        dc.color = "red"
+        dc.centeratX(game.WIDTH / 2)
+        dc.txt = "LOST CONNECTION. Ask teacher for help"
+        dc.fontSize = 48
+        chat.on_disconnect = () => dc.activate()
+        chat.on_join = () => dc.deactivate()
+        if (chat.isConnected) dc.deactivate()
+        game.add_drawable(dc, 9)
+    }
 }
 //#endregion

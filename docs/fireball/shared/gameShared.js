@@ -19,7 +19,7 @@ class GameShared extends GameCore {
         wDiv.addLine("IMAGES loaded!")
 
     }
-
+    _zz = 1
     getBCdata() {
         const pd = Player.ALL.map(p => {
             return {
@@ -39,7 +39,8 @@ class GameShared extends GameCore {
         const sd = Spell.GRIMOIRE.map(s => {
             return [s.id, s.tier, s.timeLeft, s.placeHistory]
         })
-        return { pd, sd }
+        const zz = this._zz++
+        return { pd, sd, zz }
     }
 
 
@@ -203,7 +204,8 @@ class Player {
         })
         button.draw_more = (ctx) => {
             MM.drawText(ctx,
-                `${this.name ?? this.nameID}\n${this.hp} HP`,
+                `${this.name ?? this.nameID}\n` +
+                (this.hp ? `${this.hp} HP` : `Downed for ${MM.toMMSS(this.downedTimeLeft)}`),
                 {
                     ...button,
                     height:

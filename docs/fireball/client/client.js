@@ -180,7 +180,10 @@ class Game extends GameShared {
         this.solverMall = new Malleable()
         this.fighterMall = new Malleable()
         this.add_drawable(this.solverMall, 4)
-        this.add_drawable(this.fighterMall, 4)
+        this.w = new GameWorld(game.rect.copy) //might be a bad idea
+        this.w.add_drawable(this.fighterMall, 4)
+        this.add_drawable(this.w, 4)
+        // this.add_drawable(this.fighterMall, 4)
         const fullViewer = this.fullViewer = Button.fromRect(this.rect.copy)
         fullViewer.isBlocking = true
         fullViewer.on_release = () => {
@@ -469,18 +472,29 @@ class Game extends GameShared {
             })
             settingsButton.rightat(this.rect.right)
             settingsButton.topat(0)
-            this.fighterMall.components.push(settingsButton)
+            this.add_drawable(settingsButton, 8)
+            settingsButton.update = () => settingsButton.activeState = this.fighterMall.visible
             settingsButton.on_release = () => {
                 GameEffects.dropDownBetter([
                     ["Attempt fullscreen", () => MM.toggleFullscreen(true)],
                     ["Toggle diagnostic", () => this.lastBCtimeIndicator?.toggleActive()],
                     ["Toggle framerate", () => this.framerate.button.toggleActive()],
+                    ["Change zoom level", () => GameEffects.dropDownBetter(
+                        [1, 2, 4].map(x => [100 * (1 / x) + "%",
+                        () => {
+                            this.w.worldRect.putOver(this.rect.copy.stretch(x, x))
+                            Array.from(Player.poolBANK.values()).map(p => p.button).concat(this.grim).
+                                forEach(p => p?.pushWithinAnother(this.w.worldRect))
+                        }
+                        ])
+                    )],
                     ["Show trails: " + (this.show_trail_visible ? "ON" : "OFF"),
                     () => this.show_trail_visible = !this.show_trail_visible],
 
                 ], { moreButtonSettings: { width: 350 } })
             }
         }
+        GameEffects.disconnectedIndicator()
     }
 
     async initWithStatesGrimButton() {
@@ -629,8 +643,11 @@ class Game extends GameShared {
 
     shared = null
     lastBCtime = null
+    zz = 0
     /**@param {ReturnType<typeof this.getBCdata>} data  */
     receiveBC(data) {
+        if (data.zz <= this.zz) return
+        this.zz = data.zz
         this.lastBCtime = Date.now()
         this.refreshUI(data) //refresh first!
         this.shared = data //just for safekeeping, really
