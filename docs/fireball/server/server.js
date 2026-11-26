@@ -89,9 +89,10 @@ class Game extends GameShared {
         const logWindow = this.logWindow =
             Button.fromRectShallow(this.rect.copy.stretch(.8, .8))
         let startIndex = 0
+        const totalRows = 25
         logWindow.dynamicText = () =>
-            `(${startIndex}/${eventLog.length})\n` +
-            eventLog.map(x => x.str).slice(startIndex).join("\n")
+            `(Displaying ${startIndex}-${Math.min(startIndex + totalRows, eventLog.length)}/${eventLog.length})\n` +
+            eventLog.map(x => x.str).slice(startIndex, startIndex + totalRows).join("\n")
         logWindow.on_wheel = (delta) => {
             startIndex += (delta > 0 ? 1 : -1)
             startIndex = MM.clamp(startIndex, 0, eventLog.length - 2)
@@ -379,11 +380,11 @@ class Game extends GameShared {
         const chosenSpell =
             lowestFiltered[MM.randomIndex(lowestFiltered.length)]
         chosenSpell.isInGrimoire = false
-        if (RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE) {
-            player.hp += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
-            player.totalHeal += RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
+        if (RULES.HEAL_WHEN_PULLING_FROM_GRIMOIRE) {
+            player.hp += RULES.HEAL_WHEN_PULLING_FROM_GRIMOIRE
+            player.totalHeal += RULES.HEAL_WHEN_PULLING_FROM_GRIMOIRE
             eventLog.push({
-                str: `${player.person.name} healed for ${RULES.HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE} by pulling a spell from the Grimoire.`,
+                str: `${player.person.name} healed for ${RULES.HEAL_WHEN_PULLING_FROM_GRIMOIRE} HP by pulling a spell from the Grimoire.`,
                 type: "healFromGrimoire",
                 time: Date.now(),
                 player: player
@@ -522,11 +523,18 @@ class Game extends GameShared {
             player.person.wee("serverpop", `Everyone has already seen that spell, so you cannot attack anyone with it.`)
                 .then(_ => gpop(`${player.person.name} ran out of targets.`))
                 .catch(_ => bpop(`BADNESS: ${player.person.name} could not be notified about running out of targets.`))
+            if (RULES.HEAL_WHEN_OUT_OF_TARGETS) {
+                player.hp += RULES.HEAL_WHEN_OUT_OF_TARGETS
+                if (player.hp > RULES.MAX_HP) player.hp = RULES.MAX_HP
+                player.stampHP()
+            }
             eventLog.push({
                 type: "outOfTargets",
                 player: player,
                 spell: spell,
                 time: Date.now(),
+                str: `${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} of ${player.person.name} has no targets available` +
+                    RULES.HEAL_WHEN_OUT_OF_TARGETS ? ` and is instead consumed for ${RULES.HEAL_WHEN_OUT_OF_TARGETS} HP.` : "."
             })
             // this.advanceQueue(player)
             return

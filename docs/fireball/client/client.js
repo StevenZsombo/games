@@ -298,14 +298,17 @@ class Game extends GameShared {
         }
 
         let targetingDrawableIsVisible = false
-        const targetingDrawable = {
+        const targetingDrawable = this.targetingDrawable = {
             draw: (ctx) => {
                 if (!targetingDrawableIsVisible) return
                 if (!this.myself) return
                 const wielding = this.myself.wielding
                 if (!wielding) return
+                /*
                 wielding.mall.activate()
                 wielding.button.centerinRect(this.myself.button)
+                //is activated in refreshUI instead
+                */
                 for (const player of Player.poolBANK.values()) {
 
                     const [txt, color] =
@@ -333,6 +336,32 @@ class Game extends GameShared {
             }
         }
         this.add_drawable(targetingDrawable, 7)
+
+        const threateningDrawable = this.threateningDrawable = {
+            draw: (ctx) => {
+                if (!this.wieldedSpells.length) return
+                const pulse =
+                    (this.dtTotal % GRAPHICS.THREATENING_PULSE_PERIOD) / GRAPHICS.THREATENING_PULSE_PERIOD
+                this.wieldedSpells.forEach(spell => {
+                    const { cx, cy } = spell.button
+                    const pieces = 5
+                    const radiusBit = spell.button.width / pieces
+                    for (let i = 0; i < pieces; i++) {
+                        MM.drawCircle(ctx,
+                            cx, cy,
+                            (1 + i + pulse) * radiusBit,
+                            {
+                                outline_color: spell.color, color: null,
+                                outline: GRAPHICS.THREATENING_PULSE_WIDTH
+                            }
+                        )
+                    }
+                })
+            }
+        }
+        //fighterMall is 4, targetingDrawable is 7
+        this.add_drawable(threateningDrawable, 3)
+
         const downedButton = Button.fromRect(this.rect.copy)
             .stretch(.95, .2)
             .bottomat(this.rect.bottom - 20)
@@ -516,7 +545,6 @@ class Game extends GameShared {
                 }
             }
             mall.update = (dt) => {
-                // if (!mall.visible) return //why not always?
                 if (spell.isActive)
                     spell.timeLeft -= dt
             }
@@ -558,6 +586,9 @@ class Game extends GameShared {
                     dy * dt * GRAPHICS.CRAWL_COEFFICIENT
                 )
             })
+            if (player.sid == 1 && player.wielding) { //targeting & wielding
+                player.wielding.button.centerinRect(player.button)
+            }
             const passivesCount = player.passives.length
             if (passivesCount == 0) continue
             const totalWidth = player.passives[0].button.width * passivesCount * 1.2
@@ -623,6 +654,7 @@ class Game extends GameShared {
         player.button.on_click = () => {
             this.prioritize(player.mall)
             if (!this.ui.targeting.isCurrent) return
+            if (this.myself === player) return
             player.button.___clickCount++
             if (!hasResetAlready) {
                 hasResetAlready = setTimeout(() => {
@@ -706,6 +738,8 @@ class Game extends GameShared {
     activeSpells = []
     /**@type {Spell[]}*/
     passiveSpells = []
+    /**@type {Spell[]}*/
+    wieldedSpells = []
     refreshAnimations() {
         this.myself ??= this.pool(this.me)
         //grim button - handled by .update()
@@ -731,9 +765,13 @@ class Game extends GameShared {
         //activate the appropriate spells
         const activeSpells = []
         const passiveSpells = []
+        const wieldedSpells = []
         for (const player of Player.poolBANK.values()) {
             activeSpells.push(...player.actives)
             passiveSpells.push(...player.passives)
+            if (player.sid == 1 && player.wielding) {//targeting and wielding
+                wieldedSpells.push(player.wielding)
+            }
         }
 
         Spell.GRIMOIRE.forEach(x => x.mall.deactivate())
@@ -755,10 +793,15 @@ class Game extends GameShared {
                 x.button.radius *= GRAPHICS.PASSIVE_SCALE_FACTOR
                 x.isInActiveSize = false
             }
-        }) //not sure about this, we'll see
+        })
+        wieldedSpells.forEach(x => {
+            x.mall.activate() //just make sure it's displayed
+            x.isActive = false
+        })
 
         this.activeSpells = activeSpells
         this.passiveSpells = passiveSpells
+        this.wieldedSpells = wieldedSpells
 
 
     }

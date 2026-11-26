@@ -22,7 +22,8 @@ var RULES = {
                 numberOfTiersUpgraded == 2 ? 20 : 30,
     MIN_TIERS_UPGRADED_AT_ONCE: 1, //unless already max tier!
     MAX_TIERS_UPGRADED_AT_ONCE: 3,
-    HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE: 10,
+    HEAL_WHEN_PULLING_FROM_GRIMOIRE: 10,
+    HEAL_WHEN_OUT_OF_TARGETS: 10,
     ACCURACY_FUNCTION: (attempt, solution) => { // same as spire/conquest!
         //integers must be exact
         if (Number.isInteger(solution)) return attempt == solution
@@ -105,4 +106,6 @@ var GRAPHICS = {
     GRIM_PIC_HEIGHT: 280,
     GRIM_PIC_FONTSIZE: 32,
     HELPER_HEIGHT: 50,
+    THREATENING_PULSE_PERIOD: 700,
+    THREATENING_PULSE_WIDTH: 3,
 }

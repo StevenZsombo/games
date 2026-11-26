@@ -17,7 +17,7 @@ To improve:
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
 Clearer "you are knocked down" info
-Pulling from the grimoire now gives HP_GAIN_WHEN_PULLING_FROM_GRIMOIRE
+Pulling from the grimoire now gives HEAL_WHEN_PULLING_FROM_GRIMOIRE hp
 State machine for easier player/ui management DONE
 Should be generally easier questions Quickfire problem-solving is preferable! DONE
 UI: answer buttons should not cover the text at first? DONE
@@ -33,7 +33,8 @@ Spell icons, wizard icons, animations showing who targets who.
    showing who attacked who would be nice and intuitive
    (and visually distinct from my other games).
    Spells could be cards with clearly visible timers. DONE
- 
+Wielded spells now have pulsating circles
+If there are no targets available for the spell, it heals for HEAL_WHEN_OUT_OF_TARGETS
 
 Fixed:
 Missed the early return in "pull" causing server-side error
