@@ -30,7 +30,7 @@ class GameShared extends GameCore {
                 a: p.actives.map(x => x.id),
                 p: p.passives.map(x => x.id),
                 v: p.seen.map(x => x.id), //just all seen
-                c: p.canPullFromGrimoire && this.allowPullingFromGrimoire,
+                c: p.canPullFromGrimoire && this.allowPullingFromGrimoire && p.BACKUPcanPullFromGrimoire, //two redundancies to prevent false pulls or flooding the server
                 s: p.getStateInfo(),
                 w: p.picID,
             }
@@ -147,6 +147,7 @@ class Player {
     hp = RULES.START_HP
     hpLog = []
     canPullFromGrimoire = true
+    BACKUPcanPullFromGrimoire = true
     totalKnockedDown = 0
     totalDamageDealt = 0
     totalDamageTaken = 0

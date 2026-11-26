@@ -27,15 +27,15 @@ var univ = {
 const pop =
 {
     "local": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "lightblue" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .725] }),
+        { moreButtonSettings: { isBlocking: false, color: "lightblue" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .725], close_on_release: RULES.POPUP_WINDOW_CLOSE_ON_RELEASE }),
     "global": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "pink" }, travelTime: 300, floatTime: 5000, sizeFrac: [.65, .125], posFrac: [.5, .825] }),
+        { moreButtonSettings: { isBlocking: false, color: "pink" }, travelTime: 300, floatTime: 5000, sizeFrac: [.65, .125], posFrac: [.5, .825], close_on_release: RULES.POPUP_WINDOW_CLOSE_ON_RELEASE }),
     "server": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "yellow" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .925] }),
+        { moreButtonSettings: { isBlocking: false, color: "yellow" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], posFrac: [.5, .925], close_on_release: RULES.POPUP_WINDOW_CLOSE_ON_RELEASE }),
     "info": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "lightgray" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], }),
+        { moreButtonSettings: { isBlocking: false, color: "lightgray" }, travelTime: 300, floatTime: 5000, sizeFrac: [.55, .125], close_on_release: RULES.POPUP_WINDOW_CLOSE_ON_RELEASE }),
     "error": (str) => GameEffects.popup(str,
-        { moreButtonSettings: { isBlocking: false, color: "red" }, travelTime: 300, floatTime: 5000, sizeFrac: [.8, .25], posFrac: [.5, .2] }),
+        { moreButtonSettings: { isBlocking: false, color: "red" }, travelTime: 300, floatTime: 5000, sizeFrac: [.8, .25], posFrac: [.5, .2], close_on_release: RULES.POPUP_WINDOW_CLOSE_ON_RELEASE }),
 }
 
 

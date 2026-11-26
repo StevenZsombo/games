@@ -158,7 +158,8 @@ class Game extends GameShared {
                 p.picID,
                 p.machine.current.id,
                 p.person.isConnected ? "OK" : "DISCONNECTED",
-                p.hp, p.canPullFromGrimoire,
+                p.hp,
+                p.canPullFromGrimoire && p.BACKUPcanPullFromGrimoire,
                 p.actives.length,
                 p.passives.length,
                 p.seen.length,
@@ -279,8 +280,9 @@ class Game extends GameShared {
             return this.attempt(Spell.GRIMOIRE[id], person.player, guess)
         })
 
-        chat.eggs("pull", (_, person) => {
+        chat.eggs("pull",/**@param {Person} person */(_, person) => {
             if (!this.allowPullingFromGrimoire) return
+            if (!person.player.BACKUPcanPullFromGrimoire) return
             if (
                 person.player.canPullFromGrimoire
             ) {
@@ -306,10 +308,18 @@ class Game extends GameShared {
             () => this.tickSpellSeconds(1000),
             1000
         )
-        this.tickBroadcastInterval = setInterval(
-            () => this.sendBC(),
-            MASTER.BROADCAST_INTERVAL
-        )
+        //broadcast interval setup (with timers for dynamic!)
+        this.broadcastIntervalDelay = MASTER.BROADCAST_INTERVAL
+        this.broadcastAction = () => {
+            if (this.broadcastIntervalDelay == 0) {
+                console.log("STOPPED BROADCASTING. SAFE TO RESTART")
+                return
+            }
+            this.sendBC()
+            setTimeout(() => this.broadcastAction(), this.broadcastIntervalDelay)
+        }
+        this.broadcastAction()
+
         if (MASTER.AUTOSAVE_INTERVAL_FULL)
             this.autoSaveIntervalFull = setInterval(
                 () => this.exportALL(), MASTER.AUTOSAVE_INTERVAL_FULL)
@@ -674,43 +684,48 @@ class Game extends GameShared {
     }
     exportALL({ minimalOnly = false } = {}) {
         console.log("Attempting to save...")
-        const minimalBackup =
-            JSON.stringify({
-                eventLogStr: eventLog.map(x => x.str),
-                eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
-                table: this.table.txt,
-                grimTable: this.grimTable.txt,
-            })
-        MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY_MINIMAL, 5)
-        localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
-        console.log("created minimal backup")
-        if (minimalOnly) return
-        const str =
-            MM.safeStringify({
-                BC: this.getBCdata(),
-                grim: Spell.GRIMOIRE,
-                players: Player.ALL,
-                // chat: chat, //DONT EVER, IDIOT
-                hpLog: Player.ALL.map(p =>
-                    [p.person.name, p.person.nameID, p.hpLog]),
-                eventLog,
-            })
-        /*
         try {
-            console.log("Successful safeStringify!")
-            MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY, 5)
-            console.log("Made backups")
-            localStorage.setItem(MASTER.LOCALSTORAGE_KEY, str)
-            console.log("Save to local successful!")
-        } catch { }
-        */
-        try {
-            MM.downloadFile(
-                str, "fireball" + MM.dateAndTimeShort() + ".json"
-            )
-            console.log("Save to file successful!")
-        } catch { }
-        return str
+            const minimalBackup =
+                JSON.stringify({
+                    eventLogStr: eventLog.map(x => x.str),
+                    eventLogStrTypeTime: eventLog.map(x => [x.str, x.type, x.time]),
+                    table: this.table.txt,
+                    grimTable: this.grimTable.txt,
+                })
+            MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY_MINIMAL, 5)
+            localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
+            console.log("created minimal backup")
+            if (minimalOnly) return
+            const str =
+                MM.safeStringify({
+                    BC: this.getBCdata(),
+                    grim: Spell.GRIMOIRE,
+                    players: Player.ALL,
+                    // chat: chat, //DONT EVER, IDIOT
+                    hpLog: Player.ALL.map(p =>
+                        [p.person.name, p.person.nameID, p.hpLog]),
+                    eventLog,
+                })
+            /*
+            try {
+                console.log("Successful safeStringify!")
+                MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY, 5)
+                console.log("Made backups")
+                localStorage.setItem(MASTER.LOCALSTORAGE_KEY, str)
+                console.log("Save to local successful!")
+            } catch { }
+            */
+            try {
+                MM.downloadFile(
+                    str, "fireball" + MM.dateAndTimeShort() + ".json"
+                )
+                console.log("Save to file successful!")
+            } catch { }
+            return str
+        } catch (e) {
+            console.error("Failed to export:", e)
+            bpop(`Failed to export: ${e}`)
+        }
     }
 
 

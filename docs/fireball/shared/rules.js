@@ -53,6 +53,8 @@ var RULES = {
     ALLOW_TURNING_OFF_TRAIL: true,
     SETTINGS_SHOWN: true,
 
+    POPUP_WINDOW_CLOSE_ON_RELEASE: true,
+
 
 
 }
