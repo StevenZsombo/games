@@ -60,6 +60,8 @@ class Game extends GameShared {
         wDiv.addLine("initWithStatesDiagnostic")
         await this.initTrail()
         wDiv.addLine("initTrail")
+        await this.initBeautifulTrail()
+        wDiv.addLine("initBeautifulTrail")
 
         wDiv.addLine("\nREADY!")
         setTimeout(wDiv.hide, 500)
@@ -176,6 +178,97 @@ class Game extends GameShared {
 
 
     }
+
+    async initBeautifulTrail() {
+        if (!RULES.BEAUTIFUL_TRAIL) return
+        class Point {
+            constructor(x, y, friends) {
+                this.x = x
+                this.y = y
+                /**@type {Point[]} */
+                if (friends) this.friends = Array.from(friends)
+                this.time = 0
+                this.isRecent = true
+                this.hue = (Date.now() / 10) % 360
+                this.vx = (Math.random()) * Math.sign(Math.random() - .5) * .5 / 16
+                this.vy = (Math.random()) * Math.sign(Math.random() - .5) * .5 / 16
+            }
+        }
+        /**@type {Set<Point>} */
+        const points = new Set()
+        /**@type {Set<Point>} */
+        const recents = new Set()
+        const aliveFor = 1600
+        const recentFor = 1200
+        const radius = 15
+        let lastPos = game.mouser.pos
+        const cooldownBase = 50
+        let cooldown = cooldownBase
+        const addPoint = (x, y, dx, dy) => {
+            x ??= game.mouser.pos.x
+            y ??= game.mouser.pos.y
+            const pt = new Point(x, y,
+                Array.from(recents).slice(-2)
+            )
+            points.add(pt)
+            recents.add(pt)
+            cooldown = cooldownBase
+        }
+        const minMovement = 1
+        this.beautifulTrailDrawableIsActive = true
+        const beautifulTrailDrawable = this.beautifulTrailDrawable = {
+            update(dt) {
+                if (!game.beautifulTrailDrawableIsActive) return
+                cooldown -= dt
+                const dx = game.mouser.pos.x - lastPos.x
+                const dy = game.mouser.pos.y - lastPos.y
+                lastPos = game.mouser.pos
+                if (
+                    dx ** 2 + dy ** 2 > minMovement
+                    && cooldown < 0
+                    // && game.lastHovered.size == 0
+                ) addPoint(null, null, dx, dy)
+                points.forEach(p => {
+                    p.time += dt
+                    p.hue += dt / 360 * 0.1
+                    p.x += p.vx * dt
+                    p.y += p.vy * dt
+                    if (p.isRecent && p.time > recentFor) {
+                        p.isRecent = false
+                        recents.delete(p)
+                    }
+                    if (p.time > aliveFor) {
+                        points.delete(p)
+                    }
+                })
+
+            },
+            draw(ctx) {
+                if (!game.beautifulTrailDrawableIsActive) return
+                points.forEach(p => {
+                    const color = `hsl(${p.hue},100%,50%)`
+                    MM.drawCircle(ctx, p.x, p.y, (1 - p.time / aliveFor) * radius, {
+                        color
+                    })
+                    if (p.isRecent) {
+                        const left = 1 - p.time / recentFor
+                        const color =
+                            // `rgba(100,100,100,${left})`
+                            `hsl(${p.hue},${left * 100}%,50%)`
+                        p.friends.forEach(q =>
+                            MM.drawLine(ctx, p.x, p.y, q.x, q.y, {
+                                color, width: (left) * 2,
+                            })
+                        )
+                    }
+                })
+            }
+        }
+
+        this.add_drawable(beautifulTrailDrawable, 9)
+    }
+
+
     async initWithStates() {
         this.solverMall = new Malleable()
         this.fighterMall = new Malleable()
@@ -250,6 +343,7 @@ class Game extends GameShared {
             .bottomat(this.HEIGHT - GRAPHICS.CALCULA_BOTTOM)
         const calcula = this.calcula =
             new CalculatorButtons(cBG)
+        calcula.calculatorButtons.forEach(x => x.color = GRAPHICS.CALCULA_BUTTONS_BACKGROUND_COLOR)
         const waveWhenApplicable = () => ansOver.rad = this.fasterSin * .15
         calcula.animToggle = (forceOff = false) => {
             if (!forceOff && !calcula.visible) {
@@ -488,6 +582,9 @@ class Game extends GameShared {
                         }
                         ])
                     )],
+                    ["Show beautiful trail: " + (this.beautifulTrailDrawableIsActive ? "ON" : "OFF"),
+                    () => this.beautifulTrailDrawableIsActive = !this.beautifulTrailDrawableIsActive
+                    ],
                     ["Show trails: " + (this.show_trail_visible ? "ON" : "OFF"),
                     () => this.show_trail_visible = !this.show_trail_visible],
 

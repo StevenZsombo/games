@@ -546,8 +546,8 @@ class Game extends GameShared {
                 player: player,
                 spell: spell,
                 time: Date.now(),
-                str: `${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} of ${player.person.name} has no targets available` +
-                    RULES.HEAL_WHEN_OUT_OF_TARGETS ? ` and is instead consumed for ${RULES.HEAL_WHEN_OUT_OF_TARGETS} HP.` : "."
+                str: `${player.person.name}'s ${RULES.SPELL_NAMES[spell.id]} ${RULES.TIER_STRINGS[spell.tier]} has no targets available` +
+                    (RULES.HEAL_WHEN_OUT_OF_TARGETS ? ` and is instead consumed for ${RULES.HEAL_WHEN_OUT_OF_TARGETS} HP.` : ".")
             })
             // this.advanceQueue(player)
             return
