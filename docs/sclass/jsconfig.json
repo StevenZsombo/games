@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "commonjs"
+    },
+    "include": [
+        "./*.js",
+    ],
+    "exclude": [
+        "node_modules",
+        "./sketch*.js",
+        "*/zs/sketch*.js",
+    ]
+}

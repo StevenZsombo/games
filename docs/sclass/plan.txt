@@ -11,9 +11,9 @@ logic(dt) with performance.now()
 Keyboard movement - diagonal vector speed
 getSpeed, Math.hypot
 setSpeed, Early return
-stopOnBounds
 
 Shooting
+stopOnBounds
 shoot(), bullets, destroyOnBounds
 Firate: #now - lastFired instead of #setTimeout flag makes ammo easier to manage
 

@@ -1,4 +1,3 @@
-///@ts-nocheck
 //#region canvas setup
 const canvas = document.getElementById("canvas")
 /**@type {RenderingContext} */
@@ -22,11 +21,11 @@ window.onmouseup = /** @param {MouseEvent} e */ (e) => {
 const heldKeys = {}
 window.onkeydown = /** @param {KeyboardEvent} e */ (e) => {
     heldKeys[e.key] = true
-    e.preventDefault()
+    if (!e.ctrlKey) { e.preventDefault() }
 }
 window.onkeyup = /** @param {KeyboardEvent} e */ (e) => {
     heldKeys[e.key] = false
-    e.preventDefault()
+    if (!e.ctrlKey) { e.preventDefault() }
 }
 //#endregion
 
