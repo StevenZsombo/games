@@ -2,6 +2,7 @@
 const canvas = document.getElementById("canvas")
 /**@type {RenderingContext} */
 const ctx = canvas.getContext("2d")
+const time = () => { return performance.now() / 1000 }
 //#endregion
 //#region input management
 let mouseX, mouseY, mouseHeld
