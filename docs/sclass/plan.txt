@@ -1,0 +1,57 @@
+Functions, arguments, variables - #Arrow functions only, no this context
+Gameloop
+Objects & properties
+player = {x,y,r,color}
+draw(entity)
+graphics() - Background
+
+move(dt)
+logic(dt) with performance.now()
+
+Keyboard movement - diagonal vector speed
+getSpeed, Math.hypot
+setSpeed, Early return
+stopOnBounds
+
+Shooting
+shoot(), bullets, destroyOnBounds
+Firate: #now - lastFired instead of #setTimeout flag makes ammo easier to manage
+
+enemy, Math.random() - Random velocity, position. First anywhere, then at the sides
+bounceOnBounds
+enemies - Sets, .forEach
+createEnemy
+createBigEnemy
+
+checkCollide, collide, die
+score
+hp
+
+lives
+
+Orange: speed up & shrink on_hit
+Pink: split on_death, rotate
+Green: slowly follows player on_move
+Purple: shoot player on_move & createBulletLikeEnemy with on_move hp loss
+
+Shotgun
+
+addMoreEnemies - Random up to a count at first, 
+then gate by score (global tracker triggered by score going up: maxEnemies, options, dripfeed lives)
+
+Juice:
+better stopOnBounds (add player.radius)
+elegant spawning (just outside - rewrite bounceOnBounds with Math.abs)
+background color with alpha - fade effect
+hit effect - brief color change, slowdown
+outlines
+heading indicators
+
+Mechanics:
+ammo & burst-fire
+other abilities (sniper, burst, explode)
+power ups (speed up, invuln, damage, lives)
+other kind of cannons
+more enemy types
+tutorial prompts for movement & enemy behaviour
+dramatic entrances (maxEnemies = 1, options = just one thing, backupOfOptions)

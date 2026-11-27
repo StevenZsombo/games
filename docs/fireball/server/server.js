@@ -595,7 +595,7 @@ class Game extends GameShared {
                 player.downedTimeLeft -= dt
                 if (player.downedTimeLeft <= 0) {
                     eventLog.push({
-                        str: `${player.person.name} is back in the game with ${player.hp} HP!`,
+                        str: `${player.person.name} is back in the game with ${RULES.REVITALIZE_HP} HP!`,
                         type: "revitalize",
                         player: player,
                         time: Date.now(),
