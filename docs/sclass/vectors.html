@@ -71,7 +71,6 @@
       ctx.fillStyle = "black"
       ctx.font = "24px Times"
       ctx.fillText("Lives: " + lives + " Score: " + score + " Wave: " + currentWave, 0, 24)
-      // ctx.fillText("WASD move, mouse shoot, Space shotgun", 0, 480)
       ctx.fillText("Vectors demo game for G10S-class (Mr. Steven)", 0, 490)
     }
 
@@ -395,7 +394,7 @@
       requestAnimationFrame(gameloop)
     }
     //in class, we will just call gameloop() here
-    alert("Hi! WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.")
+    alert("Hi! Use keyboard WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.\nDo NOT play the game during lessons or school activities...")
     setTimeout(gameloop, 1000)
     const gameOver = () => {
       gameIsRunning = false
