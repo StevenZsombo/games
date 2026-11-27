@@ -703,9 +703,11 @@ class Game extends GameShared {
                     table: this.table.txt,
                     grimTable: this.grimTable.txt,
                 })
-            MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY_MINIMAL, 5)
-            localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
-            console.log("created minimal backup")
+            if (minimalOnly) {
+                MM.localStorageBackup(MASTER.LOCALSTORAGE_KEY_MINIMAL, 5)
+                localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
+                console.log("created minimal backup")
+            }
             if (minimalOnly) return
             try {
                 MM.downloadFile(
