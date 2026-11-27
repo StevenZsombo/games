@@ -12,7 +12,7 @@ class Chat {
         }
         if (Chat.HOSTNAMES_INDICATING_OFFLINE.includes(location.hostname)) {
             console.log("According to host name, you are offline. Will not make any connection attempts.")
-            univ.isOnline = false //hacky, but this prevents chat from existing
+            univ && (univ.isOnline = false) //hacky, but this prevents chat from existing
             return
         }
         if (name) { this.name = name }
@@ -324,7 +324,7 @@ class Chat {
                 this.name = name
             } else {
                 while (!name || name.length <= 3 || name.length > 25) {
-                    name = prompt(univ.acquireNameStr).replace(/[^\w\s]/g, '')
+                    name = prompt(univ?.acquireNameStr ?? "What is your name?").replace(/[^\w\s]/g, '')
                 }
                 localStorage.setItem("name", name)
                 this.name = name
@@ -380,12 +380,12 @@ class Chat {
     }
 
     silentReload() {
-        univ.allowQuietReload = true
+        univ && (univ.allowQuietReload = true)
         location.reload()
     }
     delayedReload() {
         setTimeout(() => {
-            univ.allowQuietReload = true
+            univ && (univ.allowQuietReload = true)
             location.reload()
         }, 1)
     }
