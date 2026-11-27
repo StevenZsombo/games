@@ -200,7 +200,7 @@ class Game extends GameShared {
         const recents = new Set()
         const aliveFor = 1600
         const recentFor = 1200
-        const radius = 15
+        const radius = 12
         let lastPos = game.mouser.pos
         const cooldownBase = 50
         let cooldown = cooldownBase
@@ -582,7 +582,7 @@ class Game extends GameShared {
                         }
                         ])
                     )],
-                    ["Show beautiful trail: " + (this.beautifulTrailDrawableIsActive ? "ON" : "OFF"),
+                    ["Show mouse trail: " + (this.beautifulTrailDrawableIsActive ? "ON" : "OFF"),
                     () => this.beautifulTrailDrawableIsActive = !this.beautifulTrailDrawableIsActive
                     ],
                     ["Show trails: " + (this.show_trail_visible ? "ON" : "OFF"),
