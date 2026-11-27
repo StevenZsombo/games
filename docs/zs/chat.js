@@ -89,7 +89,7 @@ class Chat {
                 this.on_join_once = null
                 this.on_join_extras_temp_map.forEach(x => x())
                 this.on_join_extras_temp_map.clear()
-                const many = Array.from(Object.values(this.on_join_sendMany))
+                const many = Array.from(this.on_join_sendMany.values())
                 many.length && this.sendMessage({ many })
                 this.on_join_sendMany.clear()
                 this.on_join?.()
