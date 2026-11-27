@@ -1,0 +1,443 @@
+//#region canvas setup
+const canvas = document.getElementById("canvas")
+/**@type {RenderingContext} */
+const ctx = canvas.getContext("2d")
+//#endregion
+//#region input management
+let mouseX, mouseY, mouseHeld
+canvas.onmousedown = /** @param {MouseEvent} e */ (e) => {
+    mouseHeld = true
+    mouseX = e.offsetX
+    mouseY = e.offsetY
+    e.preventDefault()
+}
+canvas.onmousemove = /** @param {MouseEvent} e */ (e) => {
+    mouseX = e.offsetX
+    mouseY = e.offsetY
+}
+window.onmouseup = /** @param {MouseEvent} e */ (e) => {
+    mouseHeld = false
+}
+const heldKeys = {}
+window.onkeydown = /** @param {KeyboardEvent} e */ (e) => {
+    heldKeys[e.key] = true
+    if (!e.ctrlKey) { e.preventDefault() }
+}
+window.onkeyup = /** @param {KeyboardEvent} e */ (e) => {
+    heldKeys[e.key] = false
+    if (!e.ctrlKey) { e.preventDefault() }
+}
+//#endregion
+
+const listener = new Listener()
+const chat = listener.chat
+
+const sendBC = () => {
+    const bc = [
+        [...enemies].map(({ x, y, color, radius }) => ({ x, y, color, radius }))
+            .concat([...friends.values()].map(p => ({ x: p.x, y: p.y, radius: player.radius, color: "black", id: p.id }))),
+        [...bullets].map(({ x, y }) => ({ x, y })),
+        lives, score, currentWave
+    ]
+    chat.spam("bc",
+        bc
+    )
+    return bc
+}
+
+chat.eggs("b", (data) => {
+    const bullet = createBullet()
+    Object.assign(bullet, data)
+})
+
+const friends = new Map()//string to stuff
+chat.eggs("me", ([x, y], person) => {
+    const id = person.nameID
+    let p = friends.get(id)
+    if (!p) friends.set(id, { radius: player.radius, color: "black", id })
+    p ??= friends.get(id)
+    p.x = x
+    p.y = y
+})
+const player = {
+    x: 250,
+    y: 250,
+    radius: 15,
+    color: "blue",
+    vx: 0,
+    vy: 0
+}
+friends.set("GM", player)
+
+const draw = (obj) => {
+    ctx.beginPath()
+    ctx.arc(obj.x, obj.y, obj.radius, 0, 2 * Math.PI)
+    ctx.fillStyle = obj.color
+    ctx.fill()
+}
+
+const move = (obj, dt) => {
+    obj.x += obj.vx * dt
+    obj.y += obj.vy * dt
+    if (obj.on_move) { obj.on_move(dt) }
+}
+
+
+
+const graphics = () => {
+    ctx.fillStyle = "lightgray"
+    ctx.fillRect(0, 0, 500, 500)
+    draw(player)
+    friends.values().forEach(draw)
+    enemies.forEach(draw)
+    bullets.forEach(draw)
+    ctx.fillStyle = "black"
+    ctx.font = "24px Times"
+    ctx.fillText("Lives: " + lives + " Score: " + score + " Wave: " + currentWave, 0, 24)
+    ctx.fillText("Vectors demo game for G10S-class (Mr. Steven)", 0, 490)
+}
+
+const logic = (dt) => {
+    inputs()
+    setSpeed(player, 200)
+    move(player, dt)
+    stopOnBounds(player)
+    bullets.forEach((bullet) => { move(bullet, dt) })
+    bullets.forEach(destroyOnBounds)
+    enemies.forEach((enemy) => { move(enemy, dt) })
+    enemies.forEach(bounceOnBounds)
+    reload()
+
+    enemies.forEach((enemy) => {
+        bullets.forEach((bullet) => {
+            if (checkCollision(enemy, bullet)) { collide(enemy, bullet) }
+        });
+        [player, ...friends.values()].forEach(p => {
+            if (checkCollision(enemy, p)) {
+                die(enemy)
+                takeDamage()
+            }
+        })
+    })
+
+    createMoreEnemies()
+    sendBC()
+}
+
+let lives = 15
+const takeDamage = () => {
+    lives -= 1
+    if (lives <= 0) gameOver()
+}
+
+const inputs = () => {
+    if (heldKeys.a && !heldKeys.d) { player.vx = -1 }
+    else if (heldKeys.d && !heldKeys.a) { player.vx = 1 }
+    else { player.vx = 0 }
+    if (heldKeys.w && !heldKeys.s) { player.vy = -1 }
+    else if (heldKeys.s && !heldKeys.w) { player.vy = 1 }
+    else { player.vy = 0 }
+    if (mouseHeld) { shoot() }
+    if (heldKeys[" "]) { shotgun() }
+}
+
+
+const bullets = new Set()
+const createBullet = () => {
+    const bullet = {
+        x: player.x,
+        y: player.y,
+        radius: 3,
+        color: "black",
+        vx: mouseX - player.x,
+        vy: mouseY - player.y
+    }
+    setSpeed(bullet, 400)
+    bullets.add(bullet)
+    return bullet
+}
+let lastFiredWhen = 0
+let ammo = 4
+const shoot = () => {
+    if (now() - lastFiredWhen < 50) { return }
+    if (ammo <= 0) { return }
+    lastFiredWhen = now()
+    ammo -= 1
+    createBullet()
+}
+const reload = () => {
+    if (now() - lastFiredWhen >= 300) {
+        ammo = 4
+    }
+}
+let lastShotgunWhen = 0
+const shotgun = () => {
+    if (now() - lastShotgunWhen < 2000) { return }
+    lastShotgunWhen = now()
+    const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+    [-15, -10, -5, 0, 5, 10, 15].forEach((degree) => {
+        const radian = degree / 180 * Math.PI
+        const bullet = createBullet()
+        const speed = getSpeed(bullet)
+        const targetAngle = angle + radian
+        bullet.vx = Math.cos(targetAngle) * speed
+        bullet.vy = Math.sin(targetAngle) * speed
+    })
+}
+const ghostShotgun = ([px, py, mouseX, mouseY]) => {
+    const angle = Math.atan2(mouseY - py, mouseX - px);
+    [-15, -10, -5, 0, 5, 10, 15].forEach((degree) => {
+        const radian = degree / 180 * Math.PI
+        const bullet = createBullet()
+        bullet.x = px
+        bullet.y = py
+        const speed = getSpeed(bullet)
+        const targetAngle = angle + radian
+        bullet.vx = Math.cos(targetAngle) * speed
+        bullet.vy = Math.sin(targetAngle) * speed
+    })
+}
+chat.eggs("s", ghostShotgun)
+
+const getSpeed = (obj) => {
+    return Math.hypot(obj.vx, obj.vy)
+}
+const setSpeed = (obj, targetSpeed) => {
+    if (!obj.vx && !obj.vy) return
+    const currentSpeed = getSpeed(obj)
+    obj.vx /= currentSpeed
+    obj.vx *= targetSpeed
+    obj.vy /= currentSpeed
+    obj.vy *= targetSpeed
+}
+
+const stopOnBounds = (obj) => {
+    if (obj.x < 0) { obj.x = 0 }
+    if (obj.x > 500) { obj.x = 500 }
+    if (obj.y < 0) { obj.y = 0 }
+    if (obj.y > 500) { obj.y = 500 }
+}
+const destroyOnBounds = (bullet) => {
+    if (bullet.x < 0 || bullet.x > 500 || bullet.y < 0 || bullet.y > 500) {
+        bullets.delete(bullet)
+    }
+}
+const bounceOnBounds = (obj) => {
+    if (obj.x < 0) {
+        obj.x = 0
+        obj.vx = Math.abs(obj.vx)
+        if (obj.on_bounce) obj.on_bounce()
+    }
+    if (obj.x > 500) {
+        obj.x = 500
+        obj.vx = -Math.abs(obj.vx)
+        if (obj.on_bounce) obj.on_bounce()
+    }
+    if (obj.y < 0) {
+        obj.y = 0
+        obj.vy = Math.abs(obj.vy)
+        if (obj.on_bounce) obj.on_bounce()
+    }
+    if (obj.y > 500) {
+        obj.y = 500
+        obj.vy = -Math.abs(obj.vy)
+        if (obj.on_bounce) obj.on_bounce()
+    }
+}
+
+
+
+
+
+const enemies = new Set()
+
+const makeEnemy = () => {
+    const enemy = {
+        y: Math.random() * 500,
+        vx: Math.random() - .5,
+        vy: Math.random() - .5,
+        radius: 15,
+        color: "red",
+        hp: 3,
+    }
+    if (Math.random() < .5) { enemy.x = 0 } else { enemy.x = 500 }
+    setSpeed(enemy, 150)
+    enemies.add(enemy)
+    return enemy
+}
+
+const makeRedEnemy = makeEnemy
+
+const makeBrown = () => {
+    const brown = makeEnemy()
+    brown.radius *= 2
+    brown.color = "brown"
+    brown.hp = 6
+    setSpeed(brown, getSpeed(brown) * 0.33)
+
+}
+
+
+const makeGreenEnemy = () => {
+    const green = makeEnemy()
+    green.color = "green"
+    green.radius = 30
+    green.hp = 6
+    green.on_hit = () => {
+        green.radius -= 3.5
+        setSpeed(green, getSpeed(green) * 1.2)
+    }
+}
+
+const makeCyanEnemy = () => {
+    const cyan = makeEnemy()
+    cyan.color = "cyan"
+    setSpeed(cyan, 70)
+    cyan.on_move = () => {
+        pointTowardsPlayer(cyan)
+    }
+}
+
+const makePurpleEnemy = () => {
+    const purple = makeEnemy()
+    purple.color = "purple"
+    let lastShotWhen = now() //closure would be hard to explain... make it a property?
+    purple.on_move = () => {
+        if (now() - lastShotWhen < 900) return
+        lastShotWhen = now()
+        const fake = makeBulletLikeEnemy()
+        fake.x = purple.x
+        fake.y = purple.y
+        pointTowardsPlayer(fake)
+    }
+}
+const makeBulletLikeEnemy = () => {
+    const fake = makeEnemy()
+    fake.hp = 1
+    fake.radius = 3
+    fake.on_bounce = () => { die(fake) }
+    setSpeed(fake, 300) //bit slower than player's bullets
+    fake.color = "purple"
+    return fake
+}
+const pointTowardsPlayer = (obj) => {
+    const speed = getSpeed(obj)
+    obj.vx = player.x - obj.x
+    obj.vy = player.y - obj.y
+    setSpeed(obj, speed)
+}
+
+const makeOrangeEnemy = () => {
+    const orange = makeEnemy()
+    orange.color = "orange"
+    orange.on_death = () => {
+        const split1 = makeEnemy()
+        const split2 = makeEnemy()
+        split1.x = split2.x = orange.x
+        split1.vx = split2.vx = orange.vx
+        split1.y = split2.y = orange.y
+        split1.vy = split2.vy = orange.vy
+        rotate(split1)
+        rotate(split2)
+        rotate(split2)
+        rotate(split2)
+    }
+}
+
+const rotate = (obj) => {
+    const vx = obj.vx
+    const vy = obj.vy
+    obj.vx = vy
+    obj.vy = -vx
+}
+
+
+
+const checkCollision = (enemy, bullet) => {
+    return Math.hypot(enemy.x - bullet.x, enemy.y - bullet.y) < enemy.radius + bullet.radius
+}
+
+
+const collide = (enemy, bullet) => {
+    enemy.hp -= 1
+    if (enemy.hp <= 0) { die(enemy) }
+    bullets.delete(bullet)
+    if (enemy.on_hit) { enemy.on_hit() }
+    /* //kinda silly looking
+    enemy.originalColor ??= enemy.color
+    enemy.color = "white"
+    setTimeout(() => { enemy.color = enemy.originalColor }, 1)
+    */
+}
+
+let score = 0
+const die = (enemy) => {
+    enemies.delete(enemy)
+    score += 1
+    progress()
+    if (enemy.on_death) { enemy.on_death() }
+}
+
+const progress = () => {
+
+}
+
+////wave management won't fit in class, we will skip this entire section until gameloop()
+let maxEnemies = 6
+let options =
+    [makeBrown, makeCyanEnemy, makeRedEnemy, makeOrangeEnemy, makeGreenEnemy, makePurpleEnemy]
+const createMoreEnemiesRogueLike = () => {
+    maxEnemies = 3 + Math.floor(Math.random() * 8)
+    while (enemies.size < maxEnemies) {
+        const choice = options[Math.floor(Math.random() * options.length)]
+        choice()
+    }
+}
+const waveKeys = {
+    r: makeRedEnemy, b: makeBrown, c: makeCyanEnemy, p: makePurpleEnemy, g: makeGreenEnemy, o: makeOrangeEnemy
+}
+const waves =
+    "r rr rrr brr bbrrr cccc ccccbrrr g ggrr ggccrr o oo oooooccc bbbrrr p pppp ppbb ppbbrr rcgpob ccggppoobb".split(" ").filter(x => x)
+let currentWave = 0
+const createMoreEnemiesByWaves = () => {
+    const w = waves.shift()
+    w.split("").forEach(x => waveKeys[x]())
+}
+
+let queuedNewWaveAlready = false
+const createMoreEnemies = () => {
+    if (queuedNewWaveAlready) return
+    if (enemies.size) return
+    queuedNewWaveAlready = true
+    setTimeout(() => {
+        currentWave += 1
+        queuedNewWaveAlready = false
+        if (waves.length) return createMoreEnemiesByWaves()
+        createMoreEnemiesRogueLike()
+    }, 1000)
+}
+
+
+
+const now = () => { return performance.now() }
+let lastGameloopWhen = now()
+let gameIsRunning = true
+//gameloop
+const gameloop = () => {
+    if (!gameIsRunning) return gameOver()
+    const dt = (now() - lastGameloopWhen) / 1000
+    lastGameloopWhen = now()
+    logic(dt)
+    graphics()
+
+    requestAnimationFrame(gameloop)
+}
+//in class, we will just call gameloop() here
+// alert("Hi! Use keyboard WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.\nDo NOT play the game during lessons or school activities...")
+setTimeout(gameloop, 1000)
+const gameOver = () => {
+    chat.spam("gameOver")
+    gameIsRunning = false
+    ctx.fillStyle = "white"
+    ctx.fillText("Game over. Score: " + score + " Wave: " + currentWave, 200, 250)
+}

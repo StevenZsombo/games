@@ -5,6 +5,8 @@
     },
     "include": [
         "./*.js",
+        "./../zs/MM.js",
+        "./../zs/chat.js"
     ],
     "exclude": [
         "node_modules",
