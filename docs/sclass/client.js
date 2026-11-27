@@ -47,6 +47,8 @@ chat.eggs("bc", ([e, b, l, s, c]) => {
     currentWave = c
 })
 chat.eggs("gameOver", () => gameOver())
+chat.on_disconnect = () => lives = score = currentWave = "DISCONNECTED"
+
 
 const player = {
     x: 250,
