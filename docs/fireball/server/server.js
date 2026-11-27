@@ -241,6 +241,7 @@ class Game extends GameShared {
                 ["let pull all", () => Player.ALL.forEach(x => x.canPullFromGrimoire = true)],
                 ["MASS EVAL", () => GameEffects.inputBoxFromRectPromise().then(
                     x => chat.spam("eval", x))],
+                ["Screenshot", () => game.once(() => Cropper.screenshot("fireball"))],
                 ["EXPORT all", () => this.exportALL()]
             ], { moreButtonSettings: { width: 500 } }
         )
@@ -706,6 +707,12 @@ class Game extends GameShared {
             localStorage.setItem(MASTER.LOCALSTORAGE_KEY_MINIMAL, minimalBackup)
             console.log("created minimal backup")
             if (minimalOnly) return
+            try {
+                MM.downloadFile(
+                    minimalBackup, "fireballMinimal" + MM.dateAndTimeShort() + ".json"
+                )
+            }
+            catch { console.error("Failed to save minimal file") }
             const str =
                 MM.safeStringify({
                     BC: this.getBCdata(),

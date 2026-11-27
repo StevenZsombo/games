@@ -11,7 +11,7 @@ To improve:
 
 Improved:
 FIZZLE_AUTO_RETURN_WITHOUT_SERVER with tier function
-Clearer "you are knocked down" info
+Clearer "you are knocked down" info, both client & peer side
 Pulling from the grimoire now gives HEAL_WHEN_PULLING_FROM_GRIMOIRE hp
 State machine for easier player/ui management DONE
 Should be generally easier questions Quickfire problem-solving is preferable! DONE
@@ -32,6 +32,7 @@ Wielded spells now have pulsating circles
 If there are no targets available for the spell, it heals for HEAL_WHEN_OUT_OF_TARGETS
 Key events now immediately force a broadcast DONE
 Allow zooming in and out (experimental)
+Beautiful mouse trail added (optional)
 
 
 Fixed:
