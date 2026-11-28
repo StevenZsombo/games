@@ -37,8 +37,7 @@ const sendBC = () => {
     if (!isSendingBC) { return }
     const bc = [
         [...enemies].map(({ x, y, color, radius }) => [x, y, radius, color])
-            .concat([...friends.values()].map(p =>
-                [p.x, p.y, p.radius, "black", p.id])),
+            .concat([...friends.values()].map(p => [p.x, p.y, p.radius, "black", p.id])),
         [...bullets].map(({ x, y }) => [x, y]),
         lives, score, currentWave
     ]
@@ -68,7 +67,8 @@ const player = {
     radius: 15,
     color: "blue",
     vx: 0,
-    vy: 0
+    vy: 0,
+    id: "GM"
 }
 friends.set("GM", player)
 
@@ -476,5 +476,14 @@ const start = () => {
     queuedNewWaveAlready = false
     lives = (1 + friends.size) * 5
     isSendingBC = true
+}
+{
+    const b = document.createElement("button")
+    b.textContent = "START"
+    document.body.appendChild(b)
+    b.onclick = () => {
+        b.remove()
+        start()
+    }
 }
 gameloop()

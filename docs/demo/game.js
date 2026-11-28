@@ -31,8 +31,60 @@ class Game extends GameCore {
     initialize_more() { }
     async initialize_async() {
 
+        const rows = 190
+        const cols = 100
+        const fatness = 10
+        //1000x1000
+        const draw =/**@param {CanvasRenderingContext2D} ctx */ (ctx) => {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    ctx.fillStyle = game.grid[i][j] ? "black" : "white"
+                    ctx.fillRect(i * fatness, j * fatness, fatness, fatness)
+                }
+            }
+        }
+        const ddd = { draw }
 
+        this.grid = Array(rows).fill().map(_ => Array(cols).fill().map(_ => Math.random() < .5))
 
+        this.w = new GameWorld(game.rect.copy)
+        const i = Button.fromRect(game.rect.copy, { visible: false })
+        this.add_drawable(i)
+        this.w.make_button_on_screen_drag_world(i)
+        this.w.make_button_on_screen_scroll_world_with_wheel(i)
+        this.add_drawable(this.w)
+        this.w.add_drawable(ddd)
+
+        this.cellular = () => {
+            this.grid = MM.cellularAutomata(this.grid)
+        }
+
+        this.conway = () => {
+            this.grid = MM.conwaysGameOfLife(this.grid)
+        }
+
+        const worker = this.worker = MM.createWorker(
+            (grid) => {
+                const neighbours = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+                const numberOfNeighbors = (i, j) => neighbours.reduce((s, [u, w]) => s + (grid[i + u]?.[j + w] ?? 0), 0)
+                return grid.map((x, i) => x.map((alive, j) => {
+                    const n = numberOfNeighbors(i, j)
+                    if (n == 3) return true
+                    if (n == 2 && alive) return true
+                    return false
+                }))
+            })
+
+        this.period = 500
+        worker.onmessage = e => {
+            this.grid = e.data
+            setTimeout(() => redo(), this.period) //infinite loop!
+
+        }
+        const redo = () => {
+            worker.postMessage(this.grid)
+        }
+        redo()
     }
     //#endregion
 

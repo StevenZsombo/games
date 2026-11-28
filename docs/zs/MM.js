@@ -2116,6 +2116,111 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 
 
 
+
+
+    /**@param {string} str  */
+    static capitalizeFirstLetter(str) {
+        return str[0].toUpperCase() + str.slice(1)
+    }
+
+    /**
+     * @param {string} txt
+     * @param {string|string[]} delimiters
+     * @returns {{piece:string,by:string}[]}
+     */
+    static delimitedText(txt, delimiters) {
+        if (!txt) return []
+        if (delimiters == null) throw new Error("no delimiter was given")
+        if (!Array.isArray(delimiters)) delimiters = [...delimiters]
+        const result = []
+        let i = 0
+        const stack = []
+        while (i < txt.length) {
+            let foundDelim = null
+            let openIdx = -1
+            for (const d of delimiters) {
+                const idx = txt.indexOf(d, i)
+                if (idx !== -1 && (openIdx === -1 || idx < openIdx)) {
+                    openIdx = idx
+                    foundDelim = d
+                }
+            }
+            if (foundDelim === null) {
+                if (i < txt.length) result.push({ piece: txt.substring(i), by: "" })
+                break
+            }
+            if (openIdx > i) result.push({ piece: txt.substring(i, openIdx), by: "" })
+            // Check if this is an opening delimiter (not closing a previous one)
+            if (stack.length > 0 && foundDelim !== stack[stack.length - 1]) {
+                throw new Error(`nesting not allowed: ${foundDelim} inside ${stack[stack.length - 1]}`)
+            }
+            const closeIdx = txt.indexOf(foundDelim, openIdx + 1)
+            if (closeIdx === -1) throw new Error(`unclosed delimiter: ${foundDelim}`)
+            // Check for any other delimiter opening before this one closes
+            for (const d of delimiters) {
+                const nextOpen = txt.indexOf(d, openIdx + 1)
+                if (nextOpen !== -1 && nextOpen < closeIdx) {
+                    throw new Error(`nesting not allowed: ${d} inside ${foundDelim}`)
+                }
+            }
+            result.push({ piece: txt.substring(openIdx + 1, closeIdx), by: foundDelim })
+            i = closeIdx + 1
+        }
+        if (stack.length > 0) throw new Error(`unclosed delimiter: ${stack[stack.length - 1]}`)
+        return result
+    }
+
+    static delimitedReplace(txt, delimiter, left, right) {
+        if (!txt) return ""
+        const chopped = MM.delimitedText(txt, delimiter)
+        let result = ""
+        for (const x of chopped) {
+            if (x.by === delimiter) {
+                result += left + x.piece + right
+            } else {
+                result += x.piece
+            }
+        }
+        return result
+    }
+
+    static delimitedReplaceExtract(txt, delimiter, left, right) {
+        if (!txt) return { txt: "", extracted: [] }
+        right ??= left
+        const chopped = MM.delimitedText(txt, delimiter)
+        let result = ""
+        const extracted = []
+        for (const x of chopped) {
+            if (x.by === delimiter) {
+                extracted.push(x.piece)
+                result += left + x.piece + right
+            } else {
+                result += x.piece
+            }
+        }
+        return { txt: result, extracted }
+    }
+    /**@param {number[][]} grid  */
+    static cellularAutomata(grid, { minimumNeighboursNeeded = 5 } = 5) {
+        const neighbours = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+        const numberOfNeighbors = (i, j) => neighbours.reduce((s, [u, w]) => (s + grid[i + u]?.[j + w] ?? 0), 0)
+        return grid.map((x, i) => x.map((_, j) => numberOfNeighbors(i, j) >= minimumNeighboursNeeded))
+    }
+
+    /**@param {number[][]} grid  */
+    static conwaysGameOfLife(grid) {
+        const neighbours = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]]
+        const numberOfNeighbors = (i, j) => neighbours.reduce((s, [u, w]) => s + (grid[i + u]?.[j + w] ?? 0), 0)
+        return grid.map((x, i) => x.map((alive, j) => {
+            const n = numberOfNeighbors(i, j)
+            if (n == 3) return true
+            if (n == 2 && alive) return true
+            return false
+        }))
+    }
+
+
+
     //#region vibe
     static graphRandomPartition(graph, d) {
         const n = graph.length;
@@ -2227,91 +2332,7 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
         }
         return partitions;
     }
-    /**@param {string} str  */
-    static capitalizeFirstLetter(str) {
-        return str[0].toUpperCase() + str.slice(1)
-    }
-
-    /**
-     * @param {string} txt
-     * @param {string|string[]} delimiters
-     * @returns {{piece:string,by:string}[]}
-     */
-    static delimitedText(txt, delimiters) {
-        if (!txt) return []
-        if (delimiters == null) throw new Error("no delimiter was given")
-        if (!Array.isArray(delimiters)) delimiters = [...delimiters]
-        const result = []
-        let i = 0
-        const stack = []
-        while (i < txt.length) {
-            let foundDelim = null
-            let openIdx = -1
-            for (const d of delimiters) {
-                const idx = txt.indexOf(d, i)
-                if (idx !== -1 && (openIdx === -1 || idx < openIdx)) {
-                    openIdx = idx
-                    foundDelim = d
-                }
-            }
-            if (foundDelim === null) {
-                if (i < txt.length) result.push({ piece: txt.substring(i), by: "" })
-                break
-            }
-            if (openIdx > i) result.push({ piece: txt.substring(i, openIdx), by: "" })
-            // Check if this is an opening delimiter (not closing a previous one)
-            if (stack.length > 0 && foundDelim !== stack[stack.length - 1]) {
-                throw new Error(`nesting not allowed: ${foundDelim} inside ${stack[stack.length - 1]}`)
-            }
-            const closeIdx = txt.indexOf(foundDelim, openIdx + 1)
-            if (closeIdx === -1) throw new Error(`unclosed delimiter: ${foundDelim}`)
-            // Check for any other delimiter opening before this one closes
-            for (const d of delimiters) {
-                const nextOpen = txt.indexOf(d, openIdx + 1)
-                if (nextOpen !== -1 && nextOpen < closeIdx) {
-                    throw new Error(`nesting not allowed: ${d} inside ${foundDelim}`)
-                }
-            }
-            result.push({ piece: txt.substring(openIdx + 1, closeIdx), by: foundDelim })
-            i = closeIdx + 1
-        }
-        if (stack.length > 0) throw new Error(`unclosed delimiter: ${stack[stack.length - 1]}`)
-        return result
-    }
-
-    static delimitedReplace(txt, delimiter, left, right) {
-        if (!txt) return ""
-        const chopped = MM.delimitedText(txt, delimiter)
-        let result = ""
-        for (const x of chopped) {
-            if (x.by === delimiter) {
-                result += left + x.piece + right
-            } else {
-                result += x.piece
-            }
-        }
-        return result
-    }
-
-    static delimitedReplaceExtract(txt, delimiter, left, right) {
-        if (!txt) return { txt: "", extracted: [] }
-        right ??= left
-        const chopped = MM.delimitedText(txt, delimiter)
-        let result = ""
-        const extracted = []
-        for (const x of chopped) {
-            if (x.by === delimiter) {
-                extracted.push(x.piece)
-                result += left + x.piece + right
-            } else {
-                result += x.piece
-            }
-        }
-        return { txt: result, extracted }
-    }
-
-
-
+    //#endregion
 
 }
 //#endregion
