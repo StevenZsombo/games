@@ -80,10 +80,6 @@ const draw = (obj) => {
     ctx.stroke()
     ctx.fillStyle = obj.color
     ctx.fill()
-    ctx.moveTo(obj.x, obj.y)
-    const speed = getSpeed(obj)
-    ctx.lineTo(obj.x + obj.radius * obj.vx / speed, obj.y + obj.radius * obj.vy / speed)
-    ctx.stroke()
 }
 
 const move = (obj, dt) => {
@@ -475,8 +471,9 @@ lives = 999
 const start = () => {
     queuedNewWaveAlready = false
     lives = (1 + friends.size) * 5
-    isSendingBC = true
 }
+
+isSendingBC = true
 {
     const b = document.createElement("button")
     b.textContent = "START"

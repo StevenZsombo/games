@@ -68,10 +68,6 @@ const draw = (obj) => {
     ctx.stroke()
     ctx.fillStyle = obj.color
     ctx.fill()
-    ctx.moveTo(obj.x, obj.y)
-    const speed = getSpeed(obj)
-    ctx.lineTo(obj.x + obj.radius * obj.vx / speed, obj.y + obj.radius * obj.vy / speed)
-    ctx.stroke()
 }
 
 const move = (obj, dt) => {
@@ -107,11 +103,6 @@ const logic = (dt) => {
 
 }
 
-
-const takeDamage = () => {
-    lives -= 1
-    if (lives <= 0) gameOver()
-}
 
 const inputs = () => {
     if (heldKeys.a && !heldKeys.d) { player.vx = -1 }
@@ -155,7 +146,6 @@ const shotgun = () => {
     if (now() - lastShotgunWhen < 2000) { return }
     lastShotgunWhen = now()
     chat.spam("s", [player.x, player.y, mouseX, mouseY])
-
 }
 
 const getSpeed = (obj) => {
@@ -176,68 +166,7 @@ const stopOnBounds = (obj) => {
     if (obj.y < 0) { obj.y = 0 }
     if (obj.y > 500) { obj.y = 500 }
 }
-const destroyOnBounds = (bullet) => {
-    if (bullet.x < 0 || bullet.x > 500 || bullet.y < 0 || bullet.y > 500) {
-        bullets.delete(bullet)
-    }
-}
-const bounceOnBounds = (obj) => {
-    if (obj.x < 0) {
-        obj.x = 0
-        obj.vx = Math.abs(obj.vx)
-        if (obj.on_bounce) obj.on_bounce()
-    }
-    if (obj.x > 500) {
-        obj.x = 500
-        obj.vx = -Math.abs(obj.vx)
-        if (obj.on_bounce) obj.on_bounce()
-    }
-    if (obj.y < 0) {
-        obj.y = 0
-        obj.vy = Math.abs(obj.vy)
-        if (obj.on_bounce) obj.on_bounce()
-    }
-    if (obj.y > 500) {
-        obj.y = 500
-        obj.vy = -Math.abs(obj.vy)
-        if (obj.on_bounce) obj.on_bounce()
-    }
-}
 
-
-
-
-
-
-
-
-const checkCollision = (enemy, bullet) => {
-    return Math.hypot(enemy.x - bullet.x, enemy.y - bullet.y) < enemy.radius + bullet.radius
-}
-
-
-const collide = (enemy, bullet) => {
-    enemy.hp -= 1
-    if (enemy.hp <= 0) { die(enemy) }
-    bullets.delete(bullet)
-    if (enemy.on_hit) { enemy.on_hit() }
-    /* //kinda silly looking
-    enemy.originalColor ??= enemy.color
-    enemy.color = "white"
-    setTimeout(() => { enemy.color = enemy.originalColor }, 1)
-    */
-}
-
-const die = (enemy) => {
-    enemies.delete(enemy)
-    score += 1
-    progress()
-    if (enemy.on_death) { enemy.on_death() }
-}
-
-const progress = () => {
-
-}
 
 
 
@@ -254,13 +183,9 @@ const gameloop = () => {
 
     requestAnimationFrame(gameloop)
 }
-//in class, we will just call gameloop() here
-// alert("Hi! Use keyboard WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.\nDo NOT play the game during lessons or school activities...")
-// setTimeout(gameloop, 1000)
 const gameOver = () => {
     gameIsRunning = false
     ctx.fillStyle = "white"
     ctx.fillText("Game over. Score: " + score + " Wave: " + currentWave, 200, 250)
 }
-
 gameloop()
