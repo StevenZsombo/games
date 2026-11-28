@@ -213,6 +213,18 @@ class Supabase {
 		})
 	}
 
+	static async miscRead(filterByEvent = undefined) {
+		const response = await fetch(`${Supabase.SUPABASE_URL}/rest/v1/misc?select=name,nameID,data,event${filterByEvent !== undefined ? "&event=eq." + filterByEvent : ""}`, {
+			headers: {
+				apikey: Supabase.SUPABASE_KEY,
+				Authorization: `Bearer ${Supabase.SUPABASE_KEY}`
+			}
+		})
+		const text = await response.text()
+		const table = JSON.parse(text)
+		return table
+	}
+
 
 	static name = null
 	static nameID = null
