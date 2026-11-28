@@ -40,8 +40,8 @@ let lives = 5
 let score = 0
 let currentWave = 0
 chat.eggs("bc", ([e, b, l, s, c]) => {
-    enemies = e
-    bullets = b.map(a => ({ ...a, color: "black", radius: 3 }))
+    enemies = e.map(([x, y, radius, color, id]) => ({ x, y, radius, color, id }))
+    bullets = b.map(([x, y]) => ({ x, y, color: "black", radius: 3 }))
     lives = l
     score = s
     currentWave = c
@@ -59,12 +59,19 @@ const player = {
     vy: 0
 }
 
+
 const draw = (obj) => {
     if (obj.id == chat.nameID) return
     ctx.beginPath()
     ctx.arc(obj.x, obj.y, obj.radius, 0, 2 * Math.PI)
+    ctx.strokeStyle = "black"
+    ctx.stroke()
     ctx.fillStyle = obj.color
     ctx.fill()
+    ctx.moveTo(obj.x, obj.y)
+    const speed = getSpeed(obj)
+    ctx.lineTo(obj.x + obj.radius * obj.vx / speed, obj.y + obj.radius * obj.vy / speed)
+    ctx.stroke()
 }
 
 const move = (obj, dt) => {
@@ -249,10 +256,11 @@ const gameloop = () => {
 }
 //in class, we will just call gameloop() here
 // alert("Hi! Use keyboard WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.\nDo NOT play the game during lessons or school activities...")
-setTimeout(gameloop, 1000)
+// setTimeout(gameloop, 1000)
 const gameOver = () => {
     gameIsRunning = false
     ctx.fillStyle = "white"
     ctx.fillText("Game over. Score: " + score + " Wave: " + currentWave, 200, 250)
 }
 
+gameloop()

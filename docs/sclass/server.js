@@ -32,11 +32,14 @@ window.onkeyup = /** @param {KeyboardEvent} e */ (e) => {
 const listener = new Listener()
 const chat = listener.chat
 
+let isSendingBC = false
 const sendBC = () => {
+    if (!isSendingBC) { return }
     const bc = [
-        [...enemies].map(({ x, y, color, radius }) => ({ x, y, color, radius }))
-            .concat([...friends.values()].map(p => ({ x: p.x, y: p.y, radius: player.radius, color: "black", id: p.id }))),
-        [...bullets].map(({ x, y }) => ({ x, y })),
+        [...enemies].map(({ x, y, color, radius }) => [x, y, radius, color])
+            .concat([...friends.values()].map(p =>
+                [p.x, p.y, p.radius, "black", p.id])),
+        [...bullets].map(({ x, y }) => [x, y]),
         lives, score, currentWave
     ]
     chat.spam("bc",
@@ -69,11 +72,18 @@ const player = {
 }
 friends.set("GM", player)
 
+
 const draw = (obj) => {
     ctx.beginPath()
     ctx.arc(obj.x, obj.y, obj.radius, 0, 2 * Math.PI)
+    ctx.strokeStyle = "black"
+    ctx.stroke()
     ctx.fillStyle = obj.color
     ctx.fill()
+    ctx.moveTo(obj.x, obj.y)
+    const speed = getSpeed(obj)
+    ctx.lineTo(obj.x + obj.radius * obj.vx / speed, obj.y + obj.radius * obj.vy / speed)
+    ctx.stroke()
 }
 
 const move = (obj, dt) => {
@@ -294,7 +304,7 @@ const makeCyanEnemy = () => {
     cyan.color = "cyan"
     setSpeed(cyan, 70)
     cyan.on_move = () => {
-        pointTowardsPlayer(cyan)
+        turnTowards(cyan, player)
     }
 }
 
@@ -308,7 +318,7 @@ const makePurpleEnemy = () => {
         const fake = makeBulletLikeEnemy()
         fake.x = purple.x
         fake.y = purple.y
-        pointTowardsPlayer(fake)
+        turnTowards(fake, player)
     }
 }
 const makeBulletLikeEnemy = () => {
@@ -320,10 +330,10 @@ const makeBulletLikeEnemy = () => {
     fake.color = "purple"
     return fake
 }
-const pointTowardsPlayer = (obj) => {
+const turnTowards = (obj, target) => {
     const speed = getSpeed(obj)
-    obj.vx = player.x - obj.x
-    obj.vy = player.y - obj.y
+    obj.vx = target.x - obj.x
+    obj.vy = target.y - obj.y
     setSpeed(obj, speed)
 }
 
@@ -351,6 +361,25 @@ const rotate = (obj) => {
     obj.vy = -vx
 }
 
+
+const makeTealEnemyDEPR = () => {
+    const teal = makeEnemy()
+    teal.color = "teal"
+    let { x, y, vx, vy } = teal
+    let slowCoeff = 1
+    vx *= slowCoeff
+    vy *= slowCoeff
+    let r = 50
+    let a = 0
+    let w = 1
+    teal.on_move = (dt) => {
+        x += vx * dt
+        y += vy * dt
+        a += dt * w
+        turnTowards(teal, { x: x + r * Math.cos(a), y: y + r * Math.sin(a) })
+    }
+    //doesn't work :(
+}
 
 
 const checkCollision = (enemy, bullet) => {
@@ -434,10 +463,18 @@ const gameloop = () => {
 }
 //in class, we will just call gameloop() here
 // alert("Hi! Use keyboard WASD to move, mouse to shoot, Space to shotgun!\nThere are six different enemy types, learn their behaviour and how to exploit them.\nThere are " + waves.length + " handmade waves, then infinitely many generated at random.\nDo NOT play the game during lessons or school activities...")
-setTimeout(gameloop, 1000)
 const gameOver = () => {
     chat.spam("gameOver")
     gameIsRunning = false
     ctx.fillStyle = "white"
     ctx.fillText("Game over. Score: " + score + " Wave: " + currentWave, 200, 250)
 }
+
+queuedNewWaveAlready = true //so no enemies spawn
+lives = 999
+const start = () => {
+    queuedNewWaveAlready = false
+    lives = (1 + friends.size) * 5
+    isSendingBC = true
+}
+gameloop()

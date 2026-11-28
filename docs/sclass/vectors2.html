@@ -191,22 +191,22 @@
     }
     const bounceOnBounds = (obj) => {
       if (obj.x < obj.radius) {
-        // obj.x = 0
+        obj.x = obj.radius
         obj.vx = Math.abs(obj.vx)
         if (obj.on_bounce) obj.on_bounce()
       }
       if (obj.x > 500 - obj.radius) {
-        // obj.x = 500
+        obj.x = 500 - obj.radius
         obj.vx = -Math.abs(obj.vx)
         if (obj.on_bounce) obj.on_bounce()
       }
       if (obj.y < obj.radius) {
-        // obj.y = 0
+        obj.y = obj.radius
         obj.vy = Math.abs(obj.vy)
         if (obj.on_bounce) obj.on_bounce()
       }
       if (obj.y > 500 - obj.radius) {
-        // obj.y = 500
+        obj.y = 500 - obj.radius
         obj.vy = -Math.abs(obj.vy)
         if (obj.on_bounce) obj.on_bounce()
       }
@@ -293,6 +293,11 @@
       obj.vy = player.y - obj.y
       setSpeed(obj, speed)
     }
+
+    const inner = ([a, b], [x, y]) => { return a * x + b * y }
+
+    const innerV = (obj, [x, y]) => { return obj.vx * x + obj.vy * y }
+
 
     const makeOrangeEnemy = () => {
       const orange = makeEnemy()
