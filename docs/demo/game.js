@@ -31,9 +31,9 @@ class Game extends GameCore {
     initialize_more() { }
     async initialize_async() {
 
-        const rows = 1900
-        const cols = 1000
-        const fatness = 1
+        const rows = 190
+        const cols = 100
+        const fatness = 10
         //1000x1000
         const draw =/**@param {CanvasRenderingContext2D} ctx */ (ctx) => {
             ctx.save()
@@ -61,8 +61,8 @@ class Game extends GameCore {
         this.add_drawable(this.w)
         this.w.add_drawable(ddd)
 
-        this.cellular = () => {
-            this.grid = MM.cellularAutomata(this.grid)
+        this.cellular = (minimumNeighboursNeeded = 5) => {
+            this.grid = MM.cellularAutomata(this.grid, { minimumNeighboursNeeded })
         }
 
         this.conway = () => {
@@ -122,8 +122,31 @@ class Game extends GameCore {
         }
 
         this.voronoi = voronoi
-        voronoi()
-        game.once(() => game.isDrawing = false)
+        // voronoi()
+        // game.once(() => game.isDrawing = false)
+
+        this.randomwalk = (color = "blue", steps = 100) => {
+            let i = Math.floor(rows / 2)
+            let j = Math.floor(cols / 2)
+            this.grid.forEach(x => x.fill(0))
+            const paint = () => (this.grid[i]?.[j] != null) && (this.grid[i][j] = color)
+            paint()
+            // const options = [-1, 0, 1].flatMap(x => [-1, 0, 1].map(y => [x, y])).filter((([x, y]) => x || y))
+            const options = [[-1, 0], [1, 0], [0, 1], [0, -1]]
+            const step = () => {
+                const c = MM.choice(options)
+                i += c[0]
+                j += c[1]
+                paint()
+            }
+            /*
+            setInterval(() => {
+                if (steps-- > 0) {
+                    step()
+                }
+            }, 5)*/
+            while (steps-- > 0) step()
+        }
     }
     //#endregion
 
