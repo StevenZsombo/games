@@ -19,7 +19,7 @@ var univ = {
     on_first_run_async: null, //async function. overrides on_first_run_blocking
     on_next_game_once: null,
     on_beforeunload: null,
-    allowQuietReload: false,
+    allowQuietReload: true,
     acquireNameStr: "Your English name (at least 4 letters):", //for chat
     acquireNameMoreStr: "(English name + homeroom)" //for Supabase
 }
@@ -31,17 +31,23 @@ class Game extends GameCore {
     initialize_more() { }
     async initialize_async() {
 
-        const rows = 190
-        const cols = 100
-        const fatness = 10
+        const rows = 1900
+        const cols = 1000
+        const fatness = 1
         //1000x1000
         const draw =/**@param {CanvasRenderingContext2D} ctx */ (ctx) => {
+            ctx.save()
+            ctx.scale(fatness, fatness)
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
-                    ctx.fillStyle = game.grid[i][j] ? "black" : "white"
-                    ctx.fillRect(i * fatness, j * fatness, fatness, fatness)
+                    const value = game.grid[i][j]
+                    if (typeof value === "string") ctx.fillStyle = value
+                    else ctx.fillStyle = value ? "black" : "white"
+                    ctx.fillRect(i, j, 1, 1)
+
                 }
             }
+            ctx.restore()
         }
         const ddd = { draw }
 
@@ -84,7 +90,40 @@ class Game extends GameCore {
         const redo = () => {
             worker.postMessage(this.grid)
         }
-        redo()
+        // redo()
+
+        const voronoi = () => {
+            /**@type {boolean[][]} */
+            const grid = this.grid
+            grid.forEach(x => x.fill(false))
+            const bases = 24
+            const colors = Array(bases).fill().map((_, i) => `hsl(${360 / bases * i} 50% 50%)`)
+            const winners = MM.choice(Array.from({ length: rows * cols }, (_, i) => i), bases)
+            const indices = winners.map(k => [k % rows, (k - k % rows) / rows])
+            /*
+            indices.forEach(([i, j], k) => {
+                grid[i][j] = colors[k]
+            })
+            */
+            const findClosest = (i, j) => {
+                let closest = 0
+                let bestDist = Infinity
+                indices.forEach(([x, y], k) => {
+                    let dist = (x - i) ** 2 + (y - j) ** 2
+                    if (dist < bestDist) {
+                        closest = k
+                        bestDist = dist
+                    }
+                })
+                return colors[closest]
+            }
+            this.grid = grid.map((x, i) => x.map((_, j) => findClosest(i, j)))
+            return { grid: this.grid, bases, colors, winners, indices }
+        }
+
+        this.voronoi = voronoi
+        voronoi()
+        game.once(() => game.isDrawing = false)
     }
     //#endregion
 
