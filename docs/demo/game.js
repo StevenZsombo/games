@@ -31,19 +31,19 @@ class Game extends GameCore {
     initialize_more() { }
     async initialize_async() {
 
-        const rows = 190
-        const cols = 100
+        const cols = 190
+        const rows = 100
         const fatness = 10
         //1000x1000
         const draw =/**@param {CanvasRenderingContext2D} ctx */ (ctx) => {
             ctx.save()
             ctx.scale(fatness, fatness)
-            for (let i = 0; i < rows; i++) {
-                for (let j = 0; j < cols; j++) {
+            for (let i = 0; i < game.grid.length; i++) {
+                for (let j = 0; j < game.grid[0].length; j++) {
                     const value = game.grid[i][j]
                     if (typeof value === "string") ctx.fillStyle = value
                     else ctx.fillStyle = value ? "black" : "white"
-                    ctx.fillRect(i, j, 1, 1)
+                    ctx.fillRect(j, i, 1, 1)
 
                 }
             }
@@ -52,6 +52,8 @@ class Game extends GameCore {
         const ddd = { draw }
 
         this.grid = Array(rows).fill().map(_ => Array(cols).fill().map(_ => Math.random() < .5))
+
+        this.noise = () => this.grid = Array(rows).fill().map(_ => Array(cols).fill().map(_ => Math.random() < .5))
 
         this.w = new GameWorld(game.rect.copy)
         const i = Button.fromRect(game.rect.copy, { visible: false })
@@ -82,8 +84,10 @@ class Game extends GameCore {
             })
 
         this.period = 500
+        let canDoInfinite = false
         worker.onmessage = e => {
             this.grid = e.data
+            if (!canDoInfinite) return
             setTimeout(() => redo(), this.period) //infinite loop!
 
         }
@@ -91,12 +95,14 @@ class Game extends GameCore {
             worker.postMessage(this.grid)
         }
         // redo()
-
-        const voronoi = () => {
+        this.infiniteConway = () => {
+            canDoInfinite = true
+            redo()
+        }
+        const voronoi = (bases) => {
             /**@type {boolean[][]} */
             const grid = this.grid
             grid.forEach(x => x.fill(false))
-            const bases = 24
             const colors = Array(bases).fill().map((_, i) => `hsl(${360 / bases * i} 50% 50%)`)
             const winners = MM.choice(Array.from({ length: rows * cols }, (_, i) => i), bases)
             const indices = winners.map(k => [k % rows, (k - k % rows) / rows])
@@ -125,7 +131,7 @@ class Game extends GameCore {
         // voronoi()
         // game.once(() => game.isDrawing = false)
 
-        this.randomwalk = (color = "blue", steps = 100) => {
+        this.randomwalk = (color = "blue", steps = 2000) => {
             let i = Math.floor(rows / 2)
             let j = Math.floor(cols / 2)
             this.grid.forEach(x => x.fill(0))
@@ -147,6 +153,113 @@ class Game extends GameCore {
             }, 5)*/
             while (steps-- > 0) step()
         }
+
+        this.bsp = (iterations = 6) => {
+            const rect = function (x, y, w, h) { return ({ x, y, w, h }) }
+            let minsize = 6
+            let R = rows
+            let C = cols
+
+            const split = r => {
+                if (r.w < 2 * minsize || r.h < 2 * minsize) return [r]
+                if (r.w > r.h) {
+                    let bp = minsize + Math.floor(Math.random() * (r.w - 2 * minsize))
+                    return [rect(r.x, r.y, bp, r.h), rect(r.x + bp, r.y, r.w - bp, r.h)]
+                } else {
+                    let bp = minsize + Math.floor(Math.random() * (r.h - 2 * minsize))
+                    return [rect(r.x, r.y, r.w, bp), rect(r.x, r.y + bp, r.w, r.h - bp)]
+                }
+            }
+
+
+
+            let a = [rect(0, 0, R, C)]
+
+            const b = Array(R).fill().map(_ => Array(C).fill("#"))
+
+            const draw = (r) => {
+                for (let i = r.x; i < r.x + r.w; i++) {
+                    for (let j = r.y; j < r.y + r.h; j++) {
+                        b[i][j] = "."
+                    }
+                }
+            }
+
+            const display = () => { console.log(b.map(x => x.join("")).join("\n")) }
+
+            const pickRoom = (r) => {
+                const w = minsize - 2 + Math.floor(Math.random() * (r.w - 2 - (minsize - 2)))
+                const h = minsize - 2 + Math.floor(Math.random() * (r.h - 2 - (minsize - 2)))
+                const x = r.x + 1 + Math.floor(Math.random() * (r.w - w - 2))
+                const y = r.y + 1 + Math.floor(Math.random() * (r.h - h - 2))
+                r.room = rect(x, y, w, h)
+            }
+
+            const center = r => [r.x + r.w / 2, r.y + r.h / 2].map(Math.floor)
+            const carveCorridor = (r1, r2) => {
+                const [c1, c2] = [r1, r2].map(center)
+                const [xlower, xhigher] = c1[0] < c2[0] ? [c1[0], c2[0]] : [c2[0], c1[0]]
+                const [ylower, yhigher] = c1[1] < c2[1] ? [c1[1], c2[1]] : [c2[1], c1[1]]
+                const [cornerX, cornerY] =
+                    // Math.random() < .5 
+                    true ? [c1[0], c2[1]] : [c2[0], c1[1]];
+                for (let i = xlower; i <= xhigher; i++) b[i][cornerY] = ".";
+                for (let j = ylower; j <= yhigher; j++) b[cornerX][j] = ".";
+            }
+
+            let rounds = iterations ?? +prompt()
+            let lastNumberOfRooms = a.length
+            while (rounds-- > 0) {
+                a = a.flatMap(split)
+                if (a.length == lastNumberOfRooms) {
+                    console.error("number of rooms stabilized after only ", iterations - rounds, "iterations")
+                    break
+                }
+                lastNumberOfRooms = a.length
+            }
+            a.forEach(pickRoom)
+            const rooms = a.map(x => x.room)
+            rooms.forEach(draw)
+            //rooms that came from the same split are adjacent, so I can just do a shifting window
+            rooms.slice(1).forEach((x, i) => carveCorridor(x, rooms[i]))
+            display()
+
+            this.grid = b.map(x => x.map(k => k == "#"))
+
+            return { a, b, rooms }
+        }
+
+        const buttonMall = this.buttonMall = new Malleable()
+        const lowerRect = new Rect(0, 0, this.WIDTH, this.HEIGHT - rows * fatness).untangle()
+        lowerRect.stretch(.9, .7)
+        lowerRect.bottomat(this.HEIGHT)
+        const wanted = [
+            ["noise", () => this.noise()],
+            ["cellular", () => this.cellular()],
+            ["conway", () => this.conway()],
+            ["infiniteConway", () => {
+                this.infiniteConway()
+                ICB.txt = "STOP"
+                ICB.on_release = () => {
+                    canDoInfinite = false
+                    ICB.txt = wanted[3][0]
+                    ICB.on_release = wanted[3][1]
+                }
+
+            }],
+            ["voronoi", () => this.voronoi(+prompt("bases"))],
+            ["BSP", () => this.bsp(+prompt("number of iterations:"))]
+        ]
+        buttonMall.push(...
+            lowerRect.splitGrid(1, wanted.length).flat().map((r, i) => {
+                r = Button.fromRect(r)
+                r.color = "lightgray"
+                r.txt = wanted[i][0]
+                r.on_release = wanted[i][1]
+                return r
+            }))
+        const ICB = buttonMall.find(x => x.txt == "infiniteConway")
+        this.add_drawable(buttonMall, 6)
     }
     //#endregion
 

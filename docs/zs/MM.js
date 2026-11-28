@@ -1954,7 +1954,7 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
 
     /**
      * Creates an inline Web Worker from a function that returns a value.
-     * @param {Function} fn - Function that receives data and returns a result.
+     * @param {Function} fn - Function for the worker. SINGLE ARGUMENT
      * @returns {Worker} A Web Worker instance.
      * @example
      * const worker = MM.createWorker(x => x ** 2)
@@ -1966,7 +1966,7 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
             const fn = ${fn.toString()};
             self.onmessage = (e) => {
             self.postMessage(fn(e.data));
-        };
+            };
     `], { type: 'application/javascript' });
         return new Worker(URL.createObjectURL(blob));
     }
@@ -2218,6 +2218,190 @@ ${preTagAlso ? "<pre>" : ""}${html}${preTagAlso ? "</pre>" : ""}
             return false
         }))
     }
+
+
+    /**
+     * returns a BFS-generated flow field from every connected cells of the grid to the target
+     * target cell is grid[targetY][targetX]
+     * @static
+     * @param {boolean[][]} grid - truthy values are walkable
+     * @param {number} targetX 
+     * @param {number} targetY 
+     * @param {?number} earlyReturnX - cancels the search when this cell is reached
+     * @param {?number} earlyReturnY - cancels the search when this cell is reached
+     * @returns {[number,number,number][][]} - [dx,dy,distance] for each cell that can reach, true for unreachable, and false for walls
+     */
+    static flowfieldBFS(grid, targetX, targetY, earlyReturnX, earlyReturnY) {
+        const rows = grid.length
+        const cols = grid[0].length
+        const out = grid.map(x => x.map(Boolean))
+        const hasEarlyReturn = earlyReturnX !== undefined && earlyReturnY !== undefined
+
+        const queue = [[targetX, targetY, 0]]
+        out[targetY][targetX] = [0, 0, 0]
+        const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]] //NESW
+        while (queue.length) {
+            const [x, y, dist] = queue.shift()
+
+            for (const [dx, dy] of DIRECTIONS) {
+                const nx = x + dx
+                const ny = y + dy
+                if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue
+                if (out[ny][nx] !== true) continue
+                out[ny][nx] = [-dx, -dy, dist + 1]
+                if (hasEarlyReturn && ny === earlyReturnY && nx === earlyReturnX) return out
+                queue.push([nx, ny, dist + 1])
+            }
+        }
+        return out
+    }
+
+    /**
+    * returns the shortest path from (sourceX, sourceY) to (targetX, targetY).
+    * target cell is grid[targetY][targetX]
+    * @static
+    * @param {boolean[][]} grid - truthy values are walkable
+    * @param {number} targetX
+    * @param {number} targetY
+    * @param {number} sourceX
+    * @param {number} sourceY
+    * @returns {[number,number][]|null} - path from source to target inclusive, or null if unreachable
+    */
+    static bestpathBFS(grid, targetX, targetY, sourceX, sourceY) {
+        const rows = grid.length
+        const cols = grid[0].length
+        const visited = grid.map(x => x.map(Boolean))
+        if (visited[targetY][targetX] !== true || visited[sourceY][sourceX] !== true) return null
+        const parent = Array.from({ length: rows }, () => Array(cols).fill(null))
+        const queue = [[targetX, targetY]]
+        visited[targetY][targetX] = false
+        const DIRECTIONS = [[0, -1], [1, 0], [0, 1], [-1, 0]] //NESW
+        let found = false //awkward flag
+        while (queue.length && !found) {
+            const [x, y] = queue.shift()
+            if (x === sourceX && y === sourceY) { found = true; break }
+            for (const [dx, dy] of DIRECTIONS) {
+                const nx = x + dx
+                const ny = y + dy
+                if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue
+                if (visited[ny][nx] !== true) continue
+                visited[ny][nx] = false
+                parent[ny][nx] = [x, y]
+                queue.push([nx, ny])
+            }
+        }
+        if (!found) return null
+        const path = []
+        let x = sourceX, y = sourceY
+        while (x !== targetX || y !== targetY) {
+            path.push([x, y]);
+            [x, y] = parent[y][x]
+        }
+        path.push([targetX, targetY])
+        return path
+    }
+
+
+    /**
+     * BSP
+     * @static
+     * @param {{ cols?: number; rows?: number; iterations?: number; minsize?: number; moregap?: number; }} [param0={}] 
+     * @param {number} [param0.cols=190] 
+     * @param {number} [param0.rows=100] 
+     * @param {number} [param0.iterations=15] 
+     * @param {number} [param0.minsize=3] 
+     * @param {number} [param0.moregap=1] 
+     * @returns {{ 
+     * partitions: {x,y,w,h}[]; 
+     * gridWithStr: string[][]; 
+     * str: string; 
+     * artisinal: string; 
+     * roomsRects: {x,y,w,h}[]; 
+     * gridWithFloorsTrue: boolean[][]; 
+     * gridWithWallsTrue: boolean[][]; 
+     * corridorsList: [number,number][][]; }} 
+     */
+    static bsp({ cols = 190, rows = 100, iterations = 15, minsize = 3, moregap = 1 } = {}) {
+        const rect = function (x, y, w, h) { return ({ x, y, w, h }) }
+        const split = r => {
+            if (r.w < 2 * (minsize + 2 * moregap) || r.h < 2 * (minsize + 2 * moregap)) return [r]
+            if (r.w > r.h) {
+                let bp = (minsize + 2 * moregap) + Math.floor(Math.random() * (r.w - 2 * (minsize + 2 * moregap)))
+                return [rect(r.x, r.y, bp, r.h), rect(r.x + bp, r.y, r.w - bp, r.h)]
+            } else {
+                let bp = (minsize + 2 * moregap) + Math.floor(Math.random() * (r.h - 2 * (minsize + 2 * moregap)))
+                return [rect(r.x, r.y, r.w, bp), rect(r.x, r.y + bp, r.w, r.h - bp)]
+            }
+        }
+        const gridWithStr = Array(rows).fill().map(_ => Array(cols).fill("W"))
+        let partitions = [rect(0, 0, cols, rows)]
+        const carveRectangle = (r) => {
+            for (let i = r.x; i < r.x + r.w; i++) {
+                for (let j = r.y; j < r.y + r.h; j++) {
+                    gridWithStr[j][i] = "F"
+                }
+            }
+        }
+        const pickRoom = (r) => {
+            const w = minsize + Math.floor(Math.random() * (r.w - minsize - moregap))
+            const h = minsize + Math.floor(Math.random() * (r.h - minsize - moregap))
+            const x = r.x + moregap + Math.floor(Math.random() * (r.w - w - 2 * moregap))
+            const y = r.y + moregap + Math.floor(Math.random() * (r.h - h - 2 * moregap))
+            r.room = rect(x, y, w, h)
+        }
+        const center = r => [r.x + r.w / 2, r.y + r.h / 2].map(Math.floor)
+        const corridorsList = []
+        const carveCorridor = (r1, r2) => {
+            const [c1, c2] = [r1, r2].map(center)
+            const [xlower, xhigher] = c1[0] < c2[0] ? [c1[0], c2[0]] : [c2[0], c1[0]]
+            const [ylower, yhigher] = c1[1] < c2[1] ? [c1[1], c2[1]] : [c2[1], c1[1]]
+            const cells = []
+            const [cornerX, cornerY] =
+                // Math.random() < .5 
+                true ? [c1[0], c2[1]] : [c2[0], c1[1]];
+            for (let i = xlower; i <= xhigher; i++) {
+                if (gridWithStr[cornerY][i] != "W") continue
+                gridWithStr[cornerY][i] = "C"
+                cells.push([cornerY, i])
+            }
+            for (let j = ylower; j <= yhigher; j++) {
+                if (gridWithStr[j][cornerX] != "W") continue
+                gridWithStr[j][cornerX] = "C"
+                cells.push([j, cornerX])
+            }
+            if (cells.length) corridorsList.push(cells)
+        }
+
+        let lastNumberOfRooms = partitions.length
+        while (iterations-- > 0) {
+            partitions = partitions.flatMap(split)
+            if (partitions.length == lastNumberOfRooms) {
+                break
+            }
+            lastNumberOfRooms = partitions.length
+        }
+        partitions.forEach(pickRoom)
+        const roomsRects = partitions.map(x => x.room)
+        roomsRects.forEach(carveRectangle)
+        //rooms that came from the same split are adjacent, so I can just do a shifting window
+        roomsRects.slice(1).forEach((x, i) => carveCorridor(x, roomsRects[i]))
+
+        const gridWithWallsTrue = gridWithStr.map(x => x.map(k => k == "W"))
+        const gridWithFloorsTrue = gridWithWallsTrue.map(x => x.map(k => !k))
+        const str = gridWithStr.map(x => x.join("")).join("\n")
+        return {
+            partitions,
+            gridWithStr,
+            str,
+            artisinal: gridWithWallsTrue.map(x => x.map(k => k ? "#" : ".").join("")).join("\n"),
+            roomsRects,
+            gridWithFloorsTrue,
+            gridWithWallsTrue,
+            corridorsList,
+        }
+    }
+
+
 
 
 
